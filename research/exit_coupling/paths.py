@@ -37,7 +37,6 @@ import dataclasses
 from dataclasses import dataclass
 
 import numpy as np
-
 from utils.ExitPolicy import (
     STOP_AT_MARKET_RATIO,
     ExitParams,
@@ -218,9 +217,10 @@ def path_metrics(b: Bars, e: int, open_rate: float, params: ExitParams, *, gain:
 
 
 def replay(b: Bars, e: int, open_rate: float, params: ExitParams, *, roi: float | None,
-           roi_suppressed, end: int, rules: Rules = Rules(),
+           roi_suppressed, end: int, rules: Rules | None = None,
            tick: float | None = None) -> Exit:
     """Re-exit one trade entered at open[e] (see module docstring for the per-bar order)."""
+    rules = rules if rules is not None else Rules()
     fee = params.fee_per_side
     if rules.take_profit_atr_mult is not None:
         params = dataclasses.replace(

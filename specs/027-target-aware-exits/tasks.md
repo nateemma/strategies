@@ -127,7 +127,7 @@ the exit code reflects the verdict.
 
   Either below 90% in either family: exit 2, STOP, and diagnose the replay before T007 (constitution
   "audit the instrument").
-- [ ] T007 [US1] Run:
+- [X] T007 [US1] Run:
   ```
   python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st_book_rev2 \
       --out specs/027-target-aware-exits/feasibility.md
@@ -149,7 +149,7 @@ off.
 - invariants hold;
 - each switch has unit-tested behaviour.
 
-- [ ] T008 [P] [US2] Write `utils/tests/test_exit_policy_coupling.py` (contract C2):
+- [-] T008 (N/A: US1 STOP, no coupling SUPPORTED) [P] [US2] Write `utils/tests/test_exit_policy_coupling.py` (contract C2):
   - `ExitParams` validation (domains; C1 ≥ −0.10; a switch without targets refused);
   - `custom_exit_decision` with every new input `None` is identical to today on the existing
     characterisation fixture;
@@ -158,19 +158,19 @@ off.
   - C3 order: a take-profit, unclog_12h or unclog_1d decision on the same bar wins over C3, and C3
     wins over max_hold (research R4); the same cases give the same answer through the T003 hook;
   - `simulate_forward` raises if any coupling field is set.
-- [ ] T009 [US2] Edit `utils/ExitPolicy.py` (contract C2):
+- [-] T009 (N/A: US1 STOP, no coupling SUPPORTED) [US2] Edit `utils/ExitPolicy.py` (contract C2):
   - add the optional fields, `CLOSE_HORIZON`, the keyword-only decision inputs,
     `coupled_stop_floor` and `lock_price_ratio`, and the `simulate_forward` refusal;
   - leave `SIMULATION_LOGIC_VERSION` unchanged;
   - make T008 pass.
-- [ ] T010 [P] [US2] Extend `utils/tests/test_stop_invariants.py` (contract C4):
+- [-] T010 (N/A: US1 STOP, no coupling SUPPORTED) [P] [US2] Extend `utils/tests/test_stop_invariants.py` (contract C4):
   - a C1 stop at −10% passes;
   - a −11% stop under a −10% `stop_min_depth` bound raises;
   - a C5 lock / C3 break-even on a trade already below the lock returns `STOP_AT_MARKET_RATIO`;
   - C4's longer grace does not trip the direction check.
-- [ ] T011 [US2] Edit `utils/StopInvariants.py`: the bound floor includes `stop_min_depth` when set.
+- [-] T011 (N/A: US1 STOP, no coupling SUPPORTED) [US2] Edit `utils/StopInvariants.py`: the bound floor includes `stop_min_depth` when set.
   Make T010 pass.
-- [ ] T012 [US2] Edit `Framework/BaseStrategy.py` (contract C3):
+- [-] T012 (N/A: US1 STOP, no coupling SUPPORTED) [US2] Edit `Framework/BaseStrategy.py` (contract C3):
   - `_exit_params` maps `EXIT_TARGETS` + coupling fields;
   - `_target_touched` from closed candles of the analysed dataframe (never `trade.max_rate`);
   - in `custom_stoploss`: C4 grace length, C1 floor in `_resolve_normal_stop`, C3 break-even and
@@ -181,20 +181,20 @@ off.
   Every branch is skipped when its field is `None`. No family or trigger names. Add a
   `utils/tests/test_base_strategy_coupling.py` covering each branch with a stub dataprovider and a
   stub trade, including a lock that must NOT activate on the touch candle itself.
-- [ ] T013 [P] [US2] Edit `evaluation/fingerprint.py` (contract C5):
+- [-] T013 (N/A: US1 STOP, no coupling SUPPORTED) [P] [US2] Edit `evaluation/fingerprint.py` (contract C5):
   - `EXIT_TARGETS`/`EXIT_COUPLING` are optional members;
   - new ExitParams fields are dropped from the family hash while `None`.
 
   Write `evaluation/tests/test_fingerprint_027.py`: every class listed in T001 hashes to its
   baseline sha.
-- [ ] T014 [P] [US2] Edit `regime/run_arm.py` (contract C6) to record `exit_coupling`. Create
+- [-] T014 (N/A: US1 STOP, no coupling SUPPORTED) [P] [US2] Edit `regime/run_arm.py` (contract C6) to record `exit_coupling`. Create
   `evaluation/coupling_liveness.py` (research R5b):
   - inputs are pooled sets only;
   - per half: paired trades with a different exit, trades unique to either side, folds with a
     different `trades_hash`, `horizon_close` count;
   - a test in `evaluation/tests/test_coupling_liveness.py`: identical sets count 0; one moved exit
     counts 1 in its half.
-- [ ] T015 [US2] Switch-off reproduction (SC-002):
+- [-] T015 (N/A: US1 STOP, no coupling SUPPORTED) [US2] Switch-off reproduction (SC-002):
   - plans `plan_st_cpl_off_mom.json` / `plan_st_cpl_off_rev.json` run the unchanged reference
     classes under fresh tags, all 15 folds;
   - every fold's `trades_hash` must equal the recorded reference arm's;
@@ -216,32 +216,32 @@ off.
 **Independent Test**: per arm, non-zero liveness in both halves; the late P&L verdict and risk line
 are in `decisions.md`.
 
-- [ ] T016 [US3] Create the arm classes `SimpleTrigger/SimpleTrigger_<Ref>_C<n>.py` (contract C7),
+- [-] T016 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Create the arm classes `SimpleTrigger/SimpleTrigger_<Ref>_C<n>.py` (contract C7),
   one per SUPPORTED coupling × applicable family:
   - each sets `EXIT_TARGETS = {"gain": 0.02, "horizon_bars": 48}` and ONE coupling, with the value
     copied from `feasibility.json` (comment citing it);
   - C4 is arm-wide (grace length and depth);
   - `--dry-run` the plans `plan_st_cpl_<ref>_c<n>.json` to confirm the classes.
-- [ ] T017 [US3] Run the arms sequentially (one chain), 15 folds each. Run
+- [-] T017 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Run the arms sequentially (one chain), 15 folds each. Run
   `evaluation.coupling_liveness` for each against its reference: zero changed trades in a half →
   INERT, reported and not judged.
-- [ ] T018 [US3] Judge each arm with `halves.split` (`PYTHONHASHSEED=0`) against its reference arm:
+- [-] T018 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Judge each arm with `halves.split` (`PYTHONHASHSEED=0`) against its reference arm:
   - late P&L verdict (adoption = IMPROVED);
   - late risk line;
   - whole-span line;
   - results appended to `specs/027-target-aware-exits/decisions.md`.
-- [ ] T019 [US3] Combination: for a family with ≥ 2 adopted couplings, create and run one arm with
+- [-] T019 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Combination: for a family with ≥ 2 adopted couplings, create and run one arm with
   all of them, and judge it the same way (FR-012). Otherwise mark `[-]`.
-- [ ] T020 [US3] Per-family conflict check (US3 scenario 2): a coupling adopted for one family and
+- [-] T020 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Per-family conflict check (US3 scenario 2): a coupling adopted for one family and
   WORSENED for the other is recorded as per-family. For C4 (arm-wide grace), the recommendation is
   conditional on both families.
-- [ ] T021 [US3] Commit arm classes, plans and `decisions.md`.
+- [-] T021 (N/A: US1 STOP, no coupling SUPPORTED) [US3] Commit arm classes, plans and `decisions.md`.
 
 ---
 
 ## Phase 6: User Story 4 — report & polish (Priority: P4)
 
-- [ ] T022 [US4] Write `specs/027-target-aware-exits/report.md`:
+- [X] T022 [US4] Write `specs/027-target-aware-exits/report.md`:
   - SUMMARY;
   - feasibility table ((a)–(d) per family × half, the rules and verdicts, the fidelity check);
   - switches built (or the STOP);
@@ -251,11 +251,11 @@ are in `decisions.md`.
   - fix-oriented next steps.
 
   Every figure is labelled PROVISIONAL.
-- [ ] T023 [US4] Memory:
+- [X] T023 [US4] Memory:
   - a new `project_027_target_aware_exits.md`;
   - update the `MEMORY.md` "Current state" line and the `index_exits.md` hub;
   - a feedback memory if a non-obvious lesson emerges (e.g. the closed-candle touch rule).
-- [ ] T024 Full test gate: `utils/tests`, `evaluation/tests`, `research/exit_coupling`,
+- [X] T024 Full test gate: `utils/tests`, `evaluation/tests`, `research/exit_coupling`,
   `research/outcomes/tests`, `SimpleTrigger`, `regime`. Lint the added lines only. Mark tasks `[X]`.
   Final commit.
 

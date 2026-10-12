@@ -49,7 +49,8 @@ FIDELITY_MIN = 0.90
 C1_BOUND = -0.10
 STOP_REASONS = {"stop_loss", "trailing_stop_loss", "stoploss_on_exchange"}
 
-#: Pre-declared grids (research R3). C1 / C4 values are percentiles turned into depths on early data.
+#: Pre-declared grids (research R3). C1 / C4 values are percentiles turned into depths on early
+#: data.
 GRID = {
     "C1": (80, 90),
     "C3": ("close", "breakeven"),
@@ -83,7 +84,8 @@ def gains_by_half(df: pd.DataFrame, coupling: str, value) -> dict:
 
 
 def supported(conditions: dict) -> bool:
-    """`conditions` = {half: [bool, ...]}; SUPPORTED only if every condition holds in BOTH halves."""
+    """`conditions` = {half: [bool, ...]}; SUPPORTED only if every condition holds in BOTH
+    halves."""
     return all(all(conditions[h]) for h in ("early", "late"))
 
 
@@ -110,10 +112,10 @@ def summarise(df: pd.DataFrame) -> dict:
     below = touched_life[touched_life["rec_profit"] < touched_life["target_net"]]
     q = lambda s, p: None if s.empty else float(np.percentile(s, p))  # noqa: E731
     return {
-        "trades": int(len(df)),
+        "trades": len(df),
         "ambiguous": int(amb.sum()),
-        "label_positive": int(len(lp)),
-        "a_stop_exits": int(len(stops)),
+        "label_positive": len(lp),
+        "a_stop_exits": len(stops),
         "a_touch_after_stop_h": _share((stops["touch_h_after"]).sum(), len(stops)),
         "a_touch_after_stop_maxhold": _share((stops["touch_m_after"]).sum(), len(stops)),
         "b_killed_share": _share(len(killed), len(lp)),
@@ -122,9 +124,9 @@ def summarise(df: pd.DataFrame) -> dict:
         "b_mae_depth_p50_p80_p90_p95": [q(depth, p) for p in (50, 80, 90, 95)],
         "b_stop_at_touch_median": q(lp["stop_at_touch"].dropna(), 50),
         "c_bars_to_touch_p25_p50_p75": [q(lp["touch_h"] - lp["e"], p) for p in (25, 50, 75)],
-        "c_open_past_horizon_no_touch": int(len(past)),
+        "c_open_past_horizon_no_touch": len(past),
         "c_open_past_horizon_pp": float(past["rec_pp"].sum()),
-        "d_touched_exited_below": int(len(below)),
+        "d_touched_exited_below": len(below),
         "d_giveback_mean": None if below.empty else float((below["target_net"]
                                                             - below["rec_profit"]).mean()),
         "pp_recorded": float(df["rec_pp"].sum()),
@@ -247,7 +249,8 @@ def trade_rows(tag: str, class_name: str, family: str) -> tuple[pd.DataFrame, di
         tm = P.first_touch(b, e, maxhold_end, open_rate * (1 + TARGET_GAIN))
         th = m["touch"]
         # ROI suppressed (`ignore_roi_if_entry_signal`): the bars of the recorded life where ROI
-        # would have fired, yet the trade stayed open. Unknown beyond the recorded exit: not blocked.
+        # would have fired, yet the trade stayed open. Unknown beyond the recorded exit: not
+        # blocked.
         roi_supp: frozenset = frozenset()
         if roi is not None:
             hi = b.high[e:rec_idx]
@@ -398,10 +401,10 @@ def render(result: dict) -> str:
     for fam, r in result["families"].items():
         fid = r["fidelity"]
         lines += [f"## {fam} (`{r['tag']}`)", "",
-                  f"fidelity: null replay reproduces {_f(fid['null_replay_agreement'])} of "
-                  f"recorded exits (reason AND bar); stop model agrees on "
-                  f"{_f(fid['stop_model_agreement'])} of stop exits (median gap "
-                  f"{_f(fid['stop_model_median_gap_pp'])} pp)", "",
+                  (f"fidelity: null replay reproduces {_f(fid['null_replay_agreement'])} of "
+                   f"recorded exits (reason AND bar); stop model agrees on "
+                   f"{_f(fid['stop_model_agreement'])} of stop exits (median gap "
+                   f"{_f(fid['stop_model_median_gap_pp'])} pp)"), "",
                   "| metric | early | late |", "|---|---|---|"]
         for key in r["summary"]["early"]:
             lines.append(f"| {key} | {_f(r['summary']['early'][key])} | "
@@ -413,15 +416,16 @@ def render(result: dict) -> str:
             g = f"{gain['early']:+.2f} / {gain['late']:+.2f}" if gain else "—"
             lines.append(f"| {c} | {json.dumps(v.get('value'))} | {g} | "
                          f"**{v.get('verdict')}** |")
-        lines += ["", "all grid values, replay gain pp (early / late; reported, not used to choose):", ""]
+        lines += ["", ("all grid values, replay gain pp (early / late; reported, not used to "
+                       "choose):"), ""]
         for c, v in r.get("verdicts", {}).items():
             for val, g in (v.get("all_gains_pp") or {}).items():
                 lines.append(f"- {c} `{val}`: {g['early']:+.2f} / {g['late']:+.2f}")
             if v.get("conditions"):
                 lines.append(f"- {c} conditions (early / late): "
                              f"{v['conditions']['early']} / {v['conditions']['late']}")
-        lines += ["", f"null-replay agreement by recorded reason: "
-                      f"`{json.dumps(fid['by_recorded_reason'])}`", ""]
+        lines += ["", (f"null-replay agreement by recorded reason: "
+                       f"`{json.dumps(fid['by_recorded_reason'])}`"), ""]
     lines += [f"overall: **{result['overall']}** (exit {result['exit']})", ""]
     return "\n".join(lines)
 

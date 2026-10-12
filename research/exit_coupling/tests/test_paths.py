@@ -7,7 +7,6 @@ import inspect
 
 import numpy as np
 import pytest
-
 from research.exit_coupling import paths as P
 from utils.ExitPolicy import ExitParams, net_from_price_ratio
 
