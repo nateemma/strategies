@@ -12,7 +12,7 @@
 | `fidelity_min` | float | 0.90 |
 | `recovery_floor` | float | 0.50 |
 | `min_control_trades` | int | 200 |
-| `rule` | object | (a)–(d) of R4, written out |
+| `rule` | object | (a)–(d) of R4 written out, plus the verdict-value mapping table and the gate-5 re-run rule |
 | `deviations` | list | empty at commit. Each later entry is `{date, change, reason}`. |
 
 ## Window feasibility (`feasibility.json`)
@@ -31,12 +31,13 @@ These are computed per window (2022). The 2023–26 halves come from 027 and are
 |---|---|
 | `id`, `class`, `plan_tag` | identity (FR-006) |
 | `sum_pp_arm`, `sum_pp_ctl`, `gain_pp` | rule (a) |
-| `paired` | `{verdict, delta_pp, ci_pp_yr, p}` — rule (b) |
+| `paired` | `{verdict, delta_pp, ci_pp_yr, p, flag}` — rule (b) via the R4 mapping. `delta_pp` is reported only. `flag` is set for ARM_LOSES or UNDERPOWERED. |
 | `risk` | `risk.compare` output — rule (c) |
 | `early_gain_pp`, `late_gain_pp` | rule (d), copied from the pre-registration |
 | `folds_changed` | liveness (count of e-folds whose trades_hash differs from the control) |
 | `exit_reasons_arm`, `exit_reasons_ctl` | context |
-| `ci_half_width_pp` | power statement |
+| `ci_half_width_pp` | power statement, (hi − lo) / 2 × years, in pp over the window (R4) |
+| `rerun_hash_match` | for an ADOPTED gain under 1 pp: whether the fresh-tag re-run reproduced `trades_hash` (gate 5); null otherwise |
 | `verdict` | ADOPT, NOT ADOPTED, INCONCLUSIVE or STOPPED_AT_FEASIBILITY |
 | `failed` | list of the rule letters that failed |
 

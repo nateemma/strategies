@@ -44,7 +44,7 @@ the last fold (2026-09-07 to 2026-10-10) is about one month.
 ### Session 2026-10-12
 
 - Q: Which fresh judging window? → A: 2022 on binance.us, from the end of the warm-up (about 2022-03) to 2022-12-31.
-- Q: What counts as ADOPT? → A: Persistence. The fresh-window gain is positive, P&L and risk are not WORSE, and the sign matches both 2023–26 halves.
+- Q: What counts as ADOPT? → A: Persistence. The fresh-window gain is positive, P&L and risk are not WORSE, and the sign matches both 2023–26 halves. (FR-005 formalises this as "not WORSENED", with every verdict value mapped.)
 - Q: Family scope? → A: Reversion only.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -74,8 +74,10 @@ candidate.
    **Then** its timestamp is later than the pre-registration's commit, and the record names it.
 2. **Given** the fresh window's control trades, **When** the replay runs, **Then** its null replay
    reproduces at least 90% of recorded exits (reason AND bar) before any candidate is scored.
-3. **Given** a candidate, **When** it is scored, **Then** it passes only if the recovery share is
-   at least the pre-declared floor AND its replay gain, discounted by 2×, is positive.
+3. **Given** a candidate, **When** it is scored, **Then** it passes only if its replay gain is
+   positive AND, for the stop-side candidates (C4, C1, C4+C2), the recovery share is at least the
+   pre-declared floor. C2 alone changes the take-profit, not the stop, so the floor does not apply
+   to it. The replay gain discounted by 2× is reported as the expected arm gain.
 4. **Given** no candidate passes, **When** the report is written, **Then** the feature stops and
    records the negative with its numbers.
 
@@ -128,8 +130,8 @@ reproduces the exploratory arm's trades exactly. The stop invariants hold.
    (sign, never looser than the documented bound, grace rescale direction) hold, and a violation
    stops the run.
 4. **Given** a coupling that is already an existing parameter (C4 is the grace length), **When** it
-   is adopted, **Then** no new switch is added; the adoption is a per-family parameter value,
-   recorded as such.
+   is adopted, **Then** no new switch is added; the adoption is a strategy-level declared
+   parameter (the grace stop is shared across families by definition), recorded as such.
 
 ---
 
@@ -184,19 +186,25 @@ evidence level.
   (2023-01-01) and is split into folds of the usual length. This is about 10 months of a bear
   regime that no SimpleTrigger arm has been backtested on (clarified 2026-10-12, Q1: A).
 - **FR-004**: The feasibility condition MUST target the measured mechanism: the share of stop exits
-  that recover to the target within the max hold (floor pre-declared), and the P&L they forgo. It
-  MUST be computed on the judging window's control trades with the existing replay, after the
+  that recover to the target within the max hold (floor pre-declared, applied to the stop-side
+  candidates), plus a positive replay gain for every candidate. The P&L those recoveries forgo
+  MUST be reported alongside, not used as a condition. It MUST be computed on the judging window's control trades with the existing replay, after the
   replay passes its ≥ 90% fidelity check on that window.
 - **FR-005**: The decision rule MUST be fixed in the pre-registration and MUST combine the
   fresh-window paired P&L verdict and the risk verdict. Its form is a persistence rule (clarified
   2026-10-12, Q2: B). A candidate is ADOPTED only if ALL of these hold:
-  (a) its fresh-window summed per-fold P&L gain over the control is positive;
-  (b) its fresh-window paired P&L verdict is not WORSE;
-  (c) its fresh-window risk verdict is not WORSE;
-  (d) its gain has the same sign as its 2023–26 early AND late gains (positive for all 027
-      candidates).
+  (a) its fresh-window gain over the control, measured as summed per-fold P&L, is positive;
+  (b) its fresh-window paired P&L verdict is not WORSENED;
+  (c) its fresh-window risk verdict is not WORSENED, for Sharpe or for max drawdown;
+  (d) its gain has the same sign as its 2023–26 early AND late gains, also as per-fold sums
+      (positive for all 027 candidates).
+  Every value either verdict can return MUST be mapped to pass, fail or INCONCLUSIVE in the
+  pre-registration, including INCONCLUSIVE_ARM_LOSES, which a bear-market window makes likely.
   The paired p-value and the window's power MUST be reported alongside, so the verdict is never
   mistaken for a significance test.
+- **FR-005a**: For an ADOPTED gain below 1 pp, run-to-run variance MUST be shown to be nil
+  (constitution quality gate 5). These arms carry no model and no seed, so this means one 2022
+  fold re-run under a fresh tag reproducing an identical trade set.
 - **FR-006**: Every candidate arm MUST be distinguishable from the control in its run record
   (class name and strategy hash, or a recorded parameter), because the framework fingerprint does
   not see method overrides.
@@ -205,7 +213,7 @@ evidence level.
 - **FR-008**: The family scope MUST be reversion only (`st_book_rev2`) (clarified 2026-10-12,
   Q3: A). Momentum (`st_bgo_mx`) is out of scope: its 027 replay was consistent with its target.
 - **FR-009**: An adopted coupling MUST be promoted into the single shared exit definition as a
-  default-off switch, or as a per-family parameter value where the coupling is already a parameter.
+  default-off switch, or as a strategy-level declared parameter where the coupling is already one (C4).
   No exit logic may be duplicated per strategy or family. No pair-specific code.
 - **FR-010**: With every new switch off, every recorded arm MUST keep its fingerprint and both
   reference arms MUST reproduce their recorded trades in 15 of 15 folds.

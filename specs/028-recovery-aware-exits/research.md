@@ -67,12 +67,37 @@ killing, which 027 showed is rare (2–3%).
 ## R4 — Decision rule (US2), as clarified (Q2: B)
 
 A candidate is **ADOPTED** only if ALL of the following hold, with arm and control on e00–e02:
-- **(a)** Σ per-fold pp (arm) − Σ per-fold pp (control) > 0.
-- **(b)** The paired P&L verdict is not WORSE. This is `compare_pooled.compare_data` via
-  `halves.split(arm, ctl, split_after="e99")["early"]`, the repository's one verdict
-  implementation.
-- **(c)** `risk.compare` (pinned seed and blocks): Sharpe not WORSENED AND max drawdown not
-  WORSENED.
+- **(a)** Σ per-fold `return_pct` (arm) − Σ per-fold `return_pct` (control) > 0. This is the
+  "gain" everywhere in this feature, the same per-fold sum 027 and rule (d) use.
+  - `compare_data`'s `delta_pp` (the observed paired trade-level delta) is reported but never
+    decides; the two can differ in sign.
+- **(b)** The paired P&L verdict is not WORSENED. It is computed by `compare_pooled.compare_data` on
+  `halves.subset(arm, E)` and `halves.subset(ctl, E)`, where E = {e00, e01, e02}, called
+  directly: the repository's one verdict implementation.
+- **(c)** `risk.compare` (pinned seed and blocks) on the same subsets: Sharpe not WORSENED AND max
+  drawdown not WORSENED.
+
+**Verdict mapping (pre-registered).** Every value the two verdicts can return:
+
+| verdict value | rule (b), P&L | rule (c), each risk statistic |
+|---|---|---|
+| IMPROVED | pass | pass |
+| UNCHANGED | pass | pass |
+| WORSENED | **fail** | **fail** |
+| INCONCLUSIVE_UNDERPOWERED (< MIN_DIFF_TRADES paired differences) | pass, flagged | — |
+| INCONCLUSIVE_ARM_LOSES (arm total ≤ 0) | pass, flagged | — |
+| INCONCLUSIVE_ABSORBED (no trade differs) | → INCONCLUSIVE (liveness) | — |
+| UNRESOLVABLE | → INCONCLUSIVE | → INCONCLUSIVE |
+
+Why ARM_LOSES passes (b):
+- That refusal exists because a delta against a broken or abstaining comparison arm measures the
+  comparison arm (`compare_pooled` admissibility note).
+- Here the comparison arm is the same strategy with today's exit, run on the same folds. An arm
+  that loses less than it in a bear market is the effect being tested.
+- The flag is shown in `verdicts.md`.
+
+UNDERPOWERED passes (b) for the same reason UNCHANGED does: the rule is a persistence test, not a
+significance test.
 - **(d)** The arm's gain is > 0 in BOTH 2023–26 halves (f00–f07 and f08–f14).
   - It holds for C4, C2 and C1 per 027 `exploratory.md`.
   - For C4+C2 it is measured in setup, before pre-registration. If it fails there, C4+C2 is still
@@ -87,6 +112,17 @@ A candidate is **ADOPTED** only if ALL of the following hold, with arm and contr
 - the paired p;
 - the 95% CI;
 - its half-width as the window's power: the smallest gain this window could call IMPROVED.
+  - `compare_data` gives the interval in pp per year (`ci_pp_yr`).
+  - Half-width in pp over the window = (hi − lo) / 2 × years, where years = Σ test_days / 365
+    (300/365).
+  - This is the same unit as rule (a)'s gain.
+
+**Run-to-run variance (constitution quality gate 5).**
+- For any ADOPTED candidate whose gain is under 1 pp, its fold with the largest absolute per-fold
+  gain is re-run under a fresh tag (`st_e22_<id>_rr`).
+- Its `trades_hash` must equal the original; that shows the deterministic, model-free arm has
+  zero run-to-run variance.
+- If it differs, the verdict becomes INCONCLUSIVE and the cause is reported.
 
 **Recommendation among the adopted**:
 - the one with the largest 2022 gain;
@@ -116,7 +152,8 @@ identifies each arm by `strategy` (class name) in the record and refuses if two 
     resolved `stoploss_grace_hours`;
   - (ii) any 2022 arm record's mtime is older than the pre-registration commit time
     (`git log -1 --format=%ct -- preregistration.json`);
-  - (iii) the JSON has uncommitted changes.
+  - (iii) `preregistration.json` has uncommitted changes. The readable `.md` is not checked; it
+    receives the commit-sha follow-up commit.
 - A deviation after commit is a new, dated section in `preregistration.md`, and the report lists it.
 
 **Alternative rejected**: a timestamp inside the record. Arm records have none, and adding one

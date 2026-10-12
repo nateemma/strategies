@@ -76,6 +76,7 @@ on f00–f14 is about 3 min. The replay over about 1,000 trades takes minutes.
 | Framework strategy-agnostic | PASS | Promoted switches are `ExitParams` fields with no family or trigger names |
 | Parameter dicts merge | PASS | Through the existing merging `SELL_OVERRIDES` and `FAMILY_EXITS` |
 | Quality gate 1 (pinned range) | PASS | Fold windows are fixed in the pre-registration |
+| Quality gate 5 (seed robustness under 1 pp) | PASS | An ADOPTED gain under 1 pp needs a fresh-tag re-run with an identical `trades_hash` (R4, T014a). The arms are deterministic and model-free. |
 
 ## Project Structure
 

@@ -21,7 +21,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 - Commit to master, staging named files only.
 - **NO 2022 backtest or replay before T009 is committed.** That includes dry probes that run
   `run_arm`. `--dry-run` of `run_folds` is allowed, because it runs nothing.
-- **US1 is a STOP gate.** If T012 exits 3 (no candidate passes), mark T013–T024 `[-]` with the
+- **US1 is a STOP gate.** If T012 exits 3 (no candidate passes), mark T013–T022 `[-]` with the
   reason and go to Phase 6.
 - **US3 builds only what US2 ADOPTED.** A sub-item for a candidate that was not adopted is marked
   `[-]` in place. If nothing is adopted, mark all of Phase 5 `[-]`.
@@ -88,6 +88,14 @@ contracts/interfaces.md I1–I3, quickstart.md)
     - all pass → ADOPT;
     - paired UNCHANGED with a positive gain → ADOPT (the rule is not a significance test);
     - a risk WORSENED in either Sharpe or maxDD → NOT ADOPTED.
+  - `map_paired` / `map_risk`: every verdict value in the R4 mapping table. In particular:
+    - INCONCLUSIVE_ARM_LOSES and INCONCLUSIVE_UNDERPOWERED pass (b) with a flag;
+    - INCONCLUSIVE_ABSORBED and UNRESOLVABLE give INCONCLUSIVE;
+    - an unknown value raises.
+  - Rule (a) uses the per-fold sum, not `delta_pp`: a case where they differ in sign follows (a).
+  - `ci_half_width_pp([-36.5, 73.0], 300/365)` = 45.0.
+  - The re-run check helper: an equal `trades_hash` keeps the verdict; a different one turns
+    ADOPT into INCONCLUSIVE.
   - The refusal helpers (R6):
     - a class constant different from the pre-registration;
     - a record mtime older than the pre-registration commit time;
@@ -101,8 +109,12 @@ contracts/interfaces.md I1–I3, quickstart.md)
     `half_of` labels e-folds "late", which confirm.py ignores);
   - `paths.replay` with fixed `Rules` per candidate (C4 `grace_hours=12.0`; C2
     `take_profit_atr_mult=k`; C1 `stop_min_depth=d`; C42 both C4 and C2);
-  - `halves.split(arm, ctl, split_after="e99")["early"]` for the paired verdict;
-  - `risk.compare` for the risk verdict.
+  - `compare_pooled.compare_data(halves.subset(arm, E), halves.subset(ctl, E))` with
+    E = {e00, e01, e02}, called directly, for the paired verdict;
+  - `risk.compare` on the same subsets for the risk verdict;
+  - the R4 mapping via `map_paired` / `map_risk`.
+
+  Add `judge --rerun-check`, which compares an `_rr` record's `trades_hash` with the original (I1).
 
   Values are read from `preregistration.json`, never hard-coded. T005 must pass.
 - [ ] T007 [P] Create the five 2022 plans `evaluation/folds/plan_st_e22_{rev2,c4,c2,c1,c42}.json`
@@ -120,8 +132,9 @@ contracts/interfaces.md I1–I3, quickstart.md)
   reads only the bars before 2022-03-07, from the feathers.
   - For each of the 10 pairs, check that 15m data exists from at least 2022-03-07 minus 4096 bars
     (2022-01-23 18:00 UTC).
-  - Check that the volreg instrument, computed on data truncated at 2022-03-07, is non-NaN at the
-    last bar for every pair.
+  - Check that the volreg instrument (`utils/RegimeState.volreg`, called as
+    `SimpleTrigger_RegGateVolreg` calls it), computed on data truncated at 2022-03-07, is non-NaN
+    at the last bar for every pair.
 
   If either fails, move e00's start to the first date where both pass and record the change
   BEFORE T009.
@@ -137,7 +150,10 @@ contracts/interfaces.md I1–I3, quickstart.md)
     - floor 0.50;
     - fidelity 0.90;
     - min control trades 200;
-    - rule (a)–(d) written out.
+    - rule (a)–(d) written out;
+    - the R4 verdict-value mapping table;
+    - the gate-5 re-run rule (an ADOPTED gain under 1 pp needs an identical `trades_hash` on a
+      fresh-tag re-run).
 
   Commit it in ONE commit with the five plan files from T007. Record the commit sha in
   `preregistration.md` in a follow-up commit, which changes only that line.
@@ -186,6 +202,15 @@ per candidate; exit code 0, 2 or 3.
   - each candidate has exactly one verdict;
   - each cites the rule letters that failed;
   - the CI half-width is reported (SC-002).
+- [ ] T014a [US2] Gate-5 re-run (constitution quality gate 5), for each ADOPTED candidate whose
+  gain is under 1 pp:
+  - create `evaluation/folds/plan_st_e22_<id>_rr.json`, holding only the fold with the largest
+    absolute per-fold gain, with `arm_tag` `st_e22_<id>_rr_eNN`;
+  - run it;
+  - run `confirm judge --rerun-check`.
+
+  A hash mismatch turns the verdict to INCONCLUSIVE. If there is no such candidate, mark this
+  task `[-]`.
 - [ ] T015 [US2] Add a short reading to `verdicts.md`:
   - the replay-to-arm realisation ratio on 2022 vs 027's 44–68%;
   - exit-reason shifts;
@@ -213,8 +238,9 @@ the shared exit, so NNNC inherits it.
     - `atr_take_profit` clamps to [0.01, 0.05];
     - `stop_min_depth` outside [atr_stoploss_floor, 0) is refused at class creation;
     - FAMILY_EXITS can set both fields.
-  - `evaluation/tests/test_fingerprint_switches.py`: with the new fields at None, the shas of
-    `st_bgo_mx`, `st_book_rev2` and arm D equal the values recorded in T001.
+  - `evaluation/tests/test_fingerprint_switches.py`: with the new fields at None, EVERY sha
+    recorded in T001 is unchanged (arm D, `st_bgo_mx`, `st_book_rev2`, XC4/XC2/XC1, and XC42 from
+    T002).
   - A C4 test: a strategy declaring `stoploss_grace_hours` 12.0 resolves to XC4's fingerprint.
 - [ ] T017 [US3] C1, if adopted:
   - add `ExitParams.stop_min_depth: float | None = None` and `ExitPolicy.apply_stop_min_depth` in
@@ -235,11 +261,15 @@ the shared exit, so NNNC inherits it.
 - [ ] T020 [US3] Add the promoted classes, one per adopted candidate. Each switches the coupling
   on through the shared exit and replaces nothing by override:
   - `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P<id>.py`;
-  - its plans `plan_st_prom_<id>.json` (f00–f14) and `plan_st_e22_prom_<id>.json` (e00–e02).
+  - its plans `plan_st_prom_<id>.json` (f00–f14) and `plan_st_e22_prom_<id>.json` (e00–e02);
+  - once, `evaluation/folds/plan_st_rev2_recheck.json`: f00 only, class
+    `SimpleTrigger_RevOnlyVolreg2`, `arm_tag` `st_rev2_recheck_f00`, for T021's switch-off
+    check.
 - [ ] T021 [US3] Run each promoted class on f00–f14 and e00–e02. Its `trades_hash` must equal the
   XC class's in 18/18 folds (FR-011). Then check switch-off:
   - re-resolve the fingerprints from T001 (must be unchanged);
-  - re-run `st_book_rev2` f00 under a fresh tag; its trades_hash must equal the recorded one.
+  - run `plan_st_rev2_recheck.json`; its trades_hash must equal `st_book_rev2` f00's recorded
+    one.
 - [ ] T022 [US3] Run `pytest utils/tests Framework/tests research/exit_coupling/tests evaluation`.
   Everything must pass, with no stop-invariant violation in any T021 run log. Write
   `specs/028-recovery-aware-exits/promotion.md`: the switches, how to declare each, and the
@@ -285,10 +315,10 @@ the shared exit, so NNNC inherits it.
   - T008 after T007;
   - T009 needs T004, T006, T007 and T008. Nothing in 2022 runs before it.
 - **US1:** T010 → T011 → T012. STOP gate.
-- **US2:** T013 → T014 → T015.
+- **US2:** T013 → T014 → T014a → T015.
 - **US3:** T016 → T017/T018 (adopted only) → T019 → T020 → T021 → T022.
 - **US4:** T023 → T024 → T025.
-- **Backtests:** one chain at a time (T004, T010, T013, T021).
+- **Backtests:** one chain at a time (T004, T010, T013, T014a, T021).
 
 ## Parallel Example
 

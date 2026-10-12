@@ -10,7 +10,7 @@ python -m research.exit_coupling.confirm judge --prereg ... --feasibility .../fe
 ```
 
 **Both subcommands refuse, with exit 2, if any of these hold:**
-- the pre-registration has uncommitted changes;
+- `preregistration.json` has uncommitted changes (the `.md` is not checked);
 - a class constant differs from its frozen value;
 - a 2022 record is older than the pre-registration commit;
 - two arms share a class.
@@ -18,11 +18,16 @@ python -m research.exit_coupling.confirm judge --prereg ... --feasibility .../fe
 **Exit codes:**
 - `feasibility`: 0 at least one PASS; 3 none (STOP); 2 a refusal, a missing input or fidelity < 0.90.
 - `judge`: 0 at least one ADOPT; 1 none ADOPTED; 2 a refusal or a missing input.
+  - It lists every ADOPTED candidate whose gain is under 1 pp as needing the gate-5 re-run.
+  - `judge --rerun-check` then compares the `_rr` record's `trades_hash` and finalises
+    `rerun_hash_match`.
 
 **Pure functions** (unit-tested, no I/O):
 - `recovery_share(df) -> (share, n_stop, n_recovered)`
 - `candidate_passes(gain_pp, share, floor, applies_floor) -> bool`
+- `map_paired(verdict) -> "pass" | "fail" | "inconclusive"` and `map_risk(verdict)`, the R4 mapping table
 - `decide(gain_pp, paired_verdict, risk, early_gain, late_gain, ctl_trades, folds_changed, prereg) -> (verdict, failed)`
+- `ci_half_width_pp(ci_pp_yr, years) -> float`
 
 ## I2 — `ExitParams` switches (US3, only if adopted)
 
