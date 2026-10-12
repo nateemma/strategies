@@ -340,6 +340,11 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # resolved take-profit, computes none of it.
     "NNNC/NNNC_Live_C2.py",                    # 029 liveness arm: FAMILY_EXIT_OVERRIDES
                                                  # take_profit_atr_mult=k -- a VALUE.
+    # NNNC switch experiment: the same declaration on four models -- VALUES.
+    "NNNC/NNNC_SW_ARO_C2.py",
+    "NNNC/NNNC_SW_GBR_C2.py",
+    "NNNC/NNNC_SW_GFM_C2.py",
+    "NNNC/NNNC_SW_MLX_C2.py",
     "NNNC/tests/test_nnnc_merge.py",           # 029: sets grace hours/floor on a stub NNNC to
                                                  # drive StopInvariantMixin; computes nothing.
     "evaluation/tests/test_fingerprint_switches.py",  # declares grace 12.0 on a subclass to

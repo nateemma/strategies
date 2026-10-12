@@ -1,0 +1,39 @@
+{
+ "title": "NNNC framework switches: C2 ATR take-profit and the reversion regime gate on four NNNC models",
+ "date": "2026-10-12",
+ "label": "PROVISIONAL -- values were chosen on SimpleTrigger trades over these same 2023-26 folds; this tests carry-over to model entries, not out-of-sample value",
+ "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "min_control_trades": 200,
+ "primary_model": "ARO",
+ "replications_needed": 2,
+ "models": {
+  "ARO": {"base": "NNNC_A_Raw_Open", "weights": "NNNC_ARO", "control": "wf_aro_a029",
+          "control_note": "arm D after the 029 merge, run 2026-10-12, = baseline 15/15; predates this file by design"},
+  "GBR": {"base": "NNNC_GbbRaw_Open", "weights": "NNNC_GBR", "control": "sw_gbr_ctl", "record": "wf_gbr"},
+  "GFM": {"base": "NNNC_GbbFwdMae_Open", "weights": "NNNC_GFM", "control": "sw_gfm_ctl", "record": "wf_gfm"},
+  "MLX": {"base": "NNNC_MLX", "weights": "NNNC_WF", "control": "sw_mlx_ctl", "record": "wf_nnnc"}
+ },
+ "switches": {
+  "C2": {"arm": "sw_{m}_c2", "control": "model", "class": "NNNC_SW_{M}_C2",
+         "values": {"FAMILY_EXIT_OVERRIDES.reversion": {"take_profit_atr_mult": 2.8970711921574543}}},
+  "Gate": {"arm": "sw_{m}_gate", "control": "sw_{m}_gateoff", "class": "NNNC_SW_{M}_Gate",
+           "control_class": "NNNC_SW_{M}_GateOff",
+           "values": {"REVERSION_REGIME_GATE": {"instrument": "volreg", "threshold": 1.3658023280926226, "off_when": "lt"},
+                      "startup_candle_count": 4096}}
+ },
+ "rule": {
+  "gain": "sum of per-fold return_pct, arm minus its control, over a half",
+  "per_model_PASS": "early gain > 0 AND late gain > 0 AND paired verdict (15 folds) maps to pass AND both risk verdicts (Sharpe, maxDD; 15 folds) map to pass",
+  "per_model_INCONCLUSIVE": "control < min_control_trades, OR the arm changed trades in 0 folds, OR a mapped verdict is inconclusive",
+  "paired_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail",
+                 "INCONCLUSIVE_UNDERPOWERED": "pass", "INCONCLUSIVE_ARM_LOSES": "pass",
+                 "INCONCLUSIVE_ABSORBED": "inconclusive", "UNRESOLVABLE": "inconclusive"},
+  "risk_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "UNRESOLVABLE": "inconclusive"},
+  "switch_ADOPT": "PASS on the primary model (ARO) AND PASS on at least replications_needed of GBR, GFM, MLX",
+  "combination": "only if both switches are ADOPTED; not run otherwise"
+ },
+ "reported_only": ["per-half paired and risk verdicts", "the 4096-startup effect (GateOff vs model control)",
+                   "native controls vs their older records (trades_hash agreement)", "exit-reason counts"]
+}
