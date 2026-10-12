@@ -31,7 +31,7 @@ contracts/interfaces.md C1–C7, quickstart.md)
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `specs/027-target-aware-exits/baseline.md`. Record:
+- [X] T001 Create `specs/027-target-aware-exits/baseline.md`. Record:
   - the commit sha;
   - framework fingerprints for `NNNC_MLX_Open` (arm D), `SimpleTrigger_Gbb`,
     `SimpleTrigger_BreakoutGbb_MomExit` (`st_bgo_mx`), `SimpleTrigger_RevOnlyVolreg2`
@@ -47,7 +47,7 @@ contracts/interfaces.md C1–C7, quickstart.md)
 
 ## Phase 2: Foundational — path metrics and replays (blocking)
 
-- [ ] T002 [P] Write `research/exit_coupling/tests/test_paths.py` (contract C1, research R2).
+- [X] T002 [P] Write `research/exit_coupling/tests/test_paths.py` (contract C1, research R2).
   Synthetic OHLC cases:
   - (a) target touch on the first bar whose HIGH ≥ open×1.02; none if never;
   - (b) MAE before touch = the lowest LOW strictly before the touch bar;
@@ -74,7 +74,7 @@ contracts/interfaces.md C1–C7, quickstart.md)
       ROI-suppressed;
   - (j) the replay calls `ExitPolicy` for every exit rule: no exit threshold literal appears in
     `paths.py` (source inspection).
-- [ ] T003 Create `research/exit_coupling/paths.py`:
+- [X] T003 Create `research/exit_coupling/paths.py`:
   - `path_metrics(...)` and `replay(...)` (contract C1), pure numpy;
   - every exit rule via `utils.ExitPolicy` (`custom_exit_decision`, `discretionary_exit_allowed`,
     `atr_stop_fraction`, `price_ratio_for_net`, `ExitParams`), no copy;
@@ -96,7 +96,7 @@ under the pre-declared rules (research R3).
 **Independent Test**: `feasibility.md`/`.json` exist, every rule is evaluated in both halves, and
 the exit code reflects the verdict.
 
-- [ ] T004 [P] [US1] Write `research/exit_coupling/tests/test_feasibility.py`:
+- [X] T004 [P] [US1] Write `research/exit_coupling/tests/test_feasibility.py`:
   - (a) grid choices (C1 p, C3 action, C5 λ, C2 k) read ONLY f00–f07 rows: a planted late-only
     effect leaves every choice unchanged;
   - (b) a rule holding in one half only is NOT SUPPORTED;
@@ -106,7 +106,7 @@ the exit code reflects the verdict.
   - (f) a null-replay fidelity below 90% in either family exits 2 with no verdict;
   - (g) C2 and C4 need a positive replay gain as well as their descriptive condition (research R3);
   - (h) the C4 depth is chosen from {−27%, early p95 MAE capped at −27%} on early rows only.
-- [ ] T005 [US1] Create `research/exit_coupling/feasibility.py` (contract C1, research R2/R3).
+- [X] T005 [US1] Create `research/exit_coupling/feasibility.py` (contract C1, research R2/R3).
   Inputs:
   - trades from the archives of `st_bgo_mx` and `st_book_rev2`: open_rate, close_rate, dates,
     exit_reason, fold (via `evaluation.pool` helpers);
@@ -119,7 +119,7 @@ the exit code reflects the verdict.
   It computes (a)–(d) and the C1–C5 replays at each grid value (C2 at its rule value), chooses values on f00–f07,
   applies the R3 rules in both halves, and writes `feasibility.md` + `feasibility.json`. Make T004
   pass.
-- [ ] T006 [US1] Fidelity gates, inside `feasibility.py` and reported, BEFORE any verdict:
+- [X] T006 [US1] Fidelity gates, inside `feasibility.py` and reported, BEFORE any verdict:
   - **null replay** (research R2): with no coupling, the share of trades whose recorded exit reason
     AND exit bar the replay reproduces, per family, with a disagreement table by exit reason;
   - **stop model**: for archive stop-loss exits, the recomputed stop in force vs the recorded exit
