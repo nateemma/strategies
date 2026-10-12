@@ -197,15 +197,20 @@ stop-check result, the liveness of each switch, and how a later feature declares
 - **FR-004**: Before any code changes, a baseline MUST be recorded on the current code:
   - arm D's and the twin's per-fold trade sets on f00–f14, re-run under fresh tags with their
     borrowed per-fold models;
+  - the per-fold trade sets of the SimpleTrigger reference arms (FR-005a), re-run under fresh tags
+    on the same code, so that every after-change comparison is against a same-day, pre-change run
+    (old records are reported alongside, never used as the pass condition);
   - the framework fingerprint of every loadable NNNC class;
-  - arm D's stop-invariant violation count, in report-only mode.
+  - arm D's stop-invariant violation count, in report-only mode, from a probe that enters exactly
+    as arm D does (its per-fold prediction thresholds included);
+  - a content hash of every borrowed model artefact.
 - **FR-005**: After the change:
   - arm D and the twin MUST reproduce their baseline trade sets in 15 of 15 folds;
   - the twin MUST still equal SimpleTrigger's gbb arm;
   - every loadable NNNC class MUST keep its baseline fingerprint, unless the fingerprint gains
     only the default-off switch fields, which are omitted while off as in 028.
-- **FR-005a**: The SimpleTrigger reference arms MUST also reproduce their recorded trades after
-  the change, because the refactor moves SimpleTrigger's framework code. The arms are `st_gbb`,
+- **FR-005a**: The SimpleTrigger reference arms MUST also reproduce their pre-change baseline
+  trades (FR-004) after the change, because the refactor moves SimpleTrigger's framework code. The arms are `st_gbb`,
   `st_bgo_mx`, `st_book_rev2`, a regime-gated arm, a coexistence-rule arm and a pre-emption arm.
 - **FR-006**: Every NNNC run MUST carry the stop invariants of 023 FR-017, and a violation MUST
   halt the run. If the baseline (FR-004) finds violations in arm D, the feature MUST stop before
@@ -260,7 +265,7 @@ stop-check result, the liveness of each switch, and how a later feature declares
 
 - **SC-001**: Arm D reproduces its pre-change trades in 15 of 15 folds. The twin does too, and it
   still equals the no-model gbb arm in 15 of 15 folds. The SimpleTrigger reference arms (FR-005a)
-  reproduce their records in every fold.
+  reproduce their pre-change baseline in every fold.
 - **SC-002**: 100% of loadable NNNC classes keep their pre-change fingerprint. Classes that fail to
   load are listed, and fail identically before the change.
 - **SC-003**: Every NNNC run carries the stop check. Arm D's baseline violation count is recorded,
@@ -268,7 +273,8 @@ stop-check result, the liveness of each switch, and how a later feature declares
 - **SC-004**: Each of the declared switches (per-family exit, ATR take-profit, regime gate,
   trigger-AND-model) changes at least one decision when declared on an NNNC test arm, and none when
   not declared.
-- **SC-005**: No model is trained during the feature (the count of training events is 0).
+- **SC-005**: No model is trained during the feature. Every borrowed model artefact has the same
+  content hash before and after, and no fold logs a training step.
 - **SC-006**: The test suites pass, except for failures shown to fail identically before the
   change.
 
@@ -284,6 +290,10 @@ stop-check result, the liveness of each switch, and how a later feature declares
 - Model backtests are slower than SimpleTrigger's (prediction per bar). The full baseline plus
   the after-change runs are two chains of 30 folds each, run sequentially (one chain at a time).
 - Feature scalers are not regenerated: the feature include list does not change.
+- Only `FAMILY_EXIT_OVERRIDES` merging is shared with NNNC. SimpleTrigger's presets and its
+  `BUY/SELL/ATTR_OVERRIDES` stay SimpleTrigger-only: they mirror NNNC's operating point for a
+  model-free arm, and NNNC keeps its own parameter mechanism (class attributes plus params JSON),
+  which already merges from the parent.
 - The live dry-run bot (`BasketStrategy`) doesn't import this framework, and is not touched or
   restarted.
 - NNNC's per-fold prediction thresholds and guard chain are part of "today's entry", and are

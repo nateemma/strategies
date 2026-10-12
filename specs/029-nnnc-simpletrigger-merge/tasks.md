@@ -38,20 +38,27 @@ contracts/interfaces.md I1–I5, quickstart.md)
   - It enumerates the class named by each `NNNC/*.py` file stem and resolves its fingerprint with
     `evaluation.fingerprint` (`load_strategy_class`, `load_params_json`, `resolve`, config
     `config/config_wf.json`).
-  - It writes `{class: sha16 | "LOAD_ERROR: <Exc>: <msg>"}`.
+  - It writes `{class: sha16 | "LOAD_ERROR: <Exc>: <msg>" | "NOT_A_STRATEGY"}`. `NOT_A_STRATEGY`
+    marks a stem with no same-named `IStrategy` subclass (mixins, classifiers).
   - With `--compare <before.json>` it prints added, removed, changed and error-changed classes, and
     exits 1 on any change.
   - It never instantiates a class.
-  - Smoke test: run it once and check the counts (classes, load errors).
+  - Smoke test: run it once and check the counts (strategies, load errors, not-a-strategy).
 - [ ] T002 [P] Add the report-only mode to `utils/StopInvariants.py` per contract I3.
   - `FT_STOP_INVARIANTS=report` records each violation to
     `$FT_ENTRY_CONDITION_SINK/<class>_<pair>_stopinv.json` (append to a list) and returns.
   - Unset or `halt` keeps today's behaviour.
+  - The mode is read from the environment at every check, never cached at import (I3).
   - Tests in `utils/tests/test_stop_invariants.py`: report mode doesn't raise, writes the record
-    and returns the parent value; halt mode is unchanged.
+    and returns the parent value; halt mode is unchanged; switching the env var mid-process takes
+    effect.
 - [ ] T003 Prove T002 inert. Run `pytest utils/tests SimpleTrigger/tests` (all pass), and re-run
   `st_gbb` f00 under a fresh tag (`st_gbb_si029_f00`, plan derived from `plan_st_gbb.json`). Its
   `trades_hash` must equal the recorded `st_gbb` f00.
+  - If it doesn't, the record may be stale (it predates 028's `BaseStrategy` change).
+  - Attribute it before going on: re-run f00 under a second fresh tag with T002's change
+    stashed. Equal hashes with and without T002 mean T002 is inert, and the stale record is noted
+    in `baseline.md`.
 
 ---
 
@@ -61,7 +68,10 @@ contracts/interfaces.md I1–I5, quickstart.md)
   `arm_tag` (and the fold subset) changed:
   - `plan_wf_aro_b029.json` from `plan_NNNC_A_Raw_Open.json` (`wf_aro_b029_fNN`);
   - `plan_wf_aro_b029r.json` (f00 only, `wf_aro_b029r_f00`);
-  - `plan_wf_trgate_b029.json` from `plan_wf_trgate.json` (`wf_trgate_b029_fNN`).
+  - `plan_wf_trgate_b029.json` from `plan_wf_trgate.json` (`wf_trgate_b029_fNN`);
+  - `plan_<arm>_b029.json` for the 8 SimpleTrigger reference arms (`st_gbb`, `st_bgo_mx`,
+    `st_book_rev2`, `st_reg_volreg2`, `st_coex_win4`, `st_coex_cap3`, `st_pre_volreg2`,
+    `st_prom_c2`), with tags `<tag>_b029_fNN`.
 
   Validate each, run `run_folds --dry-run` on each, and check that every fold's `model_dir` exists.
 - [ ] T005 Create the probe class `NNNC/NNNC_SIProbe.py`.
@@ -70,25 +80,45 @@ contracts/interfaces.md I1–I5, quickstart.md)
     machinery and StopInvariantMixin, with arm D's MODEL entries.
   - Docstring: baseline probe, report-only.
   - Its params JSON is a copy of `NNNC_A_Raw_Open.json` with `strategy_name` changed.
-  - Derive `plan_nnnc_si_probe.json` with
-    `python -m evaluation.foldplan derive --from plan_NNNC_A_Raw_Open.json --family NNNC --base NNNC_SIProbe --tag nnnc_si_probe --model-source NNNC_ARO --class-prefix NNNC_SIP`
-    (arm tags `nnnc_si_probe_fNN`).
-  - Dry-run it.
-- [ ] T006 Run the baseline chain, sequentially: arm D, arm D f00 again, the twin, then the probe
-  with `FT_STOP_INVARIANTS=report FT_ENTRY_CONDITION_SINK=<scratch>/si029`. Confirm all records
-  have returncode 0 and that no "train" line appears in any `/tmp/wf_arm_*.log` (SC-005).
+  - Build `plan_nnnc_si_probe.json` by **copying `plan_NNNC_A_Raw_Open.json`, keeping
+    `thresholds` and `params_snapshot`**. Do NOT use `foldplan derive`: derived plans carry no
+    thresholds, and the probe would not enter as arm D does (R4).
+    - Set `base_strategy = "NNNC_SIProbe"` and `model_source = "NNNC_ARO"`.
+    - Per fold: `strategy_class = "NNNC_SIP_fNN"`, `arm_tag = "nnnc_si_probe_fNN"`, and
+      `model_dir` unchanged (`saved_data/NNNC_ARO_fNN`).
+  - Dry-run it. Generate one fold's files and check that `NNNC_SIP_f00.json`'s
+    `prediction_threshold` equals `NNNC_ARO_f00.json`'s. Delete the generated pair if the dry-run
+    doesn't write them.
+- [ ] T006 Hash every file under `saved_data/NNNC_ARO_f*/` (sha256) into `baseline.json`
+  `model_artifacts`. Then run the baseline chain sequentially:
+  - arm D, arm D f00 again, and the twin;
+  - the 8 SimpleTrigger `_b029` arms (about 26 min);
+  - the probe, with `FT_STOP_INVARIANTS=report FT_ENTRY_CONDITION_SINK=<scratch>/si029`.
+
+  Confirm:
+  - all records have returncode 0;
+  - `run_folds` printed "model already present — skipping training" for every model fold and
+    never "training on" (SC-005);
+  - `git diff --stat NNNC/NNNC_ARO_f* NNNC/NNNC_TGT_f*` is empty (regenerated per-fold files
+    unchanged), or the differences are recorded and explained before going on.
 - [ ] T007 Run `scripts/nnnc_fingerprints.py --out specs/029-nnnc-simpletrigger-merge/fingerprints_before.json`.
 - [ ] T008 Write `specs/029-nnnc-simpletrigger-merge/baseline.md` and `baseline.json` (data-model).
   - Per-fold hashes for arm D, its f00 re-run and the twin.
   - **Determinism:** the f00 re-run equals the first run.
-  - The twin vs `st_gbb` recorded hashes, which must be 15/15.
+  - The twin vs the fresh `st_gbb_b029` baseline, which must be 15/15. It is also reported
+    against the 10 Oct `st_gbb` record.
+  - Each SimpleTrigger `_b029` arm vs its record, per fold. Differences are reported and
+    explained (they predate this feature), and are never a pass or fail condition here.
   - Arm D baseline vs the old `wf_aro_*` records, with any differences listed and explained.
   - The probe:
     - its trades must equal arm D's baseline (15/15);
     - the violation count by check.
   - The fingerprint scan counts.
-  - **STOP gate:** violations > 0, a non-deterministic re-run, or a twin ≠ `st_gbb` stops the
-    feature (see Conventions).
+  - **STOP gate:** any of these stops the feature (see Conventions):
+    - violations > 0;
+    - probe trades ≠ arm D's baseline;
+    - a non-deterministic re-run;
+    - twin ≠ `st_gbb_b029`.
 - [ ] T009 Commit the baseline: scripts, plans, probe class, records, baseline files and
   fingerprints. Record the commit sha in `baseline.md`.
 
@@ -178,11 +208,15 @@ fingerprints are unchanged.
     `st_coex_win4`, `st_coex_cap3`, `st_pre_volreg2` and `st_prom_c2`. Each copies its source
     plan with only `arm_tag` changed (`<tag>_a029_fNN`).
 - [ ] T024 [US1] Run the after-change chain sequentially: arm D, the twin, then the 8 SimpleTrigger
-  arms, about 32 min. No "train" line may appear in any log.
+  arms, about 32 min. Then:
+  - re-hash `saved_data/NNNC_ARO_f*`; every hash must equal T006's;
+  - `run_folds` never prints "training on" (SC-005).
 - [ ] T025 [US1] Write `specs/029-nnnc-simpletrigger-merge/verification.md`:
-  - per arm and fold: baseline or recorded hash vs after hash;
-  - arm D 15/15 and twin 15/15 vs baseline; twin vs `st_gbb` 15/15;
-  - each SimpleTrigger arm vs its record;
+  - per arm and fold: the `_b029` baseline hash vs the `_a029` hash (the pass condition), with
+    the record shown alongside;
+  - arm D 15/15 and twin 15/15 vs baseline; twin vs `st_gbb_a029` 15/15;
+  - each SimpleTrigger arm vs its `_b029` baseline;
+  - model artefact hashes unchanged;
   - the fingerprint diff (none);
   - the test-suite result.
 
@@ -214,8 +248,11 @@ fingerprints are unchanged.
   - `NNNC_Live_C2` (`FAMILY_EXIT_OVERRIDES={"reversion": {"take_profit_atr_mult": 2.8970711921574543}}`);
   - `NNNC_Live_Gate` (`REVERSION_REGIME_GATE` = `SimpleTrigger_RegGateVolreg2`'s, and
     `startup_candle_count = 4096`).
-- [ ] T029 [US3] Derive the f00 plans (`foldplan derive … --model-source NNNC_ARO`, fold f00 only)
-  `plan_nnnc_live_{triggate,c2,gate}.json`, and run them sequentially with the sink enabled.
+- [ ] T029 [US3] Build the f00 plans `plan_nnnc_live_{triggate,c2,gate[,gateoff]}.json` by
+  copying `plan_NNNC_A_Raw_Open.json` (fold f00 only), **keeping `thresholds`** (I5).
+  - Set `model_source = "NNNC_ARO"`, with `strategy_class = "<Class>_f00"` and `model_dir`
+    unchanged.
+  - Check the threshold carry-over as in T005, then run them sequentially with the sink enabled.
 - [ ] T030 [US3] Write `specs/029-nnnc-simpletrigger-merge/liveness.md`. Each switch is compared
   with arm D's after-change f00 (control):
   - **TrigGate:** entries ≤ control; every entry's signal bar has gbb true (checked from the
@@ -223,6 +260,8 @@ fingerprints are unchanged.
   - **C2:** exit-reason counts differ, and `trades_hash` differs.
   - **Gate:** gate counts in the sink, and entries in the "off" state dropped.
   - Each live (≠ control) is recorded, plus the inert case (arm D f00 after = baseline, from T025).
+  - C2 stands for every per-family exit: it goes through the same `FAMILY_EXIT_OVERRIDES` →
+    `FamilyExitMixin` → tag path any family exit uses (R9).
   - **Startup note for the gate:** the 4096-bar warm-up is part of the declaration. The control
     for liveness is `NNNC_Live_Gate` with the gate set to None at the same startup.
     - If needed, add `NNNC_Live_GateOff` (gate None, startup 4096) and run it too, so the

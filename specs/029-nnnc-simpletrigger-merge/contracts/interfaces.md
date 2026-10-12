@@ -36,7 +36,8 @@ def label_family(training_type) -> str | None
 ## I3 — `utils.StopInvariants`
 
 ```python
-FT_STOP_INVARIANTS = os.environ.get("FT_STOP_INVARIANTS", "halt")   # "halt" | "report"
+def _mode() -> str:   # read at EVERY check, never cached at import
+    return os.environ.get("FT_STOP_INVARIANTS", "halt")   # "halt" | "report"
 ```
 
 In report mode `_check_stop` records the violation (sink file) and returns. In halt mode the
@@ -48,11 +49,16 @@ behaviour is unchanged.
 python user_data/strategies/scripts/nnnc_fingerprints.py --out <json> [--compare <before.json>]
 ```
 
-- Without `--compare`: writes `{class: sha | "LOAD_ERROR: …"}`.
+- Without `--compare`: writes `{class: sha | "LOAD_ERROR: …" | "NOT_A_STRATEGY"}`.
+  `NOT_A_STRATEGY` marks a file stem with no same-named `IStrategy` subclass (mixins,
+  classifiers), reported separately from real load errors.
 - With `--compare`: also prints the diff, and exits 1 on any change.
 
 ## I5 — Plans
 
-All are model plans with borrowed weights, never training. They derive from
-`plan_NNNC_A_Raw_Open.json` and `plan_wf_trgate.json` with only `arm_tag` (and the fold subset)
-changed. Missing models fail loudly (existing `train_model` refusal / `model_exists` check).
+All are model plans with borrowed weights, never training.
+- Arm D, the twin and the SimpleTrigger plans copy their source plan with only `arm_tag` (and the
+  fold subset) changed.
+- The probe and the liveness plans copy `plan_NNNC_A_Raw_Open.json`, **keeping its per-fold
+  `thresholds`**: a `foldplan derive` plan carries none, and arm D's entries depend on them. They
+  set `model_source="NNNC_ARO"` and `model_dir=saved_data/NNNC_ARO_fNN`. Missing models fail loudly (existing `train_model` refusal / `model_exists` check).

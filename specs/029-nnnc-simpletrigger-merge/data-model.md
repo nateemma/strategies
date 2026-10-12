@@ -28,13 +28,16 @@ written to `$FT_ENTRY_CONDITION_SINK/<class>_<pair>_stopinv.json` as
 {"commit": "...", "arm_d": {"f00": "<trades_hash>", ...}, "arm_d_rerun_f00": "...",
  "twin": {...}, "old_records_arm_d": {...}, "old_vs_baseline_diff": [...],
  "probe": {"trades_equal_arm_d": true, "violations": 0, "by_check": {}},
- "twin_vs_st_gbb": {"f00": true, ...}}
+ "twin_vs_st_gbb_baseline": {"f00": true, ...}, "twin_vs_st_gbb_record": {...},
+ "simpletrigger": {"<arm>": {"f00": {"baseline": "...", "record": "..."}, ...}},
+ "model_artifacts": {"saved_data/NNNC_ARO_f00/<file>": "<sha256>", ...},
+ "generated_files_diff": []}
 ```
 
 ## Fingerprint scan (`fingerprints_before.json` / `_after.json`)
 
-`{"<class>": "<sha16>" | "LOAD_ERROR: <ExcType>: <msg>"}` for every class named by a file stem in
-`NNNC/*.py`.
+`{"<class>": "<sha16>" | "LOAD_ERROR: <ExcType>: <msg>" | "NOT_A_STRATEGY"}` for every file stem
+in `NNNC/*.py`.
 
 ## Verification (`verification.md`)
 

@@ -29,13 +29,15 @@ NNNC has none of it. The plan moves that layer into one strategy-agnostic mixin,
 The work proceeds in four phases:
 1. **Baseline**, on unchanged NNNC code:
    - arm D, the twin, and an f00 determinism re-run;
+   - the 8 SimpleTrigger reference arms, so every comparison is against a same-day, pre-change run;
+   - model artefact hashes (the no-training check);
    - a stop-invariant probe in report-only mode;
    - the fingerprint of every loadable NNNC class.
 2. **Refactor.**
 3. **Verify:**
    - arm D and the twin match the baseline in 15/15 folds;
    - the twin still equals `st_gbb`;
-   - 8 SimpleTrigger reference arms match their records;
+   - 8 SimpleTrigger reference arms match their pre-change baseline;
    - every NNNC fingerprint is unchanged.
 4. **Liveness** of each declared switch on an NNNC test arm.
 
@@ -67,7 +69,7 @@ the spec directory.
 - a SimpleTrigger arm takes about 3.3 min.
 
 Totals:
-- baseline: arm D + twin + f00 re-run + probe ≈ 8 min;
+- baseline: arm D + twin + f00 re-run + probe + 8 SimpleTrigger arms ≈ 35 min;
 - after the change: arm D + twin + 8 SimpleTrigger arms ≈ 32 min;
 - liveness: about 4 folds.
 
