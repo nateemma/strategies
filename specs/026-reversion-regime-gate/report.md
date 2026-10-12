@@ -147,3 +147,115 @@ share the book:
 2. **Separate books.** Run momentum and gated reversion as two sub-portfolios with fixed slot
    counts, so neither re-sequences the other. This also makes "sum of singles" the honest
    reference.
+
+## Addendum 2: how the two families share the book (2026-10-11)
+
+**Question.** Addendum 1 found the late gap to momentum alone sits on the momentum side of the
+combined arm, from pair re-sequencing. This addendum tries the two fixes it proposed.
+
+- **Momentum first.** `MOMENTUM_PREEMPT` closes a reversion trade when momentum signals on its
+  pair.
+- **Separate books.** Momentum and gated reversion run as independent sub-portfolios.
+
+### Momentum first (`st_pre_volreg`, `st_pre_volreg2`). Not adopted.
+
+**Mechanism.** A fillable momentum entry signal on a pair held by a reversion trade exits that
+trade at the next open (`momentum_preempt`). Momentum then enters on its own signal if the signal
+is still live on the next bar.
+
+- Same-bar handover is impossible: freqtrade evaluates a bar's entry before its exits.
+- **Liquidity floor.** A thin signal bar does not preempt. In smoke f00, 27 of 66 handovers had
+  been lost to a zero stake: `custom_stake_amount` sizes from the last candle's volume, so these
+  were signals momentum alone could not have filled either.
+- **Late copy dropped.** A one-bar-late copy of the signal was tried and removed. Any extra entry
+  signal suppresses ROI on the open trade (`ignore_roi_if_entry_signal`), so it broke the null
+  check (0/15 identical). It also added only 2 of 46 handovers.
+- **Null check passes:** `st_pre_momonly` (reversion disabled) reproduces `st_fam_combo_mom`
+  15/15.
+- **Reference check:** a fresh `st_fam_combo_mom` f00 (`st_momonly_fresh`) reproduces the 024
+  record. The reference is current.
+
+| arm | total | early | late | momentum pp late | reversion pp late | preempts (preempted reversion pp) |
+|---|---|---|---|---|---|---|
+| `st_reg_volreg` (cut 1.0332) | +38.14 | +44.19 | −6.05 | +3.14 | −9.20 | — |
+| `st_pre_volreg` | +37.04 | +42.02 | −4.98 | +4.27 | −9.26 | 1,021 (+51.03) |
+| `st_reg_volreg2` (cut 1.3658) | +47.38 | +53.68 | −6.29 | −5.01 | −1.29 | — |
+| `st_pre_volreg2` | +47.24 | +54.04 | −6.80 | −0.59 | −6.21 | 615 (+34.77) |
+
+Late vs `st_bgo_mx` ([decisions_preempt.md](decisions_preempt.md)): −7.49pp (p 0.59) and
+−9.31pp (p 0.42). **Not adopted.**
+
+**Why it does not help: preempted reversion trades are winners.** A breakout signal tends to fire
+while a reversion trade is working (price recovering through the band), so preempting cuts
+reversion's profit-taking.
+
+- Momentum gains in the late half: +1.1 on cut 1, +4.4 on cut 2.
+- Reversion loses about the same: −0.1 on cut 1, −4.9 on cut 2.
+- Even with precedence, only 85–92% of the combined arm's late momentum trades match
+  `st_bgo_mx`'s. Handovers need the signal to persist one bar, and the one-bar shift re-times
+  later exits.
+
+### Separate books (`st_bgo_mx` + `st_book_rev[2]`). Not adopted, but closest so far.
+
+- `SimpleTrigger_RevOnlyVolreg[2]` is the gated combined arm with `breakout_gbb` disabled: the
+  reversion book alone.
+- Momentum's book is `st_bgo_mx` itself, unchanged.
+- `evaluation/books.py` adds the books per fold and pools their trades.
+- It also measures capacity:
+  - at the config stake (900, 10 slots), the two books exceed 10 open positions on 12–14% of
+    entries, peaking at 18–19, so the plain sum needs about twice the capital;
+  - **the fair, same-capital version halves the stake** (450, 20 slots): no overflow (peak
+    18–19 ≤ 20).
+- Two books also hold the same pair at once (2,010–3,533 entries), which needs two
+  bots or sub-accounts, not one freqtrade bot.
+
+| books (stake x0.5, same capital) | total | positive folds | early | late | late vs `st_bgo_mx` | whole span vs `st_bgo_mx` |
+|---|---|---|---|---|---|---|
+| momentum + gated reversion, cut 1.0332 | +31.68 | 9/15 | +32.25 | −0.57 | INCONCLUSIVE_ARM_LOSES, p 0.53 | UNCHANGED, p 0.74 |
+| **momentum + gated reversion, cut 1.3658** | **+39.81** | 9/15 | +36.46 | **+3.35** | UNCHANGED, p 0.96 | UNCHANGED, p 0.30 |
+| momentum alone `st_bgo_mx` (the bar) | +25.19 | 9/15 | +22.68 | +2.50 | — | — |
+
+Full-stake sums, which need about twice the capital, are in [books.md](books.md):
++79.62 total, +6.70 late.
+
+**The gated reversion book alone** is the clearest result of this addendum:
+
+| arm | total | positive folds | early (in-sample for the gate) | late (out-of-sample) |
+|---|---|---|---|---|
+| `st_book_rev2` (gbb, volreg ≥ 1.3658) | **+54.43** | **10/15** | +50.23 | **+4.20** |
+| `st_book_rev` (gbb, volreg ≥ 1.0332) | +38.17 | 10/15 | +41.82 | −3.65 |
+| `st_gbb` (gbb, ungated) | +11.04 | 7/15 | +30.33 | −19.28 |
+| `st_bgo_mx` (momentum alone) | +25.19 | 9/15 | +22.68 | +2.50 |
+
+- `st_book_rev2` vs `st_gbb`, late: **IMPROVED**, +23.48pp, p 0.05. This is the first resolved
+  out-of-sample improvement in 024–026. The gate's cut was chosen on f00–f07 trades only.
+- `st_book_rev2` vs `st_bgo_mx`, late: UNCHANGED, +1.69pp, p 0.89.
+- Caveats:
+  - The gated book runs the 4,096-bar startup. In 026, the startup alone moved 4 of 15 combined
+    folds slightly (H1).
+  - The tighter cut was chosen in two early-only passes, so the early half is in-sample twice
+    over.
+  - PROVISIONAL (quality gate 2).
+
+### Reading
+
+The families do not share one book well. Whichever family yields a pair loses trades that pay:
+
+- reversion's working trades, under momentum-first;
+- momentum's entries, under reversion-first (the 024–026 combined arms).
+
+Run apart, each keeps its own sequence. The gated reversion book then earns in both halves, and
+the sum at equal capital is the best late figure of any combined construction (+3.35 vs +2.50).
+It is still unresolved against momentum alone. The volatility gate turns reversion from a
+late-half loser into a small out-of-sample winner on its own.
+
+**Next (fix-oriented).**
+
+1. **Size the books by risk, not 50/50.** The reversion book's median drawdown is 2.82 against
+   6.10 for momentum, so equal capital under-weights it. A pre-declared risk-parity weight could
+   be chosen on early folds and judged late.
+2. **Get a distant era.** The volreg gate now carries a resolved out-of-sample improvement over
+   ungated reversion. Only a distant era can turn the in-sample early gain, and the two-pass
+   threshold, into a finding.
+3. **Build a deployment path for two books:** two dry-run bots or sub-accounts, momentum
+   (`st_bgo_mx`) and gated reversion, before any capital decision.

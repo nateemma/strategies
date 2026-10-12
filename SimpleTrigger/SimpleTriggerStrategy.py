@@ -59,7 +59,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from Framework.BaseStrategy import BaseStrategy, StrategyConfig
 from SimpleTrigger import presets as _presets
 from utils.FamilyCoexistence import FamilyCoexistenceMixin
-from utils.FamilyExits import FamilyExitMixin, validate_family_exits
+from utils.FamilyExits import FamilyExitMixin, family_of, validate_family_exits
 from utils.StopInvariants import StopInvariantMixin
 
 
@@ -188,14 +188,22 @@ def _validate_triggers(cls) -> None:
         raise _presets.PresetError(
             f"{cls.__name__}: MOMENTUM_RECENCY_BARS must be an int >= 0, got {window!r}"
         )
-    if window > 0:
+    if window > 0 and cls.MOMENTUM_PREEMPT:
+        raise _presets.PresetError(
+            f"{cls.__name__}: MOMENTUM_RECENCY_BARS and MOMENTUM_PREEMPT are alternative "
+            f"momentum-precedence rules; set one"
+        )
+    for rule, on in (("MOMENTUM_RECENCY_BARS", window > 0),
+                     ("MOMENTUM_PREEMPT", bool(cls.MOMENTUM_PREEMPT))):
+        if not on:
+            continue
         from research.outcomes import triggers as _triggers
 
         _triggers.ensure_builtins()
         enabled = [t for t in names if t not in cls.DISABLED_TRIGGERS]
         if not any(_triggers.get(t).family == "momentum" for t in enabled):
             raise _presets.PresetError(
-                f"{cls.__name__}: MOMENTUM_RECENCY_BARS={window} needs an enabled momentum "
+                f"{cls.__name__}: {rule} needs an enabled momentum "
                 f"trigger; without one the rule is INERT by construction"
             )
 
@@ -209,6 +217,13 @@ class SimpleTriggerStrategy(
     #: within the last N bars (current included); while active, overlap bars go to momentum.
     #: 0 = off (024 behaviour). Rule A (FAMILY_PAIR_CAP) comes from FamilyCoexistenceMixin.
     MOMENTUM_RECENCY_BARS: int = 0
+    #: 026 addendum 2: momentum never waits for a pair reversion holds. A fillable momentum signal
+    #: on a pair held by a reversion trade exits that trade at the next open ("momentum_preempt");
+    #: momentum enters on the following bar if its signal is still live (freqtrade evaluates a
+    #: bar's entry before its exits). No late copy of the signal: an extra entry signal suppresses
+    #: ROI on any open trade (ignore_roi_if_entry_signal) and broke the null check. Overlap bars
+    #: go to momentum. False = off.
+    MOMENTUM_PREEMPT: bool = False
     #: 026: None, or {"instrument": <utils.RegimeState id>, "threshold": float,
     #: "off_when": "ge"|"lt"}. In the "off" state reversion-only entries are dropped and overlap
     #: entries go to momentum; NaN state = "on". Requires a >= 4096-bar startup.
@@ -291,7 +306,7 @@ class SimpleTriggerStrategy(
             )
         window = self.MOMENTUM_RECENCY_BARS
         priority = self.FAMILY_PRIORITY
-        if window > 0:  # 025 G2: rule B hands overlap bars to momentum
+        if window > 0 or self.MOMENTUM_PREEMPT:  # 025 G2: overlap bars go to momentum
             priority = ("momentum",) + tuple(f for f in priority if f != "momentum")
         tags = self._tags(names, masks, families, n, priority)
         mask = np.logical_or.reduce(masks)
@@ -310,6 +325,22 @@ class SimpleTriggerStrategy(
             tags, mask = self._apply_regime_gate(dataframe, names, masks, families, tags, mask)
         self._st_tags = tags
         return mask
+
+    # ------------------------------------------------------------- 026 momentum preempt
+
+    def custom_exit(self, pair, trade, current_time, current_rate, current_profit, **kwargs):
+        if self.MOMENTUM_PREEMPT and family_of(getattr(trade, "enter_tag", None)) == "reversion":
+            dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+            last = dataframe.iloc[-1]
+            tag = last.get("enter_tag")
+            # Only for a FILLABLE signal: the same quote-volume floor confirm_trade_entry applies.
+            # A thin signal bar would not have been entered by momentum alone either (smoke f00:
+            # 27/66 handovers lost to a zero stake), so preempting for it only cuts reversion.
+            fillable = last["volume"] * last["close"] >= self.MIN_QUOTE_VOLUME
+            if fillable and last.get("enter_long") == 1 and family_of(tag) == "momentum":
+                return "momentum_preempt"
+        return super().custom_exit(pair, trade, current_time, current_rate, current_profit,
+                                   **kwargs)
 
     # ------------------------------------------------------------------ 026 regime gate
 
