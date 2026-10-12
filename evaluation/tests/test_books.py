@@ -77,3 +77,9 @@ def test_committed_capital_frees_before_reentry():
     tr = [{**_t("X", "2023-01-01 00:00", "2023-01-01 01:00"), "weight": 0.5},
           {**_t("X", "2023-01-01 01:00", "2023-01-01 02:00"), "weight": 0.5}]
     assert B.committed(tr, 900.0) == 450.0
+
+
+def test_mean_committed_is_time_weighted_and_weighted():
+    tr = [{**_t("X", "2023-01-01 00:00", "2023-01-01 01:00"), "weight": 1.0},
+          {**_t("Y", "2023-01-01 01:00", "2023-01-01 02:00"), "weight": 0.5}]
+    assert B.mean_committed(tr, 900.0) == (900.0 * 1 + 450.0 * 1) / 2

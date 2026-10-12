@@ -317,3 +317,63 @@ similar or better return.
 2. **Get a distant era**, still the only way to confirm the gate's fitted early half.
 3. **Run two dry-run bots** (momentum `st_bgo_mx`, gated reversion `st_book_rev2`) at 41/59
    stake, to check fills and same-pair holding live.
+
+## Addendum 4: a risk verdict in the harness (2026-10-11)
+
+**Built:** `evaluation/risk.py` — the paired risk verdict, reported BESIDE the P&L verdict
+(never instead of it).
+
+**Statistics** (arm minus control):
+- annualised daily Sharpe — higher is better;
+- maximum drawdown — lower is better.
+
+Both are computed on each side's realised daily pp, by close date, zero-filled over the shared
+span.
+
+**Bootstrap** (pinned):
+- paired stationary block bootstrap over days, so drawdown's day ordering survives;
+- mean block 10 days, 2,000 resamples, seed 20261011;
+- 95% interval → IMPROVED / WORSENED / UNCHANGED;
+- UNRESOLVABLE when trades carry no close dates.
+
+**Where it shows up:**
+- `halves.split` adds a `risk` key to each half, so every caller gets it: `stage.py` prints it
+  under the late verdict, and `books.py` prints the late and whole-span lines;
+- `halves` CLI.
+
+**Exposure:** `books.py` now also reports mean committed capital. Max drawdown scales with
+position size, and Sharpe does not. The unit tests pin this: a half-size copy of a series is
+drawdown IMPROVED, Sharpe UNCHANGED.
+
+**Results on the 026 arms.** Full detail is in [books_risk.md](books_risk.md) and
+[risk_singles.md](risk_singles.md).
+
+| late half vs `st_bgo_mx` | Sharpe | max drawdown | mean committed capital (bar 2,123) |
+|---|---|---|---|
+| books, risk 41/59 (same capital) | 0.27 vs 0.12, UNCHANGED, p 0.68 | **8.60 vs 18.15, IMPROVED, p 0.040** | 1,189 |
+| books, 50/50 (same capital) | 0.25 vs 0.12, UNCHANGED, p 0.67 | **9.54 vs 18.15, IMPROVED, p 0.025** | 1,329 |
+| books, **exposure-matched** (x1.79) | 0.27 vs 0.12, UNCHANGED, p 0.68 | 15.36 vs 18.15, UNCHANGED, p 0.71 | 2,124 |
+| gated reversion alone `st_book_rev2` | 0.31 vs 0.12, UNCHANGED, p 0.78 | 9.19 vs 18.15, UNCHANGED, p 0.28 | 536 |
+| combined, gated `st_reg_volreg2` | −0.26 vs 0.12, UNCHANGED, p 0.42 | 23.05 vs 18.15, UNCHANGED, p 0.37 | — |
+
+- Over the whole span (early half in-sample), the risk-weighted books are IMPROVED on both:
+  Sharpe 1.30 vs 0.49 (p 0.012) and drawdown p 0.008.
+- `st_book_rev2` early: Sharpe IMPROVED, 2.45 vs 0.78 (p 0.018).
+
+**Reading — the drawdown win is mostly lower exposure.**
+- At the same capital, the books' smaller late drawdown is resolved (p 0.04), but the books keep
+  only 56% of momentum alone's average capital in the market.
+- Matched to the same average exposure, the drawdown gain is unresolved. That would also need a
+  14,752 peak commitment, more than the 9,000 capacity.
+- Sharpe, the exposure-neutral measure, is higher for the books in the late half (0.27 vs 0.12)
+  but unresolved.
+
+So, out of sample: the books lose less in their worst stretch **at the same capital**, which is
+a real property for a same-capital deployment. They are not shown to be more efficient per unit
+of risk. PROVISIONAL.
+
+**Next (fix-oriented):**
+1. **Lift the books' exposure within capacity.** A larger stake for the reversion book, bounded
+   by peak committed ≤ 9,000, closes part of the gap without leverage; choose the size on
+   f00–f07.
+2. **Get a distant era** — the whole-span Sharpe win rests on the in-sample early half.

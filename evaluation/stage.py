@@ -156,6 +156,12 @@ def liveness(tag: str, previous: str, stage: str) -> str:
 # -------------------------------------------------------------------------------------- output
 
 
+def risk_line(r: dict) -> str:
+    from evaluation.risk import line
+
+    return line(r)
+
+
 def write_block(out: Path, stage: str, previous: str, rows: list[dict], decision: dict,
                 live: dict) -> None:
     header = (
@@ -179,6 +185,8 @@ def write_block(out: Path, stage: str, previous: str, rows: list[dict], decision
             f"{late.get('delta_pp')} pp, CI {late.get('ci_pp_yr')} pp/yr, p {late.get('p')}"
         )
         lines += [f"chosen: `{decision['chosen']}` (best early sum)", "", verdict]
+        if late.get("risk"):
+            lines += ["", f"late {risk_line(late['risk'])}"]
     if decision.get("late_vs_previous"):
         lp = decision["late_vs_previous"]
         prev_line = (
@@ -186,6 +194,8 @@ def write_block(out: Path, stage: str, previous: str, rows: list[dict], decision
             f"{lp.get('delta_pp')} pp, CI {lp.get('ci_pp_yr')} pp/yr, p {lp.get('p')}"
         )
         lines += ["", prev_line]
+        if lp.get("risk"):
+            lines += ["", f"(reported only) late vs the previous arm, {risk_line(lp['risk'])}"]
     lines += ["", f"adopted: **{'yes' if decision['adopted'] else 'no'}**", "", ""]
     with Path(out).open("a") as fh:
         fh.write("\n".join(lines))

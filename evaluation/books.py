@@ -22,6 +22,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -133,6 +134,18 @@ def committed(trades: list[dict], stake: float) -> float:
     return peak
 
 
+def mean_committed(trades: list[dict], stake: float, fold_ids: set[str] | None = None) -> float:
+    """Time-averaged capital in open positions (stake x weight x holding time / span). Max
+    drawdown scales with it and Sharpe does not, so a drawdown verdict between arms of different
+    mean exposure partly measures exposure (026 addendum 4)."""
+    rows = [t for t in trades if fold_ids is None or t["fold_id"] in fold_ids]
+    o = pd.to_datetime([t["open_date"] for t in rows], utc=True)
+    c = pd.to_datetime([t["close_date"] for t in rows], utc=True)
+    w = np.array([t.get("weight", 1.0) for t in rows])
+    span = (c.max() - o.min()).total_seconds()
+    return float((w * stake * (c - o).total_seconds().to_numpy()).sum() / span)
+
+
 def _pooled(tag: str) -> dict:
     from evaluation.pool import pool
 
@@ -158,6 +171,7 @@ def main(argv=None) -> int:
     ap.add_argument("--config", default=str(STRAT / "config" / "config_wf.json"))
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
+    from evaluation import risk
     from evaluation.fingerprint import load_config
     from evaluation.halves import split
 
@@ -178,6 +192,11 @@ def main(argv=None) -> int:
     cap = capacity(books["trades"], slots)
     cap["peak_committed"] = round(committed(books["trades"], float(cfg["stake_amount"])), 1)
     cap["bar_capacity"] = float(cfg["stake_amount"]) * int(cfg["max_open_trades"])
+    late_ids = {f"f{i:02d}" for i in range(8, 15)}
+    cap["mean_committed_late"] = round(
+        mean_committed(books["trades"], float(cfg["stake_amount"]), late_ids), 1)
+    cap["bar_mean_committed_late"] = round(
+        mean_committed(bar["trades"], float(cfg["stake_amount"]), late_ids), 1)
     h = _halves(books)
     bs, ws = late, whole
     lines = [
@@ -197,6 +216,10 @@ def main(argv=None) -> int:
         "",
         (f"whole span vs `{a.bar}`: **{ws.get('verdict')}**, "
          f"{json.dumps({k: ws.get(k) for k in ('delta_pp', 'ci_pp_yr', 'p')}, default=str)}"),
+        "",
+        f"late {risk.line(bs['risk'])}",
+        "",
+        f"whole span {risk.line(ws['risk'])}",
         "",
         f"capacity: {json.dumps(cap)}",
         "",

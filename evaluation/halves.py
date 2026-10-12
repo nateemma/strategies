@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "user_data/strategies"))
 
+from evaluation import risk  # noqa: E402
 from evaluation.compare_pooled import compare_data  # noqa: E402
 
 
@@ -74,6 +75,8 @@ def split(arm: dict, ctl: dict, split_after: str = "f07") -> dict:
             "delta_pp": cmp.get("delta_pp"),
             "ci_pp_yr": cmp.get("ci_pp_yr"),
             "p": (cmp.get("bootstrap") or {}).get("p"),
+            # 026 addendum 4: paired risk verdict (Sharpe, max drawdown); reported beside P&L
+            "risk": risk.compare(a["trades"], c["trades"]),
         }
     return out
 
@@ -96,6 +99,7 @@ def main(argv=None) -> int:
             f"ctl {h['ctl']['sum_pp']:+8.3f}pp {h['ctl']['positive_folds']}/{h['ctl']['folds']}  "
             f"{h['verdict']}"
         )
+        print(f"        {risk.line(h['risk'])}")
     return 0
 
 
