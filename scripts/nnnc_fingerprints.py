@@ -50,9 +50,12 @@ def scan() -> dict:
 
 
 def compare(before: dict, after: dict) -> dict:
+    """Differences that matter. A NEW file that is not a strategy (a mixin added by the change)
+    is listed under `added_non_strategies` and does not count as a difference."""
     keys = set(before) | set(after)
+    new = [k for k in keys if k not in before]
     return {
-        "added": sorted(k for k in keys if k not in before),
+        "added": sorted(k for k in new if after[k] != "NOT_A_STRATEGY"),
         "removed": sorted(k for k in keys if k not in after),
         "changed": sorted(k for k in keys if k in before and k in after
                           and before[k] != after[k]),
@@ -74,8 +77,10 @@ def main(argv=None) -> int:
     Path(a.out).write_text(json.dumps(res, indent=1, sort_keys=True) + "\n")
     print(json.dumps(counts(res)))
     if a.compare:
-        diff = compare(json.loads(Path(a.compare).read_text()), res)
-        print(json.dumps(diff, indent=1))
+        before = json.loads(Path(a.compare).read_text())
+        diff = compare(before, res)
+        print(json.dumps({**diff, "added_non_strategies": sorted(
+            k for k in res if k not in before and res[k] == "NOT_A_STRATEGY")}, indent=1))
         return 1 if any(diff.values()) else 0
     return 0
 

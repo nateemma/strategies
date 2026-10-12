@@ -24,9 +24,18 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
 from typing import Any
 import NNNClassifier
 from Framework.BaseStrategy import ModelType, NormalizationType
+from utils.EntryFramework import AUTO, EntryFrameworkMixin
 
 
-class NNNCStrategy(BaseNNStrategy):
+class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
+    # Feature 029: NNNC shares SimpleTrigger's entry framework (utils.EntryFramework) -- stop
+    # invariants, per-family exits, the regime gate, the trigger gate -- with the MODEL as its
+    # entry source. "model" is today's entry exactly: the model's prediction against its
+    # threshold, through BaseStrategy's unchanged guard chain. Model entries are tagged with the
+    # training label's family (utils.LabelFamilies; gbb_path -> reversion). Every framework
+    # feature is off until a subclass declares it.
+    ENTRY_MODE = "model"
+    MODEL_ENTRY_FAMILY = AUTO
 
     # Strategy configuration
     strategy_config = StrategyConfig(

@@ -90,4 +90,4 @@ def test_an_unrunnable_trigger_refuses_the_whole_arm(capsys):
     s = _arm(TRIGGERS=("gbb", "random_matched"))
     mask = s.get_entry_conditions(_frame())
     assert not np.asarray(mask).any()
-    assert "*** SimpleTrigger:" in capsys.readouterr().out
+    assert "enters NO trades" in capsys.readouterr().out

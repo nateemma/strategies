@@ -19,10 +19,13 @@ find no model and TRAIN one inside its own backtest. `train_model` is overridden
 missing model is a loud failure, never a silent retrain. The main feature scaler is shared at
 `get_storage_location()`, exactly as arm D used it.
 
-STOP INVARIANTS (FR-017) wrap the stop here too: the mixin returns the parent's value unchanged.
+STOP INVARIANTS (FR-017) wrap the stop here too, now inherited from NNNCStrategy's shared entry
+framework (029; listing the mixin here again would make the MRO impossible). The borrowed-weights
+methods moved to `BorrowedModelMixin` (029). The trigger is `TWIN_TRIGGER`, not `TRIGGER_NAME`:
+in the shared framework a declared trigger on a model-mode strategy is refused as ambiguous, and
+this class does not gate the model -- it REPLACES the model's opinion.
 """
 
-import re
 import sys
 from pathlib import Path
 
@@ -32,40 +35,23 @@ import pandas as pd
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
+from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
-from utils.StopInvariants import StopInvariantMixin
 
 
-_FOLD = re.compile(r"_(f\d{2})$")
-
-
-class NNNC_TriggerGate(StopInvariantMixin, NNNC_A_Raw_Open):
-    TRIGGER_NAME = "gbb"
+class NNNC_TriggerGate(BorrowedModelMixin, NNNC_A_Raw_Open):
+    TWIN_TRIGGER = "gbb"
     MODEL_SOURCE = "NNNC_ARO"
-
-    def get_model_path(self) -> str:
-        m = _FOLD.search(self.__class__.__name__)
-        if not m:
-            raise ValueError(
-                f"{self.__class__.__name__}: NNNC_TriggerGate runs only as a per-fold "
-                f"class (`*_fNN`) that borrows {self.MODEL_SOURCE}_fNN's weights"
-            )
-        src = f"{self.MODEL_SOURCE}_{m.group(1)}"
-        d = Path(self.get_storage_location()) / src
-        if not d.is_dir():
-            raise FileNotFoundError(f"borrowed model dir {d} is missing -- refusing to train")
-        return str(d / f"{src}.keras")
-
-    def train_model(self, *args, **kwargs):
-        raise RuntimeError("NNNC_TriggerGate must never train")
 
     def get_entry_conditions(self, dataframe):
         # super() runs the model and writes predict_* columns, which the diagnostics read; the
-        # opinion itself is discarded.
+        # opinion itself is discarded -- and so are the model-entry tags the shared framework
+        # wrote for it (029): this arm's entries are the trigger's, untagged as before.
         super().get_entry_conditions(dataframe)
+        self._st_tags = None
         from research.outcomes import triggers as _triggers
 
         _triggers.ensure_builtins()
         return pd.Series(
-            _triggers.evaluate(self.TRIGGER_NAME, dataframe).to_numpy(), index=dataframe.index
+            _triggers.evaluate(self.TWIN_TRIGGER, dataframe).to_numpy(), index=dataframe.index
         )

@@ -77,7 +77,7 @@ def test_g2_refuses_without_fallback(monkeypatch, capsys, name, runnable):
 
     got = _instance(_R).get_entry_conditions(_frame())
     assert not got.any()
-    assert "*** SimpleTrigger:" in capsys.readouterr().out
+    assert "enters NO trades" in capsys.readouterr().out
 
 
 def test_real_verdict_file_admits_gbb_and_refuses_random_matched():

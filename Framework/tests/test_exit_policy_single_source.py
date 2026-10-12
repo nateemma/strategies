@@ -338,6 +338,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2.py",
     "utils/tests/test_exit_switches.py",       # sets the switch on stubs; asserts the
                                                  # resolved take-profit, computes none of it.
+    "NNNC/tests/test_nnnc_merge.py",           # 029: sets grace hours/floor on a stub NNNC to
+                                                 # drive StopInvariantMixin; computes nothing.
     "evaluation/tests/test_fingerprint_switches.py",  # declares grace 12.0 on a subclass to
                                                         # assert its hash; computes nothing.
 })

@@ -207,8 +207,17 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
         coexist["MOMENTUM_PREEMPT"] = True
     if getattr(strategy_cls, "REVERSION_REGIME_GATE", None) is not None:  # 026 C4
         coexist["REVERSION_REGIME_GATE"] = _jsonable(strategy_cls.REVERSION_REGIME_GATE)
+    # 029: the entry source. The trigger gate on a model is a switch, so it forces the block; a
+    # model's entry family is hashed whenever the block exists. Trigger mode and plain model mode
+    # add nothing, so every pre-029 sha is unchanged.
+    mode = getattr(strategy_cls, "ENTRY_MODE", None)
+    if mode == "trigger_and_model":
+        coexist["ENTRY_MODE"] = mode
     if not (any(sets.values()) or len(triggers) > 1 or disabled or coexist):
         return {}
+    entry = {}
+    if mode in ("model", "trigger_and_model"):
+        entry = {"ENTRY_MODE": mode, "MODEL_ENTRY_FAMILY": strategy_cls._model_family()}
     import dataclasses
 
     from research.outcomes import triggers as registry
@@ -230,6 +239,7 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
         },
         "TRIGGER_FAMILIES": {t: registry.get(t).family for t in triggers},
         **coexist,
+        **entry,
     }
 
 

@@ -41,7 +41,12 @@ def _dp(last):
 
 def test_preempt_fires_only_on_a_fillable_momentum_entry(monkeypatch):
     s = _arm(MOMENTUM_PREEMPT=True)
-    monkeypatch.setattr(SimpleTriggerStrategy.__mro__[1], "custom_exit",
+    # Stub the PARENT of the class that implements the preempt (since 029, the shared
+    # EntryFrameworkMixin), so its super().custom_exit returns None.
+    from utils.EntryFramework import EntryFrameworkMixin
+
+    mro = SimpleTriggerStrategy.__mro__
+    monkeypatch.setattr(mro[mro.index(EntryFrameworkMixin) + 1], "custom_exit",
                         lambda *a, **k: None, raising=False)
     rev = SimpleNamespace(enter_tag="reversion:gbb", is_short=False)
     now = datetime(2023, 1, 1, 12, 15, tzinfo=UTC)

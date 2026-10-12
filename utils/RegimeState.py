@@ -30,6 +30,11 @@ TRAIL_BARS = 2880
 VR_Q = 16
 MIN_PAIRS = 6
 
+#: Market-CONTEXT series for the `btctrend` instrument (feature 026). Not a traded pair and never a
+#: per-pair rule; kept as configuration so strategy code carries no pair literal (G6). Moved here
+#: from SimpleTrigger/presets.py in 029 so the shared entry framework imports no strategy.
+REGIME_CONTEXT_PAIR = "BTC/USDT"
+
 
 def _close(frame: pd.DataFrame) -> pd.Series:
     s = pd.Series(frame["close"].to_numpy(dtype=float), index=pd.DatetimeIndex(frame["date"]))
