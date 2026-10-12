@@ -85,6 +85,9 @@ def pool(plan: dict) -> dict:
                 "profit_abs": t["profit_abs"], "profit_ratio": t.get("profit_ratio"),
                 "exit_reason": t.get("exit_reason"), "pair_group": "incumbent",
                 "scale_pp_per_abs": scale,
+                # 026 addendum 5: the filled stake (BaseStrategy caps it at candle liquidity);
+                # evaluation.books needs it to re-size a book honestly.
+                "stake_amount": t.get("stake_amount"),
                 # 024 C6: the entry family ("<family>:<trigger>[+ov]"); additive, read by
                 # evaluation.contention. Absent in pre-024 archives' semantics ("model_entry ").
                 "enter_tag": t.get("enter_tag"),

@@ -102,8 +102,13 @@ def bootstrap_delta(arm: dict, ctl: dict,
         return None
     scale = _scale(ctl, ct)
     key = lambda t: tuple(t[k] for k in key_fields)
-    a = {key(t): t["profit_abs"] for t in at}
-    c = {key(t): t["profit_abs"] for t in ct}
+    # summed per key, not overwritten: one backtest never repeats a key, but a union of
+    # separate books can (two books entering one pair on one candle, 026 addendum 5)
+    a: dict = {}
+    c: dict = {}
+    for side, trades in ((a, at), (c, ct)):
+        for t in trades:
+            side[key(t)] = side.get(key(t), 0.0) + t["profit_abs"]
     shared = set(a) & set(c)
     identical = sum(1 for k in shared if abs(a[k] - c[k]) < 1e-9)
     diffs = [a[k] - c[k] for k in shared if abs(a[k] - c[k]) >= 1e-9]

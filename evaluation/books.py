@@ -31,19 +31,48 @@ sys.path.insert(0, str(STRAT))
 
 FOLDS = STRAT / "evaluation" / "folds"
 LABEL = "PROVISIONAL -- not a finding under quality gate 2 (no distant era)"
+# full-stake fills land at 899.0-899.9999 of 900 (amount precision rounding); below this a
+# fill was cut by the liquidity cap
+FULL_FILL_TOL = 0.002
+
+
+def resize(tr: dict, w: float, stake: float | None) -> tuple[float, float | None, bool]:
+    """(profit multiplier, new stake, new stake is an upper bound) for one trade at weight w.
+
+    BaseStrategy.custom_stake_amount fills min(proposed, candle quote volume / 10). A trade
+    filled below the config stake was capped, so its cap IS its filled stake and a resized
+    stake is min(w x stake, filled) -- NOT w x filled (026 addendum 5: ~75% of entries are
+    capped). An uncapped trade's cap is only known to be >= stake: exact for w <= 1, an upper
+    bound for w > 1. Without the filled stake (old archives) or config stake: linear in w."""
+    s = tr.get("stake_amount")
+    if stake is None or not s:
+        return w, None, False
+    capped = s < stake * (1 - FULL_FILL_TOL)
+    new = min(w * stake, s) if capped else w * stake
+    return new / s, new, (not capped and w > 1)
 
 
 def combine(pooled: dict[str, dict], stake_scale: float = 1.0,
-            weights: dict[str, float] | None = None) -> dict:
+            weights: dict[str, float] | None = None, stake: float | None = None) -> dict:
     """Per-fold return = sum over books; trades = union tagged with their book.
 
     `stake_scale` multiplies every book's stake (fold returns and trade profit_abs), e.g. 0.5 =
     two books in ONE wallet at half the per-trade stake with twice the slots -- same capital as
-    a single-book arm. Linear in stake: fixed-stake books, so no compounding is lost.
+    a single-book arm. Fixed-stake books, so no compounding is lost.
     `weights` ({book: w}) scales each book's stake on top; weights summing to 1 keep the
-    capital of a single-book arm."""
+    capital of a single-book arm. With the config `stake`, each trade is resized through the
+    liquidity cap (`resize`); without it, linearly."""
     tags = list(pooled)
     w = {t: stake_scale * (weights or {}).get(t, 1.0) for t in tags}
+    trades, extra = [], {}
+    for t in tags:
+        for tr in pooled[t]["trades"]:
+            m, new, upper = resize(tr, w[t], stake)
+            trades.append({**tr, "book": t, "profit_abs": tr["profit_abs"] * m, "weight": w[t],
+                           "stake": new, "stake_upper_bound": upper})
+            # the fold return is w x the recorded return; add what the cap changes
+            pp = (tr["profit_abs"] or 0.0) * (tr["scale_pp_per_abs"] or 0.0)
+            extra[tr["fold_id"]] = extra.get(tr["fold_id"], 0.0) + (m - w[t]) * pp
     folds = [f["fold_id"] for f in pooled[tags[0]]["per_fold"]]
     for t in tags[1:]:
         if [f["fold_id"] for f in pooled[t]["per_fold"]] != folds:
@@ -57,12 +86,10 @@ def combine(pooled: dict[str, dict], stake_scale: float = 1.0,
             "fold_id": fid,
             "n_trades": sum(r["n_trades"] for r in rows),
             "return_pct": (None if all(x is None for x in rets)
-                           else sum(x or 0.0 for x in rets)),
+                           else sum(x or 0.0 for x in rets) + extra.get(fid, 0.0)),
             "test_days": rows[0]["test_days"],
             "status": "evaluated",
         })
-    trades = [{**tr, "book": t, "profit_abs": tr["profit_abs"] * w[t], "weight": w[t]}
-              for t in tags for tr in pooled[t]["trades"]]
     missing = sorted({m for t in tags for m in pooled[t].get("folds_missing", [])})
     return {
         **pooled[tags[0]],
@@ -118,15 +145,24 @@ def risk_weights(pooled: dict[str, dict], fold_ids: set[str]) -> dict[str, dict]
     return {t: {"weight": inv[t] / tot, "daily_sd_pp": sig[t]} for t in pooled}
 
 
+def _stakes(trades: list[dict], stake: float) -> np.ndarray:
+    """Capital each trade held: its resized stake, else filled stake x weight, else the config
+    stake x weight (fixtures / old archives)."""
+    return np.array([t["stake"] if t.get("stake") is not None
+                     else (t.get("stake_amount") or stake) * t.get("weight", 1.0)
+                     for t in trades], dtype=float)
+
+
 def committed(trades: list[dict], stake: float) -> float:
-    """Peak capital in open positions (stake x weight summed over open trades), per fold."""
+    """Peak capital in open positions (per-trade stakes summed over open trades), per fold."""
     df = pd.DataFrame(trades)
     df["o"] = pd.to_datetime(df["open_date"], utc=True)
     df["c"] = pd.to_datetime(df["close_date"], utc=True)
+    df["s"] = _stakes(trades, stake)
     peak = 0.0
     for _, g in df.groupby("fold_id"):
-        ev = pd.concat([pd.Series(g["weight"].to_numpy() * stake, index=g["o"]),
-                        pd.Series(-g["weight"].to_numpy() * stake, index=g["c"])]).sort_index(
+        ev = pd.concat([pd.Series(g["s"].to_numpy(), index=g["o"]),
+                        pd.Series(-g["s"].to_numpy(), index=g["c"])]).sort_index(
                             kind="stable")
         # closes before opens at the same timestamp (a pair's slot frees before re-entry)
         ev = ev.groupby(level=0).apply(lambda x: x.sort_values()).reset_index(drop=True)
@@ -135,15 +171,30 @@ def committed(trades: list[dict], stake: float) -> float:
 
 
 def mean_committed(trades: list[dict], stake: float, fold_ids: set[str] | None = None) -> float:
-    """Time-averaged capital in open positions (stake x weight x holding time / span). Max
+    """Time-averaged capital in open positions (per-trade stake x holding time / span). Max
     drawdown scales with it and Sharpe does not, so a drawdown verdict between arms of different
     mean exposure partly measures exposure (026 addendum 4)."""
     rows = [t for t in trades if fold_ids is None or t["fold_id"] in fold_ids]
     o = pd.to_datetime([t["open_date"] for t in rows], utc=True)
     c = pd.to_datetime([t["close_date"] for t in rows], utc=True)
-    w = np.array([t.get("weight", 1.0) for t in rows])
     span = (c.max() - o.min()).total_seconds()
-    return float((w * stake * (c - o).total_seconds().to_numpy()).sum() / span)
+    return float((_stakes(rows, stake) * (c - o).total_seconds().to_numpy()).sum() / span)
+
+
+def fit_weight(pooled: dict[str, dict], book: str, weights: dict[str, float], stake: float,
+               capacity_: float, fold_ids: set[str], step: float = 0.05,
+               top: float = 5.0) -> float:
+    """Largest weight for `book` (grid `step`, other weights fixed) whose peak committed capital
+    over `fold_ids` (early-choose) stays <= `capacity_`. Uncapped trades at w > 1 count at
+    w x stake, the upper bound, so the fit is conservative."""
+    best = 0.0
+    for k in range(1, round(top / step) + 1):
+        w = round(k * step, 10)
+        c = combine(pooled, 1.0, {**weights, book: w}, stake)
+        if committed([t for t in c["trades"] if t["fold_id"] in fold_ids], stake) > capacity_:
+            break
+        best = w
+    return best
 
 
 def _pooled(tag: str) -> dict:
@@ -168,6 +219,8 @@ def main(argv=None) -> int:
                     help="per-trade stake multiplier for every book (0.5 = same capital, 2x slots)")
     ap.add_argument("--weights", default=None,
                     help="'risk' (inverse daily-P&L vol on f00-f07) or book=w,book=w")
+    ap.add_argument("--fit", default=None,
+                    help="book whose weight is fitted on f00-f07 to peak committed <= capacity")
     ap.add_argument("--config", default=str(STRAT / "config" / "config_wf.json"))
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
@@ -183,20 +236,28 @@ def main(argv=None) -> int:
         weights = {t: v["weight"] for t, v in chosen.items()}
     elif a.weights:
         weights = {k: float(v) for k, v in (x.split("=") for x in a.weights.split(","))}
-    books = combine(pooled, a.stake_scale, weights)
     cfg = load_config(a.config)
+    stake = float(cfg["stake_amount"])
+    early_ids = {f"f{i:02d}" for i in range(8)}
+    if a.fit:
+        weights = {**{t: 1.0 for t in tags}, **(weights or {})}
+        weights[a.fit] = fit_weight(pooled, a.fit, weights, stake,
+                                    stake * int(cfg["max_open_trades"]), early_ids)
+    books = combine(pooled, a.stake_scale, weights, stake)
     bar = _pooled(a.bar)
     late = split(books, bar)["late"]
     whole = split(books, bar, split_after="f14")["early"]
     slots = round(int(cfg["max_open_trades"]) / a.stake_scale)
     cap = capacity(books["trades"], slots)
-    cap["peak_committed"] = round(committed(books["trades"], float(cfg["stake_amount"])), 1)
-    cap["bar_capacity"] = float(cfg["stake_amount"]) * int(cfg["max_open_trades"])
     late_ids = {f"f{i:02d}" for i in range(8, 15)}
-    cap["mean_committed_late"] = round(
-        mean_committed(books["trades"], float(cfg["stake_amount"]), late_ids), 1)
-    cap["bar_mean_committed_late"] = round(
-        mean_committed(bar["trades"], float(cfg["stake_amount"]), late_ids), 1)
+    for name, ids in (("early", early_ids), ("late", late_ids)):
+        cap[f"peak_committed_{name}"] = round(
+            committed([t for t in books["trades"] if t["fold_id"] in ids], stake), 1)
+    cap["bar_capacity"] = stake * int(cfg["max_open_trades"])
+    cap["mean_committed_late"] = round(mean_committed(books["trades"], stake, late_ids), 1)
+    cap["bar_mean_committed_late"] = round(mean_committed(bar["trades"], stake, late_ids), 1)
+    cap["stake_upper_bound_trades"] = sum(bool(t.get("stake_upper_bound"))
+                                          for t in books["trades"])
     h = _halves(books)
     bs, ws = late, whole
     lines = [

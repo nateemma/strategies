@@ -197,6 +197,8 @@ reversion's profit-taking.
 
 ### Separate books (`st_bgo_mx` + `st_book_rev[2]`). Not adopted, but closest so far.
 
+> **Corrected in Addendum 5:** the books numbers below ignored the liquidity stake cap, and the paired P&L delta dropped trades where the books collided. See Addendum 5 for the re-scored values.
+
 - `SimpleTrigger_RevOnlyVolreg[2]` is the gated combined arm with `breakout_gbb` disabled: the
   reversion book alone.
 - Momentum's book is `st_bgo_mx` itself, unchanged.
@@ -262,6 +264,8 @@ late-half loser into a small out-of-sample winner on its own.
 
 ## Addendum 3: risk-weighted books (2026-10-11)
 
+> **Corrected in Addendum 5:** the books numbers below ignored the liquidity stake cap, and the paired P&L delta dropped trades where the books collided. See Addendum 5 for the re-scored values.
+
 **Rule, pre-declared before scoring:** `evaluation.books --weights risk`.
 
 - Each book's weight is proportional to 1/sd of its daily realised P&L (pp, by close date,
@@ -320,6 +324,8 @@ similar or better return.
 
 ## Addendum 4: a risk verdict in the harness (2026-10-11)
 
+> **Corrected in Addendum 5:** the books numbers below ignored the liquidity stake cap, and the paired P&L delta dropped trades where the books collided. See Addendum 5 for the re-scored values.
+
 **Built:** `evaluation/risk.py` — the paired risk verdict, reported BESIDE the P&L verdict
 (never instead of it).
 
@@ -377,3 +383,76 @@ of risk. PROVISIONAL.
    by peak committed ≤ 9,000, closes part of the gap without leverage; choose the size on
    f00–f07.
 2. **Get a distant era** — the whole-span Sharpe win rests on the in-sample early half.
+
+## Addendum 5: reversion book sized to capacity, and two instrument fixes (2026-10-11)
+
+**Question:** keep momentum at its own size (weight 1.0, as in the bar `st_bgo_mx`) and give the
+reversion book (`st_book_rev2`) the largest stake whose peak committed capital over f00–f07 stays
+≤ 9,000 (900 × 10). Judge on f08–f14.
+
+### Two instrument bugs found first
+
+Auditing the sizing showed the books' arithmetic was wrong in two ways. Both bugs affect
+addenda 2–4.
+
+1. **The liquidity cap was ignored.** `BaseStrategy.custom_stake_amount` fills min(900,
+   candle quote volume / 10). In both arms, **~75% of entries were cut below 900** (median
+   stake ~310; `st_bgo_mx` 4,651 of 6,156; `st_book_rev2` 2,451 of 3,384). Effects:
+   - A capped trade keeps its capped stake under a smaller weight: min(w × 900, cap), not
+     w × filled. `combine` had scaled every trade's P&L linearly.
+   - Committed capital was counted at 900 × weight per trade, about 2× too high. Momentum
+     alone actually peaks at 6,825 early (not 9,000) and averages 988 late (not 2,123).
+   - Fix: `pool` now carries each trade's `stake_amount`. `books.resize` applies
+     min(w × 900, cap). A full fill (within 0.2% of 900, allowing for precision rounding) has an
+     unknown cap ≥ 900: exact for w ≤ 1, an upper bound for w > 1, flagged per trade.
+     `committed` and `mean_committed` now use the real per-trade stakes.
+2. **Paired P&L dropped colliding trades.** `bootstrap_delta` keyed trades into a dict by
+   (fold, pair, open_date). When two books entered one pair on one candle, the reversion trade
+   **overwrote** the momentum one. In the fitted books, 81 collisions hid 2.58pp of late
+   momentum P&L: the late delta read −0.57 when the totals differ by +2.01.
+   - Fix: same-key trades are summed. A single backtest never repeats a key (0 duplicates in
+     either arm), so every single-arm verdict is unchanged. Checked: `st_book_rev2` vs
+     `st_gbb` late is still IMPROVED, +23.48, p 0.05.
+
+Tests: `evaluation/tests/test_books.py`, +5 tests (resize with capped, uncapped and
+precision-rounded fills; fold return follows the cap; fit uses only the given folds; paired delta
+keeps both books' trades on one key).
+
+### Result
+
+`books.py --fit st_book_rev2 --weights st_bgo_mx=1.0` → reversion weight **0.60** (grid 0.05).
+Peak committed is 8,996 early and 8,950 late, so it also fits out of sample. No trade needed the
+w > 1 upper bound. Full output is in [books_capacity.md](books_capacity.md).
+
+| vs `st_bgo_mx` (late +2.51) | total / late pp | late P&L | late Sharpe | late max DD | mean committed late (bar 988) | peak early |
+|---|---|---|---|---|---|---|
+| **momentum 1.0 + reversion 0.60 (fitted)** | +61.15 / **+4.51** | UNCHANGED, +2.01, p 0.74 | 0.18 vs 0.12, UNCHANGED | 18.59 vs 18.15, UNCHANGED | 1,186 | 8,996 |
+| momentum 1.0 + reversion 1.0 (over capacity) | +79.63 / +6.70 | UNCHANGED, +4.20, p 0.64 | 0.25, UNCHANGED | 19.08, UNCHANGED | 1,250 | 11,516 |
+| 50/50 at stake ×0.5 (corrected) | +44.67 / +3.50 | UNCHANGED, p 0.89 | 0.19, UNCHANGED | 11.87, UNCHANGED, p 0.26 | 872 | 6,390 |
+| risk 41/59 (corrected) | +45.45 / +2.85 | UNCHANGED, p 0.96 | 0.16, UNCHANGED | 11.76, UNCHANGED, p 0.27 | 817 | 6,604 |
+
+Whole span (early half in-sample): the fitted books are P&L IMPROVED (+35.96pp, p < 0.001) and
+Sharpe IMPROVED (0.98 vs 0.49, p 0.016).
+
+### Reading
+
+- **Addendum 4's drawdown win does not survive the corrections.** Risk 41/59 late max drawdown
+  was IMPROVED (p 0.040). It is now UNCHANGED (p 0.27), and so is 50/50 (p 0.26). With real
+  stakes, the scaled-down books shrank less than the linear scaling assumed.
+- **Sized to capacity, the books add reversion without changing momentum.** Late is +4.51 vs
+  +2.51 and the whole span roughly doubles. Late P&L, Sharpe and drawdown are all UNCHANGED,
+  so the out-of-sample gain is unresolved. Not adopted. PROVISIONAL.
+- **Capacity is a peak constraint, not an average one.** Mean use is about 13% of the 9,000.
+  Reversion at 1.0 breaches it only at rare peaks (11,516). A static weight therefore gives up
+  40% of the reversion stake to cover a few crowded hours.
+- **Deployment note.** The fitted books open more than 10 positions together at times (1,157
+  entries found 10 or more already open). That is fine for two bots on two sub-accounts within
+  a 9,000 total, but impossible in one bot at `max_open_trades` 10.
+
+### Next (fix-oriented)
+
+1. **Enforce capacity dynamically instead of statically.** Use reversion at 1.0 and refuse an
+   entry only when committed + stake would exceed 9,000, as a shared wallet does. This keeps the
+   full stake outside the rare peaks. It needs a shared-wallet replay in `books.py`; trades
+   dropped at the peak change later pair availability, so the replay is approximate.
+2. **Get a distant era.** Every whole-span win here rests on the in-sample early half.
