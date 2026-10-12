@@ -19,7 +19,7 @@ A label not in the table has no family.
 ## Stop-invariant mode
 
 `FT_STOP_INVARIANTS` = `halt` (the default when unset) or `report`. In `report` mode a violation is
-written to `$FT_ENTRY_CONDITION_SINK/<class>_<pair>_stopinv.json` as
+written to `$FT_STOP_INVARIANTS_SINK/<class>_<pair>_stopinv.json` as
 `{pair, trade_id, time, check, message}`, and the parent's value is returned unchanged.
 
 ## Baseline (`baseline.json`)

@@ -160,3 +160,40 @@ def test_c_per_trade_params_set_the_bound_for_that_trade():
     assert _call(s, -0.08, 100.0, hours=7, trade=_tagged("wide", 33)) == -0.08
     with pytest.raises(StopInvariantError, match="bound"):
         _call(s, -0.08, 100.0, hours=7, trade=_tagged(None, 34))
+
+
+# ---- 029 T002: report-only mode (FT_STOP_INVARIANTS=report) -----------------------------------
+
+
+def test_report_mode_records_instead_of_raising(monkeypatch, tmp_path):
+    import json
+
+    monkeypatch.setenv("FT_STOP_INVARIANTS", "report")
+    monkeypatch.setenv("FT_STOP_INVARIANTS_SINK", str(tmp_path))
+    s = _Strat()
+    assert _call(s, 0.06, 95.0, hours=7) == 0.06  # parent value returned unchanged
+    files = list(tmp_path.glob("*_stopinv.json"))
+    assert len(files) == 1
+    rows = json.loads(files[0].read_text())
+    assert rows[0]["check"] == "sign" and rows[0]["pair"] == "X/USDT"
+    assert _call(s, -1.5, 100.0, hours=7) == -1.5
+    assert [r["check"] for r in json.loads(files[0].read_text())] == ["sign", "price"]
+
+
+def test_report_mode_without_sink_still_does_not_raise(monkeypatch):
+    monkeypatch.setenv("FT_STOP_INVARIANTS", "report")
+    monkeypatch.delenv("FT_STOP_INVARIANTS_SINK", raising=False)
+    assert _call(_Strat(), 0.06, 95.0, hours=7) == 0.06
+
+
+def test_mode_is_read_at_every_check_not_at_import(monkeypatch, tmp_path):
+    monkeypatch.setenv("FT_STOP_INVARIANTS_SINK", str(tmp_path))
+    s = _Strat()
+    monkeypatch.setenv("FT_STOP_INVARIANTS", "report")
+    assert _call(s, 0.06, 95.0, hours=7) == 0.06
+    monkeypatch.setenv("FT_STOP_INVARIANTS", "halt")
+    with pytest.raises(StopInvariantError, match="sign"):
+        _call(s, 0.06, 95.0, hours=7)
+    monkeypatch.delenv("FT_STOP_INVARIANTS")
+    with pytest.raises(StopInvariantError, match="sign"):
+        _call(s, 0.06, 95.0, hours=7)

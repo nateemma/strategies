@@ -46,7 +46,7 @@ contracts/interfaces.md I1–I5, quickstart.md)
   - Smoke test: run it once and check the counts (strategies, load errors, not-a-strategy).
 - [ ] T002 [P] Add the report-only mode to `utils/StopInvariants.py` per contract I3.
   - `FT_STOP_INVARIANTS=report` records each violation to
-    `$FT_ENTRY_CONDITION_SINK/<class>_<pair>_stopinv.json` (append to a list) and returns.
+    `$FT_STOP_INVARIANTS_SINK/<class>_<pair>_stopinv.json` (append to a list) and returns.
   - Unset or `halt` keeps today's behaviour.
   - The mode is read from the environment at every check, never cached at import (I3).
   - Tests in `utils/tests/test_stop_invariants.py`: report mode doesn't raise, writes the record
@@ -93,7 +93,7 @@ contracts/interfaces.md I1–I5, quickstart.md)
   `model_artifacts`. Then run the baseline chain sequentially:
   - arm D, arm D f00 again, and the twin;
   - the 8 SimpleTrigger `_b029` arms (about 26 min);
-  - the probe, with `FT_STOP_INVARIANTS=report FT_ENTRY_CONDITION_SINK=<scratch>/si029`.
+  - the probe, with `FT_STOP_INVARIANTS=report FT_STOP_INVARIANTS_SINK=<scratch>/si029`.
 
   Confirm:
   - all records have returncode 0;

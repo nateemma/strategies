@@ -30,9 +30,20 @@ post-grace stop -- its implied price is the market, which is below the bound by 
 
 Strategy-agnostic: no family names. Per-trade state (the last stop price) is kept on the
 instance, keyed by trade id.
+
+REPORT-ONLY MODE (feature 029): `FT_STOP_INVARIANTS=report` records each violation to
+`$FT_STOP_INVARIANTS_SINK/<class>_<pair>_stopinv.json` (a JSON list; its own variable, because run_arm replaces FT_ENTRY_CONDITION_SINK with a
+per-run directory whose files it parses as dicts) instead of raising, and the
+parent's value is still returned unchanged -- so a run in report mode makes exactly the trades it
+would make without the mixin. Unset or `halt` is the default. The variable is read at every
+check, never at import.
 """
 
 from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
 
 from utils.ExitPolicy import STOP_AT_MARKET_RATIO
 
@@ -42,6 +53,25 @@ _TOL = 1e-9
 
 class StopInvariantError(RuntimeError):
     """A stop value that violates a documented invariant. Halts the run (FR-017)."""
+
+
+def _mode() -> str:
+    return os.environ.get("FT_STOP_INVARIANTS", "halt")
+
+
+def _record(strategy, pair, trade, current_time, exc: StopInvariantError) -> None:
+    sink = os.environ.get("FT_STOP_INVARIANTS_SINK")
+    if not sink:
+        return
+    out = Path(sink)
+    out.mkdir(parents=True, exist_ok=True)
+    safe = str(pair).replace("/", "_").replace(":", "_")
+    path = out / f"{type(strategy).__name__}_{safe}_stopinv.json"
+    rows = json.loads(path.read_text()) if path.is_file() else []
+    msg = str(exc)
+    rows.append({"pair": pair, "trade_id": getattr(trade, "id", None), "time": str(current_time),
+                 "check": msg.split(":", 1)[0].replace("stop ", "", 1), "message": msg})
+    path.write_text(json.dumps(rows))
 
 
 def _num(v, default=0.0) -> float:
@@ -56,7 +86,12 @@ class StopInvariantMixin:
         value = super().custom_stoploss(
             pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs
         )
-        self._check_stop(pair, trade, current_time, current_rate, value)
+        try:
+            self._check_stop(pair, trade, current_time, current_rate, value)
+        except StopInvariantError as exc:
+            if _mode() != "report":
+                raise
+            _record(self, pair, trade, current_time, exc)
         return value
 
     def _stop_bound_inputs(self, trade):

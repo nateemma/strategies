@@ -78,6 +78,14 @@ EntryFrameworkMixin, FamilyCoexistenceMixin, FamilyExitMixin, StopInvariantMixin
 - **Pre-implementation check.** Each row is re-read against its labeler's condition before
   commit, and any row that doesn't hold is dropped to none.
 - **Consistency test.** Where a trigger shares the name, its family must match.
+- **T013 check (2026-10-12): every row holds.**
+  - gbb, gbb_path and gbb_fwdmae: `guard_metric < guard_threshold (0.3) & bb_width > 0.035`.
+  - breakout and its variants: `close > prior lookback high`.
+  - breakout_gbb: `guard_metric > 0.2`.
+  - breakout_bb: `bb_position >= threshold`.
+  - breakout_consensus: majority strength votes.
+  - geometry: `find_peaks(-close)`, i.e. valleys.
+  - Every same-named trigger's family matches.
 - **Arm D:** `TRAINING_TYPE = gbb_path`, so reversion. Its `use_forward_peak_profit_label` flag is
   read nowhere, and is noted in the report.
 
