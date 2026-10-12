@@ -456,3 +456,51 @@ Sharpe IMPROVED (0.98 vs 0.49, p 0.016).
    full stake outside the rare peaks. It needs a shared-wallet replay in `books.py`; trades
    dropped at the peak change later pair availability, so the replay is approximate.
 2. **Get a distant era.** Every whole-span win here rests on the in-sample early half.
+
+## Addendum 6: a dynamic shared-wallet cap (2026-10-11)
+
+**Question:** Addendum 5's static fit gave up 40% of the reversion stake to cover rare peaks.
+Instead, run both books at full size (momentum 1.0, reversion 1.0) in **one wallet of 9,000**,
+and cut back only when the wallet is actually full. There is no fitted parameter.
+
+**Replay (`books.shared_wallet`, `books.py --shared-wallet`):**
+- Each fold is replayed in time order, with closes before opens at the same timestamp.
+- Each entry fills at min(its liquidity-capped stake, 9,000 − committed). This mirrors freqtrade
+  `Wallets.validate_stake_amount`, which shrinks a stake to the available balance rather than
+  refusing it.
+- An entry is refused when the room left is below a 10 USDT minimum order.
+- Entries on the same candle go to momentum first, then by pair.
+- **Approximate:** a refused entry would have left its pair free for a later signal that the
+  archive does not hold. Few entries are affected (below), so this error is small.
+- Tests: +2 in `test_books.py` (shrink, then refuse, with closes freeing room first; same-time
+  priority).
+
+**Consistency check:** the 0.60 static fit run through the same replay is refused and shrunk
+0 times, and reproduces Addendum 5 exactly (+61.15, late +4.51).
+
+**Result.** Full output is in [books_shared_wallet.md](books_shared_wallet.md).
+
+| vs `st_bgo_mx` (late +2.51) | total / late pp | late P&L | late Sharpe | late max DD | wallet interventions |
+|---|---|---|---|---|---|
+| **1.0 + 1.0, shared 9,000 wallet** | +77.94 / **+6.56** | UNCHANGED, +4.06, p 0.64 | 0.24 vs 0.12, UNCHANGED, p 0.69 | 19.08 vs 18.15, UNCHANGED | 12 refused, 12 shrunk of 9,540 entries; −1.69pp |
+| 1.0 + 0.60, static fit (Addendum 5) | +61.15 / +4.51 | UNCHANGED, p 0.74 | 0.18, UNCHANGED | 18.59, UNCHANGED | none |
+
+Whole span (early half in-sample): P&L IMPROVED (+52.75pp, p < 0.001) and Sharpe IMPROVED (1.14
+vs 0.49, p 0.012).
+
+**Reading:**
+- **The dynamic cap is clearly better than the static one.** It keeps almost all of the
+  full-size combination (+77.94 vs +79.63 uncapped). The wallet binds on 24 of 9,540 entries;
+  10 of the 12 refusals hit reversion and 2 hit momentum. Peak committed capital is exactly
+  9,000 in both halves.
+- **Out of sample the gain is still unresolved.** Late is +6.56 vs +2.51; P&L, Sharpe and
+  drawdown are all UNCHANGED. Not adopted. PROVISIONAL.
+- **Deployment shape:** one account with 9,000 shared by two bots (momentum and gated
+  reversion), each sized at the full 900 stake. Momentum is barely touched: 2 refused and 4
+  shrunk entries over 15 folds.
+
+**Next (fix-oriented):**
+1. **Get a distant era.** This is now the only thing between the books and a resolved verdict:
+   every whole-span win rests on the in-sample early half.
+2. **Run it as a real two-bot dry run on one account**, to measure the live wallet interaction
+   the replay approximates.

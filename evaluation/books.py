@@ -34,6 +34,9 @@ LABEL = "PROVISIONAL -- not a finding under quality gate 2 (no distant era)"
 # full-stake fills land at 899.0-899.9999 of 900 (amount precision rounding); below this a
 # fill was cut by the liquidity cap
 FULL_FILL_TOL = 0.002
+# exchange minimum order in USDT (binance.us notional floor, approximate); a shared-wallet
+# entry with less room than this is refused rather than shrunk
+MIN_STAKE = 10.0
 
 
 def resize(tr: dict, w: float, stake: float | None) -> tuple[float, float | None, bool]:
@@ -197,6 +200,57 @@ def fit_weight(pooled: dict[str, dict], book: str, weights: dict[str, float], st
     return best
 
 
+def shared_wallet(books: dict, capacity_: float, stake: float,
+                  min_stake: float = MIN_STAKE) -> dict:
+    """Replay a `combine` result through ONE wallet of `capacity_` (026 addendum 6).
+
+    Per fold, in time order (closes before opens at one timestamp; same-time opens in book
+    order, then pair), each entry fills min(its stake, capacity - committed), as freqtrade's
+    `Wallets.validate_stake_amount` shrinks a stake to the available balance; below `min_stake`
+    it is refused. Profit scales with the fill. APPROXIMATE: a refused or shrunk trade is
+    otherwise replayed as recorded -- a refused entry would have left its pair free for a later
+    signal that the archive does not hold."""
+    order = {b: i for i, b in enumerate(dict.fromkeys(t["book"] for t in books["trades"]))}
+    kept, delta = [], {}
+    stats = {"refused": {}, "shrunk": {}, "refused_pp": 0.0, "shrunk_pp": 0.0}
+    by_fold: dict = {}
+    for t in books["trades"]:
+        by_fold.setdefault(t["fold_id"], []).append(t)
+    for fid, trades in by_fold.items():
+        s_ = _stakes(trades, stake)
+        ev = []
+        for i, t in enumerate(trades):
+            ev.append((pd.Timestamp(t["open_date"]), 1, order[t["book"]], t["pair"], i))
+            ev.append((pd.Timestamp(t["close_date"]), 0, 0, "", i))
+        held: dict[int, float] = {}
+        for _, kind, _, _, i in sorted(ev):
+            t = trades[i]
+            if kind == 0:
+                held.pop(i, None)
+                continue
+            room = capacity_ - sum(held.values())
+            pp = (t["profit_abs"] or 0.0) * (t["scale_pp_per_abs"] or 0.0)
+            if room < min_stake:
+                stats["refused"][t["book"]] = stats["refused"].get(t["book"], 0) + 1
+                stats["refused_pp"] += pp
+                delta[fid] = delta.get(fid, 0.0) - pp
+                continue
+            fill = min(s_[i], room)
+            held[i] = fill
+            m = fill / s_[i]
+            if m < 1:
+                stats["shrunk"][t["book"]] = stats["shrunk"].get(t["book"], 0) + 1
+                stats["shrunk_pp"] += pp * (1 - m)
+                delta[fid] = delta.get(fid, 0.0) - pp * (1 - m)
+            kept.append({**t, "profit_abs": t["profit_abs"] * m, "stake": fill})
+    per_fold = [{**f, "return_pct": (None if f["return_pct"] is None
+                                     else f["return_pct"] + delta.get(f["fold_id"], 0.0)),
+                 "n_trades": sum(t["fold_id"] == f["fold_id"] for t in kept)}
+                for f in books["per_fold"]]
+    return {**books, "per_fold": per_fold, "trades": kept, "n_trades_pooled": len(kept),
+            "shared_wallet": stats}
+
+
 def _pooled(tag: str) -> dict:
     from evaluation.pool import pool
 
@@ -221,6 +275,8 @@ def main(argv=None) -> int:
                     help="'risk' (inverse daily-P&L vol on f00-f07) or book=w,book=w")
     ap.add_argument("--fit", default=None,
                     help="book whose weight is fitted on f00-f07 to peak committed <= capacity")
+    ap.add_argument("--shared-wallet", action="store_true",
+                    help="replay the books through one wallet of stake x max_open_trades")
     ap.add_argument("--config", default=str(STRAT / "config" / "config_wf.json"))
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
@@ -244,6 +300,8 @@ def main(argv=None) -> int:
         weights[a.fit] = fit_weight(pooled, a.fit, weights, stake,
                                     stake * int(cfg["max_open_trades"]), early_ids)
     books = combine(pooled, a.stake_scale, weights, stake)
+    if a.shared_wallet:
+        books = shared_wallet(books, stake * int(cfg["max_open_trades"]), stake)
     bar = _pooled(a.bar)
     late = split(books, bar)["late"]
     whole = split(books, bar, split_after="f14")["early"]
@@ -258,10 +316,15 @@ def main(argv=None) -> int:
     cap["bar_mean_committed_late"] = round(mean_committed(bar["trades"], stake, late_ids), 1)
     cap["stake_upper_bound_trades"] = sum(bool(t.get("stake_upper_bound"))
                                           for t in books["trades"])
+    if a.shared_wallet:
+        sw = books["shared_wallet"]
+        cap["shared_wallet"] = {**sw, "refused_pp": round(sw["refused_pp"], 2),
+                                "shrunk_pp": round(sw["shrunk_pp"], 2)}
     h = _halves(books)
     bs, ws = late, whole
     lines = [
-        f"## Books: {' + '.join(f'`{t}`' for t in tags)} (stake x{a.stake_scale:g}, {slots} slots)"
+        f"## Books: {' + '.join(f'`{t}`' for t in tags)} (stake x{a.stake_scale:g}, {slots} slots"
+        + (", ONE shared wallet)" if a.shared_wallet else ")")
         + (f", weights {json.dumps({t: round(v, 4) for t, v in weights.items()})}"
            if weights else ""),
         "",

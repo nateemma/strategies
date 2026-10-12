@@ -129,3 +129,32 @@ def test_paired_delta_keeps_both_books_trades_on_one_key():
     bs = bootstrap_delta(rec, rec, arm_trades=[m, r], ctl_trades=[m],
                          key_fields=("fold_id", "pair", "open_date"))
     assert abs(bs["observed"] - 3.0 * 0.01) < 1e-12  # overwriting gave (3-2) x 0.01
+
+
+def _bk(book, pair, o, c, stake=900.0, profit=9.0):
+    return {**_t(pair, o, c), "book": book, "stake": stake, "profit_abs": profit, "weight": 1.0}
+
+
+def test_shared_wallet_shrinks_to_the_room_left_then_refuses_below_min_stake():
+    tr = [_bk("m", "A", "2023-01-01 00:00", "2023-01-01 05:00"),
+          _bk("r", "B", "2023-01-01 01:00", "2023-01-01 05:00"),  # 900 room of 1350 left -> 450
+          _bk("r", "C", "2023-01-01 02:00", "2023-01-01 05:00"),  # no room -> refused
+          _bk("m", "D", "2023-01-01 05:00", "2023-01-01 06:00")]  # closes free it first
+    books = {"per_fold": [{"fold_id": "f00", "return_pct": 0.36, "n_trades": 4}], "trades": tr}
+    out = B.shared_wallet(books, 1350.0, 900.0)
+    assert [t["pair"] for t in out["trades"]] == ["A", "B", "D"]
+    assert out["trades"][1]["stake"] == 450.0 and out["trades"][1]["profit_abs"] == 4.5
+    sw = out["shared_wallet"]
+    assert sw["refused"] == {"r": 1} and sw["shrunk"] == {"r": 1}
+    # 0.36 - C's 0.09 - half of B's 0.09
+    assert abs(out["per_fold"][0]["return_pct"] - (0.36 - 0.09 - 0.045)) < 1e-12
+    assert B.committed(out["trades"], 900.0) == 1350.0
+
+
+def test_shared_wallet_gives_same_time_entries_to_the_first_book():
+    tr = [_bk("m", "A", "2023-01-01 00:00", "2023-01-01 05:00"),
+          _bk("r", "B", "2023-01-01 00:00", "2023-01-01 05:00")]
+    books = {"per_fold": [{"fold_id": "f00", "return_pct": 0.18, "n_trades": 2}],
+             "trades": tr[::-1]}  # r listed first in trades, but book order is by first seen
+    out = B.shared_wallet(books, 900.0, 900.0)
+    assert [t["book"] for t in out["trades"]] == ["r"]
