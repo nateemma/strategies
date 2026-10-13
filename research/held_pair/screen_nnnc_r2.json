@@ -1,0 +1,1054 @@
+{
+ "ARO": {
+  "fidelity": {
+   "recorded": 1176,
+   "simulated": 1176,
+   "recall": 1.0,
+   "precision": 1.0,
+   "pp_recorded": 49.964999999999996,
+   "pp_simulated": 49.88589043613984
+  },
+  "none_equals_simulator": true,
+  "grace_24": {
+   "base_pp": {
+    "early": 35.215
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 607
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -11.53,
+     "trades": {
+      "early": 1013
+     },
+     "actions": 509
+    },
+    "ROT:all:4h": {
+     "early_pp": -6.763,
+     "trades": {
+      "early": 749
+     },
+     "actions": 194
+    },
+    "ROT:loss:1h": {
+     "early_pp": -11.453,
+     "trades": {
+      "early": 978
+     },
+     "actions": 440
+    },
+    "ROT:loss:4h": {
+     "early_pp": -6.627,
+     "trades": {
+      "early": 748
+     },
+     "actions": 191
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -2.701,
+     "trades": {
+      "early": 660
+     },
+     "actions": 723
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": 0.329,
+     "trades": {
+      "early": 643
+     },
+     "actions": 220
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -4.021,
+     "trades": {
+      "early": 665
+     },
+     "actions": 649
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": 0.254,
+     "trades": {
+      "early": 643
+     },
+     "actions": 217
+    },
+    "STACK:all:1h": {
+     "early_pp": 21.453,
+     "trades": {
+      "early": 875
+     },
+     "actions": 289
+    },
+    "STACK:all:4h": {
+     "early_pp": 19.37,
+     "trades": {
+      "early": 765
+     },
+     "actions": 172
+    },
+    "STACK:loss:1h": {
+     "early_pp": 21.254,
+     "trades": {
+      "early": 849
+     },
+     "actions": 255
+    },
+    "STACK:loss:4h": {
+     "early_pp": 19.337,
+     "trades": {
+      "early": 763
+     },
+     "actions": 170
+    },
+    "DCA:all:1h": {
+     "early_pp": 26.165,
+     "trades": {
+      "early": 612
+     },
+     "actions": 234
+    },
+    "DCA:all:4h": {
+     "early_pp": 26.066,
+     "trades": {
+      "early": 600
+     },
+     "actions": 131
+    },
+    "DCA:loss:1h": {
+     "early_pp": 24.53,
+     "trades": {
+      "early": 617
+     },
+     "actions": 210
+    },
+    "DCA:loss:4h": {
+     "early_pp": 25.97,
+     "trades": {
+      "early": 600
+     },
+     "actions": 129
+    }
+   }
+  },
+  "grace_48": {
+   "base_pp": {
+    "early": 41.235
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 574
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -16.932,
+     "trades": {
+      "early": 1012
+     },
+     "actions": 514
+    },
+    "ROT:all:4h": {
+     "early_pp": -12.167,
+     "trades": {
+      "early": 748
+     },
+     "actions": 200
+    },
+    "ROT:loss:1h": {
+     "early_pp": -16.787,
+     "trades": {
+      "early": 977
+     },
+     "actions": 446
+    },
+    "ROT:loss:4h": {
+     "early_pp": -12.032,
+     "trades": {
+      "early": 747
+     },
+     "actions": 197
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -8.215,
+     "trades": {
+      "early": 656
+     },
+     "actions": 731
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": -5.25,
+     "trades": {
+      "early": 639
+     },
+     "actions": 226
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -9.355,
+     "trades": {
+      "early": 661
+     },
+     "actions": 657
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": -5.324,
+     "trades": {
+      "early": 639
+     },
+     "actions": 223
+    },
+    "STACK:all:1h": {
+     "early_pp": 24.961,
+     "trades": {
+      "early": 838
+     },
+     "actions": 278
+    },
+    "STACK:all:4h": {
+     "early_pp": 21.525,
+     "trades": {
+      "early": 744
+     },
+     "actions": 177
+    },
+    "STACK:loss:1h": {
+     "early_pp": 24.197,
+     "trades": {
+      "early": 813
+     },
+     "actions": 244
+    },
+    "STACK:loss:4h": {
+     "early_pp": 21.491,
+     "trades": {
+      "early": 742
+     },
+     "actions": 175
+    },
+    "DCA:all:1h": {
+     "early_pp": 28.943,
+     "trades": {
+      "early": 590
+     },
+     "actions": 226
+    },
+    "DCA:all:4h": {
+     "early_pp": 23.927,
+     "trades": {
+      "early": 586
+     },
+     "actions": 129
+    },
+    "DCA:loss:1h": {
+     "early_pp": 26.831,
+     "trades": {
+      "early": 596
+     },
+     "actions": 203
+    },
+    "DCA:loss:4h": {
+     "early_pp": 23.83,
+     "trades": {
+      "early": 586
+     },
+     "actions": 127
+    }
+   }
+  }
+ },
+ "GBR": {
+  "fidelity": {
+   "recorded": 2021,
+   "simulated": 2022,
+   "recall": 1.0,
+   "precision": 0.9995054401582592,
+   "pp_recorded": 53.457,
+   "pp_simulated": 53.30452830461747
+  },
+  "none_equals_simulator": true,
+  "grace_24": {
+   "base_pp": {
+    "early": 37.565
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 1089
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -23.64,
+     "trades": {
+      "early": 1596
+     },
+     "actions": 620
+    },
+    "ROT:all:4h": {
+     "early_pp": -10.005,
+     "trades": {
+      "early": 1322
+     },
+     "actions": 291
+    },
+    "ROT:loss:1h": {
+     "early_pp": -23.002,
+     "trades": {
+      "early": 1573
+     },
+     "actions": 574
+    },
+    "ROT:loss:4h": {
+     "early_pp": -9.569,
+     "trades": {
+      "early": 1323
+     },
+     "actions": 290
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -11.692,
+     "trades": {
+      "early": 1207
+     },
+     "actions": 796
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": 1.004,
+     "trades": {
+      "early": 1146
+     },
+     "actions": 318
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -11.287,
+     "trades": {
+      "early": 1210
+     },
+     "actions": 750
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": 0.986,
+     "trades": {
+      "early": 1145
+     },
+     "actions": 318
+    },
+    "STACK:all:1h": {
+     "early_pp": 22.168,
+     "trades": {
+      "early": 1462
+     },
+     "actions": 435
+    },
+    "STACK:all:4h": {
+     "early_pp": 18.627,
+     "trades": {
+      "early": 1329
+     },
+     "actions": 297
+    },
+    "STACK:loss:1h": {
+     "early_pp": 22.081,
+     "trades": {
+      "early": 1441
+     },
+     "actions": 407
+    },
+    "STACK:loss:4h": {
+     "early_pp": 18.748,
+     "trades": {
+      "early": 1329
+     },
+     "actions": 297
+    },
+    "DCA:all:1h": {
+     "early_pp": 42.641,
+     "trades": {
+      "early": 1094
+     },
+     "actions": 341
+    },
+    "DCA:all:4h": {
+     "early_pp": 27.121,
+     "trades": {
+      "early": 1079
+     },
+     "actions": 195
+    },
+    "DCA:loss:1h": {
+     "early_pp": 41.032,
+     "trades": {
+      "early": 1095
+     },
+     "actions": 319
+    },
+    "DCA:loss:4h": {
+     "early_pp": 27.238,
+     "trades": {
+      "early": 1079
+     },
+     "actions": 195
+    }
+   }
+  },
+  "grace_48": {
+   "base_pp": {
+    "early": 38.067
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 996
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -27.084,
+     "trades": {
+      "early": 1589
+     },
+     "actions": 638
+    },
+    "ROT:all:4h": {
+     "early_pp": -11.454,
+     "trades": {
+      "early": 1315
+     },
+     "actions": 313
+    },
+    "ROT:loss:1h": {
+     "early_pp": -26.329,
+     "trades": {
+      "early": 1566
+     },
+     "actions": 591
+    },
+    "ROT:loss:4h": {
+     "early_pp": -10.951,
+     "trades": {
+      "early": 1316
+     },
+     "actions": 311
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -14.874,
+     "trades": {
+      "early": 1188
+     },
+     "actions": 817
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": -0.52,
+     "trades": {
+      "early": 1127
+     },
+     "actions": 340
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -14.523,
+     "trades": {
+      "early": 1191
+     },
+     "actions": 771
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": -0.538,
+     "trades": {
+      "early": 1126
+     },
+     "actions": 340
+    },
+    "STACK:all:1h": {
+     "early_pp": 24.419,
+     "trades": {
+      "early": 1366
+     },
+     "actions": 402
+    },
+    "STACK:all:4h": {
+     "early_pp": 20.291,
+     "trades": {
+      "early": 1260
+     },
+     "actions": 291
+    },
+    "STACK:loss:1h": {
+     "early_pp": 24.14,
+     "trades": {
+      "early": 1347
+     },
+     "actions": 377
+    },
+    "STACK:loss:4h": {
+     "early_pp": 20.69,
+     "trades": {
+      "early": 1260
+     },
+     "actions": 291
+    },
+    "DCA:all:1h": {
+     "early_pp": 32.446,
+     "trades": {
+      "early": 1019
+     },
+     "actions": 324
+    },
+    "DCA:all:4h": {
+     "early_pp": 29.157,
+     "trades": {
+      "early": 1005
+     },
+     "actions": 204
+    },
+    "DCA:loss:1h": {
+     "early_pp": 32.209,
+     "trades": {
+      "early": 1020
+     },
+     "actions": 304
+    },
+    "DCA:loss:4h": {
+     "early_pp": 29.582,
+     "trades": {
+      "early": 1005
+     },
+     "actions": 204
+    }
+   }
+  }
+ },
+ "GFM": {
+  "fidelity": {
+   "recorded": 1879,
+   "simulated": 1880,
+   "recall": 1.0,
+   "precision": 0.999468085106383,
+   "pp_recorded": 39.762,
+   "pp_simulated": 39.60653080953371
+  },
+  "none_equals_simulator": true,
+  "grace_24": {
+   "base_pp": {
+    "early": 32.365
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 1130
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -3.631,
+     "trades": {
+      "early": 1430
+     },
+     "actions": 539
+    },
+    "ROT:all:4h": {
+     "early_pp": 0.868,
+     "trades": {
+      "early": 1247
+     },
+     "actions": 222
+    },
+    "ROT:loss:1h": {
+     "early_pp": -4.556,
+     "trades": {
+      "early": 1372
+     },
+     "actions": 402
+    },
+    "ROT:loss:4h": {
+     "early_pp": 0.756,
+     "trades": {
+      "early": 1245
+     },
+     "actions": 210
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": 1.315,
+     "trades": {
+      "early": 1123
+     },
+     "actions": 727
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": 2.686,
+     "trades": {
+      "early": 1129
+     },
+     "actions": 257
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": 2.37,
+     "trades": {
+      "early": 1136
+     },
+     "actions": 554
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": 2.298,
+     "trades": {
+      "early": 1129
+     },
+     "actions": 246
+    },
+    "STACK:all:1h": {
+     "early_pp": 6.665,
+     "trades": {
+      "early": 1433
+     },
+     "actions": 347
+    },
+    "STACK:all:4h": {
+     "early_pp": 6.051,
+     "trades": {
+      "early": 1280
+     },
+     "actions": 180
+    },
+    "STACK:loss:1h": {
+     "early_pp": 6.38,
+     "trades": {
+      "early": 1365
+     },
+     "actions": 260
+    },
+    "STACK:loss:4h": {
+     "early_pp": 5.379,
+     "trades": {
+      "early": 1271
+     },
+     "actions": 170
+    },
+    "DCA:all:1h": {
+     "early_pp": 6.975,
+     "trades": {
+      "early": 1104
+     },
+     "actions": 284
+    },
+    "DCA:all:4h": {
+     "early_pp": 5.891,
+     "trades": {
+      "early": 1099
+     },
+     "actions": 127
+    },
+    "DCA:loss:1h": {
+     "early_pp": 8.395,
+     "trades": {
+      "early": 1106
+     },
+     "actions": 219
+    },
+    "DCA:loss:4h": {
+     "early_pp": 5.918,
+     "trades": {
+      "early": 1099
+     },
+     "actions": 122
+    }
+   }
+  },
+  "grace_48": {
+   "base_pp": {
+    "early": 31.174
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 1042
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -4.685,
+     "trades": {
+      "early": 1421
+     },
+     "actions": 567
+    },
+    "ROT:all:4h": {
+     "early_pp": 0.421,
+     "trades": {
+      "early": 1237
+     },
+     "actions": 256
+    },
+    "ROT:loss:1h": {
+     "early_pp": -4.818,
+     "trades": {
+      "early": 1365
+     },
+     "actions": 432
+    },
+    "ROT:loss:4h": {
+     "early_pp": 0.423,
+     "trades": {
+      "early": 1235
+     },
+     "actions": 246
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": 0.402,
+     "trades": {
+      "early": 1085
+     },
+     "actions": 790
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": 1.537,
+     "trades": {
+      "early": 1093
+     },
+     "actions": 311
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": 1.27,
+     "trades": {
+      "early": 1100
+     },
+     "actions": 624
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": 1.053,
+     "trades": {
+      "early": 1093
+     },
+     "actions": 301
+    },
+    "STACK:all:1h": {
+     "early_pp": 7.997,
+     "trades": {
+      "early": 1358
+     },
+     "actions": 356
+    },
+    "STACK:all:4h": {
+     "early_pp": 8.794,
+     "trades": {
+      "early": 1241
+     },
+     "actions": 224
+    },
+    "STACK:loss:1h": {
+     "early_pp": 9.199,
+     "trades": {
+      "early": 1304
+     },
+     "actions": 287
+    },
+    "STACK:loss:4h": {
+     "early_pp": 8.441,
+     "trades": {
+      "early": 1235
+     },
+     "actions": 218
+    },
+    "DCA:all:1h": {
+     "early_pp": 13.818,
+     "trades": {
+      "early": 1029
+     },
+     "actions": 277
+    },
+    "DCA:all:4h": {
+     "early_pp": 11.41,
+     "trades": {
+      "early": 1031
+     },
+     "actions": 144
+    },
+    "DCA:loss:1h": {
+     "early_pp": 14.563,
+     "trades": {
+      "early": 1031
+     },
+     "actions": 219
+    },
+    "DCA:loss:4h": {
+     "early_pp": 11.113,
+     "trades": {
+      "early": 1031
+     },
+     "actions": 139
+    }
+   }
+  }
+ },
+ "MLX": {
+  "fidelity": {
+   "recorded": 360,
+   "simulated": 360,
+   "recall": 0.9972222222222222,
+   "precision": 0.9972222222222222,
+   "pp_recorded": 35.187000000000005,
+   "pp_simulated": 36.649690748862824
+  },
+  "none_equals_simulator": true,
+  "grace_24": {
+   "base_pp": {
+    "early": 22.163
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 193
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -5.531,
+     "trades": {
+      "early": 215
+     },
+     "actions": 50
+    },
+    "ROT:all:4h": {
+     "early_pp": -2.28,
+     "trades": {
+      "early": 198
+     },
+     "actions": 15
+    },
+    "ROT:loss:1h": {
+     "early_pp": -6.89,
+     "trades": {
+      "early": 213
+     },
+     "actions": 42
+    },
+    "ROT:loss:4h": {
+     "early_pp": -2.252,
+     "trades": {
+      "early": 198
+     },
+     "actions": 14
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -1.964,
+     "trades": {
+      "early": 196
+     },
+     "actions": 58
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": -1.259,
+     "trades": {
+      "early": 190
+     },
+     "actions": 17
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -1.441,
+     "trades": {
+      "early": 198
+     },
+     "actions": 48
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": -0.341,
+     "trades": {
+      "early": 191
+     },
+     "actions": 15
+    },
+    "STACK:all:1h": {
+     "early_pp": 7.928,
+     "trades": {
+      "early": 245
+     },
+     "actions": 58
+    },
+    "STACK:all:4h": {
+     "early_pp": 1.92,
+     "trades": {
+      "early": 206
+     },
+     "actions": 16
+    },
+    "STACK:loss:1h": {
+     "early_pp": 7.2,
+     "trades": {
+      "early": 237
+     },
+     "actions": 45
+    },
+    "STACK:loss:4h": {
+     "early_pp": 2.158,
+     "trades": {
+      "early": 205
+     },
+     "actions": 14
+    },
+    "DCA:all:1h": {
+     "early_pp": 9.588,
+     "trades": {
+      "early": 193
+     },
+     "actions": 48
+    },
+    "DCA:all:4h": {
+     "early_pp": -1.025,
+     "trades": {
+      "early": 190
+     },
+     "actions": 15
+    },
+    "DCA:loss:1h": {
+     "early_pp": 9.355,
+     "trades": {
+      "early": 195
+     },
+     "actions": 41
+    },
+    "DCA:loss:4h": {
+     "early_pp": -0.327,
+     "trades": {
+      "early": 191
+     },
+     "actions": 14
+    }
+   }
+  },
+  "grace_48": {
+   "base_pp": {
+    "early": 21.732
+   },
+   "policies": {
+    "NONE": {
+     "early_pp": 0.0,
+     "trades": {
+      "early": 190
+     },
+     "actions": 0
+    },
+    "ROT:all:1h": {
+     "early_pp": -4.577,
+     "trades": {
+      "early": 215
+     },
+     "actions": 50
+    },
+    "ROT:all:4h": {
+     "early_pp": -2.286,
+     "trades": {
+      "early": 198
+     },
+     "actions": 16
+    },
+    "ROT:loss:1h": {
+     "early_pp": -5.937,
+     "trades": {
+      "early": 213
+     },
+     "actions": 42
+    },
+    "ROT:loss:4h": {
+     "early_pp": -2.258,
+     "trades": {
+      "early": 198
+     },
+     "actions": 15
+    },
+    "ANCHOR:all:1h": {
+     "early_pp": -1.029,
+     "trades": {
+      "early": 196
+     },
+     "actions": 58
+    },
+    "ANCHOR:all:4h": {
+     "early_pp": -1.231,
+     "trades": {
+      "early": 189
+     },
+     "actions": 18
+    },
+    "ANCHOR:loss:1h": {
+     "early_pp": -0.506,
+     "trades": {
+      "early": 198
+     },
+     "actions": 48
+    },
+    "ANCHOR:loss:4h": {
+     "early_pp": -0.312,
+     "trades": {
+      "early": 190
+     },
+     "actions": 16
+    },
+    "STACK:all:1h": {
+     "early_pp": 7.818,
+     "trades": {
+      "early": 243
+     },
+     "actions": 57
+    },
+    "STACK:all:4h": {
+     "early_pp": 2.558,
+     "trades": {
+      "early": 206
+     },
+     "actions": 18
+    },
+    "STACK:loss:1h": {
+     "early_pp": 7.214,
+     "trades": {
+      "early": 236
+     },
+     "actions": 46
+    },
+    "STACK:loss:4h": {
+     "early_pp": 2.547,
+     "trades": {
+      "early": 205
+     },
+     "actions": 16
+    },
+    "DCA:all:1h": {
+     "early_pp": 10.64,
+     "trades": {
+      "early": 192
+     },
+     "actions": 47
+    },
+    "DCA:all:4h": {
+     "early_pp": 1.006,
+     "trades": {
+      "early": 186
+     },
+     "actions": 16
+    },
+    "DCA:loss:1h": {
+     "early_pp": 9.932,
+     "trades": {
+      "early": 194
+     },
+     "actions": 40
+    },
+    "DCA:loss:4h": {
+     "early_pp": 1.229,
+     "trades": {
+      "early": 187
+     },
+     "actions": 15
+    }
+   }
+  }
+ }
+}

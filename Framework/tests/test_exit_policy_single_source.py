@@ -339,6 +339,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # research/st_grace arms: SELL_OVERRIDES stoploss_grace_hours=24.0 -- a VALUE.
     "SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24.py",
     "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2_G24.py",
+    "research/held_pair/screen.py",            # sets the grace hours on the study's ExitParams for
+                                                 # the 027 replay; computes nothing.
     "research/st_grace/screen.py",             # reads the resolved grace hours and passes the C2
                                                  # multiplier to the 027 replay as Rules; computes
                                                  # nothing.
