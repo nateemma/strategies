@@ -1,0 +1,20 @@
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
+# type: ignore
+"""NNNC framework study, stage 2 (research/nnnc_framework/): exit:take_profit = 0.04 on `NNNC_GbbFwdMae_Open`.
+
+One lever changed, nothing else. Weights: the base's per-fold models, found by model key (030).
+Pre-registered in research/nnnc_framework/preregistration.json.
+"""
+
+import sys
+from pathlib import Path
+
+
+sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
+
+from NNNC_GbbFwdMae_Open import NNNC_GbbFwdMae_Open
+
+
+class NNNC_FS2_GFM_TP(NNNC_GbbFwdMae_Open):
+    pass

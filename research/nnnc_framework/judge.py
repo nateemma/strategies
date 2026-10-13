@@ -12,6 +12,7 @@ Refuses (exit 2) if the pre-registration is uncommitted/dirty or an arm record p
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,7 +25,9 @@ from research.nnnc_switches.judge import judge_one  # noqa: E402
 
 
 HERE = Path(__file__).resolve().parent
-PREREG = HERE / "preregistration.json"
+ROUND = os.environ.get("NNNC_FS_ROUND", "1")
+SUFFIX = "" if ROUND == "1" else f"_r{ROUND}"
+PREREG = HERE / f"preregistration{SUFFIX}.json"
 
 
 def _git(*args) -> str:
@@ -70,7 +73,7 @@ def main() -> int:
             decision = "NOT ADOPTED"
         res["candidates"][c["name"]] = {"lever": c["lever"], "value": c["value"],
                                         "decision": decision, "per_model": per}
-    (HERE / "verdicts.json").write_text(json.dumps(res, indent=1, default=str))
+    (HERE / f"verdicts{SUFFIX}.json").write_text(json.dumps(res, indent=1, default=str))
     for n, r in res["candidates"].items():
         cells = ", ".join(f"{m} {v['verdict']} ({v['early_gain_pp']:+.2f}/{v['late_gain_pp']:+.2f})"
                           if "early_gain_pp" in v else f"{m} {v['verdict']}"

@@ -1,0 +1,42 @@
+{
+    "strategy_name": "NNNC_GbbRaw_Open",
+    "params": {
+        "roi": {
+            "0": 0.05
+        },
+        "stoploss": {
+            "stoploss": -0.05
+        },
+        "trailing": {
+            "trailing_stop": false,
+            "trailing_stop_positive": 0.01,
+            "trailing_stop_positive_offset": 0.03,
+            "trailing_only_offset_is_reached": false
+        },
+        "max_open_trades": {
+            "max_open_trades": 10
+        },
+        "sell": {
+            "cexit_enable_profit_checks": true,
+            "cexit_max_days": 10,
+            "cexit_take_profit": 0.022,
+            "enable_exit_signal": false,
+            "exit_close_norm_threshold": -0.6,
+            "exit_guard_threshold": -0.1,
+            "stoploss_grace_hours": 48.0,
+            "stoploss_grace_level": -0.27
+        },
+        "buy": {
+            "entry_adx_threshold": -1.0,
+            "entry_atr_pct": -1.0,
+            "entry_bb_width_threshold": -1.0,
+            "entry_close_norm_threshold": 5.0,
+            "entry_enable_guards": true,
+            "entry_guard_threshold": 5.0,
+            "entry_rvol_threshold": -1.0,
+            "prediction_threshold": 0.8
+        }
+    },
+    "ft_stratparam_v": 1,
+    "export_time": "2026-09-02 22:46:16.143794+00:00"
+}

@@ -13,14 +13,23 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 
 
 STRAT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 ROOT_REL = "user_data/strategies/"
-MODELS = {"ARO": ("wf_aro_b030", "NNNC_A_Raw_Open"), "GBR": ("sw_gbr_ctl_b030", "NNNC_GbbRaw_Open"),
-          "GFM": ("sw_gfm_ctl_b030", "NNNC_GbbFwdMae_Open"), "MLX": ("sw_mlx_ctl_b030", "NNNC_MLX")}
+MODELS_R1 = {"ARO": ("wf_aro_b030", "NNNC_A_Raw_Open"), "GBR": ("sw_gbr_ctl_b030", "NNNC_GbbRaw_Open"),
+             "GFM": ("sw_gfm_ctl_b030", "NNNC_GbbFwdMae_Open"), "MLX": ("sw_mlx_ctl_b030", "NNNC_MLX")}
+#: Round 2: controls carry the adopted 24 h grace (their plans' snapshots pin it).
+MODELS_R2 = {"ARO": ("wf_aro_g24", "NNNC_A_Raw_Open"), "GBR": ("fs_gbr_gr", "NNNC_GbbRaw_Open"),
+             "GFM": ("fs_gfm_gr", "NNNC_GbbFwdMae_Open"), "MLX": ("fs_mlx_gr", "NNNC_MLX")}
+ROUND = os.environ.get("NNNC_FS_ROUND", "1")
+SUFFIX = "" if ROUND == "1" else f"_r{ROUND}"
+MODELS = {"1": MODELS_R1, "2": MODELS_R2}[ROUND]
+#: class / arm-tag prefixes: round 1 NNNC_FS_ / fs_, round 2 NNNC_FS2_ / fs2_
+CLS_PREFIX, TAG_PREFIX = ("NNNC_FS", "fs") if ROUND == "1" else (f"NNNC_FS{ROUND}", f"fs{ROUND}")
 
 #: lever -> (short key, how it is declared). Kinds: "family" (FAMILY_EXIT_OVERRIDES.reversion),
 #: "attrs" (class attributes, scaled from the base's), "sell"/"roi" (.json snapshot), "thr" (plan).
@@ -31,6 +40,17 @@ DECL = {
     "exit:stop_scale": ("SS", "attrs", lambda v: float(v)),
     "exit:unclog_1d_hours": ("U1", "family", lambda v: {"unclog_1d_hours": float(v)}),
     "entry:thr_shift": ("TH", "thr", lambda v: float(v)),
+    # round 2 additions (any lever the screens price can be declared)
+    "exit:grace_level": ("GL", "sell", lambda v: {"stoploss_grace_level": float(v)}),
+    "exit:max_hold_days": ("MH", "sell", lambda v: {"cexit_max_days": int(v)}),
+    "exit:roi": ("RO", "roi", lambda v: {"0": 10.0 if v == "off" else float(v)}),
+    "exit:vol_confirm": ("VC", "family", lambda v: {"use_volume_confirmation_stoploss": v == "True"}),
+    "exit:unclog_12h_hours": ("U12", "family", lambda v: {"unclog_12h_hours": float(v)}),
+    "exit:metric_overbought": ("MO", "family", lambda v: {"metric_overbought_threshold": 10.0}),
+    "entry:guard_on": ("GON", "buy", lambda v: {
+        "atr_pct": {"entry_atr_pct": 0.006}, "guard": {"entry_guard_threshold": 0.3},
+        "close_norm": {"entry_close_norm_threshold": -0.1}, "adx": {"entry_adx_threshold": 38.0},
+        "bb_width": {"entry_bb_width_threshold": 0.06}, "rvol": {"entry_rvol_threshold": 2.0}}[v]),
 }
 
 CLASS_TMPL = '''# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
@@ -63,8 +83,8 @@ def _sha(blob: bytes) -> str:
 def build(c: dict, m: str) -> dict:
     ctl_tag, base = MODELS[m]
     key, kind, fn = DECL[c["lever"]]
-    name = f"NNNC_FS_{m}_{key}"
-    tag = f"fs_{m.lower()}_{key.lower()}"
+    name = f"{CLS_PREFIX}_{m}_{key}"
+    tag = f"{TAG_PREFIX}_{m.lower()}_{key.lower()}"
     plan = json.loads((STRAT / "evaluation/folds" / f"plan_{ctl_tag}.json").read_text())
     v = fn(c["value"])
     body = "    pass"
@@ -86,8 +106,11 @@ def build(c: dict, m: str) -> dict:
     new["run_id"], new["base_strategy"] = tag, name
     snap_path = STRAT.parents[1] / plan["params_snapshot"]
     snap = json.loads(snap_path.read_text())
-    if kind == "sell":
-        snap["params"]["sell"].update(v)
+    if kind in ("sell", "buy", "roi"):
+        if kind == "roi":
+            snap["params"]["roi"] = v
+        else:
+            snap["params"][kind].update(v)
         sp = STRAT / "evaluation/folds" / f"params_fs_{name}.json"
         blob = (json.dumps(snap, indent=4) + "\n").encode()
         sp.write_bytes(blob)
@@ -106,7 +129,7 @@ def build(c: dict, m: str) -> dict:
 
 
 def main() -> int:
-    sel = json.loads((HERE / "selection.json").read_text())
+    sel = json.loads((HERE / f"selection{SUFFIX}.json").read_text())
     out = []
     for c in sel["candidates"]:
         built = {m: build(c, m) for m in MODELS}
@@ -115,7 +138,7 @@ def main() -> int:
                     "arms": {m: b["arm"] for m, b in built.items()},
                     "classes": {m: b["class"] for m, b in built.items()},
                     "controls": {m: b["control"] for m, b in built.items()}})
-    (HERE / "arms.json").write_text(json.dumps(out, indent=1))
+    (HERE / f"arms{SUFFIX}.json").write_text(json.dumps(out, indent=1))
     print("\n".join(f"{o['name']}: {list(o['arms'].values())}" for o in out))
     return 0
 

@@ -1,0 +1,217 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "min_control_trades": 200,
+ "primary_model": "ARO",
+ "replications_needed": 2,
+ "rule": {
+  "gain": "sum of per-fold return_pct, arm minus its control, over a half",
+  "per_model_PASS": "early gain > 0 AND late gain > 0 AND paired verdict (15 folds) maps to pass AND both risk verdicts (Sharpe, maxDD; 15 folds) map to pass",
+  "per_model_INCONCLUSIVE": "control < min_control_trades, OR the arm changed trades in 0 folds, OR a mapped verdict is inconclusive",
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "switch_ADOPT": "PASS on the primary model (ARO) AND PASS on at least replications_needed of GBR, GFM, MLX",
+  "combination": "run only if >= 2 candidates are ADOPTED: all ADOPTED levers together; if TP and TK are both adopted, TP (larger early_sum_pp) is kept",
+  "candidate_ADOPT": "PASS on ARO AND PASS on at least replications_needed of GBR, GFM, MLX"
+ },
+ "title": "NNNC framework study, round 2: five levers chosen on the early half on top of the adopted 24 h grace",
+ "date": "2026-10-13",
+ "label": "PROVISIONAL -- values chosen on early-half screens of these models' 24 h-grace trades. The late half is the test of the choice, but it is LESS fresh than round 1's: round 1 used it to adopt 24 h grace, and TP/TH/TK failed it in round 1 at 6.5 h grace. Quality gate 2: 2023-26 only.",
+ "selection": {
+  "script": "research/nnnc_framework/select.py, NNNC_FS_ROUND=2 (committed e1ad10c before any round-2 result)",
+  "screens": "diagnose_r2.json (exit fidelity ARO 0.999, GBR 0.998, GFM 0.999, MLX 0.831 -> MLX not screened for exits), entries_r2.json (entries recall/precision >= 0.997 on all four)"
+ },
+ "models": {
+  "ARO": {
+   "base": "NNNC_A_Raw_Open",
+   "control": "wf_aro_g24"
+  },
+  "GBR": {
+   "base": "NNNC_GbbRaw_Open",
+   "control": "fs_gbr_gr"
+  },
+  "GFM": {
+   "base": "NNNC_GbbFwdMae_Open",
+   "control": "fs_gfm_gr"
+  },
+  "MLX": {
+   "base": "NNNC_MLX",
+   "control": "fs_mlx_gr"
+  }
+ },
+ "controls_note": "24 h-grace controls: arm D from the fresh 24 h snapshot (= fs_aro_gr 15/15), the others' adopted round-1 arms",
+ "candidates": [
+  {
+   "name": "TP",
+   "lever": "exit:take_profit",
+   "value": "0.04",
+   "early_sum_pp": 26.793,
+   "arms": {
+    "ARO": "fs2_aro_tp",
+    "GBR": "fs2_gbr_tp",
+    "GFM": "fs2_gfm_tp",
+    "MLX": "fs2_mlx_tp"
+   },
+   "classes": {
+    "ARO": "NNNC_FS2_ARO_TP",
+    "GBR": "NNNC_FS2_GBR_TP",
+    "GFM": "NNNC_FS2_GFM_TP",
+    "MLX": "NNNC_FS2_MLX_TP"
+   },
+   "controls": {
+    "ARO": "wf_aro_g24",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   }
+  },
+  {
+   "name": "GR",
+   "lever": "exit:grace_hours",
+   "value": "48.0",
+   "early_sum_pp": 22.312,
+   "arms": {
+    "ARO": "fs2_aro_gr",
+    "GBR": "fs2_gbr_gr",
+    "GFM": "fs2_gfm_gr",
+    "MLX": "fs2_mlx_gr"
+   },
+   "classes": {
+    "ARO": "NNNC_FS2_ARO_GR",
+    "GBR": "NNNC_FS2_GBR_GR",
+    "GFM": "NNNC_FS2_GFM_GR",
+    "MLX": "NNNC_FS2_MLX_GR"
+   },
+   "controls": {
+    "ARO": "wf_aro_g24",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   }
+  },
+  {
+   "name": "TH",
+   "lever": "entry:thr_shift",
+   "value": "-0.05",
+   "early_sum_pp": 21.967,
+   "arms": {
+    "ARO": "fs2_aro_th",
+    "GBR": "fs2_gbr_th",
+    "GFM": "fs2_gfm_th",
+    "MLX": "fs2_mlx_th"
+   },
+   "classes": {
+    "ARO": "NNNC_FS2_ARO_TH",
+    "GBR": "NNNC_FS2_GBR_TH",
+    "GFM": "NNNC_FS2_GFM_TH",
+    "MLX": "NNNC_FS2_MLX_TH"
+   },
+   "controls": {
+    "ARO": "wf_aro_g24",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   }
+  },
+  {
+   "name": "TK",
+   "lever": "exit:tp_atr_k",
+   "value": "6.0",
+   "early_sum_pp": 21.73,
+   "arms": {
+    "ARO": "fs2_aro_tk",
+    "GBR": "fs2_gbr_tk",
+    "GFM": "fs2_gfm_tk",
+    "MLX": "fs2_mlx_tk"
+   },
+   "classes": {
+    "ARO": "NNNC_FS2_ARO_TK",
+    "GBR": "NNNC_FS2_GBR_TK",
+    "GFM": "NNNC_FS2_GFM_TK",
+    "MLX": "NNNC_FS2_MLX_TK"
+   },
+   "controls": {
+    "ARO": "wf_aro_g24",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   }
+  },
+  {
+   "name": "SS",
+   "lever": "exit:stop_scale",
+   "value": "2.5",
+   "early_sum_pp": 5.401,
+   "arms": {
+    "ARO": "fs2_aro_ss",
+    "GBR": "fs2_gbr_ss",
+    "GFM": "fs2_gfm_ss",
+    "MLX": "fs2_mlx_ss"
+   },
+   "classes": {
+    "ARO": "NNNC_FS2_ARO_SS",
+    "GBR": "NNNC_FS2_GBR_SS",
+    "GFM": "NNNC_FS2_GFM_SS",
+    "MLX": "NNNC_FS2_MLX_SS"
+   },
+   "controls": {
+    "ARO": "wf_aro_g24",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   }
+  }
+ ],
+ "notes": [
+  "grace 48 h, TK 6.0 and stop x2.5 are the edges of their grids",
+  "TP and TK both widen the take-profit and are not independent; combination rule as round 1 (TP kept if both adopted)",
+  "every arm keeps 24 h grace except GR, which moves it to 48 h"
+ ]
+}

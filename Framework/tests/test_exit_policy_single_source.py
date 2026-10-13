@@ -355,6 +355,14 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "NNNC/NNNC_FS_GBR_TK.py",
     "NNNC/NNNC_FS_GFM_TK.py",
     "NNNC/NNNC_FS_MLX_TK.py",
+    "NNNC/NNNC_FS2_ARO_SS.py",
+    "NNNC/NNNC_FS2_GBR_SS.py",
+    "NNNC/NNNC_FS2_GFM_SS.py",
+    "NNNC/NNNC_FS2_MLX_SS.py",
+    "NNNC/NNNC_FS2_ARO_TK.py",
+    "NNNC/NNNC_FS2_GBR_TK.py",
+    "NNNC/NNNC_FS2_GFM_TK.py",
+    "NNNC/NNNC_FS2_MLX_TK.py",
     "research/nnnc_framework/build_arms.py",   # writes those declarations and .json/snapshot
                                                  # values (grace hours, take-profit); computes none.
     "research/nnnc_framework/diagnose.py",     # builds ExitParams levers (scaled K/floor/cap,

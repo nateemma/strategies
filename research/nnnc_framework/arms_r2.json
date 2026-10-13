@@ -1,0 +1,122 @@
+[
+ {
+  "name": "TP",
+  "lever": "exit:take_profit",
+  "value": "0.04",
+  "early_sum_pp": 26.793,
+  "arms": {
+   "ARO": "fs2_aro_tp",
+   "GBR": "fs2_gbr_tp",
+   "GFM": "fs2_gfm_tp",
+   "MLX": "fs2_mlx_tp"
+  },
+  "classes": {
+   "ARO": "NNNC_FS2_ARO_TP",
+   "GBR": "NNNC_FS2_GBR_TP",
+   "GFM": "NNNC_FS2_GFM_TP",
+   "MLX": "NNNC_FS2_MLX_TP"
+  },
+  "controls": {
+   "ARO": "wf_aro_g24",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  }
+ },
+ {
+  "name": "GR",
+  "lever": "exit:grace_hours",
+  "value": "48.0",
+  "early_sum_pp": 22.312,
+  "arms": {
+   "ARO": "fs2_aro_gr",
+   "GBR": "fs2_gbr_gr",
+   "GFM": "fs2_gfm_gr",
+   "MLX": "fs2_mlx_gr"
+  },
+  "classes": {
+   "ARO": "NNNC_FS2_ARO_GR",
+   "GBR": "NNNC_FS2_GBR_GR",
+   "GFM": "NNNC_FS2_GFM_GR",
+   "MLX": "NNNC_FS2_MLX_GR"
+  },
+  "controls": {
+   "ARO": "wf_aro_g24",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  }
+ },
+ {
+  "name": "TH",
+  "lever": "entry:thr_shift",
+  "value": "-0.05",
+  "early_sum_pp": 21.967,
+  "arms": {
+   "ARO": "fs2_aro_th",
+   "GBR": "fs2_gbr_th",
+   "GFM": "fs2_gfm_th",
+   "MLX": "fs2_mlx_th"
+  },
+  "classes": {
+   "ARO": "NNNC_FS2_ARO_TH",
+   "GBR": "NNNC_FS2_GBR_TH",
+   "GFM": "NNNC_FS2_GFM_TH",
+   "MLX": "NNNC_FS2_MLX_TH"
+  },
+  "controls": {
+   "ARO": "wf_aro_g24",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  }
+ },
+ {
+  "name": "TK",
+  "lever": "exit:tp_atr_k",
+  "value": "6.0",
+  "early_sum_pp": 21.73,
+  "arms": {
+   "ARO": "fs2_aro_tk",
+   "GBR": "fs2_gbr_tk",
+   "GFM": "fs2_gfm_tk",
+   "MLX": "fs2_mlx_tk"
+  },
+  "classes": {
+   "ARO": "NNNC_FS2_ARO_TK",
+   "GBR": "NNNC_FS2_GBR_TK",
+   "GFM": "NNNC_FS2_GFM_TK",
+   "MLX": "NNNC_FS2_MLX_TK"
+  },
+  "controls": {
+   "ARO": "wf_aro_g24",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  }
+ },
+ {
+  "name": "SS",
+  "lever": "exit:stop_scale",
+  "value": "2.5",
+  "early_sum_pp": 5.401,
+  "arms": {
+   "ARO": "fs2_aro_ss",
+   "GBR": "fs2_gbr_ss",
+   "GFM": "fs2_gfm_ss",
+   "MLX": "fs2_mlx_ss"
+  },
+  "classes": {
+   "ARO": "NNNC_FS2_ARO_SS",
+   "GBR": "NNNC_FS2_GBR_SS",
+   "GFM": "NNNC_FS2_GFM_SS",
+   "MLX": "NNNC_FS2_MLX_SS"
+  },
+  "controls": {
+   "ARO": "wf_aro_g24",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  }
+ }
+]
