@@ -486,12 +486,54 @@ freqtrade backtesting \
 Scalers are saved to `user_data/strategies/saved_data/`.
 
 ### 8. Retrain a neural net model
-Delete the existing model files and re-run backtest with a long timerange:
+Use `-f`: it deletes the model at the strategy's RESOLVED model-key path (see "Model keys" below),
+retrains, and fails (exit 3) if no model was written:
 ```zsh
-rm -rf user_data/strategies/saved_data/NNNC_CGP/*
-zsh user_data/strategies/scripts/test_strat.sh NNNC NNNC_CGP \
-  --timerange 20220101-
+zsh user_data/strategies/scripts/test_strat.sh -f -t 20220101- NNNC NNNC_CGP
 ```
+
+### Model keys (feature 030) — where weights live
+NN weights are found by a **model key**, not by class name: a hash of everything that shapes the
+weights (`Framework/ModelKey.py`):
+- the declared training attributes (labels and targets, features, classifier, GAN settings);
+- which class defines each training-path method;
+- the scaler, PCA and GAN files, by content;
+- the training window, whitelist, timeframe, startup candles and seed.
+
+What follows:
+- **Variants share their model's weights automatically.** A subclass that changes only exits,
+  stops, guards, gates, triggers or the prediction threshold resolves to the same key and loads
+  the same weights, with no redirect. `BorrowedModelMixin` is retired; importing it raises.
+- **A changed weight-affecting input gets a new key.** A changed label target, feature list,
+  classifier, scaler file, window or seed can never load another model's weights.
+- **Walk-forward evaluation is strict.** `evaluate_fold` sets `FT_MODEL_EVAL_STRICT=1`, so a
+  missing model halts with `ModelMissing` naming the key. Other runs may train, but only into
+  the key's own location `saved_data/models/<prefix>__<hash>/`, with a `manifest.json`.
+- **Generated fold classes pin their key.** They carry `MODEL_TRAIN_TIMERANGE` and `MODEL_SEED`,
+  written by `run_folds`.
+- **Training inputs your run changes.** If your run changes a training input that the weights
+  did not see (e.g. a 4096-candle warm-up on weights trained with 64: warm-up IS a training input,
+  because freqtrade trains before trimming startup bars), declare
+  `MODEL_TRAINED_WITH = {"startup_candle_count": 64}`.
+- **New class attributes must be classified.** Add a new class attribute or training-path method
+  to the owning class's `MODEL_KEY_ATTRIBUTES` / `MODEL_KEY_METHODS` if it shapes the weights,
+  else to `MODEL_KEY_IGNORED` / `MODEL_KEY_METHODS_IGNORED`. `Framework/tests/test_model_key_audit.py`
+  fails on any unclassified name defined in more than one class.
+- **Bump `MODEL_CODE_VERSION`** (in `BaseNNStrategy`) when an edit to training code changes what
+  training produces. Otherwise old weights would be served to new code.
+- **Pre-030 models are indexed, not moved.**
+  - The walk-forward sets got keys rebuilt from their plans.
+  - Single-model directories are `legacy:<Class>`: they load only for that class.
+  - The ~96 classes with a class-level `get_model_path` override keep it. They are recorded in
+    `specs/030-model-fingerprint-naming/legacy_redirects.json`, which a test keeps in sync.
+- **Tools:**
+  - `scripts/model_index.py key <Class> [--plan P --fold fNN --seed N]` prints the key, its
+    location and whether weights exist;
+  - `path <Class>` prints the weight path;
+  - `migrate [--dry-run]` re-indexes;
+  - `verify-bytes` snapshots or compares every weight file;
+  - `audit` runs the classification test.
+- **Arm records** carry `model_key` (hash, prefix, kind) for the model the backtest loaded.
 
 ### 9. Dry run
 ```zsh
@@ -600,10 +642,8 @@ Three further ways a parameter silently does nothing:
 See "Silent failure modes" at the top.
 
 ### Model not retraining
-Delete the saved model directory:
-```zsh
-rm -rf user_data/strategies/saved_data/<StrategyName>/*
-```
+Use `test_strat.sh -f` (it deletes the strategy's resolved model-key path). To see where a
+strategy's weights are: `../../.venv/bin/python scripts/model_index.py key <StrategyName>`.
 
 ### `ImportError` or `ModuleNotFoundError`
 First check your **working directory** — `ModuleNotFoundError: No module named 'freqtrade'`

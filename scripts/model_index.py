@@ -119,7 +119,14 @@ def _resolve_cls(a):
 def cmd_key(a) -> int:
     from Framework import ModelKey as MK
 
+    from Framework.BaseNNStrategy import BaseNNStrategy
+
     cls, cfg = _resolve_cls(a)
+    definer = next(k for k in cls.__mro__ if "get_model_path" in k.__dict__)
+    if definer is not BaseNNStrategy:  # a recorded legacy redirect decides the path itself
+        path = definer.get_model_path(object.__new__(cls))
+        print(f"class   {cls.__name__}\nkind    legacy-redirect ({definer.__name__})\npath    {path}")
+        return 0 if MK.weights_exist(Path(path).with_suffix("")) else 1
     loc = MK.locate_for(cls, cfg, cls.__name__)
     print(f"class   {cls.__name__}\nprefix  {loc.prefix}\nhash    {MK.key_hash(loc.key)}\n"
           f"kind    {loc.kind}\npath    {loc.path}")
