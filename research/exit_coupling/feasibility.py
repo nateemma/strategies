@@ -238,7 +238,8 @@ def trade_rows(tag: str, class_name: str, family: str) -> tuple[pd.DataFrame, di
     for t in archive_trades(tag):
         b, dates = bars_for(t["pair"])
         e = int(dates.get_loc(pd.Timestamp(t["open_date"])))
-        rec_idx = int(dates.get_loc(pd.Timestamp(t["close_date"])))
+        # A force-exit at the end of the DATA is stamped one bar past its last candle (§1.2).
+        rec_idx = int(dates.searchsorted(pd.Timestamp(t["close_date"])))
         start = int(dates.searchsorted(pd.Timestamp(t["test_start"], tz="UTC")))
         end = int(dates.searchsorted(pd.Timestamp(t["test_end"], tz="UTC"))) - 1
         tick = _tick(t["pair"], t["fold"], b, start, end)

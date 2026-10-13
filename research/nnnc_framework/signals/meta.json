@@ -1,0 +1,362 @@
+{
+ "ARO_f00": {
+  "class": "NNNC_ARO_f00",
+  "threshold": 0.73,
+  "rows": 77769,
+  "enter_long": 206
+ },
+ "ARO_f01": {
+  "class": "NNNC_ARO_f01",
+  "threshold": 0.74,
+  "rows": 77769,
+  "enter_long": 250
+ },
+ "ARO_f02": {
+  "class": "NNNC_ARO_f02",
+  "threshold": 0.75,
+  "rows": 84950,
+  "enter_long": 136
+ },
+ "ARO_f03": {
+  "class": "NNNC_ARO_f03",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 754
+ },
+ "ARO_f04": {
+  "class": "NNNC_ARO_f04",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 644
+ },
+ "ARO_f05": {
+  "class": "NNNC_ARO_f05",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 743
+ },
+ "ARO_f06": {
+  "class": "NNNC_ARO_f06",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 475
+ },
+ "ARO_f07": {
+  "class": "NNNC_ARO_f07",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 1679
+ },
+ "ARO_f08": {
+  "class": "NNNC_ARO_f08",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 1672
+ },
+ "ARO_f09": {
+  "class": "NNNC_ARO_f09",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 364
+ },
+ "ARO_f10": {
+  "class": "NNNC_ARO_f10",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 181
+ },
+ "ARO_f11": {
+  "class": "NNNC_ARO_f11",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 1432
+ },
+ "ARO_f12": {
+  "class": "NNNC_ARO_f12",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 452
+ },
+ "ARO_f13": {
+  "class": "NNNC_ARO_f13",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 888
+ },
+ "ARO_f14": {
+  "class": "NNNC_ARO_f14",
+  "threshold": 0.77,
+  "rows": 81610,
+  "enter_long": 195
+ },
+ "GBR_f00": {
+  "class": "NNNC_GBR_f00",
+  "threshold": 0.73,
+  "rows": 77769,
+  "enter_long": 160
+ },
+ "GBR_f01": {
+  "class": "NNNC_GBR_f01",
+  "threshold": 0.74,
+  "rows": 77769,
+  "enter_long": 175
+ },
+ "GBR_f02": {
+  "class": "NNNC_GBR_f02",
+  "threshold": 0.75,
+  "rows": 84950,
+  "enter_long": 176
+ },
+ "GBR_f03": {
+  "class": "NNNC_GBR_f03",
+  "threshold": 0.76,
+  "rows": 86410,
+  "enter_long": 954
+ },
+ "GBR_f04": {
+  "class": "NNNC_GBR_f04",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 848
+ },
+ "GBR_f05": {
+  "class": "NNNC_GBR_f05",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 709
+ },
+ "GBR_f06": {
+  "class": "NNNC_GBR_f06",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 867
+ },
+ "GBR_f07": {
+  "class": "NNNC_GBR_f07",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 1160
+ },
+ "GBR_f08": {
+  "class": "NNNC_GBR_f08",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 1728
+ },
+ "GBR_f09": {
+  "class": "NNNC_GBR_f09",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 339
+ },
+ "GBR_f10": {
+  "class": "NNNC_GBR_f10",
+  "threshold": 0.78,
+  "rows": 86410,
+  "enter_long": 142
+ },
+ "GBR_f11": {
+  "class": "NNNC_GBR_f11",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 2076
+ },
+ "GBR_f12": {
+  "class": "NNNC_GBR_f12",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 923
+ },
+ "GBR_f13": {
+  "class": "NNNC_GBR_f13",
+  "threshold": 0.77,
+  "rows": 86410,
+  "enter_long": 423
+ },
+ "GBR_f14": {
+  "class": "NNNC_GBR_f14",
+  "threshold": 0.77,
+  "rows": 81610,
+  "enter_long": 264
+ },
+ "GFM_f00": {
+  "class": "NNNC_GFM_f00",
+  "threshold": 0.71,
+  "rows": 77769,
+  "enter_long": 479
+ },
+ "GFM_f01": {
+  "class": "NNNC_GFM_f01",
+  "threshold": 0.72,
+  "rows": 77769,
+  "enter_long": 250
+ },
+ "GFM_f02": {
+  "class": "NNNC_GFM_f02",
+  "threshold": 0.72,
+  "rows": 84950,
+  "enter_long": 400
+ },
+ "GFM_f03": {
+  "class": "NNNC_GFM_f03",
+  "threshold": 0.74,
+  "rows": 86410,
+  "enter_long": 533
+ },
+ "GFM_f04": {
+  "class": "NNNC_GFM_f04",
+  "threshold": 0.74,
+  "rows": 86410,
+  "enter_long": 1982
+ },
+ "GFM_f05": {
+  "class": "NNNC_GFM_f05",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 548
+ },
+ "GFM_f06": {
+  "class": "NNNC_GFM_f06",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 596
+ },
+ "GFM_f07": {
+  "class": "NNNC_GFM_f07",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 1798
+ },
+ "GFM_f08": {
+  "class": "NNNC_GFM_f08",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 1622
+ },
+ "GFM_f09": {
+  "class": "NNNC_GFM_f09",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 385
+ },
+ "GFM_f10": {
+  "class": "NNNC_GFM_f10",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 485
+ },
+ "GFM_f11": {
+  "class": "NNNC_GFM_f11",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 990
+ },
+ "GFM_f12": {
+  "class": "NNNC_GFM_f12",
+  "threshold": 0.75,
+  "rows": 86410,
+  "enter_long": 339
+ },
+ "GFM_f13": {
+  "class": "NNNC_GFM_f13",
+  "threshold": 0.74,
+  "rows": 86410,
+  "enter_long": 959
+ },
+ "GFM_f14": {
+  "class": "NNNC_GFM_f14",
+  "threshold": 0.74,
+  "rows": 81610,
+  "enter_long": 387
+ },
+ "MLX_f00": {
+  "class": "NNNC_WF_f00",
+  "threshold": 0.69,
+  "rows": 77769,
+  "enter_long": 14
+ },
+ "MLX_f01": {
+  "class": "NNNC_WF_f01",
+  "threshold": 0.69,
+  "rows": 77769,
+  "enter_long": 29
+ },
+ "MLX_f02": {
+  "class": "NNNC_WF_f02",
+  "threshold": 0.69,
+  "rows": 84950,
+  "enter_long": 24
+ },
+ "MLX_f03": {
+  "class": "NNNC_WF_f03",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 28
+ },
+ "MLX_f04": {
+  "class": "NNNC_WF_f04",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 66
+ },
+ "MLX_f05": {
+  "class": "NNNC_WF_f05",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 47
+ },
+ "MLX_f06": {
+  "class": "NNNC_WF_f06",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 69
+ },
+ "MLX_f07": {
+  "class": "NNNC_WF_f07",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 116
+ },
+ "MLX_f08": {
+  "class": "NNNC_WF_f08",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 139
+ },
+ "MLX_f09": {
+  "class": "NNNC_WF_f09",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 33
+ },
+ "MLX_f10": {
+  "class": "NNNC_WF_f10",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 9
+ },
+ "MLX_f11": {
+  "class": "NNNC_WF_f11",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 75
+ },
+ "MLX_f12": {
+  "class": "NNNC_WF_f12",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 43
+ },
+ "MLX_f13": {
+  "class": "NNNC_WF_f13",
+  "threshold": 0.69,
+  "rows": 86410,
+  "enter_long": 32
+ },
+ "MLX_f14": {
+  "class": "NNNC_WF_f14",
+  "threshold": 0.69,
+  "rows": 81610,
+  "enter_long": 4
+ }
+}

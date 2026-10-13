@@ -84,3 +84,6 @@ research/clfstudy/results/results.parquet
 # feature 023: generated per-component attribution arms and evaluation scratch
 SimpleTrigger/SimpleTrigger_*__C_*.py
 evaluation/.scratch/
+
+# NNNC framework study: per-bar signal tables (326 MB; regenerate with research.nnnc_framework.signals)
+research/nnnc_framework/signals/*.parquet

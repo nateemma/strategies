@@ -1,0 +1,106 @@
+"""NNNC framework study: per-bar entry-signal tables on each fold's TEST window (no backtest, no training).
+
+For each model's walk-forward fold class (`NNNC_ARO_fNN`, `NNNC_GBR_fNN`, `NNNC_GFM_fNN`,
+`NNNC_WF_fNN`) this runs the strategy's own `populate_indicators` -> `populate_entry_trend` over
+the fold's test window -- one forward pass through the already-trained weights, exactly as
+`evaluation/pick_threshold.py` does over a train window -- and keeps, per pair and bar: the BUY
+probability, whether BUY is the argmax, `enter_long`, `enter_tag` and the guard inputs.
+Strict model-key mode is forced: a missing model halts, it never trains.
+
+The tables let stage 1 price ENTRY levers (threshold, guards, a regime-conditional threshold)
+offline: `entries.py` turns signal rows into trades with the null exit replay and
+one-open-trade-per-pair, and must first reproduce the recorded entries.
+
+    PYTHONPATH=. ../../.venv/bin/python -m research.nnnc_framework.signals [--models ARO,GBR]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+
+STRAT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(STRAT))
+sys.path.insert(0, str(STRAT / "evaluation"))
+os.environ["FT_MODEL_EVAL_STRICT"] = "1"
+
+HERE = Path(__file__).resolve().parent
+OUT = HERE / "signals"
+CONFIG = "user_data/strategies/config/config_wf.json"
+PLANS = {"ARO": "wf_aro_b030", "GBR": "sw_gbr_ctl_b030", "GFM": "sw_gfm_ctl_b030",
+         "MLX": "sw_mlx_ctl_b030"}
+KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
+        "bb_width"]
+PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
+
+
+def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
+    from freqtrade.configuration import TimeRange
+    from freqtrade.data import history
+    from freqtrade.data.converter import trim_dataframe
+    from pick_threshold import _load_fold_context
+
+    strat, cfg = _load_fold_context(cls, "NNNC", CONFIG)
+    # pick_threshold never calls ft_bot_start, so the fold's .json (its per-fold threshold, its
+    # guards) is not applied there -- harmless for a probability distribution, wrong for
+    # enter_long. Apply it exactly as ft_bot_start does.
+    strat.ft_load_hyper_params(False)
+    tr = TimeRange.parse_timerange(test_timerange)
+    data = history.load_data(
+        datadir=cfg["datadir"], pairs=cfg["exchange"]["pair_whitelist"], timeframe=cfg["timeframe"],
+        timerange=tr, startup_candles=strat.startup_candle_count, fail_without_data=True,
+        data_format=cfg.get("dataformat_ohlcv", "feather"),
+        candle_type=cfg.get("candle_type_def", "spot"))
+    pre = strat.advise_all_indicators(data)
+    rows = []
+    for pair, df in pre.items():
+        if df.empty:
+            continue
+        sig = strat.advise_entry(df.copy(), {"pair": pair})
+        sig = trim_dataframe(sig, tr, startup_candles=strat.startup_candle_count)
+        probs = sig[PROB_COLS].to_numpy(float)
+        out = pd.DataFrame({"date": sig["date"].values, "pair": pair})
+        out["p_buy"] = probs[:, 2]
+        out["buy_argmax"] = np.argmax(np.nan_to_num(probs, nan=-1.0), axis=1) == 2
+        out["enter_long"] = sig.get("enter_long", 0).fillna(0).astype(int).values
+        out["enter_tag"] = sig.get("enter_tag", "").fillna("").astype(str).values
+        for c in KEEP:
+            out[c] = sig[c].values if c in sig.columns else np.nan
+        rows.append(out)
+    t = pd.concat(rows, ignore_index=True)
+    t.attrs["threshold"] = float(strat.prediction_threshold.value)
+    return t
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--models", default=",".join(PLANS))
+    a = ap.parse_args(argv)
+    OUT.mkdir(exist_ok=True)
+    meta_path = OUT / "meta.json"
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    for m in a.models.split(","):
+        plan = json.loads((STRAT / "evaluation/folds" / f"plan_{PLANS[m]}.json").read_text())
+        for f in plan["folds"]:
+            dest = OUT / f"{m}_{f['fold_id']}.parquet"
+            if dest.exists():
+                continue
+            t = fold_table(f["strategy_class"], f["test_timerange"])
+            t.to_parquet(dest)
+            meta[f"{m}_{f['fold_id']}"] = {"class": f["strategy_class"],
+                                           "threshold": t.attrs["threshold"],
+                                           "rows": len(t), "enter_long": int(t["enter_long"].sum())}
+            meta_path.write_text(json.dumps(meta, indent=1))
+            print(m, f["fold_id"], len(t), "rows", int(t["enter_long"].sum()), "entries", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
