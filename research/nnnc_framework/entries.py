@@ -137,7 +137,8 @@ class Model:
             out.append({"fold": fold, "pair": pair, "e": e, "x": x.idx, "reason": x.reason,
                         "profit": x.profit, "stake": stake,
                         "pp": x.profit * stake * self.scale.get(fold, 0.01)})
-        return pd.DataFrame(out)
+        return pd.DataFrame(out, columns=["fold", "pair", "e", "x", "reason", "profit", "stake",
+                                          "pp"])
 
 
 _VOL: dict = {}
