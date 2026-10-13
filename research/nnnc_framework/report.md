@@ -44,9 +44,11 @@ Only GR is ADOPTED (ARO + 2 of 3), so no combination is run (the rule needed ≥
 Late-half screen deltas (computed after the pre-registration commit), for comparison with the arms'
 late gains above: {"exit:grace_hours": {"ARO": {"early": 19.54, "late": 9.17}, "GBR": {"early": 16.594, "late": 3.794}, "GFM": {"early": 20.233, "late": -1.772}}, "entry:thr_shift": {"ARO": {"early": 8.116, "late": -17.644}, "GBR": {"early": 1.165, "late": -25.483}, "GFM": {"early": 12.058, "late": -22.763}, "MLX": {"early": -0.181, "late": 0.218}}, "exit:take_profit": {"ARO": {"early": 9.243, "late": -4.387}, "GBR": {"early": 3.544, "late": -3.644}, "GFM": {"early": 4.206, "late": -2.761}}, "exit:tp_atr_k": {"ARO": {"early": 6.846, "late": -1.442}, "GBR": {"early": 1.698, "late": -2.317}, "GFM": {"early": 3.156, "late": -2.551}}, "exit:stop_scale": {"ARO": {"early": 4.201, "late": 1.313}, "GBR": {"early": 1.783, "late": 2.191}, "GFM": {"early": 2.15, "late": -1.143}}, "exit:unclog_1d_hours": {"ARO": {"early": 0.504, "late": -0.173}, "GBR": {"early": 0.276, "late": 0.792}, "GFM": {"early": 0.133, "late": 0.074}}}
 
-The screens (replay / simulator, which ignore re-sequencing) predicted the sign of every arm's late
-result on ARO and GBR except GR/GBR (+3.8 screen vs +0.9 arm) — same sign — so they are a usable
-filter for model-entry framework changes; magnitudes are roughly 0.3–1× of the screen.
+The screens (replay / simulator, which ignore re-sequencing) predicted the sign of 18 of the 19
+late-half arm results they cover (MLX exits unscreened); the one miss is SS on GBR (screen +2.19, arm
+−0.73). Magnitudes match closely for entry and take-profit levers; for GR the arm keeps only ~0.2–0.7×
+of the screen's late gain (longer occupancy re-sequences entries, which the replay cannot see). The
+screens are a usable filter for model-entry framework changes.
 
 ## Stage 1 findings worth keeping (early half, descriptive)
 
