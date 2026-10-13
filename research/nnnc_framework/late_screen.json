@@ -1,0 +1,90 @@
+{
+ "exit:grace_hours": {
+  "ARO": {
+   "early": 19.54,
+   "late": 9.17
+  },
+  "GBR": {
+   "early": 16.594,
+   "late": 3.794
+  },
+  "GFM": {
+   "early": 20.233,
+   "late": -1.772
+  }
+ },
+ "entry:thr_shift": {
+  "ARO": {
+   "early": 8.116,
+   "late": -17.644
+  },
+  "GBR": {
+   "early": 1.165,
+   "late": -25.483
+  },
+  "GFM": {
+   "early": 12.058,
+   "late": -22.763
+  },
+  "MLX": {
+   "early": -0.181,
+   "late": 0.218
+  }
+ },
+ "exit:take_profit": {
+  "ARO": {
+   "early": 9.243,
+   "late": -4.387
+  },
+  "GBR": {
+   "early": 3.544,
+   "late": -3.644
+  },
+  "GFM": {
+   "early": 4.206,
+   "late": -2.761
+  }
+ },
+ "exit:tp_atr_k": {
+  "ARO": {
+   "early": 6.846,
+   "late": -1.442
+  },
+  "GBR": {
+   "early": 1.698,
+   "late": -2.317
+  },
+  "GFM": {
+   "early": 3.156,
+   "late": -2.551
+  }
+ },
+ "exit:stop_scale": {
+  "ARO": {
+   "early": 4.201,
+   "late": 1.313
+  },
+  "GBR": {
+   "early": 1.783,
+   "late": 2.191
+  },
+  "GFM": {
+   "early": 2.15,
+   "late": -1.143
+  }
+ },
+ "exit:unclog_1d_hours": {
+  "ARO": {
+   "early": 0.504,
+   "late": -0.173
+  },
+  "GBR": {
+   "early": 0.276,
+   "late": 0.792
+  },
+  "GFM": {
+   "early": 0.133,
+   "late": 0.074
+  }
+ }
+}
