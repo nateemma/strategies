@@ -57,3 +57,5 @@ f00–f07, the fidelity run.
 - NNNC late half: CONFIRMATORY, PROVISIONAL. It is one era; no NNNC model covers 2022.
 - SimpleTrigger 2022: CONFIRMATORY.
 - Everything else: EXPLORATORY.
+
+**Committed**: `dd39f32`, 2026-10-13 15:41:29 −0700 (unix 1791931289). Every judged record must be newer.

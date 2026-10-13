@@ -265,7 +265,7 @@ for correctly.
   - reporting: exposure, max drawdown, leverage control;
   - the screen's early-half predictions and T022's fidelity result;
   - "switch stays default-off".
-- [ ] T024 [US3] Commit the pre-registration (named files only), and record its commit timestamp
+- [X] T024 [US3] Commit the pre-registration (named files only), and record its commit timestamp
   in the `.md`.
 - [ ] T025 [US3] Run the judged chain as ONE sequential script in the scratchpad (`chain_hp.sh`,
   log `.log`): `hp_aro_dca` f08–f14; `hp_gbr_dca`, `hp_gfm_dca` and `hp_mlx_dca` f00–f14;
