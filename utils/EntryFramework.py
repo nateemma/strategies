@@ -104,6 +104,10 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
     #: HELD_PAIR_ADD_DEFAULTS into HELD_PAIR_ADD_RESOLVED; a subclass's None turns it off.
     HELD_PAIR_ADD: dict | None = None
     HELD_PAIR_ADD_DEFAULTS = {"max_adds": 1, "min_age_hours": 1.0, "under_water_only": False}
+    #: 031 follow-up keys: resolved (and so fingerprinted) only when set to a non-default value,
+    #: so the original 031 arms keep their fingerprints. `in_profit_only`: add only to a held trade
+    #: in profit (pyramiding). `add_fraction`: the add is this fraction of the fresh-entry stake.
+    HELD_PAIR_ADD_OPTIONAL = {"in_profit_only": False, "add_fraction": 1.0}
     HELD_PAIR_ADD_RESOLVED: dict | None = None
 
     # FAMILY_EXITS is resolved here, so FamilyExitMixin must not validate before it is.
@@ -119,7 +123,8 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         "REVERSION_REGIME_GATE", "TRIGGER_NAME", "TRIGGERS", "DISABLED_TRIGGERS",
         "FAMILY_PRIORITY", "MOMENTUM_PREEMPT", "MOMENTUM_RECENCY_BARS", "_ENTRY_FRAMEWORK_AUTO",
         "_FAMILY_VALIDATE_ON_SUBCLASS", "HELD_PAIR_ADD", "HELD_PAIR_ADD_DEFAULTS",
-        "HELD_PAIR_ADD_RESOLVED", "position_adjustment_enable", "max_entry_position_adjustment",
+        "HELD_PAIR_ADD_RESOLVED", "HELD_PAIR_ADD_OPTIONAL", "position_adjustment_enable",
+        "max_entry_position_adjustment",
     )
     MODEL_KEY_METHODS_IGNORED = ("adjust_trade_position",)
 
@@ -157,10 +162,12 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         if merged is None:
             cls.HELD_PAIR_ADD_RESOLVED = None
             return
-        unknown = sorted(set(merged) - set(cls.HELD_PAIR_ADD_DEFAULTS))
+        unknown = sorted(set(merged) - set(cls.HELD_PAIR_ADD_DEFAULTS)
+                         - set(cls.HELD_PAIR_ADD_OPTIONAL))
         if unknown:
             raise cls.ENTRY_ERROR(f"{cls.__name__}: HELD_PAIR_ADD unknown keys {unknown}")
-        r = {**cls.HELD_PAIR_ADD_DEFAULTS, **merged}
+        r = {**cls.HELD_PAIR_ADD_DEFAULTS,
+             **{k: v for k, v in merged.items() if k in cls.HELD_PAIR_ADD_DEFAULTS}}
         if type(r["max_adds"]) is not int or r["max_adds"] < 1:
             raise cls.ENTRY_ERROR(
                 f"{cls.__name__}: HELD_PAIR_ADD max_adds must be an int >= 1, got {r['max_adds']!r}")
@@ -173,6 +180,23 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
                 f"{cls.__name__}: HELD_PAIR_ADD under_water_only must be a bool, got "
                 f"{r['under_water_only']!r}")
         r["min_age_hours"] = float(r["min_age_hours"])
+        for k, default in cls.HELD_PAIR_ADD_OPTIONAL.items():
+            if k in merged and merged[k] != default:
+                r[k] = merged[k]
+        if type(r.get("in_profit_only", False)) is not bool:
+            raise cls.ENTRY_ERROR(
+                f"{cls.__name__}: HELD_PAIR_ADD in_profit_only must be a bool, got "
+                f"{r['in_profit_only']!r}")
+        if r.get("in_profit_only") and r["under_water_only"]:
+            raise cls.ENTRY_ERROR(
+                f"{cls.__name__}: HELD_PAIR_ADD in_profit_only and under_water_only exclude "
+                f"each other")
+        if "add_fraction" in r:
+            f = r["add_fraction"]
+            if type(f) not in (int, float) or not 0 < f <= 1:
+                raise cls.ENTRY_ERROR(
+                    f"{cls.__name__}: HELD_PAIR_ADD add_fraction must be in (0, 1], got {f!r}")
+            r["add_fraction"] = float(f)
         cls.HELD_PAIR_ADD_RESOLVED = r
         cls.position_adjustment_enable = True
         cls.max_entry_position_adjustment = r["max_adds"]
@@ -511,7 +535,7 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
 
     #: AddDecision refusal reasons, in check order (data-model.md).
     HP_REASONS = ("not_long", "open_order", "max_adds", "row_misaligned", "no_signal",
-                  "too_young", "in_profit", "thin", "below_min")
+                  "too_young", "in_profit", "not_in_profit", "thin", "below_min")
 
     def _hp_count(self, key: str) -> None:
         c = self.__dict__.get("_hp_counts")
@@ -580,6 +604,8 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
             return self._hp_refuse("too_young")
         if hp["under_water_only"] and not current_profit < 0:
             return self._hp_refuse("in_profit")
+        if hp.get("in_profit_only") and not current_profit > 0:
+            return self._hp_refuse("not_in_profit")
         quote_volume = float(last["volume"]) * float(last["close"])
         if quote_volume < self.MIN_QUOTE_VOLUME:
             return self._hp_refuse("thin")
@@ -588,8 +614,8 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
                 trade.pair, self.config["max_open_trades"], update=False)
         except Exception:  # noqa: BLE001 -- no wallet (tests) or freqtrade refuses a proposal
             proposed = float(self.config["stake_amount"])
-        stake = min(float(proposed), quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT,
-                    float(max_stake))
+        stake = min(float(proposed) * hp.get("add_fraction", 1.0),
+                    quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT, float(max_stake))
         if stake <= 0 or (min_stake and stake < min_stake):
             return self._hp_refuse("below_min")
         self._hp_count("adds")

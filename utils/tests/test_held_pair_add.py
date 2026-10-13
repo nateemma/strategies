@@ -307,3 +307,42 @@ def test_invariants_hold_through_entry_grace_add_grace_tightened():
                              False) == 1.0
     v = s.custom_stoploss("SOL/USDT", t, LAST_FILL + timedelta(hours=25), 9.8, 0.0, False)
     assert 9.8 * (1.0 + v) == pytest.approx(9.5 * 0.96)
+
+
+# ------------------------------------------------- 031 follow-up: in_profit_only, add_fraction
+
+
+def test_optional_keys_are_resolved_only_when_set():
+    assert "in_profit_only" not in On.HELD_PAIR_ADD_RESOLVED
+    assert "add_fraction" not in On.HELD_PAIR_ADD_RESOLVED
+    c = type("P", (On,), {"HELD_PAIR_ADD": {"in_profit_only": True, "add_fraction": 0.5}})
+    assert c.HELD_PAIR_ADD_RESOLVED["in_profit_only"] is True
+    assert c.HELD_PAIR_ADD_RESOLVED["add_fraction"] == 0.5
+    d = type("D", (On,), {"HELD_PAIR_ADD": {"in_profit_only": False, "add_fraction": 1.0}})
+    assert d.HELD_PAIR_ADD_RESOLVED == On.HELD_PAIR_ADD_RESOLVED  # defaults: fingerprint as before
+
+
+@pytest.mark.parametrize("decl", [{"in_profit_only": 1}, {"add_fraction": 0},
+                                  {"add_fraction": 1.5},
+                                  {"in_profit_only": True, "under_water_only": True}])
+def test_invalid_optional_declarations_raise(decl):
+    with pytest.raises(EntryFrameworkError):
+        type("Bad", (On,), {"HELD_PAIR_ADD": decl})
+
+
+def test_in_profit_only_refuses_a_losing_or_flat_trade_and_accepts_a_winner():
+    cls = type("P", (On,), {"HELD_PAIR_ADD": {"in_profit_only": True}})
+    for profit in (-0.01, 0.0):
+        s = _strat(cls, _frame(NOW - BAR, volume=1e9))
+        assert _call(s, profit=profit) is None
+        assert s._hp_counts == {"refused_not_in_profit": 1}
+    s = _strat(cls, _frame(NOW - BAR, volume=1e9))
+    assert _call(s, profit=0.01) == (900.0, "hp_add")
+
+
+def test_add_fraction_scales_the_proposed_stake_before_the_caps():
+    cls = type("H", (On,), {"HELD_PAIR_ADD": {"add_fraction": 0.5}})
+    s = _strat(cls, _frame(NOW - BAR, volume=1e9))
+    assert _call(s) == (450.0, "hp_add")
+    s = _strat(cls, _frame(NOW - BAR, volume=300.0))  # fillable 300 < 450
+    assert _call(s) == (300.0, "hp_add")
