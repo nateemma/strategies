@@ -132,7 +132,7 @@ def test_config_hash_changes_when_simulation_logic_version_changes(monkeypatch):
 
 def test_from_operating_point_reads_the_open_json():
     cfg = ExitConfig.from_operating_point()
-    assert cfg.stoploss_grace_hours == 6.5
+    assert cfg.stoploss_grace_hours == 24.0  # 6.5 before 2026-10-13 (research/nnnc_framework)
     assert cfg.stoploss_grace_level == -0.27
     assert cfg.take_profit == 0.022
     assert cfg.max_hold_days == 10

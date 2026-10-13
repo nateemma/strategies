@@ -25,9 +25,20 @@ RECORDED = {
 }
 
 
+#: Moved on purpose since: NNNC's grace default 6.5 h -> 24 h (2026-10-13, research/nnnc_framework/).
+#: These are checked with grace put back to 6.5 h -- everything else must still match the record.
+GRACE_MOVED = {"NNNC_MLX_Open"}
+
+
 def _sha(name):
+    import copy
+
     cls = fp.load_strategy_class(name)
-    sha, _ = fp.resolve(cls, fp.load_params_json(name), fp.load_config(CONFIG))
+    pj = fp.load_params_json(name)
+    if name in GRACE_MOVED:
+        pj = copy.deepcopy(pj)
+        pj["params"]["sell"]["stoploss_grace_hours"] = 6.5
+    sha, _ = fp.resolve(cls, pj, fp.load_config(CONFIG))
     return sha
 
 

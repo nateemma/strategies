@@ -17,6 +17,17 @@ def _sha(cls, params_json=None):
     return fp.resolve(cls, params_json, CFG)[0]
 
 
+def _arm_d_json_at_6_5h():
+    """Arm D's .json with grace put back to 6.5 h. NNNC's default moved to 24 h on 2026-10-13
+    (research/nnnc_framework/); ARM_D_OPEN keeps 6.5 h, so the twin now differs in that one
+    value and must match everywhere else."""
+    import copy
+
+    j = copy.deepcopy(fp.load_params_json("NNNC_A_Raw_Open"))
+    j["params"]["sell"]["stoploss_grace_hours"] = 6.5
+    return j
+
+
 def _triggeronly():
     spec = importlib.util.spec_from_file_location(
         "_to_ref", fp.STRAT_DIR / "SimpleStrategies" / "TriggerOnly.py"
@@ -42,7 +53,8 @@ def test_arm_d_open_resolves_to_arm_d():
         TRIGGER_NAME = "gbb"
 
     ref = fp.load_strategy_class("NNNC_A_Raw_Open")
-    assert _sha(_ArmD) == _sha(ref, fp.load_params_json("NNNC_A_Raw_Open"))
+    assert _sha(_ArmD) == _sha(ref, _arm_d_json_at_6_5h())
+    assert _sha(_ArmD) != _sha(ref, fp.load_params_json("NNNC_A_Raw_Open"))
 
 
 def test_legacy_resolves_to_triggeronly():
@@ -70,7 +82,7 @@ def test_simple_trigger_gbb_is_arm_d_twin():
     # T033: the US3 twin shares arm D's framework (FR-013)
     gbb = fp.load_strategy_class("SimpleTrigger_Gbb")
     ref = fp.load_strategy_class("NNNC_A_Raw_Open")
-    assert _sha(gbb) == _sha(ref, fp.load_params_json("NNNC_A_Raw_Open"))
+    assert _sha(gbb) == _sha(ref, _arm_d_json_at_6_5h())
 
 
 @pytest.mark.parametrize(

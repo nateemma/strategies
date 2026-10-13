@@ -26,7 +26,7 @@ def test_ten_dimensions_including_the_two_added_in_planning():
 
 def test_incumbent_is_read_from_the_strategys_own_files():
     """Not hard-coded, so it cannot drift from what production runs."""
-    assert SP.INCUMBENT["stoploss_grace_hours"] == pytest.approx(6.5)
+    assert SP.INCUMBENT["stoploss_grace_hours"] == pytest.approx(24.0)  # 6.5 before 2026-10-13
     assert SP.INCUMBENT["cexit_take_profit"] == pytest.approx(0.024)
     assert SP.INCUMBENT["entry_rvol_threshold"] == pytest.approx(2.0)
     assert SP.INCUMBENT["atr_stoploss_multiplier"] == pytest.approx(2.5)

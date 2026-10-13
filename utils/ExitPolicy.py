@@ -361,10 +361,10 @@ class ExitParams:
     use_volume_confirmation_stoploss: bool = True
     #: NO DEFAULT, deliberately. Three different grace configurations exist in this
     #: repository -- BaseStrategy.sell_params says 2.6h/-0.17, NNNC_MLX_Open.json (the
-    #: production operating point) says 6.5h/-0.27, and a dataclass default of "no grace"
+    #: production operating point) says 24h/-0.27 (6.5h before 2026-10-13), and a dataclass default of "no grace"
     #: would be a third. An offline caller that forgot to supply these would silently
     #: simulate a stop firing inside a window where production has effectively none
-    #: (-27% for 6.5 hours), and every outcome would describe an exit the strategy does
+    #: (-27% for 24 hours), and every outcome would describe an exit the strategy does
     #: not run. `effective_stop_fraction` raises rather than guessing.
     #:
     #: The LIVE path never reads these: `custom_stoploss` handles grace itself and returns
@@ -510,7 +510,7 @@ def effective_stop_fraction(
             "stoploss_grace_hours and stoploss_grace_level must be supplied explicitly "
             "before the grace window can be evaluated. They have no default because this "
             "repository holds three different values (BaseStrategy.sell_params 2.6h/-0.17, "
-            "NNNC_MLX_Open.json 6.5h/-0.27), and guessing would silently simulate an exit "
+            "NNNC_MLX_Open.json 24h/-0.27), and guessing would silently simulate an exit "
             "the strategy does not run."
         )
     if params.stoploss_grace_hours > 0.0 and age_hours < params.stoploss_grace_hours:

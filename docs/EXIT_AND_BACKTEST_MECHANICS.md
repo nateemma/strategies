@@ -107,8 +107,9 @@ decision. `BaseStrategy` only supplies inputs to it.
 
 ### 2.1 The stop
 
-- **Grace window.** `stoploss_grace_hours` / `_level`; at arm D / ARM_D_OPEN this is 6.5 h at
-  −27%.
+- **Grace window.** `stoploss_grace_hours` / `_level`. NNNC default since 2026-10-13: 24 h at
+  −27% (was 6.5 h; adopted on four models by research/nnnc_framework/, post-grace stop exits
+  roughly halved). The SimpleTrigger preset ARM_D_OPEN still uses 6.5 h; 24 h is untested there.
   - It is set at `after_fill`. During the window `custom_stoploss` returns 1.0 (no change).
   - Most winners reach a +2% target inside it: the median is 9 bars, and the stop in force at
     the target touch is the grace stop (027).

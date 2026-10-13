@@ -24,7 +24,7 @@
             "exit_close_norm_threshold": -0.6,
             "exit_guard_threshold": -0.1,
             "exit_rvol_threshold": 2.0,
-            "stoploss_grace_hours": 6.5,
+            "stoploss_grace_hours": 24.0,
             "stoploss_grace_level": -0.27
         },
         "buy": {

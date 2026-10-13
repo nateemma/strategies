@@ -82,7 +82,7 @@ def build() -> list[Dim]:
             note="loosest stop allowed (most negative)"),
         Dim("atr_stoploss_cap", -0.04, -0.005, _base_attr("atr_stoploss_cap"),
             note="tightest stop allowed (closest to zero)"),
-        Dim("stoploss_grace_hours", 0.0, 12.0, float(p["stoploss_grace_hours"]),
+        Dim("stoploss_grace_hours", 0.0, 48.0, float(p["stoploss_grace_hours"]),
             note="how long the stop is held wide; gates when the ATR stop becomes reachable"),
         Dim("stoploss_grace_level", -0.40, -0.05, float(p["stoploss_grace_level"]),
             note="how wide it is held"),

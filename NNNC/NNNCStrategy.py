@@ -80,8 +80,18 @@ class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
     # (18.61 vs 18.29) but on worse worst-window Calmar and a W3 decline; 6.5h
     # keeps margin from the cliff. The upper bound is raised from 6.0 to 12.0 so
     # the value is inside the range rather than pinned to it.
+    #
+    # 2026-10-13: default 24h (was 6.5h). The NNNC framework study
+    # (research/nnnc_framework/, pre-registered f879338) tested 24h walk-forward on
+    # f00-f14 on four models: ADOPTED -- PASS on arm D (+5.56/+1.69 pp early/late),
+    # GBR and NNNC_MLX, GFM late -1.25; 15-fold totals arm D 42.71 -> 49.97, GBR
+    # 43.65 -> 53.46, GFM 25.61 -> 39.76, NNNC_MLX 25.32 -> 35.19; paired and risk
+    # UNCHANGED on all four. Post-grace stop exits fall by more than half (arm D
+    # 469 -> 199): those trades recover and leave through unclog. The 8-9h cliff
+    # above came from the 3-window sweep on an older stack and did not reappear.
+    # 24h was the edge of the screened grid; the range now reaches 48h.
     stoploss_grace_hours = DecimalParameter(
-        0.0, 12.0, default=6.5, decimals=1, space="sell", load=True, optimize=True
+        0.0, 48.0, default=24.0, decimals=1, space="sell", load=True, optimize=True
     )
     stoploss_grace_level = DecimalParameter(
         -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True

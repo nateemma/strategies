@@ -345,6 +345,20 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "NNNC/NNNC_SW_GBR_C2.py",
     "NNNC/NNNC_SW_GFM_C2.py",
     "NNNC/NNNC_SW_MLX_C2.py",
+    # NNNC framework study (research/nnnc_framework/): stage-2 arms declare ONE value each --
+    # ATR take-profit k (TK) or the post-grace stop's K/floor/cap scaled x2 (SS). VALUES.
+    "NNNC/NNNC_FS_ARO_SS.py",
+    "NNNC/NNNC_FS_GBR_SS.py",
+    "NNNC/NNNC_FS_GFM_SS.py",
+    "NNNC/NNNC_FS_MLX_SS.py",
+    "NNNC/NNNC_FS_ARO_TK.py",
+    "NNNC/NNNC_FS_GBR_TK.py",
+    "NNNC/NNNC_FS_GFM_TK.py",
+    "NNNC/NNNC_FS_MLX_TK.py",
+    "research/nnnc_framework/build_arms.py",   # writes those declarations and .json/snapshot
+                                                 # values (grace hours, take-profit); computes none.
+    "research/nnnc_framework/diagnose.py",     # builds ExitParams levers (scaled K/floor/cap,
+                                                 # grace, take-profit) for paths.replay; no arithmetic.
     "NNNC/tests/test_model_key_nnnc.py",       # 030: declares the C2 value on a stub to show
                                                  # an exit-only variant keeps its model key.
     "NNNC/tests/test_nnnc_merge.py",           # 029: sets grace hours/floor on a stub NNNC to

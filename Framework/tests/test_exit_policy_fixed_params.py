@@ -101,13 +101,13 @@ def test_max_hold_days_matches_open_operating_point():
 
 def test_grace_hours_matches_open_operating_point():
     sell = _open_sell_params()
-    assert sell["stoploss_grace_hours"] == 6.5
+    assert sell["stoploss_grace_hours"] == 24.0  # 6.5 before 2026-10-13 (research/nnnc_framework)
     # NOT asserted against ExitParams()'s default (0.0): the dataclass default is
     # BaseStrategy's framework-wide "grace disabled" default, not the Open point's.
     # A table built for the Open point must construct ExitParams with this value
     # explicitly -- which is exactly what this test exists to pin down.
     overridden = ExitParams(stoploss_grace_hours=sell["stoploss_grace_hours"])
-    assert overridden.stoploss_grace_hours == 6.5
+    assert overridden.stoploss_grace_hours == 24.0
 
 
 def test_grace_level_matches_open_operating_point():
