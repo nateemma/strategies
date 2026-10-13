@@ -51,7 +51,7 @@ class HoldWindowMixin:
             pair, trade, current_time, current_rate, current_profit, **kwargs
         )
         if self.HOLD_WINDOW_HOURS and reason in self._DEFERRABLE_EXITS:
-            hours = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+            hours = (current_time - self.trade_clock_start(trade)).total_seconds() / 3600.0
             if hours < self.HOLD_WINDOW_HOURS:
                 return None
         return reason

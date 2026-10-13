@@ -132,7 +132,9 @@ class StopInvariantMixin:
         stop_price = current_rate * (1.0 - abs(value))
 
         grace_hours = _num(getattr(self, "stoploss_grace_hours", 0.0))
-        age_h = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+        clock = getattr(self, "trade_clock_start", None)
+        start = clock(trade) if clock is not None else trade.open_date_utc
+        age_h = (current_time - start).total_seconds() / 3600.0
         in_grace = grace_hours > 0.0 and age_h < grace_hours
 
         last = getattr(self, "_si_last_stop", None)

@@ -1,0 +1,764 @@
+{
+ "arms": {
+  "fs_gbr_gr": {
+   "f00": {
+    "class": "NNNC_FS_GBR_GR_f00",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "e0712e273ceaac79",
+    "n_trades": 77,
+    "trades_hash": "f633ceb225f0fe9d"
+   },
+   "f01": {
+    "class": "NNNC_FS_GBR_GR_f01",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "37a4e1158ef24f5a",
+    "n_trades": 50,
+    "trades_hash": "3b22db7e16a20bab"
+   },
+   "f02": {
+    "class": "NNNC_FS_GBR_GR_f02",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "40a1e50599f2bbaf",
+    "n_trades": 41,
+    "trades_hash": "ed5827c014d43a56"
+   },
+   "f03": {
+    "class": "NNNC_FS_GBR_GR_f03",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "ea7421a5dba551be",
+    "n_trades": 163,
+    "trades_hash": "d3aa0301a4e84d4a"
+   },
+   "f04": {
+    "class": "NNNC_FS_GBR_GR_f04",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "8a346e276605c7ec",
+    "n_trades": 219,
+    "trades_hash": "e24c3cd9b79355d8"
+   },
+   "f05": {
+    "class": "NNNC_FS_GBR_GR_f05",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "993484d4eccb0726",
+    "n_trades": 148,
+    "trades_hash": "9416f9651e919c73"
+   },
+   "f06": {
+    "class": "NNNC_FS_GBR_GR_f06",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "62a5d9d16f149efb",
+    "n_trades": 120,
+    "trades_hash": "74887e5029e1a9c5"
+   },
+   "f07": {
+    "class": "NNNC_FS_GBR_GR_f07",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "53a95157ed5f6880",
+    "n_trades": 271,
+    "trades_hash": "b1686f9a0fef8d03"
+   },
+   "f08": {
+    "class": "NNNC_FS_GBR_GR_f08",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "484f494a381cb0eb",
+    "n_trades": 294,
+    "trades_hash": "7c0ef43b5e3c74fb"
+   },
+   "f09": {
+    "class": "NNNC_FS_GBR_GR_f09",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "105ee4cea97ff3a2",
+    "n_trades": 65,
+    "trades_hash": "cce57be1734732b8"
+   },
+   "f10": {
+    "class": "NNNC_FS_GBR_GR_f10",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "e3c1c0bca932b80b",
+    "n_trades": 40,
+    "trades_hash": "82d5f42938a84ea1"
+   },
+   "f11": {
+    "class": "NNNC_FS_GBR_GR_f11",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "fc4be1cf71462d0e",
+    "n_trades": 256,
+    "trades_hash": "d73eaa6c724e0cec"
+   },
+   "f12": {
+    "class": "NNNC_FS_GBR_GR_f12",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "9e2ab0f1937d089e",
+    "n_trades": 129,
+    "trades_hash": "9270c53bda7cf656"
+   },
+   "f13": {
+    "class": "NNNC_FS_GBR_GR_f13",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "0b9102a47999780a",
+    "n_trades": 81,
+    "trades_hash": "6f5d43583150cf37"
+   },
+   "f14": {
+    "class": "NNNC_FS_GBR_GR_f14",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "36bef219ca7cbd07",
+    "n_trades": 67,
+    "trades_hash": "f02a1607aab2c82e"
+   }
+  },
+  "fs_gfm_gr": {
+   "f00": {
+    "class": "NNNC_FS_GFM_GR_f00",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "0dabac3146cf307d",
+    "n_trades": 123,
+    "trades_hash": "6dceafbe00af11be"
+   },
+   "f01": {
+    "class": "NNNC_FS_GFM_GR_f01",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "a060c8dface76e2e",
+    "n_trades": 35,
+    "trades_hash": "0bbf413edf388f66"
+   },
+   "f02": {
+    "class": "NNNC_FS_GFM_GR_f02",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "46ac7edebd80b2f1",
+    "n_trades": 52,
+    "trades_hash": "3cffd875e3ccc33e"
+   },
+   "f03": {
+    "class": "NNNC_FS_GFM_GR_f03",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "1189b527c3c4ce2a",
+    "n_trades": 152,
+    "trades_hash": "b5e845c11f8fd017"
+   },
+   "f04": {
+    "class": "NNNC_FS_GFM_GR_f04",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "7b8af2d5816f70c1",
+    "n_trades": 300,
+    "trades_hash": "babf206c1d1e24a8"
+   },
+   "f05": {
+    "class": "NNNC_FS_GFM_GR_f05",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "0b95d9a563295709",
+    "n_trades": 82,
+    "trades_hash": "8924812d587aaa88"
+   },
+   "f06": {
+    "class": "NNNC_FS_GFM_GR_f06",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "6a1b72e005958fd4",
+    "n_trades": 96,
+    "trades_hash": "098ca7c8b6ace480"
+   },
+   "f07": {
+    "class": "NNNC_FS_GFM_GR_f07",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "dd8a2797613e68b8",
+    "n_trades": 290,
+    "trades_hash": "def518bc347096a4"
+   },
+   "f08": {
+    "class": "NNNC_FS_GFM_GR_f08",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "39ca0dfb03b76c2f",
+    "n_trades": 244,
+    "trades_hash": "f1b0fdabef621a6b"
+   },
+   "f09": {
+    "class": "NNNC_FS_GFM_GR_f09",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "076a2c0a44cfb396",
+    "n_trades": 36,
+    "trades_hash": "59211f9f225c5725"
+   },
+   "f10": {
+    "class": "NNNC_FS_GFM_GR_f10",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "fa9a7c24cdf84e9b",
+    "n_trades": 63,
+    "trades_hash": "78fa11ae7281c9af"
+   },
+   "f11": {
+    "class": "NNNC_FS_GFM_GR_f11",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "38abad06acd575e2",
+    "n_trades": 157,
+    "trades_hash": "3e20b195cb2b6a02"
+   },
+   "f12": {
+    "class": "NNNC_FS_GFM_GR_f12",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "9faa0047c8e3998e",
+    "n_trades": 45,
+    "trades_hash": "ecf8557a6dd6a09e"
+   },
+   "f13": {
+    "class": "NNNC_FS_GFM_GR_f13",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "9bdfcea293c8da15",
+    "n_trades": 115,
+    "trades_hash": "0ce2a58f695cd705"
+   },
+   "f14": {
+    "class": "NNNC_FS_GFM_GR_f14",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "1e5e065cfe6b24e1",
+    "n_trades": 89,
+    "trades_hash": "7f2fa7440e7958f6"
+   }
+  },
+  "fs_mlx_gr": {
+   "f00": {
+    "class": "NNNC_FS_MLX_GR_f00",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "bbf99d2c9a5cb565",
+    "n_trades": 11,
+    "trades_hash": "9571bd960c8d01fb"
+   },
+   "f01": {
+    "class": "NNNC_FS_MLX_GR_f01",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "6cf473dad7a28331",
+    "n_trades": 11,
+    "trades_hash": "c5a9050a9eda8981"
+   },
+   "f02": {
+    "class": "NNNC_FS_MLX_GR_f02",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "301f372b92a1cd52",
+    "n_trades": 9,
+    "trades_hash": "da250c2ba5e47468"
+   },
+   "f03": {
+    "class": "NNNC_FS_MLX_GR_f03",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "f10866dcf5d5b0b3",
+    "n_trades": 19,
+    "trades_hash": "a350ac0ef2e5e9ae"
+   },
+   "f04": {
+    "class": "NNNC_FS_MLX_GR_f04",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "2768ed7a86c91a67",
+    "n_trades": 41,
+    "trades_hash": "e2ddadaa0790b1aa"
+   },
+   "f05": {
+    "class": "NNNC_FS_MLX_GR_f05",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "17782b9951401484",
+    "n_trades": 25,
+    "trades_hash": "0fed61bbb3543cb9"
+   },
+   "f06": {
+    "class": "NNNC_FS_MLX_GR_f06",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "e7f249dd9e8e12ed",
+    "n_trades": 20,
+    "trades_hash": "ed4c9a71b27c8ce5"
+   },
+   "f07": {
+    "class": "NNNC_FS_MLX_GR_f07",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "8e4356a04f265038",
+    "n_trades": 57,
+    "trades_hash": "a5e25268f7224ac4"
+   },
+   "f08": {
+    "class": "NNNC_FS_MLX_GR_f08",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "cdbd1d7c6c1bba35",
+    "n_trades": 66,
+    "trades_hash": "29fc16d09bd5ee13"
+   },
+   "f09": {
+    "class": "NNNC_FS_MLX_GR_f09",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "9f81087a1a3cb8ff",
+    "n_trades": 9,
+    "trades_hash": "02a12c7d3f75c41a"
+   },
+   "f10": {
+    "class": "NNNC_FS_MLX_GR_f10",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "1ba6d08bd23e4171",
+    "n_trades": 7,
+    "trades_hash": "45799e047cb30cb9"
+   },
+   "f11": {
+    "class": "NNNC_FS_MLX_GR_f11",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "3f13f398db7a42aa",
+    "n_trades": 44,
+    "trades_hash": "b7173dda24679f63"
+   },
+   "f12": {
+    "class": "NNNC_FS_MLX_GR_f12",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "4f1d9eeecf442b94",
+    "n_trades": 22,
+    "trades_hash": "6b31ad227639fafc"
+   },
+   "f13": {
+    "class": "NNNC_FS_MLX_GR_f13",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "3d17f4285d71ec37",
+    "n_trades": 16,
+    "trades_hash": "5dac1d702a6b476e"
+   },
+   "f14": {
+    "class": "NNNC_FS_MLX_GR_f14",
+    "framework_sha": "f1456aa3ff8f05e3",
+    "model_key": "518083a46e396867",
+    "n_trades": 3,
+    "trades_hash": "db15612012f1eb0a"
+   }
+  },
+  "st_bgo_mx": {
+   "f00": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 466,
+    "trades_hash": "010350f094a0c19e"
+   },
+   "f01": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 236,
+    "trades_hash": "166b3f0ab21d4c70"
+   },
+   "f02": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 222,
+    "trades_hash": "0ef46f15159a3827"
+   },
+   "f03": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 477,
+    "trades_hash": "f4c1fed61d2dac4a"
+   },
+   "f04": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 613,
+    "trades_hash": "87ac89707f99ac67"
+   },
+   "f05": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 369,
+    "trades_hash": "a598024b1e2f51e2"
+   },
+   "f06": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 388,
+    "trades_hash": "995105814fba6b56"
+   },
+   "f07": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 640,
+    "trades_hash": "2d362bc9aad94118"
+   },
+   "f08": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 598,
+    "trades_hash": "690f671a476915e1"
+   },
+   "f09": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 347,
+    "trades_hash": "fe5d363c38d15a99"
+   },
+   "f10": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 349,
+    "trades_hash": "5b476d708128a73c"
+   },
+   "f11": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 526,
+    "trades_hash": "caeccb48b8bd96f6"
+   },
+   "f12": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 342,
+    "trades_hash": "040f3a51b7c426af"
+   },
+   "f13": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 287,
+    "trades_hash": "0923a8f75b883640"
+   },
+   "f14": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "framework_sha": "95dd915b90fc6217",
+    "model_key": null,
+    "n_trades": 296,
+    "trades_hash": "ec67b3f61fc22390"
+   }
+  },
+  "st_prom_c2": {
+   "f00": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 235,
+    "trades_hash": "657bfcf2edb6ef6a"
+   },
+   "f01": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 148,
+    "trades_hash": "173d59c478e9fd7b"
+   },
+   "f02": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 107,
+    "trades_hash": "009f70970e59e871"
+   },
+   "f03": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 295,
+    "trades_hash": "d51d47d2bedea17a"
+   },
+   "f04": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 412,
+    "trades_hash": "bea779ffcf2adac9"
+   },
+   "f05": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 204,
+    "trades_hash": "b9118e4a374916c3"
+   },
+   "f06": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 144,
+    "trades_hash": "694572c018a5c2ff"
+   },
+   "f07": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 512,
+    "trades_hash": "151b507ded27a5a5"
+   },
+   "f08": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 255,
+    "trades_hash": "59af3bcad75ce936"
+   },
+   "f09": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 131,
+    "trades_hash": "ae6666a04bbb96fd"
+   },
+   "f10": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 166,
+    "trades_hash": "95282e4c277af891"
+   },
+   "f11": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 292,
+    "trades_hash": "42cee54507d4054c"
+   },
+   "f12": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 145,
+    "trades_hash": "82d08fa247714982"
+   },
+   "f13": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 140,
+    "trades_hash": "ccd9ef624b742469"
+   },
+   "f14": {
+    "class": "SimpleTrigger_RevOnlyVolreg2_P2",
+    "framework_sha": "2a1bb9f427343c56",
+    "model_key": null,
+    "n_trades": 161,
+    "trades_hash": "a50ca94dbe754a84"
+   }
+  },
+  "wf_aro_b030": {
+   "f00": {
+    "class": "NNNC_ARO_f00",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "58c62d0df75807bd",
+    "n_trades": 52,
+    "trades_hash": "5c53c833e423eae4"
+   },
+   "f01": {
+    "class": "NNNC_ARO_f01",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "6a39b68a75a1244b",
+    "n_trades": 22,
+    "trades_hash": "ba30d7ee37144509"
+   },
+   "f02": {
+    "class": "NNNC_ARO_f02",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "07dfa4e4bd438804",
+    "n_trades": 21,
+    "trades_hash": "d30b4c4d8424b9bb"
+   },
+   "f03": {
+    "class": "NNNC_ARO_f03",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "afb96951699243c9",
+    "n_trades": 104,
+    "trades_hash": "0fd8e37cf8cb2608"
+   },
+   "f04": {
+    "class": "NNNC_ARO_f04",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "f7704cdccfacfe7c",
+    "n_trades": 130,
+    "trades_hash": "589a8a98faef6389"
+   },
+   "f05": {
+    "class": "NNNC_ARO_f05",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "41e97f94d0ffd9e6",
+    "n_trades": 93,
+    "trades_hash": "d35467f2f7f51e94"
+   },
+   "f06": {
+    "class": "NNNC_ARO_f06",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "def3f30e8a0e20c3",
+    "n_trades": 54,
+    "trades_hash": "d41b99b494482847"
+   },
+   "f07": {
+    "class": "NNNC_ARO_f07",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "6141fd7e4c05da74",
+    "n_trades": 249,
+    "trades_hash": "13d84f2c7a3be2b9"
+   },
+   "f08": {
+    "class": "NNNC_ARO_f08",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "026005783ac07fb4",
+    "n_trades": 218,
+    "trades_hash": "aae5a44310f5e173"
+   },
+   "f09": {
+    "class": "NNNC_ARO_f09",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "d983ce48b4078736",
+    "n_trades": 46,
+    "trades_hash": "6e8b99b5da07525d"
+   },
+   "f10": {
+    "class": "NNNC_ARO_f10",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "07f115521c882ea9",
+    "n_trades": 22,
+    "trades_hash": "5d4ac5826f7f800a"
+   },
+   "f11": {
+    "class": "NNNC_ARO_f11",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "09658ee1e4ae3f1a",
+    "n_trades": 226,
+    "trades_hash": "54d3293558d51208"
+   },
+   "f12": {
+    "class": "NNNC_ARO_f12",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "36f3dfa65becd92d",
+    "n_trades": 59,
+    "trades_hash": "6918556795bf97fe"
+   },
+   "f13": {
+    "class": "NNNC_ARO_f13",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "e047bfb926e762ed",
+    "n_trades": 87,
+    "trades_hash": "4ef2a6e041ab2d96"
+   },
+   "f14": {
+    "class": "NNNC_ARO_f14",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "8a08f28dd178c6db",
+    "n_trades": 37,
+    "trades_hash": "c3a819f6b1316ba5"
+   }
+  },
+  "wf_aro_g24": {
+   "f00": {
+    "class": "NNNC_ARO_f00",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "58c62d0df75807bd",
+    "n_trades": 49,
+    "trades_hash": "6e32009f6dd2bc9c"
+   },
+   "f01": {
+    "class": "NNNC_ARO_f01",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "6a39b68a75a1244b",
+    "n_trades": 20,
+    "trades_hash": "7a55696528c4bb59"
+   },
+   "f02": {
+    "class": "NNNC_ARO_f02",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "07dfa4e4bd438804",
+    "n_trades": 20,
+    "trades_hash": "c8bf00a9151e8d82"
+   },
+   "f03": {
+    "class": "NNNC_ARO_f03",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "afb96951699243c9",
+    "n_trades": 88,
+    "trades_hash": "fe60e16f9b6c50b3"
+   },
+   "f04": {
+    "class": "NNNC_ARO_f04",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "f7704cdccfacfe7c",
+    "n_trades": 106,
+    "trades_hash": "56b96235fd347347"
+   },
+   "f05": {
+    "class": "NNNC_ARO_f05",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "41e97f94d0ffd9e6",
+    "n_trades": 80,
+    "trades_hash": "f85370a885976c63"
+   },
+   "f06": {
+    "class": "NNNC_ARO_f06",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "def3f30e8a0e20c3",
+    "n_trades": 47,
+    "trades_hash": "19691d885a07ccde"
+   },
+   "f07": {
+    "class": "NNNC_ARO_f07",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "6141fd7e4c05da74",
+    "n_trades": 197,
+    "trades_hash": "b3fe1bf90ca9841d"
+   },
+   "f08": {
+    "class": "NNNC_ARO_f08",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "026005783ac07fb4",
+    "n_trades": 175,
+    "trades_hash": "4037197b3474ae86"
+   },
+   "f09": {
+    "class": "NNNC_ARO_f09",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "d983ce48b4078736",
+    "n_trades": 45,
+    "trades_hash": "401e171111e42b45"
+   },
+   "f10": {
+    "class": "NNNC_ARO_f10",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "07f115521c882ea9",
+    "n_trades": 22,
+    "trades_hash": "2360e98a4ced2e51"
+   },
+   "f11": {
+    "class": "NNNC_ARO_f11",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "09658ee1e4ae3f1a",
+    "n_trades": 178,
+    "trades_hash": "3e0f458ede3601b1"
+   },
+   "f12": {
+    "class": "NNNC_ARO_f12",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "36f3dfa65becd92d",
+    "n_trades": 49,
+    "trades_hash": "2a02ddf63977e0b5"
+   },
+   "f13": {
+    "class": "NNNC_ARO_f13",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "e047bfb926e762ed",
+    "n_trades": 68,
+    "trades_hash": "f501c9c77bde8c04"
+   },
+   "f14": {
+    "class": "NNNC_ARO_f14",
+    "framework_sha": "7de225f72b71eef4",
+    "model_key": "8a08f28dd178c6db",
+    "n_trades": 32,
+    "trades_hash": "a94a64e6a8e83b15"
+   }
+  }
+ },
+ "bases": {
+  "NNNC_A_Raw_Open": "7de225f72b71eef4",
+  "NNNC_GbbFwdMae_Open": "7de225f72b71eef4",
+  "NNNC_GbbRaw_Open": "7de225f72b71eef4",
+  "NNNC_MLX": "f1456aa3ff8f05e3",
+  "SimpleTrigger_BreakoutGbb_MomExit": "95dd915b90fc6217",
+  "SimpleTrigger_BreakoutGbb_MomExit_G24": "d9e3fe7f6b01468a",
+  "SimpleTrigger_RevOnlyVolreg2_P2": "2a1bb9f427343c56",
+  "SimpleTrigger_RevOnlyVolreg2_P2_G24": "dab0a753ad7304c5"
+ },
+ "commit": "1592764"
+}

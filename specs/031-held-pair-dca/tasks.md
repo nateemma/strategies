@@ -41,7 +41,7 @@ contracts/interfaces.md, quickstart.md)
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `specs/031-held-pair-dca/baseline.md` and `baseline.json`. Record:
+- [X] T001 Create `specs/031-held-pair-dca/baseline.md` and `baseline.json`. Record:
   - the commit sha;
   - the reference set (research R10): `wf_aro_b030` (arm D, 6.5 h pinned), `wf_aro_g24`,
     `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx`, `st_prom_c2`;
@@ -52,21 +52,21 @@ contracts/interfaces.md, quickstart.md)
     `NNNC_MLX`, `SimpleTrigger_BreakoutGbb_MomExit`, `SimpleTrigger_RevOnlyVolreg2_P2` and both
     `_G24` classes;
   - the recorded per-fold `trades_hash` of every reference arm (from `regime/arms/`).
-- [ ] T002 Run the test suites (the command in quickstart.md §1) and record the pass count in
+- [X] T002 Run the test suites (the command in quickstart.md §1) and record the pass count in
   baseline.md.
 
 ---
 
 ## Phase 2: Foundational (blocking: generic helpers, no behaviour change)
 
-- [ ] T003 In `Framework/BaseStrategy.py`, add `trade_clock_start(self, trade) -> datetime`. It
+- [X] T003 In `Framework/BaseStrategy.py`, add `trade_clock_start(self, trade) -> datetime`. It
   returns `trade.date_last_filled_utc` when `getattr(self, "position_adjustment_enable", False)`
   is true, and `trade.open_date_utc` otherwise (UTC-aware). Write the docstring per research R4.
-- [ ] T004 In `Framework/BaseStrategy.py`, add `_fillable_stake(self, pair) -> tuple[float, float]`,
+- [X] T004 In `Framework/BaseStrategy.py`, add `_fillable_stake(self, pair) -> tuple[float, float]`,
   returning `(quote_volume, quote_volume / QUOTE_VOLUME_HEADROOM_MULT)` from the last analysed
   row. Rewrite `custom_stake_amount` to use it with identical arithmetic (keep the plot/other
   early return).
-- [ ] T005 Replace the trade-age computations with `self.trade_clock_start(trade)` in:
+- [X] T005 Replace the trade-age computations with `self.trade_clock_start(trade)` in:
   - `Framework/BaseStrategy.py`: custom_stoploss grace (~line 1250), custom_exit `age_hours`
     (~1386), confirm_trade_exit `t_open` (~1554);
   - `_apply_atr_take_profit` (~1178–1185): signal bar = `clock_start − timeframe`, cache key
@@ -76,7 +76,7 @@ contracts/interfaces.md, quickstart.md)
 
   Leave `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC2.py` unchanged (a 027 exploratory class not
   used by any 031 arm), and note it in research.md R4 as out of scope.
-- [ ] T006 Run the quickstart §1 suites and the exit-parameter guard test, and update the allowlist in
+- [X] T006 Run the quickstart §1 suites and the exit-parameter guard test, and update the allowlist in
   `Framework/tests/test_exit_policy_single_source.py` if any touched file now newly names an exit
   parameter. The pass count must equal the baseline. Commit T003–T006.
 

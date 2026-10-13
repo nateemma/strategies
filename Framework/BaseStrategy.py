@@ -1162,27 +1162,54 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             return params
         return self._apply_atr_take_profit(params, trade)
 
+    def trade_clock_start(self, trade) -> datetime:
+        """When `trade`'s age-based exit and stop rules start counting (feature 031 R4).
+
+        The single source for trade age in the stop grace window, `custom_exit_decision`, the
+        discretionary minimum hold and the ATR take-profit's signal bar. With position adjustment
+        on, an add restarts the clocks: age counts from the last entry fill
+        (`trade.date_last_filled_utc`, which is the open date until an add fills). Off -- every
+        strategy unless it declares an add switch -- it is `trade.open_date_utc`, unchanged.
+        """
+        if getattr(self, "position_adjustment_enable", False):
+            return trade.date_last_filled_utc
+        return trade.open_date_utc
+
+    def _fillable_stake(self, pair: str) -> tuple:
+        """`(quote_volume, fillable_stake)` from the last analysed row (feature 031 R3).
+
+        `fillable_stake = quote_volume / QUOTE_VOLUME_HEADROOM_MULT`: the largest stake that stays
+        within the market-impact headroom `confirm_trade_entry` enforces. Shared by
+        `custom_stake_amount` and a position add, which freqtrade sizes without that hook.
+        """
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+        quote_volume = last_candle["volume"] * last_candle["close"]
+        return quote_volume, quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT
+
     def _apply_atr_take_profit(self, params: "ExitParams", trade: Optional[Trade]) -> "ExitParams":
         """Resolve `params.take_profit_atr_mult` into `take_profit` for `trade` (feature 028 C2).
 
         Idempotent, so `FamilyExitMixin` can re-apply it after a family override sets the field.
         Off, no trade, a class standing in for an instance (fingerprint/tests), or no
         dataprovider: `params` unchanged. The signal bar is the candle before the entry candle
-        (open_date - 1 timeframe) in the analysed dataframe; if it is not visible the preset
-        take-profit stays. The value is cached per trade, so it never drifts as bars arrive.
+        (clock start - 1 timeframe; the open date unless a 031 add restarted the clock) in the
+        analysed dataframe; if it is not visible the preset take-profit stays. The value is cached
+        per trade and clock start, so it never drifts as bars arrive but re-resolves after an add.
         """
         k = params.take_profit_atr_mult
         if k is None or trade is None or getattr(self, "dp", None) is None:
             return params
         cache = self.__dict__.setdefault("_atr_tp_cache", {})
-        key = (getattr(trade, "id", None) or (trade.pair, trade.open_date_utc), k)
+        start = BaseStrategy.trade_clock_start(self, trade)
+        key = (getattr(trade, "id", None) or (trade.pair, trade.open_date_utc), start, k)
         if key not in cache:
             from datetime import timedelta
 
             from freqtrade.exchange import timeframe_to_minutes
 
             df, _ = self.dp.get_analyzed_dataframe(trade.pair, self.timeframe)
-            signal = trade.open_date_utc - timedelta(minutes=timeframe_to_minutes(self.timeframe))
+            signal = start - timedelta(minutes=timeframe_to_minutes(self.timeframe))
             row = df.loc[df["date"] == signal, "atr_pct_roll"]
             if row.empty:
                 return params
@@ -1247,7 +1274,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         if grace_hours > 0.0:
             _gl = getattr(self, "stoploss_grace_level", -0.15)
             grace_level = float(getattr(_gl, "value", _gl))
-            age_h = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+            age_h = (current_time - BaseStrategy.trade_clock_start(self, trade)).total_seconds() / 3600.0
             if age_h < grace_hours:
                 # Wide stop through the window. freqtrade lets the INITIAL stop
                 # (set at after_fill) be arbitrarily wide; leave it unchanged
@@ -1383,7 +1410,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         guard_metric = (
             float(last_candle["guard_metric"]) if "guard_metric" in last_candle else None
         )
-        age_hours = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+        age_hours = (current_time - BaseStrategy.trade_clock_start(self, trade)).total_seconds() / 3600.0
         decision = custom_exit_decision(
             current_profit=current_profit,
             age_hours=age_hours,
@@ -1473,12 +1500,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         if self.dp.runmode.value in ("plot", "other"):
             return proposed_stake
 
-        dataframe, _ = self.dp.get_analyzed_dataframe(
-            pair=pair, timeframe=self.timeframe
-        )
-        last_candle = dataframe.iloc[-1].squeeze()
-        quote_volume = last_candle["volume"] * last_candle["close"]
-        fillable_stake = quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT
+        _, fillable_stake = BaseStrategy._fillable_stake(self, pair)
         return min(proposed_stake, fillable_stake)
 
     def confirm_trade_entry(
@@ -1551,7 +1573,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         if t_current.tzinfo is None:
             t_current = t_current.replace(tzinfo=timezone.utc)
 
-        t_open = trade.open_date_utc
+        t_open = BaseStrategy.trade_clock_start(self, trade)
         if t_open.tzinfo is None:
             t_open = t_open.replace(tzinfo=timezone.utc)
 
