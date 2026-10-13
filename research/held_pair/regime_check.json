@@ -1,0 +1,345 @@
+{
+ "instrument": "volreg (026), off when < 1.366",
+ "grace": 24.0,
+ "rule": "off-state marginal add pp same sign both halves and opposite to on-state, on >= 3/4 models",
+ "models": {
+  "ARO": {
+   "all:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 134,
+       "pp": 21.606,
+       "pp_per_add": 0.1612
+      },
+      "off": {
+       "n": 89,
+       "pp": 2.512,
+       "pp_per_add": 0.0282
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 111,
+       "pp": 0.412,
+       "pp_per_add": 0.0037
+      },
+      "off": {
+       "n": 82,
+       "pp": -1.649,
+       "pp_per_add": -0.0201
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 20,
+    "separates": false
+   },
+   "profit:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 31,
+       "pp": 4.934,
+       "pp_per_add": 0.1592
+      },
+      "off": {
+       "n": 16,
+       "pp": -0.477,
+       "pp_per_add": -0.0298
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 10,
+       "pp": 2.453,
+       "pp_per_add": 0.2453
+      },
+      "off": {
+       "n": 9,
+       "pp": 0.767,
+       "pp_per_add": 0.0852
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 0,
+    "separates": false
+   }
+  },
+  "GBR": {
+   "all:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 182,
+       "pp": 26.094,
+       "pp_per_add": 0.1434
+      },
+      "off": {
+       "n": 132,
+       "pp": 11.24,
+       "pp_per_add": 0.0852
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 139,
+       "pp": 4.384,
+       "pp_per_add": 0.0315
+      },
+      "off": {
+       "n": 125,
+       "pp": -4.602,
+       "pp_per_add": -0.0368
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 45,
+    "separates": false
+   },
+   "profit:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 25,
+       "pp": 1.297,
+       "pp_per_add": 0.0519
+      },
+      "off": {
+       "n": 13,
+       "pp": 2.148,
+       "pp_per_add": 0.1652
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 8,
+       "pp": 2.355,
+       "pp_per_add": 0.2944
+      },
+      "off": {
+       "n": 11,
+       "pp": 1.54,
+       "pp_per_add": 0.14
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 1,
+    "separates": false
+   }
+  },
+  "GFM": {
+   "all:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 166,
+       "pp": 13.529,
+       "pp_per_add": 0.0815
+      },
+      "off": {
+       "n": 109,
+       "pp": -3.448,
+       "pp_per_add": -0.0316
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 96,
+       "pp": 0.649,
+       "pp_per_add": 0.0068
+      },
+      "off": {
+       "n": 70,
+       "pp": 0.461,
+       "pp_per_add": 0.0066
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 17,
+    "separates": false
+   },
+   "profit:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 66,
+       "pp": 5.073,
+       "pp_per_add": 0.0769
+      },
+      "off": {
+       "n": 44,
+       "pp": -2.137,
+       "pp_per_add": -0.0486
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 36,
+       "pp": 3.737,
+       "pp_per_add": 0.1038
+      },
+      "off": {
+       "n": 24,
+       "pp": -0.078,
+       "pp_per_add": -0.0032
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 1,
+    "separates": true
+   }
+  },
+  "MLX": {
+   "all:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 31,
+       "pp": 4.261,
+       "pp_per_add": 0.1375
+      },
+      "off": {
+       "n": 14,
+       "pp": 4.393,
+       "pp_per_add": 0.3138
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 26,
+       "pp": 6.347,
+       "pp_per_add": 0.2441
+      },
+      "off": {
+       "n": 11,
+       "pp": 2.341,
+       "pp_per_add": 0.2128
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 3,
+    "separates": false
+   },
+   "profit:1": {
+    "cells": {
+     "early": {
+      "on": {
+       "n": 6,
+       "pp": 0.625,
+       "pp_per_add": 0.1042
+      },
+      "off": {
+       "n": 1,
+       "pp": 0.099,
+       "pp_per_add": 0.099
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     },
+     "late": {
+      "on": {
+       "n": 2,
+       "pp": 0.388,
+       "pp_per_add": 0.194
+      },
+      "off": {
+       "n": 2,
+       "pp": 0.435,
+       "pp_per_add": 0.2175
+      },
+      "nan": {
+       "n": 0,
+       "pp": 0.0,
+       "pp_per_add": null
+      }
+     }
+    },
+    "unpaired_adds": 0,
+    "separates": false
+   }
+  }
+ },
+ "verdict": {
+  "all:1": {
+   "models_separating": 0,
+   "worth_gating": false
+  },
+  "profit:1": {
+   "models_separating": 1,
+   "worth_gating": false
+  }
+ }
+}
