@@ -1,0 +1,1156 @@
+{
+ "CreateScalersAblate": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "CreateScalersAblateG": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "CreateScalersRaw8": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNAnomalyStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "Anomaly"
+ },
+ "NNAnomaly_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "Anomaly"
+ },
+ "NNGANomalyStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "Anomaly"
+ },
+ "NNGANomaly_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "Anomaly"
+ },
+ "NNMTStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_Band20": {
+  "defined_in": "NNMT_Band20",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band30": {
+  "defined_in": "NNMT_Band30",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band40": {
+  "defined_in": "NNMT_Band40",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band50": {
+  "defined_in": "NNMT_Band50",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_CGP": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_CGP_Attention": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_CGP_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_CGP_MLX_MultiLSTM": {
+  "error": "NameError: name 'ClassifierKeras' is not defined",
+  "family": "NNMT"
+ },
+ "NNMT_Cap20": {
+  "defined_in": "NNMT_Cap20",
+  "family": "NNMT",
+  "target": "NNMT_Ctl_s42"
+ },
+ "NNMT_Cap40": {
+  "defined_in": "NNMT_Cap40",
+  "family": "NNMT",
+  "target": "NNMT_Ctl_s42"
+ },
+ "NNMT_Ctl_s42": {
+  "defined_in": "NNMT_Ctl_s42",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_Ctl_s7": {
+  "defined_in": "NNMT_Ctl_s7",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_DDPM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_DDPM_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_DDPM_MLX_MultiLSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_DDPM_MLX_aeoff": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_Lbl02_s42": {
+  "defined_in": "NNMT_Lbl02_s42",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_Lbl02_s7": {
+  "defined_in": "NNMT_Lbl02_s7",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_Base": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_MLX_MultiAttention": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_MultiLSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_Transformer": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_ctrl": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_noflow": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_nomom": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_norisk": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_profit": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_tronly": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_MLX_trprofit": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_NoModel": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Ora_Cur": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Ora_Patient": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle_Lbl02": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle_Path": {
+  "defined_in": "NNMT_MLX_Base",
+  "family": "NNMT",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Path_s42": {
+  "defined_in": "NNMT_Lbl02_s42",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_Path_s7": {
+  "defined_in": "NNMT_Lbl02_s7",
+  "family": "NNMT",
+  "target": "computed"
+ },
+ "NNMT_RvL02": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_WGAN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_WGAN_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNMT_WGAN_MLX_MultiLSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNMT"
+ },
+ "NNNCStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_D10": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_K5": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_NoConv": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_NoRes": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_NoResize": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_Pool": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_Raw": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_Raw_Open": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_A_W64": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Ablate": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_AblateG": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Aug0_s1": {
+  "defined_in": "NNNC_Aug0_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Aug0_s7": {
+  "defined_in": "NNNC_Aug0_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Aug1_s1": {
+  "defined_in": "NNNC_Aug1_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Aug1_s7": {
+  "defined_in": "NNNC_Aug1_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Aug2_s1": {
+  "defined_in": "NNNC_Aug2_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Aug2_s7": {
+  "defined_in": "NNNC_Aug2_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Band20": {
+  "defined_in": "NNNC_Band20",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band25": {
+  "defined_in": "NNNC_Band25",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band30": {
+  "defined_in": "NNNC_Band30",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band50": {
+  "defined_in": "NNNC_Band50",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Breakout": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_BreakoutOpen": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_BrkOra005": {
+  "defined_in": "NNNC_BrkOra005",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_BrkOra02": {
+  "defined_in": "NNNC_BrkOra02",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_BrkOra03": {
+  "defined_in": "NNNC_BrkOra03",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Brk_H1": {
+  "defined_in": "NNNC_Brk_H1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Brk_L1": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Brk_L2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_Attention": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_CNN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_GRU": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_LSTM2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLP": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Attention": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_CNN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_GRU": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_LSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_LSTM2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_LSTM_KAN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_MLP": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Mamba": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Mamba2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Multihead": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_TSMamba": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Transformer": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_MLX_Wavenet": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_Multihead": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_PCA": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_TCN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_Transformer": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_VAE": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_Wavenet": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_CGP_Wavenet3": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_InJit": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_DDPM_MLX_LSTM_MT": {
+  "error": "ModuleNotFoundError: No module named 'NNNC_DDPM_MLX_LSTM'",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_LSTM_MT_v2": {
+  "error": "ModuleNotFoundError: No module named 'NNNC_DDPM_MLX_LSTM'",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_Noisy": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_DDPM_MLX_P0": {
+  "defined_in": "NNNC_DDPM_MLX_P0",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_DDPM_MLX_P1_clip25": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P1_ctrl": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P1_steps250": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P2_aeoff": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P2_aeoff_disp20": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P2_disp15": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_P2_disp20": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_Ponder": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_Ponder_N0": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_Ponder_N2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_DDPM_MLX_Ponder_N4": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_ForwardMAE_Raw": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_GbbFwdMae_Open": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_GbbRaw_Open": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_LblMatchGB_s1": {
+  "defined_in": "NNNC_LblMatchGB_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_LblMatchGB_s7": {
+  "defined_in": "NNNC_LblMatchGB_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_LblMatchG_s1": {
+  "defined_in": "NNNC_LblMatchG_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_LblMatchG_s7": {
+  "defined_in": "NNNC_LblMatchG_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Live_C2": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_Live_Gate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_Live_GateOff": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_Live_TrigGate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Cap20": {
+  "defined_in": "NNNC_MLX_Cap20",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_MLX_Cap40": {
+  "defined_in": "NNNC_MLX_Cap40",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_MLX_G02p": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_G10": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_HighPrecision": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_InJit": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_InJit_P0": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_L024": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_L024_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_L026": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_L026_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_LINK": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Lbl02": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Mamba2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Noisy": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_Noisy_P0": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_Open": {
+  "defined_in": "NNNC_MLX_Open",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_MLX_Open_s1": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Open_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_P0": {
+  "defined_in": "NNNC_MLX_P0",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_MLX_PnlLoss": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_TSMamba": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_Transformer": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_MLX_thr02": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_NoModel": {
+  "defined_in": "NNNC_NoModel",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Open_Cap20": {
+  "defined_in": "NNNC_Open_Cap20",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap3": {
+  "defined_in": "NNNC_Open_Cap3",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap40": {
+  "defined_in": "NNNC_Open_Cap40",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap5": {
+  "defined_in": "NNNC_Open_Cap5",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_InJit_s01": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Open_Noisy_s01": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Open_Noisy_s02": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "family": "NNNC",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Open_Path_s1": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Open_Path_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Ora_BBW0": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Comb": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G00": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G02p": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G10": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L024": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L026": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L032": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Lbl02": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Lbl03": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_P00": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P00b": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P30": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P50": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P60": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P70": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P80": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_P90": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_Prec": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_StopMid": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_StopTight": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_StopWide": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_V0": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_V0b": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Ora_V1": {
+  "defined_in": "NNNC_Ora_Prec",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Oracle": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureExpectancy": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureSharpe": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureSortino": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FwdMae_H12": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FwdMae_H48": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_GbbFwdMae_H48": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_LocalMinFollowthrough": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_MfeMaeRatio": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_Path": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_RiskAdjFuture": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_TripleBarrier_H12": {
+  "defined_in": "NNNC_Oracle",
+  "family": "NNNC",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_PCA": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N0": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N0_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N2": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N2_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N4": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_Pdr_N4_s7": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_RvL05": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_RvL20": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_SIProbe": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_ARO_C2": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_ARO_Gate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_ARO_GateOff": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GBR_C2": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GBR_Gate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GBR_GateOff": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GFM_C2": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GFM_Gate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_GFM_GateOff": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_MLX_C2": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_MLX_Gate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_SW_MLX_GateOff": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_TrigGate": {
+  "defined_in": "NNNC_TrigGate",
+  "family": "NNNC",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_TrigOnly": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_TriggerGate": {
+  "defined_in": "BorrowedModelMixin",
+  "family": "NNNC",
+  "target": "MODEL_SOURCE"
+ },
+ "NNNC_Unguarded_s1": {
+  "defined_in": "NNNC_Unguarded_s1",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_Unguarded_s7": {
+  "defined_in": "NNNC_Unguarded_s7",
+  "family": "NNNC",
+  "target": "computed"
+ },
+ "NNNC_WGAN": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_WGAN_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNNC_WGAN_MLX_MLP": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNPredictMultiHorizonStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredictStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_Coeff": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_Coeff_Exc": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_Coeff_MLX": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_LSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_MLX_LSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_MLX_MultiHorizon_LSTM": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNPredict_Ridge": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNPredict"
+ },
+ "NNProfitStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNNC"
+ },
+ "NNWavelet": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWaveletStrategy": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWavelet_DWTA": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWavelet_FFT": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWavelet_FFTA": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWavelet_Ridge": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "NNWavelet_SWT": {
+  "defined_in": "BaseNNStrategy",
+  "family": "NNWavelet"
+ },
+ "Skl_RandomForest": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ },
+ "Skl_RandomForest_WGAN": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ },
+ "Skl_XGBoost": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ },
+ "Skl_XGBoost_CGP": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ },
+ "Skl_XGBoost_WGAN": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ },
+ "SklearnStrategy": {
+  "error": "ModuleNotFoundError: No module named 'utils.ClassifierKeras'",
+  "family": "Sklearn"
+ }
+}
