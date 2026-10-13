@@ -149,7 +149,15 @@ def _safe(s: str) -> str:
 def key_prefix(key: dict) -> str:
     a = key["attributes"]
     ct = str(a.get("classifier_type") or "model").split(".")[-1]
-    lbl = str(a.get("TRAINING_TYPE") or "label").split(".")[-1]
+    lbl = a.get("TRAINING_TYPE")
+    if isinstance(lbl, int):  # TRAINING_TYPE is declared as a plain int; name it for reading
+        from Framework.TrainingSignals import LabelMethod
+
+        try:
+            lbl = LabelMethod(lbl).name
+        except ValueError:
+            pass
+    lbl = str(lbl or "label").split(".")[-1]
     return (f"{_safe(ct)}_{_safe(lbl)}_g{_safe(a.get('MIN_BUY_GAIN_THRESHOLD'))}"
             f"_h{_safe(a.get('HORIZON'))}")
 
