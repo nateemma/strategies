@@ -29,7 +29,7 @@ two SimpleTrigger books. It runs in five steps.
    backtested with the switch on. `fidelity.py` matches its adds to the screen's DCA simulation.
    The gate is ≥ 95% of adds matched.
 4. **Pre-register, then judge (US3).**
-   - Commit the pre-registration.
+   - Commit the pre-registration. It names the smoke and fidelity records (ARO f00–f07) as exempt.
    - Run the late half for ARO, and all 15 folds for GBR/GFM/MLX.
    - Run SimpleTrigger `_G24` + DCA on 2022 (confirmatory) and on 2023–26 (exploratory).
    - `judge.py` applies `judge_one` / the 2022 rule, plus exposure, drawdown and the leverage
@@ -127,11 +127,11 @@ Framework/BaseStrategy.py            # + trade_clock_start, _fillable_stake; 4 a
 utils/EntryFramework.py              # + HELD_PAIR_ADD (merged, validated), adjust_trade_position, refusal counters
 utils/StopInvariants.py              # grace test uses trade_clock_start
 NNNC/_hold_window.py                 # hold window uses trade_clock_start
-NNNC/NNNC_HP_{ARO,GBR,GFM,MLX}_DCA.py (+ .json)                         # generated arms
+NNNC/NNNC_HP_{ARO,GBR,GFM,MLX}_DCA_f{00..14}.py (+ .json)              # generated per-fold arms (60), as build_arms does
 SimpleTrigger/SimpleTrigger_{RevOnlyVolreg2_P2,BreakoutGbb_MomExit}_G24_DCA.py
 evaluation/fingerprint.py            # HELD_PAIR_ADD in OPTIONAL_ATTRIBUTE_MEMBERS
 evaluation/pool.py                   # + n_entries (additive)
-regime/run_arm.py                    # summarize: + n_adds, n_trades_with_adds (only when > 0)
+regime/run_arm.py                    # summarize: + n_adds, n_trades_with_adds (only when > 0), hp_counters (sidecar)
 evaluation/folds/plan_hp_*.json, plan_st_e22_hp_*.json, plan_st_hp_*.json
 utils/tests/test_held_pair_add.py    # unit: AddDecision, sizing, clocks, ATR TP, stop anchor, invariants, validation
 evaluation/test_pool_multifill.py    # pool/pair/risk on a two-fill trade

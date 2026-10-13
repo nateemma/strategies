@@ -38,8 +38,18 @@ The rules are checked in order. The first failure returns `None` and increments 
 8. signal-candle quote volume ≥ `MIN_QUOTE_VOLUME` (`thin`);
 9. `stake = min(proposed_stake, fillable_stake, max_stake)` ≥ `min_stake` (`below_min`).
 
-Output: the `stake`, with order tag `"hp_add"`. The counters live in the strategy instance and are
-logged at the end of the backtest. They are the liveness and diagnosis signal for "why no add".
+Output: the `stake`, with order tag `"hp_add"`.
+
+The counters (`adds` plus one per refusal) live in the strategy instance. Freqtrade runs in a
+`run_arm` subprocess, so they leave it through a sidecar file:
+- `hp_counters_<StrategyClass>.json` in the backtest results directory
+  (`self.config["user_data_dir"]/backtest_results`);
+- it is rewritten at process exit (`atexit`, registered on the first `adjust_trade_position` call);
+- it is written only when the switch is on.
+
+`regime/run_arm.summarize` copies it into the arm record as `hp_counters`, and deletes the file so
+the next fold cannot read a stale one. Fidelity and judge read `hp_counters` from the record. They
+are the liveness and diagnosis signal for "why no add".
 
 ## Trade clock
 
@@ -55,6 +65,7 @@ Every age-based exit and stop rule reads it (research R4 table).
 |---|---|---|
 | `n_adds` | > 0 | total filled entry orders beyond the first, over the fold |
 | `n_trades_with_adds` | > 0 | trades with ≥ 2 filled entry orders |
+| `hp_counters` | switch on | the AddDecision counters from the sidecar file (adds and each refusal) |
 
 `trades_hash` is unchanged in definition.
 
@@ -66,6 +77,9 @@ no consumer requires it.
 ## Pre-registration (`research/held_pair/preregistration.json`)
 
 It contains:
+- `exempt_records`: the smoke run (`hp_smoke` f00) and the fidelity run's records (`hp_aro_dca`
+  f00–f07), allowed to predate the commit
+  and labelled EXPLORATORY;
 - `setting`: the declared HELD_PAIR_ADD, with the screen selection it came from;
 - `grace`: 24 h;
 - `books`: per book the arm tag, class, control, folds, and window roles;
@@ -74,8 +88,8 @@ It contains:
 - `reporting`: exposure, drawdown and the leverage control;
 - `screen`: the early-half predictions and the fidelity result.
 
-The judge refuses to run if the file is uncommitted or dirty, or if any late-half or 2022 arm
-record predates its commit.
+The judge refuses to run if the file is uncommitted or dirty, or if any DCA arm record that is not
+listed in `exempt_records` predates its commit.
 
 ## Book verdict (`research/held_pair/verdicts.json`)
 
@@ -86,5 +100,6 @@ Per book:
 - `exposure` {avg_stake, peak_stake} for arm and control;
 - `maxdd` for arm and control;
 - `leverage_control_pp`;
+- `decomposition` {same_entry_pp, forgone_n, forgone_pair_held_n, forgone_pp, new_n, new_pp};
 - `beats_leverage` (bool);
 - `evidence` label.

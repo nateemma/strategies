@@ -11,7 +11,7 @@ All commands are run from `user_data/strategies` unless noted. Before any run:
 ```
 
 Then, from the repo root, re-run the reference arms and compare their per-fold `trades_hash` with
-their records (15/15 each): `wf_aro`, `wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx`
+their records (15/15 each): `wf_aro_b030` (arm D, 6.5 h pinned), `wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx`
 and `st_prom_c2`. Each runs under a `_chk` tag, with model-key and fingerprint checks.
 
 Expected:
@@ -43,7 +43,8 @@ cd user_data/strategies && NNNC_FS_ROUND=2 PYTHONPATH=. ../../.venv/bin/python -
 ```
 
 Expected:
-- at least 95% of backtest adds match screen adds (pair, candle);
+- at least 95% of backtest adds match screen adds (pair, candle), recall reported;
+- `row_misaligned` = 0 in the arm records' `hp_counters`;
 - add-candle exits are counted;
 - the per-fold pp gap is reported.
 
@@ -62,7 +63,8 @@ PYTHONPATH=. ../../.venv/bin/python -m research.held_pair.judge
 Expected:
 - `verdicts.json` has one decision per book;
 - each book's exposure, max drawdown and leverage control are present;
-- every record is newer than the pre-registration commit.
+- every record is newer than the pre-registration commit, except the exempt smoke and fidelity
+  records (`hp_smoke` f00, `hp_aro_dca` f00–f07), which the pre-registration names.
 
 ## 5. Report
 

@@ -43,15 +43,17 @@ contracts/interfaces.md, quickstart.md)
 
 - [ ] T001 Create `specs/031-held-pair-dca/baseline.md` and `baseline.json`. Record:
   - the commit sha;
-  - `framework_sha` (via `evaluation/fingerprint.py resolve_by_name`, `config_wf.json`) for every
-    class used by the reference arms: `NNNC_MLX_Open` (wf_aro), `NNNC_A_Raw_Open`,
-    `NNNC_GbbRaw_Open`, `NNNC_GbbFwdMae_Open`, `NNNC_MLX`, `SimpleTrigger_BreakoutGbb_MomExit`,
-    `SimpleTrigger_RevOnlyVolreg2_P2`, and both `_G24` classes;
-  - the 030 model key for each NNNC class and fold;
-  - the recorded per-fold `trades_hash` of `wf_aro`, `wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`,
-    `fs_mlx_gr`, `st_bgo_mx` and `st_prom_c2` (from `regime/arms/`).
-- [ ] T002 Run the test suites and record the pass count in baseline.md:
-  `../../.venv/bin/python -m pytest Framework/tests utils/tests SimpleTrigger/tests research/exit_coupling/tests evaluation -q`.
+  - the reference set (research R10): `wf_aro_b030` (arm D, 6.5 h pinned), `wf_aro_g24`,
+    `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx`, `st_prom_c2`;
+  - for each reference plan and fold, the `strategy_class` read from the plan (NNNC classes are
+    per fold, e.g. `NNNC_ARO_f00`, `NNNC_FS_GBR_GR_f00`), its `framework_sha` (via
+    `evaluation/fingerprint.py resolve_by_name`, `config_wf.json`) and its 030 model key;
+  - the `framework_sha` of the bases `NNNC_A_Raw_Open`, `NNNC_GbbRaw_Open`, `NNNC_GbbFwdMae_Open`,
+    `NNNC_MLX`, `SimpleTrigger_BreakoutGbb_MomExit`, `SimpleTrigger_RevOnlyVolreg2_P2` and both
+    `_G24` classes;
+  - the recorded per-fold `trades_hash` of every reference arm (from `regime/arms/`).
+- [ ] T002 Run the test suites (the command in quickstart.md §1) and record the pass count in
+  baseline.md.
 
 ---
 
@@ -74,7 +76,7 @@ contracts/interfaces.md, quickstart.md)
 
   Leave `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC2.py` unchanged (a 027 exploratory class not
   used by any 031 arm), and note it in research.md R4 as out of scope.
-- [ ] T006 Run T002's suites and the exit-parameter guard test, and update the allowlist in
+- [ ] T006 Run the quickstart §1 suites and the exit-parameter guard test, and update the allowlist in
   `Framework/tests/test_exit_policy_single_source.py` if any touched file now newly names an exit
   parameter. The pass count must equal the baseline. Commit T003–T006.
 
@@ -141,29 +143,37 @@ right timing, size and average. The off-identity check is 15/15 on all reference
   - `MIN_QUOTE_VOLUME` floor;
   - return `(stake, "hp_add")`.
 
-  Log the counters once at `bot_loop_start`/backtest end if a hook exists; otherwise expose them
-  for T019.
+  Counters (`adds` plus one per refusal) are written to the sidecar file
+  `<user_data_dir>/backtest_results/hp_counters_<StrategyClass>.json`. The file is rewritten at
+  process exit via `atexit` (registered on the first call) and written only when the switch is on
+  (data-model AddDecision). T008 gains a test that the sidecar is written with the counts.
 - [ ] T013 [US1] In `evaluation/fingerprint.py`, add `"HELD_PAIR_ADD"` to
   `OPTIONAL_ATTRIBUTE_MEMBERS`. Add a test (`evaluation/test_fingerprint_held_pair.py`) checking
   that an off class hashes as before and an on class hashes differently.
 - [ ] T014 [US1] Run T007–T010 and T013 until they pass. Then run the full suites from T002 plus
   the model-key audit test. The pass count must be the baseline plus the new tests.
-- [ ] T015 [US1] Smoke backtest. Create `NNNC/NNNC_HP_SMOKE.py` (subclass of `NNNC_A_Raw_Open`
-  with `HELD_PAIR_ADD = {}`), then run one fold of ARO (f00, using the control plan's model
-  key/threshold) through `regime/run_arm.py`. From the archive, assert:
+- [ ] T015 [US1] Smoke backtest. Write `research/held_pair/build_arms.py` (spec in T020) first and run
+  it with `--only ARO --folds f00`. That generates `NNNC/NNNC_HP_ARO_DCA_f00.py/.json` (per-fold
+  class, `model_dir` `saved_data/NNNC_ARO_f00`, `HELD_PAIR_ADD = {}`), `plan_hp_aro_dca.json`
+  and a one-fold copy `plan_hp_smoke.json` (`run_id`/`arm_tag` `hp_smoke`, f00 only). Run
+  `run_folds --plan .../plan_hp_smoke.json`. From the
+  archive and record, assert:
   - at least one trade has two filled entry orders;
   - every add's fill date equals a candle where the signal candle (fill − 15 min) has `enter_long`
     1;
   - `open_rate` equals the amount-weighted average of the fills;
   - the add stake is ≤ 900 and ≤ the liquidity cap;
-  - `row_misaligned` is 0.
+  - the record's `hp_counters.row_misaligned` is 0 (this needs T017's sidecar pickup, so T017 runs
+    before T015).
 
-  Record the result in `specs/031-held-pair-dca/smoke.md`. Delete the smoke class after the check
-  and do not commit it (f00 is early half; this run is allowed before T024).
-- [ ] T016 [US1] Off-identity check (FR-007, SC-001). Re-run the 7 reference arms under `_c031`
-  tags as one chain: `wf_aro`, `wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx`,
-  `st_prom_c2`, all 15 folds. Compare each per-fold `trades_hash`, `framework_sha` and model key
-  with baseline.json. Write `specs/031-held-pair-dca/verification.md`. All must be 15/15 equal
+  Record the result in `specs/031-held-pair-dca/smoke.md`. The `hp_smoke` record is f00, early
+  half, and is allowed before T024. The pre-registration lists it as exempt along with the
+  fidelity records.
+- [ ] T016 [US1] Off-identity check (FR-007, SC-001). Re-run the 7 reference arms of T001 under
+  `_c031` tags as one chain, all 15 folds. Copy each plan with only `run_id`/`arm_tag` renamed, so
+  classes, snapshots and model dirs are unchanged. Compare each per-fold `trades_hash`,
+  `framework_sha` and model key with baseline.json. Every off record must carry no `hp_counters`
+  and no `n_adds`. Write `specs/031-held-pair-dca/verification.md`. All must be 15/15 equal
   with zero training (no `ModelMissing`, no new weights under `saved_data`). Commit T007–T016.
 
 **Checkpoint**: the switch works on a real backtest, and off it is byte-identical.
@@ -172,16 +182,24 @@ right timing, size and average. The off-identity check is 15/15 on all reference
 
 ## Phase 4: User Story 2 — fidelity and harness accounting (Priority: P2)
 
+Execution note: T017 and the builder part of T020 run BEFORE T015 (Phase 3). They are listed here
+because their deliverables belong to US2. See Dependencies.
+
 **Goal**: Prove the backtest adds are the screen's adds, and that multi-fill trades are accounted
 for correctly.
 
 **Independent Test**: `fidelity.json` shows ≥ 95% of adds matched, and the accounting tests pass.
 
-- [ ] T017 [P] [US2] `regime/run_arm.py summarize`: add `n_adds` and `n_trades_with_adds` (from the
-  exported trades' `orders` with `ft_order_side == "buy"`/entry side and filled status, or
-  `nr_of_entries` if present), emitted only when > 0. Add a test in `regime/tests/` (or
-  `evaluation/`) on a synthetic export with and without adds: no new keys without adds,
-  `trades_hash` definition unchanged.
+- [ ] T017 [US2] `regime/run_arm.py summarize`:
+  - add `n_adds` and `n_trades_with_adds` from the exported trades' `orders` (entry-side, filled),
+    or `nr_of_entries` if present, emitted only when > 0;
+  - pick up the sidecar `hp_counters_<StrategyClass>.json` (T012) into the record as
+    `hp_counters`, then delete the file;
+  - delete any stale sidecar for the class before the backtest starts.
+
+  Add a test (in `regime/tests/` if it exists, else `evaluation/test_run_arm_adds.py`) on a
+  synthetic export with and without adds, and with and without a sidecar: no new keys when off,
+  `trades_hash` definition unchanged. **Run this before T015**, which needs it.
 - [ ] T018 [P] [US2] `evaluation/pool.py`: add a per-trade `n_entries` (additive, `None` when
   absent). Add `evaluation/test_pool_multifill.py`: a synthetic record with one two-fill trade
   checks that `stake_amount` is the total, `profit_abs` passes through, the trade pairs with a
@@ -194,10 +212,12 @@ for correctly.
   ARO numbers are unchanged.
 - [ ] T020 [US2] Build the fidelity arm. Create `research/held_pair/build_arms.py`, modelled on
   `research/nnnc_framework/build_arms.py`:
-  - for each model, write `NNNC/NNNC_HP_<M>_DCA.py` (subclass of the base, `HELD_PAIR_ADD = {}`),
-    a copy of the base `.json`, and `evaluation/folds/plan_hp_<m>_dca.json` derived from the
-    control plan (`wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`): same folds, thresholds,
+  - for each model and fold, write `NNNC/NNNC_HP_<M>_DCA_fNN.py` (per-fold class as
+    `research/nnnc_framework/build_arms.py` line ~123 does, subclass of the base,
+    `HELD_PAIR_ADD = {}`) and a copy of the fold's `.json`; then write
+    `evaluation/folds/plan_hp_<m>_dca.json` derived from the control plan (`wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`): same folds, thresholds,
     model_dir and 24 h snapshot pin; new class and arm tag;
+  - options `--only M` and `--folds`, and `--smoke` writing `plan_hp_smoke.json` (used by T015);
   - for SimpleTrigger, write `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA.py` and
     `SimpleTrigger_BreakoutGbb_MomExit_G24_DCA.py`, plus plans `st_hp_rev`, `st_hp_mom` (f00–f14)
     and `st_e22_hp_rev`, `st_e22_hp_mom` (e00–e02), derived from `st_g24_*` / `st_e22_g24_*`.
@@ -207,10 +227,10 @@ for correctly.
 - [ ] T021 [US2] Create `research/held_pair/fidelity.py`. It loads `hp_aro_dca`'s f00–f07 archives,
   extracts adds (pair, fill date) and add-candle exits, and matches them to `adds_ARO.json`. It
   writes `research/held_pair/fidelity.json`, containing per fold:
-  - matched / backtest adds / screen adds;
-  - add-candle exits;
-  - screen pp vs arm pp (vs the `wf_aro_g24` control);
-  - `row_misaligned` and the refusal counters if exported.
+  - matched / backtest adds / screen adds, i.e. precision (the gate) and recall (reported);
+  - add-candle exits and their pp;
+  - screen pp vs arm pp (vs the `wf_aro_g24` control), with the gap and the add-candle-exit part;
+  - `hp_counters` from the arm records (T017), including `row_misaligned`.
 
   Exit 2 if matched < 95% of backtest adds or `row_misaligned` > 0.
 - [ ] T022 [US2] Run fidelity. **STOP gate**: on exit 2, diagnose the mismatches (list the first 20
@@ -230,6 +250,7 @@ for correctly.
 `verdicts.json` holds 6 decisions.
 
 - [ ] T023 [US3] Write `research/held_pair/preregistration.json` and `.md`:
+  - `exempt_records`: `hp_smoke` f00 and `hp_aro_dca` f00–f07, each labelled EXPLORATORY;
   - setting `HELD_PAIR_ADD = {}` (DCA:all:1h, one add) and grace 24 h;
   - the books table from research R10;
   - folds;
@@ -237,8 +258,10 @@ for correctly.
   - the rule: NNNC `judge_one` with `paired_map`/`risk_map` copied from
     `research/nnnc_framework/preregistration_r2.json`; SimpleTrigger the 2022 rule from
     `research/st_grace/preregistration.json`;
-  - `min_control_trades` 200 for 2023–26 (the 2022 controls use the st_grace convention);
-  - INCONCLUSIVE conditions (zero adds, thin control, inconclusive map);
+  - `min_control_trades` 200 for 2023–26, and none for 2022 (st_grace convention), stated
+    explicitly;
+  - INCONCLUSIVE conditions: zero adds (an override on both rules), thin control (2023–26), and an
+    inconclusive map;
   - quality gate 5 for adopted gains under 1 pp;
   - reporting: exposure, max drawdown, leverage control;
   - the screen's early-half predictions and T022's fidelity result;
@@ -253,17 +276,23 @@ for correctly.
   control trades (with add fill times from the archives), compute:
   - average and peak committed stake;
   - adds per fold;
-  - fresh entries refused for the wallet (if exported);
+  - crowd-out: the 24 h grace study's split into same-entry Δpp / control entries forgone (n,
+    pair-held n, pp) / new entries (n, pp), keyed on (fold, pair, open_date);
   - the leverage control pp.
 
   Add a unit test on a synthetic two-trade book with a known answer, in
   `research/held_pair/tests/test_exposure.py`.
-- [ ] T027 [US3] Create `research/held_pair/judge.py`. It refuses (exit 2) if the pre-registration
-  is dirty, uncommitted, or newer than any judged record (pattern: `research/st_grace/judge.py
-  refusals`). It applies `judge_one` per NNNC model and `judge_2022` per SimpleTrigger book, adds
-  the exposure, max drawdown and leverage control per book, sets `beats_leverage`, and writes
-  `research/held_pair/verdicts.json`. Add a test that a record older than the pre-registration
-  is refused, in `research/held_pair/tests/test_judge.py`.
+- [ ] T027 [US3] Create `research/held_pair/judge.py`. It refuses (exit 2) if the pre-registration is
+  dirty or uncommitted, or if any DCA record not in `exempt_records` predates its commit (pattern:
+  `research/st_grace/judge.py refusals`). It then:
+  - applies `judge_one` per NNNC model and `judge_2022` per SimpleTrigger book;
+  - applies the `n_adds == 0` → INCONCLUSIVE override to both;
+  - adds exposure, max drawdown, the leverage control and the decomposition per book;
+  - sets `beats_leverage`;
+  - writes `research/held_pair/verdicts.json`.
+
+  Tests in `research/held_pair/tests/test_judge.py`: an older non-exempt record is refused; an
+  older exempt record is accepted; zero adds gives INCONCLUSIVE.
 - [ ] T028 [US3] Run the judge. For any ADOPTED book whose gain is under 1 pp, re-run one fold under
   a fresh tag and confirm an identical trade set (gate 5). Commit `verdicts.json`, the judge,
   exposure and tests.
@@ -305,15 +334,16 @@ for correctly.
 
 - Phase 1 → Phase 2 → US1 (T007–T016) → US2 (T017–T022, STOP gate) → US3 (T023–T028) → US4 →
   Polish.
-- T016 (off-identity) and T015 (smoke) both need T011–T014. Run T015 before T016 so a defect shows
-  on one fold.
+- T016 (off-identity) and T015 (smoke) both need T011–T014. T015 also needs T017 (sidecar pickup)
+  and the builder part of T020, so run in the order T017 → builder → T015 → T016. A defect then
+  shows on one fold first.
 - T019 and T020 are independent. T021 needs both. T026 can be written while T025 runs.
 - No judged backtest may start before T024.
 
 ## Parallel opportunities
 
 - T007–T010 (one test file, separate test functions; can be drafted together).
-- T017 / T018 / T019 (different files).
+- T018 / T019 (different files). T017 runs early, before T015.
 - T026 while the T025 chain runs.
 
 ## Implementation strategy

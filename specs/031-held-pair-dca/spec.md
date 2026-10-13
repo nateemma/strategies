@@ -75,8 +75,7 @@ at the expected candle, price and size, and the clocks restarting from the add.
 
 **Acceptance Scenarios**:
 
-1. **Given** the switch off, **When** arm D (`wf_aro`), the reference NNNC arms and the SimpleTrigger
-   reference arms run, **Then** every per-fold trade set is byte-identical to its record (15/15) and
+1. **Given** the switch off, **When** the reference arms listed in FR-007 run, **Then** every per-fold trade set is byte-identical to its record (15/15) and
    every strategy fingerprint and model key is unchanged.
 2. **Given** the switch on and a held trade on pair X, **When** the strategy's entry signal is set
    for X on candle k, **Then** one add fills at candle k+1's open, sized by the fresh-entry sizing
@@ -116,9 +115,10 @@ DCA simulation, fold by fold, on the early half. A harness check on a trade with
 **Acceptance Scenarios**:
 
 1. **Given** the switch on with the screen's selected setting, **When** one NNNC model's early-half
-   folds are backtested, **Then** at least 95% of adds match the screen's adds (pair and candle).
-   The per-fold profit difference is reported. A larger gap is investigated and explained before
-   any judging run.
+   folds are backtested, **Then** at least 95% of the backtest's adds match a screen add (pair and
+   candle), and no signal row is misaligned. The share of screen adds matched is also reported.
+   The per-fold profit difference between the screen and the arm is reported, with the part due to
+   exits on the add candle shown separately.
 2. **Given** a trade with an add, **When** the harness records and pools it, **Then** the stake, the
    absolute profit, the per-fold return and the trade identity used for pairing are correct. The
    identity is the original open date, so a DCA trade pairs with its control trade.
@@ -191,7 +191,8 @@ NNNC. Promotion stays the user's decision.
   An add whose candle also triggers the trade's exit is reported in the fidelity check. The screen
   assumes the exit wins.
 - **Wallet nearly full.** When open stake approaches the wallet, an add competes with fresh entries
-  for the remaining balance. Adds and fresh entries are counted separately in liveness.
+  for the remaining balance. The crowd-out is measured by the split of the gain against the control
+  (same entries / control entries forgone / new entries), as in the 24 h grace study.
 - **Fold end.** A trade with an add that is open at the fold's end is force-closed, as every trade
   is. Its full stake counts.
 - **Stop already tightened.** If the stop has tightened past the grace window before the add, the
@@ -225,16 +226,21 @@ NNNC. Promotion stays the user's decision.
   Signal-bar quantities (the 028 ATR take-profit) MUST be taken from the signal bar of the last fill.
 - **FR-006**: The switch MUST be strategy-agnostic. No strategy- or pair-specific code may be added
   under Framework/. The exit-parameter guard test MUST keep passing.
-- **FR-007**: With the switch off, the reference arms (arm D `wf_aro`, the four NNNC 24 h controls,
-  `st_bgo_mx`, `st_prom_c2`) MUST reproduce their recorded per-fold trades 15/15. Every strategy
+- **FR-007**: With the switch off, the reference arms MUST reproduce their recorded per-fold trades
+  15/15. They are arm D pinned at 6.5 h (`wf_aro_b030`), the four NNNC 24 h controls
+  (`wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`), `st_bgo_mx` and `st_prom_c2`. Every strategy
   fingerprint and every model key MUST be unchanged, and no model MUST be trained.
 - **FR-008**: The evaluation harness MUST record, pool, pair and risk-score trades with more than
   one entry fill correctly. It MUST record per trade the number of adds and the total stake. A
   trade is identified by its original open date.
 - **FR-009**: A fidelity check MUST compare the backtested DCA arm with the screen's DCA simulation
   on the same signals (one NNNC model, early half) before any judging run. At least 95% of adds
-  MUST match on pair and candle. Any profit gap MUST be explained in the report.
+  MUST match on pair and candle (precision; recall is reported too), with zero misaligned signal
+  rows. The per-fold profit gap between screen and arm MUST be reported, with the contribution of
+  exits on the add candle shown separately. This is a reporting requirement, not a gate.
 - **FR-010**: A pre-registration MUST be committed before any DCA arm record of a judging window.
+  The only DCA records allowed before it are the one-fold smoke run and the fidelity run (ARO,
+  f00–f07, already seen by the screen). The pre-registration MUST name them as exempt and EXPLORATORY.
   It MUST fix the setting, arms, controls, folds, decision rule and verdict mappings, and the
   reporting. The setting is the early-half screen selection: add on any fresh signal, minimum age
   1 h, one add. NNNC arms MUST run at its 24 h default. Any later change MUST be recorded as a
@@ -246,7 +252,9 @@ NNNC. Promotion stays the user's decision.
   classes and judged against `st_e22_g24_rev` / `st_e22_g24_mom` (clarified 2026-10-13, Q1: A).
   The 2023–26 result, against `st_g24_rev` / `st_g24_mom`, MUST be reported as exploratory.
 - **FR-013**: Every arm MUST report liveness (adds per fold, trades changed vs control), maximum
-  drawdown, exposure (average and peak committed stake), and a leverage control. A zero-add arm is
+  drawdown, exposure (average and peak committed stake), a leverage control, and the split of its
+  gain into same entries / control entries forgone (pair-held or other) / new entries (how much the
+  adds crowd out fresh entries). A zero-add arm is
   inert and inconclusive.
 - **FR-014**: The report MUST label every figure with its evidence level. The switch MUST stay off
   by default whatever the verdicts. Turning it on is the user's decision.
@@ -270,8 +278,8 @@ NNNC. Promotion stays the user's decision.
 
 - **SC-001**: Switched off, 100% of reference folds (15/15 per reference arm) reproduce their
   recorded trades. All fingerprints and model keys are unchanged, and nothing is retrained.
-- **SC-002**: Switched on, at least 95% of the backtest's adds match the screen's adds on the
-  fidelity model's early half.
+- **SC-002**: Switched on, at least 95% of the backtest's adds match a screen add on the fidelity
+  model's early half, with zero misaligned signal rows.
 - **SC-003**: The pre-registration's commit is older than 100% of the judging-window arm records.
 - **SC-004**: Each of the four NNNC models and each SimpleTrigger family in scope gets exactly one
   recorded verdict that cites the pre-declared rule.

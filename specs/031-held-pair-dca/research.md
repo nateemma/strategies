@@ -183,7 +183,9 @@ utils/, as `FAMILY_EXIT_OVERRIDES` and the regime gate do.
   with more than one filled entry order and each add's fill date. It matches them to the screen's
   DCA:all:1h simulation on the same fold's signal table (24 h grace).
 - It reports, per fold:
-  - adds matched on (pair, candle) / screen adds / backtest adds;
+  - adds matched on (pair, candle) / screen adds / backtest adds (precision is the gate, recall is
+    reported);
+  - `row_misaligned` and the other refusal counters, from the arm record's `hp_counters`;
   - trades exiting on the add candle (the R1 timing difference);
   - per-fold pp difference between screen and arm.
 - The gate is ≥ 95% of backtest adds matched (SC-002). It is run on ARO's early half (f00–f07).
@@ -218,6 +220,8 @@ add's, not the book rebuild's.
 control:
 - average and peak committed stake: an event sweep over open/close and add-fill times, with stake
   per segment;
+- crowd-out: the 24 h grace study's split of the gain into same entries / control entries forgone
+  (pair-held or other) / new entries;
 - maximum drawdown: the existing `evaluation.risk` verdicts;
 - **the leverage control**: `extra_stake_capital × base return per unit stake`. Here
   `extra_stake_capital` is the sum over adds of add stake × the trade's remaining holding time,
@@ -235,15 +239,16 @@ trade, not only held ones, so it is not the same capital. It also costs another 
 
 | book | arm tag (15 folds or 3) | class | control | window role |
 |---|---|---|---|---|
-| ARO | `hp_aro_dca` | `NNNC_HP_ARO_DCA` | `wf_aro_g24` | f08–f14 confirmatory, f00–f07 exploratory |
-| GBR | `hp_gbr_dca` | `NNNC_HP_GBR_DCA` | `fs_gbr_gr` | same |
-| GFM | `hp_gfm_dca` | `NNNC_HP_GFM_DCA` | `fs_gfm_gr` | same |
-| MLX | `hp_mlx_dca` | `NNNC_HP_MLX_DCA` | `fs_mlx_gr` | same |
+| ARO | `hp_aro_dca` | `NNNC_HP_ARO_DCA_fNN` | `wf_aro_g24` | f08–f14 confirmatory, f00–f07 exploratory |
+| GBR | `hp_gbr_dca` | `NNNC_HP_GBR_DCA_fNN` | `fs_gbr_gr` | same |
+| GFM | `hp_gfm_dca` | `NNNC_HP_GFM_DCA_fNN` | `fs_gfm_gr` | same |
+| MLX | `hp_mlx_dca` | `NNNC_HP_MLX_DCA_fNN` | `fs_mlx_gr` | same |
 | ST REV | `st_e22_hp_rev` (e00–e02) + `st_hp_rev` (f00–f14) | `SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA` | `st_e22_g24_rev` / `st_g24_rev` | 2022 confirmatory; 2023–26 exploratory |
 | ST MOM | `st_e22_hp_mom` + `st_hp_mom` | `SimpleTrigger_BreakoutGbb_MomExit_G24_DCA` | `st_e22_g24_mom` / `st_g24_mom` | same |
 
-- NNNC arm classes are generated like `research/nnnc_framework/build_arms.py`. Each subclasses the
-  model's base class (weights resolve to the same 030 model key, so nothing trains), copies the
+- NNNC arm classes are generated like `research/nnnc_framework/build_arms.py`: one class per fold,
+  `NNNC_HP_<M>_DCA_fNN`, with `model_dir` `saved_data/NNNC_<M>_fNN` taken from the control plan.
+  Each subclasses the model's base class (weights resolve to the same 030 model key, so nothing trains), copies the
   base `.json`, and derives its plan from the control's plan (same folds, thresholds, snapshot pin
   with 24 h grace). The only difference is `HELD_PAIR_ADD = {}` (enabled, defaults).
 - Run cost:
@@ -252,8 +257,12 @@ trade, not only held ones, so it is not the same capital. It also costs another 
   - fidelity uses ARO's early folds of `hp_aro_dca`, which run as part of the ARO arm.
 - **Order**: the fidelity arm (`hp_aro_dca` restricted to f00–f07) runs BEFORE the
   pre-registration commit, since it touches only the early half the screen already saw. All
-  late-half and 2022 runs come after the commit. The judge refuses any late-half or 2022 record
-  older than the commit (as `research/st_grace/judge.py` does).
+  late-half and 2022 runs come after the commit. The pre-registration lists the fidelity records as
+  `exempt_records` (EXPLORATORY), together with the one-fold smoke run (`hp_smoke` f00). The judge refuses any other DCA record older than the commit (as
+  `research/st_grace/judge.py` does).
+- The reference set for the switch-off check: `wf_aro_b030` (arm D pinned at 6.5 h by its params
+  snapshot), `wf_aro_g24`, `fs_gbr_gr`, `fs_gfm_gr`, `fs_mlx_gr`, `st_bgo_mx` and `st_prom_c2`. Their
+  NNNC classes are per fold (`NNNC_ARO_fNN` etc.), read from each plan's `strategy_class`.
 
 ## R11. Decision rule
 
@@ -264,6 +273,10 @@ As the spec states:
 
 A per-book verdict is ADOPT / NOT ADOPTED / INCONCLUSIVE:
 - INCONCLUSIVE if zero adds, control below minimum trades, or a mapped verdict is inconclusive.
+  Neither existing rule checks adds: `judge_one` checks only unchanged `trades_hash`, and
+  `judge_2022` checks neither. `judge.py` therefore applies an `n_adds == 0` → INCONCLUSIVE override
+  to both. For 2022 there is no minimum control trade count (st_grace convention), and the
+  pre-registration states this explicitly.
 - An adopted gain under 1 pp needs a repeat run of one fold under a fresh tag that reproduces the
   same trade set (quality gate 5). The arms are deterministic: fixed weights, no seed at inference.
 
