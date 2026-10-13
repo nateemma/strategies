@@ -98,6 +98,39 @@ PROVISIONAL rest on halves of 2023–2026 only (quality gate 2, no distant era).
   ROI is not (`ExitPolicy.discretionary_exit_allowed`). A vetoed exit is skipped, and freqtrade
   falls through to the next exit on the same candle (often the stop).
 
+### 1.6 Position adjustment (adding to a held trade; feature 031)
+
+Read from `backtesting.py` `backtest_loop` / `_check_adjust_trade_for_candle` and
+`Order.close_bt_order`.
+
+- **Only one trade per pair.** A fresh entry signal on a held pair is ignored, unless
+  `position_adjustment_enable` is on.
+- **When the add is checked.** On each candle, inside `_check_trade_exit` and BEFORE that candle's
+  exit checks, freqtrade calls `adjust_trade_position(current_time = candle date,
+  current_rate = open, max_stake = min(exchange max, available wallet))`. It is called on the entry
+  candle too (age 0), so require a minimum age.
+- **How it fills.** A positive return fills at once at the candle's open, the same timing as a
+  fresh entry. It needs no slot. `max_entry_position_adjustment` caps how many adds a trade can
+  take.
+- **What happens after the fill.**
+  - `open_rate` becomes the amount-weighted average (exported rounded to price precision);
+  - `stake_amount` becomes the total;
+  - the stop is re-anchored to the new `open_rate` with the existing stop percentage;
+  - `custom_stoploss(after_fill=True)` is called, so the stop may move either way.
+- **freqtrade skips `custom_stake_amount` and `confirm_trade_entry` for an add.** Any liquidity cap
+  or volume floor must be applied inside `adjust_trade_position` (031 does this via
+  `BaseStrategy._fillable_stake`).
+- **Reading the signal.** Inside the callback, `dp.get_analyzed_dataframe` ends at the SIGNAL candle
+  (`current_time − timeframe`), with signals unshifted. 031 asserts this on every call
+  (`row_misaligned` counter: 0 in every run).
+- **Age-based rules.** `trade.open_date_utc` never moves. Code that should restart at an add must
+  read `trade.date_last_filled_utc`. In this repo it goes through `trade_clock_start(trade)`,
+  which does so only when position adjustment is on.
+- **Harness accounting.**
+  - `trades_hash` is unaffected: the trade keeps its open date, and its profit changes.
+  - Pairing keys on the original `open_date`.
+  - Records gain `n_adds` / `hp_counters` only when adds happen.
+
 ---
 
 ## 2. This repo's exit stack (BaseStrategy / ExitPolicy)

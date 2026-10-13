@@ -300,7 +300,7 @@ for correctly.
 
 ## Phase 6: User Story 4 — report and hand-over (Priority: P4)
 
-- [ ] T029 [US4] Write `research/held_pair/report.md`. Per book, include:
+- [X] T029 [US4] Write `research/held_pair/report.md`. Per book, include:
   - the screen prediction, arm result and leverage control side by side;
   - early/late (or 2022 and 2023–26) gains;
   - paired and risk verdicts;
@@ -313,7 +313,7 @@ for correctly.
   - a book whose gain ≤ its leverage control, stated as "explained by extra capital";
   - a recommendation on enabling the switch for NNNC, stated as the user's decision. The switch
     stays default-off.
-- [ ] T030 [US4] Update memory: create `project_031_held_pair_dca.md` and add its line to MEMORY.md
+- [X] T030 [US4] Update memory: create `project_031_held_pair_dca.md` and add its line to MEMORY.md
   "Current state". Update the st_grace memory pointer. Add a short section on position
   adjustment mechanics (R1/R2) to `docs/EXIT_AND_BACKTEST_MECHANICS.md`.
 
@@ -321,10 +321,10 @@ for correctly.
 
 ## Phase 7: Polish
 
-- [ ] T031 Mark the tasks `[X]` and fill the checklist status in `specs/031-held-pair-dca/report.md`
+- [X] T031 Mark the tasks `[X]` and fill the checklist status in `specs/031-held-pair-dca/report.md`
   (a pointer to the research report plus a requirement → evidence table for FR-001..014 and
   SC-001..006).
-- [ ] T032 Run the full suites and the exit-parameter guard test one last time, then commit the
+- [X] T032 Run the full suites and the exit-parameter guard test one last time, then commit the
   report, docs and spec updates.
 
 ---
