@@ -1,0 +1,206 @@
+{
+ "arm": "hp_aro_dca",
+ "model": "ARO",
+ "control": "wf_aro_g24",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "gate": {
+  "precision_min": 0.95,
+  "row_misaligned_max": 0
+ },
+ "precision": 0.9749,
+ "recall": 0.9957,
+ "totals": {
+  "matched": 233,
+  "backtest": 239,
+  "screen": 234,
+  "misaligned": 0,
+  "exit_on_add": 0,
+  "exit_on_add_pp": 0.0
+ },
+ "arm_delta_pp": 26.462,
+ "screen_delta_pp": 26.1654,
+ "verdict": "PASS",
+ "per_fold": {
+  "f00": {
+   "backtest_adds": 10,
+   "screen_adds": 10,
+   "matched": 10,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 0.658,
+   "screen_delta_pp": 0.6568,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 10,
+    "refused_max_adds": 499,
+    "refused_no_signal": 1966,
+    "refused_thin": 10,
+    "refused_too_young": 102
+   },
+   "unmatched_backtest": [],
+   "unmatched_screen": [],
+   "gap_pp": 0.0012
+  },
+  "f01": {
+   "backtest_adds": 4,
+   "screen_adds": 3,
+   "matched": 3,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 0.314,
+   "screen_delta_pp": 0.3092,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 4,
+    "refused_max_adds": 205,
+    "refused_no_signal": 639,
+    "refused_thin": 17,
+    "refused_too_young": 47
+   },
+   "unmatched_backtest": [
+    "LINK/USDT 2023-06-10 05:30:00+00:00"
+   ],
+   "unmatched_screen": [],
+   "gap_pp": 0.0048
+  },
+  "f02": {
+   "backtest_adds": 7,
+   "screen_adds": 6,
+   "matched": 6,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 0.272,
+   "screen_delta_pp": -0.1662,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 7,
+    "refused_max_adds": 329,
+    "refused_no_signal": 351,
+    "refused_thin": 6,
+    "refused_too_young": 46
+   },
+   "unmatched_backtest": [
+    "BCH/USDT 2023-08-17 22:45:00+00:00"
+   ],
+   "unmatched_screen": [],
+   "gap_pp": 0.4382
+  },
+  "f03": {
+   "backtest_adds": 41,
+   "screen_adds": 41,
+   "matched": 41,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 1.48,
+   "screen_delta_pp": 1.4854,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 41,
+    "refused_max_adds": 2251,
+    "refused_no_signal": 1959,
+    "refused_thin": 39,
+    "refused_too_young": 199
+   },
+   "unmatched_backtest": [],
+   "unmatched_screen": [],
+   "gap_pp": -0.0054
+  },
+  "f04": {
+   "backtest_adds": 32,
+   "screen_adds": 32,
+   "matched": 32,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 1.105,
+   "screen_delta_pp": 1.1595,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 32,
+    "refused_max_adds": 2004,
+    "refused_no_signal": 2368,
+    "refused_thin": 19,
+    "refused_too_young": 200
+   },
+   "unmatched_backtest": [],
+   "unmatched_screen": [],
+   "gap_pp": -0.0545
+  },
+  "f05": {
+   "backtest_adds": 36,
+   "screen_adds": 33,
+   "matched": 33,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 6.777,
+   "screen_delta_pp": 6.8768,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 36,
+    "refused_max_adds": 1342,
+    "refused_no_signal": 1338,
+    "refused_thin": 64,
+    "refused_too_young": 199
+   },
+   "unmatched_backtest": [
+    "AAVE/USDT 2024-04-13 23:45:00+00:00",
+    "DOT/USDT 2024-04-13 22:30:00+00:00",
+    "LINK/USDT 2024-04-13 23:15:00+00:00"
+   ],
+   "unmatched_screen": [],
+   "gap_pp": -0.0998
+  },
+  "f06": {
+   "backtest_adds": 14,
+   "screen_adds": 14,
+   "matched": 14,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 2.584,
+   "screen_delta_pp": 2.598,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 14,
+    "refused_max_adds": 501,
+    "refused_no_signal": 1092,
+    "refused_thin": 19,
+    "refused_too_young": 100
+   },
+   "unmatched_backtest": [],
+   "unmatched_screen": [],
+   "gap_pp": -0.014
+  },
+  "f07": {
+   "backtest_adds": 95,
+   "screen_adds": 95,
+   "matched": 94,
+   "exit_on_add_candle": 0,
+   "exit_on_add_candle_pp": 0,
+   "arm_delta_pp": 13.272,
+   "screen_delta_pp": 13.2459,
+   "row_misaligned": 0,
+   "hp_counters": {
+    "adds": 95,
+    "refused_max_adds": 4433,
+    "refused_no_signal": 2651,
+    "refused_thin": 88,
+    "refused_too_young": 449
+   },
+   "unmatched_backtest": [
+    "LTC/USDT 2024-12-09 23:15:00+00:00"
+   ],
+   "unmatched_screen": [
+    "LTC/USDT 2024-12-10 00:30:00+00:00"
+   ],
+   "gap_pp": 0.0261
+  }
+ }
+}

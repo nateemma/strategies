@@ -209,7 +209,7 @@ for correctly.
   option that writes `adds_<model>.json` (fold, pair, add date, trade open date, add stake)
   for DCA:all:1h. Re-run the early-half screen for ARO and confirm that `screen_nnnc_r2.json`'s
   ARO numbers are unchanged.
-- [ ] T020 [US2] Build the fidelity arm. Create `research/held_pair/build_arms.py`, modelled on
+- [X] T020 [US2] Build the fidelity arm. Create `research/held_pair/build_arms.py`, modelled on
   `research/nnnc_framework/build_arms.py`:
   - for each model and fold, write `NNNC/NNNC_HP_<M>_DCA_fNN.py` (per-fold class as
     `research/nnnc_framework/build_arms.py` line ~123 does, subclass of the base,
@@ -223,7 +223,7 @@ for correctly.
 
   Verify that `run_folds --dry-run` resolves every model key with no training. Then run ONLY
   `hp_aro_dca` on f00–f07.
-- [ ] T021 [US2] Create `research/held_pair/fidelity.py`. It loads `hp_aro_dca`'s f00–f07 archives,
+- [X] T021 [US2] Create `research/held_pair/fidelity.py`. It loads `hp_aro_dca`'s f00–f07 archives,
   extracts adds (pair, fill date) and add-candle exits, and matches them to `adds_ARO.json`. It
   writes `research/held_pair/fidelity.json`, containing per fold:
   - matched / backtest adds / screen adds, i.e. precision (the gate) and recall (reported);
@@ -232,7 +232,7 @@ for correctly.
   - `hp_counters` from the arm records (T017), including `row_misaligned`.
 
   Exit 2 if matched < 95% of backtest adds or `row_misaligned` > 0.
-- [ ] T022 [US2] Run fidelity. **STOP gate**: on exit 2, diagnose the mismatches (list the first 20
+- [X] T022 [US2] Run fidelity. **STOP gate**: on exit 2, diagnose the mismatches (list the first 20
   with both sides' context), fix the switch, and repeat T015/T020–T022 under fresh tags. Record
   the result, and any fixes, in `specs/031-held-pair-dca/fidelity.md`. Commit T017–T022 (the
   generated classes and plans included; no late-half or 2022 record exists yet).
@@ -248,7 +248,7 @@ for correctly.
 **Independent Test**: The pre-registration commit is older than every judged record, and
 `verdicts.json` holds 6 decisions.
 
-- [ ] T023 [US3] Write `research/held_pair/preregistration.json` and `.md`:
+- [X] T023 [US3] Write `research/held_pair/preregistration.json` and `.md`:
   - `exempt_records`: `hp_smoke` f00 and `hp_aro_dca` f00–f07, each labelled EXPLORATORY;
   - setting `HELD_PAIR_ADD = {}` (DCA:all:1h, one add) and grace 24 h;
   - the books table from research R10;

@@ -22,5 +22,149 @@
    "f13",
    "f14"
   ]
+ },
+ "GBR": {
+  "book": "GBR",
+  "arm": "hp_gbr_dca",
+  "class": "NNNC_HP_GBR_DCA",
+  "control": "fs_gbr_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "GFM": {
+  "book": "GFM",
+  "arm": "hp_gfm_dca",
+  "class": "NNNC_HP_GFM_DCA",
+  "control": "fs_gfm_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "MLX": {
+  "book": "MLX",
+  "arm": "hp_mlx_dca",
+  "class": "NNNC_HP_MLX_DCA",
+  "control": "fs_mlx_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_REV": {
+  "book": "ST_REV",
+  "arm": "st_hp_rev",
+  "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA",
+  "control": "st_g24_rev",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_MOM": {
+  "book": "ST_MOM",
+  "arm": "st_hp_mom",
+  "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCA",
+  "control": "st_g24_mom",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_REV_2022": {
+  "book": "ST_REV_2022",
+  "arm": "st_e22_hp_rev",
+  "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA",
+  "control": "st_e22_g24_rev",
+  "window": "2022",
+  "folds": [
+   "e00",
+   "e01",
+   "e02"
+  ]
+ },
+ "ST_MOM_2022": {
+  "book": "ST_MOM_2022",
+  "arm": "st_e22_hp_mom",
+  "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCA",
+  "control": "st_e22_g24_mom",
+  "window": "2022",
+  "folds": [
+   "e00",
+   "e01",
+   "e02"
+  ]
  }
 }
