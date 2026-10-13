@@ -1,0 +1,1530 @@
+{
+ "label": "PROVISIONAL -- NNNC: late half f08-f14 confirmatory (one era; no NNNC model covers 2022); SimpleTrigger: 2022 confirmatory",
+ "books": {
+  "ARO": {
+   "book": "ARO",
+   "kind": "NNNC",
+   "A_2023_26": {
+    "arm": "hp_aro_dca",
+    "control": "wf_aro_g24",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain",
+     "risk"
+    ],
+    "arm_trades": 1180,
+    "ctl_trades": 1176,
+    "arm_pp": 75.456,
+    "ctl_pp": 49.965,
+    "early_gain_pp": 26.462000000000003,
+    "late_gain_pp": -0.9710000000000001,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "IMPROVED",
+     "delta_pp": 25.48526959627587,
+     "ci_pp_yr": [
+      2.356536817385114,
+      11.265401499054242
+     ],
+     "p": 0.0031
+    },
+    "risk": {
+     "days": 1335,
+     "arm": {
+      "sharpe": 2.2214494478684546,
+      "maxdd": 9.243807029423259,
+      "daily_sd": 0.4860965188182375
+     },
+     "ctl": {
+      "sharpe": 2.5469676312609044,
+      "maxdd": 3.6944448119481095,
+      "daily_sd": 0.28074215715955697
+     },
+     "sharpe_delta": -0.32551818339244987,
+     "sharpe_ci": [
+      -0.8165373125420714,
+      0.19485712537872169
+     ],
+     "sharpe_p": 0.197,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 5.549362217475149,
+     "maxdd_ci": [
+      1.1572000515394711,
+      8.903160662401763
+     ],
+     "maxdd_p": 0.003,
+     "verdict_maxdd": "WORSENED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "IMPROVED",
+      "p": 0.0,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.8798,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 39,
+     "take_profit": 758,
+     "trailing_stop_loss": 167,
+     "unclog_12h": 184,
+     "unclog_1d": 25,
+     "force_exit": 5,
+     "stop_loss": 2
+    },
+    "exits_ctl": {
+     "roi": 33,
+     "take_profit": 694,
+     "trailing_stop_loss": 199,
+     "unclog_12h": 212,
+     "unclog_1d": 27,
+     "force_exit": 4,
+     "stop_loss": 7
+    }
+   },
+   "n_adds": {
+    "f00": 10,
+    "f01": 4,
+    "f02": 7,
+    "f03": 41,
+    "f04": 32,
+    "f05": 36,
+    "f06": 14,
+    "f07": 95,
+    "f08": 70,
+    "f09": 8,
+    "f10": 6,
+    "f11": 68,
+    "f12": 14,
+    "f13": 31,
+    "f14": 6
+   },
+   "exposure": {
+    "arm": "hp_aro_dca",
+    "control": "wf_aro_g24",
+    "n_adds": 442,
+    "trade_gain_pp": 25.490999999999985,
+    "exposure_arm": {
+     "avg_stake": 251.51951236705838,
+     "peak_stake": 9809.682249999998,
+     "stake_hours": 8053529.026237026
+    },
+    "exposure_ctl": {
+     "avg_stake": 170.86538866036005,
+     "peak_stake": 6090.414909999999,
+     "stake_hours": 5471024.312210399
+    },
+    "decomposition": {
+     "same_n": 1138,
+     "same_entry_pp": 23.470568563907044,
+     "forgone_n": 38,
+     "forgone_pair_held_n": 36,
+     "forgone_pp": 7.411833641615384,
+     "new_n": 42,
+     "new_pp": 9.432265077708335
+    },
+    "leverage": {
+     "leverage_pp": 21.648019168349773,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 92306.095888,
+       "ctl_pp_per_stake_hour": 8.66211478738698e-06,
+       "leverage_pp": 0.7995659981574054
+      },
+      "f01": {
+       "extra_stake_hours": 14505.2389,
+       "ctl_pp_per_stake_hour": 1.48571395452619e-05,
+       "leverage_pp": 0.21550635847466124
+      },
+      "f02": {
+       "extra_stake_hours": 50842.25234,
+       "ctl_pp_per_stake_hour": 1.938834453483982e-05,
+       "leverage_pp": 0.985747105295186
+      },
+      "f03": {
+       "extra_stake_hours": 270839.1303725,
+       "ctl_pp_per_stake_hour": 7.72621406345785e-06,
+       "leverage_pp": 2.0925610980187037
+      },
+      "f04": {
+       "extra_stake_hours": 296174.9564425,
+       "ctl_pp_per_stake_hour": 9.848587814193822e-06,
+       "leverage_pp": 2.9169050668889915
+      },
+      "f05": {
+       "extra_stake_hours": 133605.99679,
+       "ctl_pp_per_stake_hour": 1.8807281700748948e-05,
+       "leverage_pp": 2.51276561853889
+      },
+      "f06": {
+       "extra_stake_hours": 53648.2540175,
+       "ctl_pp_per_stake_hour": 1.886386887315188e-05,
+       "leverage_pp": 1.0120136290596635
+      },
+      "f07": {
+       "extra_stake_hours": 451606.17477,
+       "ctl_pp_per_stake_hour": 1.360916781440656e-05,
+       "leverage_pp": 6.145984218467147
+      },
+      "f08": {
+       "extra_stake_hours": 413521.32856500003,
+       "ctl_pp_per_stake_hour": 3.0949598285797402e-06,
+       "leverage_pp": 1.279831900169599
+      },
+      "f09": {
+       "extra_stake_hours": 44837.226805000006,
+       "ctl_pp_per_stake_hour": 2.267092038700734e-05,
+       "leverage_pp": 1.0165011992703465
+      },
+      "f10": {
+       "extra_stake_hours": 25639.428057499998,
+       "ctl_pp_per_stake_hour": 1.6125841688626442e-06,
+       "leverage_pp": 0.04134573578421719
+      },
+      "f11": {
+       "extra_stake_hours": 318613.2177525,
+       "ctl_pp_per_stake_hour": 6.175753922521196e-06,
+       "leverage_pp": 1.9676768293021016
+      },
+      "f12": {
+       "extra_stake_hours": 99577.25979000001,
+       "ctl_pp_per_stake_hour": -1.3694243394851018e-06,
+       "leverage_pp": -0.13636352321565715
+      },
+      "f13": {
+       "extra_stake_hours": 144449.380305,
+       "ctl_pp_per_stake_hour": 2.7557501279335285e-06,
+       "leverage_pp": 0.39806639825542267
+      },
+      "f14": {
+       "extra_stake_hours": 35288.4767325,
+       "ctl_pp_per_stake_hour": 1.1332638099246254e-05,
+       "leverage_pp": 0.3999115358830944
+      }
+     }
+    },
+    "beats_leverage": true
+   },
+   "beats_leverage": true,
+   "evidence": "late half CONFIRMATORY (PROVISIONAL: one era); early half EXPLORATORY",
+   "decision": "NOT ADOPTED"
+  },
+  "GBR": {
+   "book": "GBR",
+   "kind": "NNNC",
+   "A_2023_26": {
+    "arm": "hp_gbr_dca",
+    "control": "fs_gbr_gr",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain"
+    ],
+    "arm_trades": 1999,
+    "ctl_trades": 2021,
+    "arm_pp": 85.05499999999999,
+    "ctl_pp": 53.457,
+    "early_gain_pp": 39.340999999999994,
+    "late_gain_pp": -7.743,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "IMPROVED",
+     "delta_pp": 31.596822690738183,
+     "ci_pp_yr": [
+      0.2251863916296973,
+      16.505725387806734
+     ],
+     "p": 0.0453
+    },
+    "risk": {
+     "days": 1342,
+     "arm": {
+      "sharpe": 1.6177877988214526,
+      "maxdd": 21.536879896956634,
+      "daily_sd": 0.748466228968839
+     },
+     "ctl": {
+      "sharpe": 1.5967835034152862,
+      "maxdd": 9.735678501486426,
+      "daily_sd": 0.4765982701816783
+     },
+     "sharpe_delta": 0.02100429540616644,
+     "sharpe_ci": [
+      -0.9562033121713324,
+      1.1420765763523575
+     ],
+     "sharpe_p": 0.958,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 11.801201395470208,
+     "maxdd_ci": [
+      -3.2308604406701207,
+      29.39834264472175
+     ],
+     "maxdd_p": 0.195,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "IMPROVED",
+      "p": 0.0,
+      "risk": [
+       "IMPROVED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.5518,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 41,
+     "take_profit": 1206,
+     "trailing_stop_loss": 308,
+     "unclog_12h": 394,
+     "unclog_1d": 37,
+     "force_exit": 10,
+     "stop_loss": 2,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "roi": 38,
+     "take_profit": 1118,
+     "trailing_stop_loss": 396,
+     "unclog_12h": 385,
+     "unclog_1d": 57,
+     "stop_loss": 17,
+     "force_exit": 9,
+     "metric_overbought": 1
+    }
+   },
+   "n_adds": {
+    "f00": 10,
+    "f01": 5,
+    "f02": 9,
+    "f03": 70,
+    "f04": 68,
+    "f05": 44,
+    "f06": 29,
+    "f07": 100,
+    "f08": 102,
+    "f09": 15,
+    "f10": 1,
+    "f11": 97,
+    "f12": 33,
+    "f13": 22,
+    "f14": 10
+   },
+   "exposure": {
+    "arm": "hp_gbr_dca",
+    "control": "fs_gbr_gr",
+    "n_adds": 615,
+    "trade_gain_pp": 31.597999999999992,
+    "exposure_arm": {
+     "avg_stake": 490.9093810796404,
+     "peak_stake": 11958.192830000002,
+     "stake_hours": 15794027.517475272
+    },
+    "exposure_ctl": {
+     "avg_stake": 353.72850229112987,
+     "peak_stake": 8243.132709999998,
+     "stake_hours": 11380507.10421252
+    },
+    "decomposition": {
+     "same_n": 1900,
+     "same_entry_pp": 31.972394689999614,
+     "forgone_n": 121,
+     "forgone_pair_held_n": 102,
+     "forgone_pp": 7.684232386307374,
+     "new_n": 99,
+     "new_pp": 7.3098376963077545
+    },
+    "leverage": {
+     "leverage_pp": 19.20952217925904,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 148084.6632982,
+       "ctl_pp_per_stake_hour": 9.996249843606724e-06,
+       "leverage_pp": 1.4802912923351863
+      },
+      "f01": {
+       "extra_stake_hours": 10482.31015,
+       "ctl_pp_per_stake_hour": 4.612643107864151e-06,
+       "leverage_pp": 0.04835115566789193
+      },
+      "f02": {
+       "extra_stake_hours": 91579.2006575,
+       "ctl_pp_per_stake_hour": 2.4936168852898026e-05,
+       "leverage_pp": 2.28363441100885
+      },
+      "f03": {
+       "extra_stake_hours": 565480.6884925,
+       "ctl_pp_per_stake_hour": 7.256881841503803e-06,
+       "leverage_pp": 4.103626540042292
+      },
+      "f04": {
+       "extra_stake_hours": 457052.1257225,
+       "ctl_pp_per_stake_hour": 8.775430497138932e-06,
+       "leverage_pp": 4.010829162847403
+      },
+      "f05": {
+       "extra_stake_hours": 256112.66862500002,
+       "ctl_pp_per_stake_hour": 1.6894751771438865e-06,
+       "leverage_pp": 0.4326959961940154
+      },
+      "f06": {
+       "extra_stake_hours": 240655.7628925,
+       "ctl_pp_per_stake_hour": 2.790544431666615e-06,
+       "leverage_pp": 0.6715605990881471
+      },
+      "f07": {
+       "extra_stake_hours": 644519.38872,
+       "ctl_pp_per_stake_hour": 2.7004672972595365e-06,
+       "leverage_pp": 1.740503531688067
+      },
+      "f08": {
+       "extra_stake_hours": 757924.73563,
+       "ctl_pp_per_stake_hour": 2.5607690338970036e-06,
+       "leverage_pp": 1.940870193025877
+      },
+      "f09": {
+       "extra_stake_hours": 126409.16473,
+       "ctl_pp_per_stake_hour": 8.30587699242383e-06,
+       "leverage_pp": 1.0499389729624211
+      },
+      "f10": {
+       "extra_stake_hours": 8097.4218599999995,
+       "ctl_pp_per_stake_hour": 1.1022833582430311e-05,
+       "leverage_pp": 0.08925653360951331
+      },
+      "f11": {
+       "extra_stake_hours": 601923.0228174999,
+       "ctl_pp_per_stake_hour": -2.631963554115592e-06,
+       "leverage_pp": -1.5842394584387478
+      },
+      "f12": {
+       "extra_stake_hours": 245067.1025025,
+       "ctl_pp_per_stake_hour": 7.453615997105402e-06,
+       "leverage_pp": 1.8266360755769033
+      },
+      "f13": {
+       "extra_stake_hours": 100332.98718,
+       "ctl_pp_per_stake_hour": 4.533103574263276e-06,
+       "leverage_pp": 0.4548198228021694
+      },
+      "f14": {
+       "extra_stake_hours": 65884.081575,
+       "ctl_pp_per_stake_hour": 1.0028937719908541e-05,
+       "leverage_pp": 0.6607473508490489
+      }
+     }
+    },
+    "beats_leverage": true
+   },
+   "beats_leverage": true,
+   "evidence": "late half CONFIRMATORY (PROVISIONAL: one era); early half EXPLORATORY",
+   "decision": "NOT ADOPTED"
+  },
+  "GFM": {
+   "book": "GFM",
+   "kind": "NNNC",
+   "A_2023_26": {
+    "arm": "hp_gfm_dca",
+    "control": "fs_gfm_gr",
+    "verdict": "PASS",
+    "failed": [],
+    "arm_trades": 1843,
+    "ctl_trades": 1879,
+    "arm_pp": 50.643,
+    "ctl_pp": 39.762,
+    "early_gain_pp": 9.136000000000003,
+    "late_gain_pp": 1.745,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 10.881793403004682,
+     "ci_pp_yr": [
+      -1.0607305013696962,
+      6.881295049577186
+     ],
+     "p": 0.1524
+    },
+    "risk": {
+     "days": 1343,
+     "arm": {
+      "sharpe": 1.5428257217587482,
+      "maxdd": 8.637898311280729,
+      "daily_sd": 0.4669527886995842
+     },
+     "ctl": {
+      "sharpe": 1.722712878828322,
+      "maxdd": 6.5840967325458095,
+      "daily_sd": 0.32834147140000514
+     },
+     "sharpe_delta": -0.1798871570695737,
+     "sharpe_ci": [
+      -0.7766127297461477,
+      0.5979453580098526
+     ],
+     "sharpe_p": 0.651,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 2.0538015787349195,
+     "maxdd_ci": [
+      -1.3653877602951596,
+      9.939594072374305
+     ],
+     "maxdd_p": 0.151,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.1001,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.7216,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 35,
+     "take_profit": 1012,
+     "trailing_stop_loss": 384,
+     "unclog_12h": 361,
+     "unclog_1d": 34,
+     "force_exit": 10,
+     "stop_loss": 6,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "roi": 35,
+     "take_profit": 985,
+     "trailing_stop_loss": 416,
+     "unclog_12h": 380,
+     "unclog_1d": 47,
+     "force_exit": 8,
+     "stop_loss": 7,
+     "metric_overbought": 1
+    }
+   },
+   "n_adds": {
+    "f00": 20,
+    "f01": 9,
+    "f02": 10,
+    "f03": 22,
+    "f04": 104,
+    "f05": 16,
+    "f06": 14,
+    "f07": 98,
+    "f08": 60,
+    "f09": 4,
+    "f10": 14,
+    "f11": 48,
+    "f12": 4,
+    "f13": 36,
+    "f14": 15
+   },
+   "exposure": {
+    "arm": "hp_gfm_dca",
+    "control": "fs_gfm_gr",
+    "n_adds": 474,
+    "trade_gain_pp": 10.881,
+    "exposure_arm": {
+     "avg_stake": 423.67641115042056,
+     "peak_stake": 10266.511220000004,
+     "stake_hours": 13650642.129060976
+    },
+    "exposure_ctl": {
+     "avg_stake": 315.4390771424012,
+     "peak_stake": 6126.852370000003,
+     "stake_hours": 10162185.309219597
+    },
+    "decomposition": {
+     "same_n": 1812,
+     "same_entry_pp": 15.613590973904495,
+     "forgone_n": 67,
+     "forgone_pair_held_n": 66,
+     "forgone_pp": 7.282028749020054,
+     "new_n": 31,
+     "new_pp": 2.549437775115558
+    },
+    "leverage": {
+     "leverage_pp": 11.064243090994124,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 145400.0554116,
+       "ctl_pp_per_stake_hour": 6.863367661459004e-06,
+       "leverage_pp": 0.9979340382863229
+      },
+      "f01": {
+       "extra_stake_hours": 23736.81497,
+       "ctl_pp_per_stake_hour": 1.1909458612654598e-05,
+       "leverage_pp": 0.2826926154814551
+      },
+      "f02": {
+       "extra_stake_hours": 62273.383885,
+       "ctl_pp_per_stake_hour": -6.553503542060508e-07,
+       "leverage_pp": -0.04081088418664413
+      },
+      "f03": {
+       "extra_stake_hours": 103189.3111675,
+       "ctl_pp_per_stake_hour": 7.261764435406187e-06,
+       "leverage_pp": 0.749336469950214
+      },
+      "f04": {
+       "extra_stake_hours": 725583.497655,
+       "ctl_pp_per_stake_hour": 4.609080241214541e-06,
+       "leverage_pp": 3.3442725623929976
+      },
+      "f05": {
+       "extra_stake_hours": 65531.715875,
+       "ctl_pp_per_stake_hour": 2.735491264652774e-06,
+       "leverage_pp": 0.17926143633377
+      },
+      "f06": {
+       "extra_stake_hours": 91945.7338875,
+       "ctl_pp_per_stake_hour": 1.1460919495220269e-06,
+       "leverage_pp": 0.10537826540135836
+      },
+      "f07": {
+       "extra_stake_hours": 516533.302825,
+       "ctl_pp_per_stake_hour": 7.499940591087291e-06,
+       "leverage_pp": 3.8739690845056014
+      },
+      "f08": {
+       "extra_stake_hours": 453607.855105,
+       "ctl_pp_per_stake_hour": 1.1250098524746775e-06,
+       "leverage_pp": 0.5103133061530309
+      },
+      "f09": {
+       "extra_stake_hours": 25251.748885000005,
+       "ctl_pp_per_stake_hour": 6.540573711571322e-06,
+       "leverage_pp": 0.16516092492843146
+      },
+      "f10": {
+       "extra_stake_hours": 120518.8395625,
+       "ctl_pp_per_stake_hour": 4.553998746608121e-06,
+       "leverage_pp": 0.5488426443102902
+      },
+      "f11": {
+       "extra_stake_hours": 182343.7308125,
+       "ctl_pp_per_stake_hour": 1.5252724054819115e-06,
+       "leverage_pp": 0.278123860920928
+      },
+      "f12": {
+       "extra_stake_hours": 25316.247392499998,
+       "ctl_pp_per_stake_hour": -9.281452142575548e-07,
+       "leverage_pp": -0.023497153860309174
+      },
+      "f13": {
+       "extra_stake_hours": 219203.27388,
+       "ctl_pp_per_stake_hour": -3.2790594288557585e-06,
+       "leverage_pp": -0.7187805620522651
+      },
+      "f14": {
+       "extra_stake_hours": 101647.3759825,
+       "ctl_pp_per_stake_hour": 7.988858291518975e-06,
+       "leverage_pp": 0.8120464824289418
+      }
+     }
+    },
+    "beats_leverage": false
+   },
+   "beats_leverage": false,
+   "evidence": "late half CONFIRMATORY (PROVISIONAL: one era); early half EXPLORATORY",
+   "decision": "ADOPTED"
+  },
+  "MLX": {
+   "book": "MLX",
+   "kind": "NNNC",
+   "A_2023_26": {
+    "arm": "hp_mlx_dca",
+    "control": "fs_mlx_gr",
+    "verdict": "PASS",
+    "failed": [],
+    "arm_trades": 353,
+    "ctl_trades": 360,
+    "arm_pp": 49.216,
+    "ctl_pp": 35.187000000000005,
+    "early_gain_pp": 8.637999999999998,
+    "late_gain_pp": 5.390999999999998,
+    "folds_changed": 13,
+    "paired": {
+     "verdict": "IMPROVED",
+     "delta_pp": 14.032592552837801,
+     "ci_pp_yr": [
+      1.1140180996178184,
+      6.458661509829693
+     ],
+     "p": 0.006
+    },
+    "risk": {
+     "days": 1326,
+     "arm": {
+      "sharpe": 2.2593394248272793,
+      "maxdd": 4.54220634198918,
+      "daily_sd": 0.3138540529242113
+     },
+     "ctl": {
+      "sharpe": 2.2408373148249057,
+      "maxdd": 2.254205413570003,
+      "daily_sd": 0.2262428282993618
+     },
+     "sharpe_delta": 0.018502110002373673,
+     "sharpe_ci": [
+      -0.47696532484946397,
+      0.6221847711962153
+     ],
+     "sharpe_p": 0.931,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 2.2880009284191773,
+     "maxdd_ci": [
+      -0.7453333296736111,
+      4.576001212211824
+     ],
+     "maxdd_p": 0.316,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "IMPROVED",
+      "p": 0.0234,
+      "risk": [
+       "WORSENED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.1239,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 197,
+     "unclog_12h": 43,
+     "unclog_1d": 5,
+     "force_exit": 1,
+     "trailing_stop_loss": 37,
+     "model_exit ": 60,
+     "roi": 9,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "take_profit": 187,
+     "unclog_12h": 55,
+     "unclog_1d": 5,
+     "force_exit": 1,
+     "stop_loss": 3,
+     "trailing_stop_loss": 37,
+     "model_exit ": 60,
+     "roi": 11,
+     "metric_overbought": 1
+    }
+   },
+   "n_adds": {
+    "f00": 0,
+    "f01": 2,
+    "f02": 2,
+    "f03": 3,
+    "f04": 7,
+    "f05": 7,
+    "f06": 14,
+    "f07": 15,
+    "f08": 18,
+    "f09": 2,
+    "f10": 1,
+    "f11": 8,
+    "f12": 5,
+    "f13": 5,
+    "f14": 0
+   },
+   "exposure": {
+    "arm": "hp_mlx_dca",
+    "control": "fs_mlx_gr",
+    "n_adds": 89,
+    "trade_gain_pp": 14.029000000000003,
+    "exposure_arm": {
+     "avg_stake": 83.07359588379596,
+     "peak_stake": 10091.986080000002,
+     "stake_hours": 2642176.4854831016
+    },
+    "exposure_ctl": {
+     "avg_stake": 67.22718075138759,
+     "peak_stake": 6940.533920000001,
+     "stake_hours": 2138177.2905930704
+    },
+    "decomposition": {
+     "same_n": 349,
+     "same_entry_pp": 14.700182178326584,
+     "forgone_n": 11,
+     "forgone_pair_held_n": 7,
+     "forgone_pp": 2.4385663541684144,
+     "new_n": 4,
+     "new_pp": 1.7673841758418283
+    },
+    "leverage": {
+     "leverage_pp": 8.908153045427373,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 0,
+       "ctl_pp_per_stake_hour": 2.0909146771809847e-05,
+       "leverage_pp": 0.0
+      },
+      "f01": {
+       "extra_stake_hours": 8561.279755,
+       "ctl_pp_per_stake_hour": -2.367813990154356e-05,
+       "leverage_pp": -0.20271517977514256
+      },
+      "f02": {
+       "extra_stake_hours": 3824.9076600000003,
+       "ctl_pp_per_stake_hour": 3.8118535879098626e-05,
+       "leverage_pp": 0.14579987987194917
+      },
+      "f03": {
+       "extra_stake_hours": 6192.09335,
+       "ctl_pp_per_stake_hour": 4.0035398405884115e-05,
+       "leverage_pp": 0.24790292423367563
+      },
+      "f04": {
+       "extra_stake_hours": 40507.1408825,
+       "ctl_pp_per_stake_hour": 1.7860474989129397e-05,
+       "leverage_pp": 0.7234767766130322
+      },
+      "f05": {
+       "extra_stake_hours": 59873.76276,
+       "ctl_pp_per_stake_hour": 5.814812449702287e-06,
+       "leverage_pp": 0.3481547011073692
+      },
+      "f06": {
+       "extra_stake_hours": 36955.888105,
+       "ctl_pp_per_stake_hour": 3.6091637599002855e-05,
+       "leverage_pp": 1.3337985206349603
+      },
+      "f07": {
+       "extra_stake_hours": 52165.49522,
+       "ctl_pp_per_stake_hour": 3.637994795474114e-05,
+       "leverage_pp": 1.8977780011368974
+      },
+      "f08": {
+       "extra_stake_hours": 158880.97072,
+       "ctl_pp_per_stake_hour": 1.2177875038977894e-05,
+       "leverage_pp": 1.9348326074996658
+      },
+      "f09": {
+       "extra_stake_hours": 10829.141959999999,
+       "ctl_pp_per_stake_hour": 2.105975885981777e-05,
+       "leverage_pp": 0.22805911833633435
+      },
+      "f10": {
+       "extra_stake_hours": 14462.4492,
+       "ctl_pp_per_stake_hour": -2.8266805056796777e-06,
+       "leverage_pp": -0.04088072321802265
+      },
+      "f11": {
+       "extra_stake_hours": 41325.0238875,
+       "ctl_pp_per_stake_hour": 6.807217555115098e-06,
+       "leverage_pp": 0.2813084280725408
+      },
+      "f12": {
+       "extra_stake_hours": 38812.756185,
+       "ctl_pp_per_stake_hour": 2.1173032571163508e-05,
+       "leverage_pp": 0.8217837508816329
+      },
+      "f13": {
+       "extra_stake_hours": 26679.528710000002,
+       "ctl_pp_per_stake_hour": 4.4560541265741124e-05,
+       "leverage_pp": 1.1888542400324802
+      },
+      "f14": {
+       "extra_stake_hours": 0,
+       "ctl_pp_per_stake_hour": 2.8276285035615735e-06,
+       "leverage_pp": 0.0
+      }
+     }
+    },
+    "beats_leverage": true
+   },
+   "beats_leverage": true,
+   "evidence": "late half CONFIRMATORY (PROVISIONAL: one era); early half EXPLORATORY",
+   "decision": "ADOPTED"
+  },
+  "ST_REV": {
+   "book": "ST_REV",
+   "kind": "SimpleTrigger",
+   "A_2023_26": {
+    "arm": "st_hp_rev",
+    "control": "st_g24_rev",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain",
+     "risk"
+    ],
+    "arm_trades": 2432,
+    "ctl_trades": 2518,
+    "arm_pp": 101.087,
+    "ctl_pp": 71.503,
+    "early_gain_pp": 45.147999999999996,
+    "late_gain_pp": -15.564,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 29.583531711326945,
+     "ci_pp_yr": [
+      -0.589525708395795,
+      16.11275741362927
+     ],
+     "p": 0.0665
+    },
+    "risk": {
+     "days": 1341,
+     "arm": {
+      "sharpe": 1.790124680304073,
+      "maxdd": 25.082992355997973,
+      "daily_sd": 0.804506731304519
+     },
+     "ctl": {
+      "sharpe": 2.241095163657603,
+      "maxdd": 7.628068490098158,
+      "daily_sd": 0.4545499554768981
+     },
+     "sharpe_delta": -0.4509704833535302,
+     "sharpe_ci": [
+      -1.0182567436354895,
+      0.12091476291243985
+     ],
+     "sharpe_p": 0.13,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 17.454923865899815,
+     "maxdd_ci": [
+      3.5105044066390363,
+      22.015850197900047
+     ],
+     "maxdd_p": 0.0,
+     "verdict_maxdd": "WORSENED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "IMPROVED",
+      "p": 0.0,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     },
+     "late": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.2406,
+      "risk": [
+       "WORSENED",
+       "WORSENED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 104,
+     "take_profit": 1301,
+     "trailing_stop_loss": 439,
+     "unclog_12h": 503,
+     "unclog_1d": 70,
+     "stop_loss": 3,
+     "force_exit": 8,
+     "metric_overbought": 4
+    },
+    "exits_ctl": {
+     "roi": 91,
+     "take_profit": 1311,
+     "trailing_stop_loss": 501,
+     "unclog_12h": 514,
+     "unclog_1d": 72,
+     "stop_loss": 18,
+     "force_exit": 8,
+     "metric_overbought": 3
+    }
+   },
+   "n_adds": {
+    "f00": 121,
+    "f01": 66,
+    "f02": 53,
+    "f03": 150,
+    "f04": 194,
+    "f05": 104,
+    "f06": 63,
+    "f07": 255,
+    "f08": 114,
+    "f09": 54,
+    "f10": 70,
+    "f11": 126,
+    "f12": 58,
+    "f13": 49,
+    "f14": 86
+   },
+   "exposure": {
+    "arm": "st_hp_rev",
+    "control": "st_g24_rev",
+    "n_adds": 1563,
+    "trade_gain_pp": 29.584000000000003,
+    "exposure_arm": {
+     "avg_stake": 703.3658952853442,
+     "peak_stake": 12258.931390000002,
+     "stake_hours": 22618840.4605861
+    },
+    "exposure_ctl": {
+     "avg_stake": 409.80339621275147,
+     "peak_stake": 8906.826790000001,
+     "stake_hours": 13177740.45946629
+    },
+    "decomposition": {
+     "same_n": 2201,
+     "same_entry_pp": 22.92977592518971,
+     "forgone_n": 317,
+     "forgone_pair_held_n": 282,
+     "forgone_pp": 10.447032934862326,
+     "new_n": 231,
+     "new_pp": 17.101257009672615
+    },
+    "leverage": {
+     "leverage_pp": 50.50784322661612,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 826653.1586625,
+       "ctl_pp_per_stake_hour": 8.74361418046879e-06,
+       "leverage_pp": 7.227936280410751
+      },
+      "f01": {
+       "extra_stake_hours": 454051.195015,
+       "ctl_pp_per_stake_hour": -4.243781644941492e-06,
+       "leverage_pp": -1.926894127268407
+      },
+      "f02": {
+       "extra_stake_hours": 271944.7963575,
+       "ctl_pp_per_stake_hour": 4.0273821473014255e-06,
+       "leverage_pp": 1.0952256179017172
+      },
+      "f03": {
+       "extra_stake_hours": 812677.5147575,
+       "ctl_pp_per_stake_hour": 1.1562018149526179e-05,
+       "leverage_pp": 9.396192175338044
+      },
+      "f04": {
+       "extra_stake_hours": 1262807.5940575001,
+       "ctl_pp_per_stake_hour": 8.319303758466405e-06,
+       "leverage_pp": 10.505679963462478
+      },
+      "f05": {
+       "extra_stake_hours": 512941.8655975,
+       "ctl_pp_per_stake_hour": 3.856879868396992e-06,
+       "leverage_pp": 1.9783551550809935
+      },
+      "f06": {
+       "extra_stake_hours": 297398.0771525,
+       "ctl_pp_per_stake_hour": 6.257930320398198e-06,
+       "leverage_pp": 1.8610964442407523
+      },
+      "f07": {
+       "extra_stake_hours": 1217244.9630624999,
+       "ctl_pp_per_stake_hour": 1.117019882683741e-05,
+       "leverage_pp": 13.596868258374482
+      },
+      "f08": {
+       "extra_stake_hours": 621194.8718925,
+       "ctl_pp_per_stake_hour": 1.031702062672369e-06,
+       "leverage_pp": 0.6408880306529902
+      },
+      "f09": {
+       "extra_stake_hours": 391115.9284825,
+       "ctl_pp_per_stake_hour": 8.071677482281173e-06,
+       "leverage_pp": 3.156961632893689
+      },
+      "f10": {
+       "extra_stake_hours": 447179.4872525,
+       "ctl_pp_per_stake_hour": 9.320853446465577e-07,
+       "leverage_pp": 0.4168094464946175
+      },
+      "f11": {
+       "extra_stake_hours": 740529.01615,
+       "ctl_pp_per_stake_hour": -5.7814425643528604e-06,
+       "leverage_pp": -4.281325974107957
+      },
+      "f12": {
+       "extra_stake_hours": 293952.5398125,
+       "ctl_pp_per_stake_hour": 1.8536399071666736e-06,
+       "leverage_pp": 0.5448821586094504
+      },
+      "f13": {
+       "extra_stake_hours": 261232.1128625,
+       "ctl_pp_per_stake_hour": 2.395710391150738e-06,
+       "leverage_pp": 0.6258364872869536
+      },
+      "f14": {
+       "extra_stake_hours": 580361.4276475,
+       "ctl_pp_per_stake_hour": 9.768622460362753e-06,
+       "leverage_pp": 5.669331677245561
+      }
+     }
+    },
+    "beats_leverage": false
+   },
+   "beats_leverage": false,
+   "B_2022": {
+    "arm": "st_e22_hp_rev",
+    "control": "st_e22_g24_rev",
+    "verdict": "FAIL",
+    "failed": [
+     "2022 gain",
+     "risk maxdd"
+    ],
+    "gain_pp": -4.743,
+    "arm_pp": -11.317,
+    "ctl_pp": -6.574,
+    "arm_trades": 594,
+    "ctl_trades": 653,
+    "per_fold": {
+     "e00": -11.147,
+     "e01": 7.709,
+     "e02": -7.879
+    },
+    "per_fold_ctl": {
+     "e00": -8.212,
+     "e01": 2.771,
+     "e02": -1.133
+    },
+    "paired": {
+     "verdict": "INCONCLUSIVE_ARM_LOSES",
+     "delta_pp": -4.743995747281596,
+     "p": 0.8084
+    },
+    "risk": {
+     "days": 273,
+     "arm": {
+      "sharpe": -0.4042185118597014,
+      "maxdd": 30.546737636645673,
+      "daily_sd": 1.9592908134410547
+     },
+     "ctl": {
+      "sharpe": -0.43568652088342164,
+      "maxdd": 17.735966547730005,
+      "daily_sd": 1.055940289738653
+     },
+     "sharpe_delta": 0.03146800902372021,
+     "sharpe_ci": [
+      -0.5085064667009198,
+      0.7234272535987305
+     ],
+     "sharpe_p": 0.867,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 12.810771088915669,
+     "maxdd_ci": [
+      1.9068799112607706,
+      42.61517656891541
+     ],
+     "maxdd_p": 0.002,
+     "verdict_maxdd": "WORSENED"
+    }
+   },
+   "n_adds_2022": {
+    "e00": 204,
+    "e01": 110,
+    "e02": 131
+   },
+   "exposure_2022": {
+    "arm": "st_e22_hp_rev",
+    "control": "st_e22_g24_rev",
+    "n_adds": 445,
+    "trade_gain_pp": -4.742999999999998,
+    "exposure_arm": {
+     "avg_stake": 924.842034441769,
+     "peak_stake": 10857.721485399998,
+     "stake_hours": 6053322.325929988
+    },
+    "exposure_ctl": {
+     "avg_stake": 536.4615632523052,
+     "peak_stake": 7898.421958399998,
+     "stake_hours": 3511275.04687715
+    },
+    "decomposition": {
+     "same_n": 508,
+     "same_entry_pp": 10.419937289213124,
+     "forgone_n": 145,
+     "forgone_pair_held_n": 122,
+     "forgone_pp": -3.2123954894853424,
+     "new_n": 86,
+     "new_pp": -18.375332778698464
+    },
+    "leverage": {
+     "leverage_pp": -4.696883589402716,
+     "per_fold": {
+      "e00": {
+       "extra_stake_hours": 1122672.0603149,
+       "ctl_pp_per_stake_hour": -5.3360899479164995e-06,
+       "leverage_pp": -5.990679095853044
+      },
+      "e01": {
+       "extra_stake_hours": 610570.1371983499,
+       "ctl_pp_per_stake_hour": 3.437453797087277e-06,
+       "leverage_pp": 2.0988066365005675
+      },
+      "e02": {
+       "extra_stake_hours": 828600.551768525,
+       "ctl_pp_per_stake_hour": -9.715310089186673e-07,
+       "leverage_pp": -0.8050111300502396
+      }
+     }
+    },
+    "beats_leverage": false
+   },
+   "beats_leverage_2022": false,
+   "evidence": "2022 CONFIRMATORY; 2023-26 EXPLORATORY",
+   "decision": "NOT ADOPTED"
+  },
+  "ST_MOM": {
+   "book": "ST_MOM",
+   "kind": "SimpleTrigger",
+   "A_2023_26": {
+    "arm": "st_hp_mom",
+    "control": "st_g24_mom",
+    "verdict": "FAIL",
+    "failed": [
+     "risk"
+    ],
+    "arm_trades": 4860,
+    "ctl_trades": 5300,
+    "arm_pp": 60.238,
+    "ctl_pp": 34.85,
+    "early_gain_pp": 24.327000000000005,
+    "late_gain_pp": 1.0610000000000006,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 25.38823587049517,
+     "ci_pp_yr": [
+      -6.418318382888337,
+      20.458804653048468
+     ],
+     "p": 0.3166
+    },
+    "risk": {
+     "days": 1345,
+     "arm": {
+      "sharpe": 0.6105572528024046,
+      "maxdd": 38.71482393551639,
+      "daily_sd": 1.4014199558743694
+     },
+     "ctl": {
+      "sharpe": 0.5799826559337751,
+      "maxdd": 24.12718214742067,
+      "daily_sd": 0.8535165052797733
+     },
+     "sharpe_delta": 0.03057459686862951,
+     "sharpe_ci": [
+      -0.31133153369325145,
+      0.36810538876460835
+     ],
+     "sharpe_p": 0.843,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 14.587641788095723,
+     "maxdd_ci": [
+      2.9731079850514965,
+      38.11059131090366
+     ],
+     "maxdd_p": 0.01,
+     "verdict_maxdd": "WORSENED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.2043,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.9435,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "force_exit": 64,
+     "metric_overbought": 532,
+     "roi": 916,
+     "trailing_stop_loss": 1967,
+     "unclog_12h": 855,
+     "unclog_1d": 522,
+     "stop_loss": 4
+    },
+    "exits_ctl": {
+     "force_exit": 59,
+     "metric_overbought": 645,
+     "roi": 1037,
+     "stop_loss": 14,
+     "trailing_stop_loss": 2018,
+     "unclog_12h": 972,
+     "unclog_1d": 555
+    }
+   },
+   "n_adds": {
+    "f00": 297,
+    "f01": 126,
+    "f02": 127,
+    "f03": 320,
+    "f04": 386,
+    "f05": 243,
+    "f06": 218,
+    "f07": 367,
+    "f08": 361,
+    "f09": 186,
+    "f10": 209,
+    "f11": 292,
+    "f12": 177,
+    "f13": 161,
+    "f14": 163
+   },
+   "exposure": {
+    "arm": "st_hp_mom",
+    "control": "st_g24_mom",
+    "n_adds": 3633,
+    "trade_gain_pp": 25.388000000000005,
+    "exposure_arm": {
+     "avg_stake": 2520.723895228259,
+     "peak_stake": 11723.169509999982,
+     "stake_hours": 81334307.38440882
+    },
+    "exposure_ctl": {
+     "avg_stake": 1447.8532719411735,
+     "peak_stake": 6521.460689999994,
+     "stake_hours": 46716795.635771886
+    },
+    "decomposition": {
+     "same_n": 4282,
+     "same_entry_pp": 12.388518628789493,
+     "forgone_n": 1018,
+     "forgone_pair_held_n": 969,
+     "forgone_pp": 31.718254383745144,
+     "new_n": 578,
+     "new_pp": 44.717735754955655
+    },
+    "leverage": {
+     "leverage_pp": 22.768383358802815,
+     "per_fold": {
+      "f00": {
+       "extra_stake_hours": 2874404.464276025,
+       "ctl_pp_per_stake_hour": 2.3454060216463346e-06,
+       "leverage_pp": 6.741645539160095
+      },
+      "f01": {
+       "extra_stake_hours": 1158752.1558400001,
+       "ctl_pp_per_stake_hour": -2.3799287640065662e-06,
+       "leverage_pp": -2.7577475860382354
+      },
+      "f02": {
+       "extra_stake_hours": 1093313.99722,
+       "ctl_pp_per_stake_hour": -1.0811229615681364e-06,
+       "leverage_pp": -1.1820068665983836
+      },
+      "f03": {
+       "extra_stake_hours": 2853826.8675275,
+       "ctl_pp_per_stake_hour": 4.262584083306014e-06,
+       "leverage_pp": 12.16467698203378
+      },
+      "f04": {
+       "extra_stake_hours": 3623770.76487,
+       "ctl_pp_per_stake_hour": 1.0038157500313023e-06,
+       "leverage_pp": 3.637598168279485
+      },
+      "f05": {
+       "extra_stake_hours": 2118433.698725,
+       "ctl_pp_per_stake_hour": -4.11140077387155e-06,
+       "leverage_pp": -8.709729948333534
+      },
+      "f06": {
+       "extra_stake_hours": 1700487.8733475,
+       "ctl_pp_per_stake_hour": 1.624869446702484e-06,
+       "leverage_pp": 2.763070789890436
+      },
+      "f07": {
+       "extra_stake_hours": 3085221.4824675,
+       "ctl_pp_per_stake_hour": 4.39650265654775e-06,
+       "leverage_pp": 13.56418444370655
+      },
+      "f08": {
+       "extra_stake_hours": 3334054.0960075,
+       "ctl_pp_per_stake_hour": -1.4498391842824562e-06,
+       "leverage_pp": -4.833842270909096
+      },
+      "f09": {
+       "extra_stake_hours": 1587474.2448475,
+       "ctl_pp_per_stake_hour": -6.61710714489043e-07,
+       "leverage_pp": -1.0504487167909933
+      },
+      "f10": {
+       "extra_stake_hours": 1919403.0054025,
+       "ctl_pp_per_stake_hour": 8.7633325800036e-07,
+       "leverage_pp": 1.6820366891400556
+      },
+      "f11": {
+       "extra_stake_hours": 2467555.636785,
+       "ctl_pp_per_stake_hour": -1.4104765516766362e-06,
+       "leverage_pp": -3.4804293656427534
+      },
+      "f12": {
+       "extra_stake_hours": 1682564.6119425,
+       "ctl_pp_per_stake_hour": -1.8605027771434472e-06,
+       "leverage_pp": -3.130416133242308
+      },
+      "f13": {
+       "extra_stake_hours": 1561794.0884,
+       "ctl_pp_per_stake_hour": -1.4359031401802067e-06,
+       "leverage_pp": -2.2425850358484434
+      },
+      "f14": {
+       "extra_stake_hours": 1340165.1842025,
+       "ctl_pp_per_stake_hour": 7.165069487841007e-06,
+       "leverage_pp": 9.602376669996156
+      }
+     }
+    },
+    "beats_leverage": true
+   },
+   "beats_leverage": true,
+   "B_2022": {
+    "arm": "st_e22_hp_mom",
+    "control": "st_e22_g24_mom",
+    "verdict": "FAIL",
+    "failed": [
+     "2022 gain",
+     "risk maxdd"
+    ],
+    "gain_pp": -56.946,
+    "arm_pp": -99.5,
+    "ctl_pp": -42.554,
+    "arm_trades": 1341,
+    "ctl_trades": 1508,
+    "per_fold": {
+     "e00": -53.825,
+     "e01": -18.03,
+     "e02": -27.645
+    },
+    "per_fold_ctl": {
+     "e00": -24.507,
+     "e01": -5.468,
+     "e02": -12.579
+    },
+    "paired": {
+     "verdict": "INCONCLUSIVE_ARM_LOSES",
+     "delta_pp": -56.947376396974555,
+     "p": 0.0031
+    },
+    "risk": {
+     "days": 301,
+     "arm": {
+      "sharpe": -2.398009057275316,
+      "maxdd": 127.81981204650111,
+      "daily_sd": 2.6336144613898367
+     },
+     "ctl": {
+      "sharpe": -1.9093453532780877,
+      "maxdd": 61.808789345189346,
+      "daily_sd": 1.4146071122611428
+     },
+     "sharpe_delta": -0.48866370399722836,
+     "sharpe_ci": [
+      -1.055131809140849,
+      0.07141547537692972
+     ],
+     "sharpe_p": 0.083,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 66.01102270131176,
+     "maxdd_ci": [
+      18.25511099936543,
+      110.23187782774407
+     ],
+     "maxdd_p": 0.0,
+     "verdict_maxdd": "WORSENED"
+    }
+   },
+   "n_adds_2022": {
+    "e00": 459,
+    "e01": 428,
+    "e02": 236
+   },
+   "exposure_2022": {
+    "arm": "st_e22_hp_mom",
+    "control": "st_e22_g24_mom",
+    "n_adds": 1123,
+    "trade_gain_pp": -56.945999999999984,
+    "exposure_arm": {
+     "avg_stake": 3674.809264128211,
+     "peak_stake": 11020.421771099995,
+     "stake_hours": 26436577.84613835
+    },
+    "exposure_ctl": {
+     "avg_stake": 2094.342961975943,
+     "peak_stake": 7700.448288000007,
+     "stake_hours": 15066703.268454934
+    },
+    "decomposition": {
+     "same_n": 1097,
+     "same_entry_pp": -60.72702078316934,
+     "forgone_n": 411,
+     "forgone_pair_held_n": 327,
+     "forgone_pp": -17.931684894718213,
+     "new_n": 244,
+     "new_pp": -14.15066411154886
+    },
+    "leverage": {
+     "leverage_pp": -30.973146468805606,
+     "per_fold": {
+      "e00": {
+       "extra_stake_hours": 4850243.30106635,
+       "ctl_pp_per_stake_hour": -3.6443453449686717e-06,
+       "leverage_pp": -17.675961596206637
+      },
+      "e01": {
+       "extra_stake_hours": 4093595.8101634,
+       "ctl_pp_per_stake_hour": -1.0411562465400224e-06,
+       "leverage_pp": -4.262072848561688
+      },
+      "e02": {
+       "extra_stake_hours": 2219585.831146675,
+       "ctl_pp_per_stake_hour": -4.070629708142257e-06,
+       "leverage_pp": -9.035112024037279
+      }
+     }
+    },
+    "beats_leverage": false
+   },
+   "beats_leverage_2022": false,
+   "evidence": "2022 CONFIRMATORY; 2023-26 EXPLORATORY",
+   "decision": "NOT ADOPTED"
+  }
+ }
+}

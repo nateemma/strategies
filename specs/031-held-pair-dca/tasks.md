@@ -267,7 +267,7 @@ for correctly.
   - "switch stays default-off".
 - [X] T024 [US3] Commit the pre-registration (named files only), and record its commit timestamp
   in the `.md`.
-- [ ] T025 [US3] Run the judged chain as ONE sequential script in the scratchpad (`chain_hp.sh`,
+- [X] T025 [US3] Run the judged chain as ONE sequential script in the scratchpad (`chain_hp.sh`,
   log `.log`): `hp_aro_dca` f08–f14; `hp_gbr_dca`, `hp_gfm_dca` and `hp_mlx_dca` f00–f14;
   `st_e22_hp_rev` and `st_e22_hp_mom` e00–e02; `st_hp_rev` and `st_hp_mom` f00–f14. Monitor it to
   completion. Expect 0 errors and every record newer than T024.
@@ -281,7 +281,7 @@ for correctly.
 
   Add a unit test on a synthetic two-trade book with a known answer, in
   `research/held_pair/tests/test_exposure.py`.
-- [ ] T027 [US3] Create `research/held_pair/judge.py`. It refuses (exit 2) if the pre-registration is
+- [X] T027 [US3] Create `research/held_pair/judge.py`. It refuses (exit 2) if the pre-registration is
   dirty or uncommitted, or if any DCA record not in `exempt_records` predates its commit (pattern:
   `research/st_grace/judge.py refusals`). It then:
   - applies `judge_one` per NNNC model and `judge_2022` per SimpleTrigger book;
@@ -292,7 +292,7 @@ for correctly.
 
   Tests in `research/held_pair/tests/test_judge.py`: an older non-exempt record is refused; an
   older exempt record is accepted; zero adds gives INCONCLUSIVE.
-- [ ] T028 [US3] Run the judge. For any ADOPTED book whose gain is under 1 pp, re-run one fold under
+- [X] T028 [US3] Run the judge. For any ADOPTED book whose gain is under 1 pp, re-run one fold under
   a fresh tag and confirm an identical trade set (gate 5). Commit `verdicts.json`, the judge,
   exposure and tests.
 
