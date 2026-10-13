@@ -1,0 +1,76 @@
+{
+ "exit:take_profit": {
+  "ARO": {
+   "early": 9.874,
+   "late": -1.283
+  },
+  "GBR": {
+   "early": 8.562,
+   "late": 0.018
+  },
+  "GFM": {
+   "early": 8.357,
+   "late": -2.941
+  }
+ },
+ "exit:grace_hours": {
+  "ARO": {
+   "early": 10.718,
+   "late": 6.275
+  },
+  "GBR": {
+   "early": 6.15,
+   "late": 0.354
+  },
+  "GFM": {
+   "early": 5.444,
+   "late": 0.512
+  }
+ },
+ "entry:thr_shift": {
+  "ARO": {
+   "early": 10.932,
+   "late": -10.925
+  },
+  "GBR": {
+   "early": 3.498,
+   "late": -18.944
+  },
+  "GFM": {
+   "early": 7.241,
+   "late": -16.659
+  },
+  "MLX": {
+   "early": 0.296,
+   "late": 0.218
+  }
+ },
+ "exit:tp_atr_k": {
+  "ARO": {
+   "early": 9.139,
+   "late": 0.752
+  },
+  "GBR": {
+   "early": 3.569,
+   "late": 6.368
+  },
+  "GFM": {
+   "early": 9.022,
+   "late": -2.168
+  }
+ },
+ "exit:stop_scale": {
+  "ARO": {
+   "early": 3.656,
+   "late": -1.254
+  },
+  "GBR": {
+   "early": 1.224,
+   "late": -1.235
+  },
+  "GFM": {
+   "early": 0.521,
+   "late": -2.113
+  }
+ }
+}

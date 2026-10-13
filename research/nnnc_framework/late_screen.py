@@ -2,6 +2,7 @@
 BOTH halves, to set beside the walk-forward arms (does the screen predict the arm?).
 
     PYTHONPATH=. ../../.venv/bin/python -m research.nnnc_framework.late_screen
+    NNNC_FS_ROUND=2 selects round 2 (selection_r2.json -> late_screen_r2.json).
 """
 
 from __future__ import annotations
@@ -58,7 +59,7 @@ def thr_deltas(m: str, d: float) -> dict:
 
 
 def main() -> int:
-    sel = json.loads((HERE / "selection.json").read_text())["candidates"]
+    sel = json.loads((HERE / f"selection{D.SUFFIX}.json").read_text())["candidates"]
     res = {}
     for c in sel:
         res[c["lever"]] = {}
@@ -68,7 +69,7 @@ def main() -> int:
             elif m != "MLX":  # MLX failed the exit-replay fidelity gate
                 res[c["lever"]][m] = exit_deltas(m, c["lever"], c["value"])
         print(c["lever"], res[c["lever"]], flush=True)
-    (HERE / "late_screen.json").write_text(json.dumps(res, indent=1))
+    (HERE / f"late_screen{D.SUFFIX}.json").write_text(json.dumps(res, indent=1))
     return 0
 
 
