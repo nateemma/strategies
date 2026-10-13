@@ -336,6 +336,12 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC42.py",
     # 028 promoted C2: FAMILY_EXIT_OVERRIDES take_profit_atr_mult=k -- a VALUE.
     "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2.py",
+    # research/st_grace arms: SELL_OVERRIDES stoploss_grace_hours=24.0 -- a VALUE.
+    "SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24.py",
+    "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2_G24.py",
+    "research/st_grace/screen.py",             # reads the resolved grace hours and passes the C2
+                                                 # multiplier to the 027 replay as Rules; computes
+                                                 # nothing.
     "utils/tests/test_exit_switches.py",       # sets the switch on stubs; asserts the
                                                  # resolved take-profit, computes none of it.
     "NNNC/NNNC_Live_C2.py",                    # 029 liveness arm: FAMILY_EXIT_OVERRIDES

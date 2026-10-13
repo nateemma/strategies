@@ -1,0 +1,65 @@
+{
+ "label": "PROVISIONAL -- replay deltas vs each reference's own grace (6.5 h); 2023-26 only; the replay ignores re-sequencing (arms keep ~0-0.7x of grace gains)",
+ "MOM": {
+  "trades": 6156,
+  "base_grace": 6.5,
+  "fidelity": 0.9963,
+  "delta_pp": {
+   "6.5": {
+    "early": 0.0,
+    "late": 0.0
+   },
+   "12.0": {
+    "early": 16.941,
+    "late": -2.444
+   },
+   "18.0": {
+    "early": 34.123,
+    "late": -6.647
+   },
+   "24.0": {
+    "early": 34.767,
+    "late": -7.793
+   },
+   "36.0": {
+    "early": 50.229,
+    "late": -5.728
+   },
+   "48.0": {
+    "early": 58.487,
+    "late": -6.68
+   }
+  }
+ },
+ "REV": {
+  "trades": 3347,
+  "base_grace": 6.5,
+  "fidelity": 0.9979,
+  "delta_pp": {
+   "6.5": {
+    "early": 0.0,
+    "late": 0.0
+   },
+   "12.0": {
+    "early": 19.335,
+    "late": 9.225
+   },
+   "18.0": {
+    "early": 35.296,
+    "late": 13.07
+   },
+   "24.0": {
+    "early": 47.284,
+    "late": 21.259
+   },
+   "36.0": {
+    "early": 58.406,
+    "late": 26.774
+   },
+   "48.0": {
+    "early": 64.402,
+    "late": 31.506
+   }
+  }
+ }
+}

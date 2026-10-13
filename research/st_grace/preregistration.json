@@ -1,0 +1,37 @@
+{
+  "title": "SimpleTrigger grace study: NNNC's adopted 24 h grace window on the two SimpleTrigger reference books",
+  "date": "2026-10-13",
+  "label": "PROVISIONAL -- 2022 (3 folds) is the confirmatory window; 2023-26 is EXPLORATORY (late-half replays were seen in screen.json, and the window was used by 027/028)",
+  "value": {"stoploss_grace_hours": 24.0, "from": 6.5, "why": "fixed, not selected: the value adopted on NNNC (research/nnnc_framework, ed6049b). No grid choice is made here."},
+  "families": {
+    "MOM": {"control": "st_bgo_mx", "arm": "st_g24_mom", "control_2022": "st_e22_bgo_mx", "arm_2022": "st_e22_g24_mom",
+            "class": "SimpleTrigger_BreakoutGbb_MomExit_G24", "base": "SimpleTrigger_BreakoutGbb_MomExit"},
+    "REV": {"control": "st_prom_c2", "arm": "st_g24_rev", "control_2022": "st_e22_prom_c2", "arm_2022": "st_e22_g24_rev",
+            "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24", "base": "SimpleTrigger_RevOnlyVolreg2_P2"}
+  },
+  "declared": {"SELL_OVERRIDES.stoploss_grace_hours": 24.0},
+  "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+  "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+  "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+  "folds_2022": ["e00", "e01", "e02"],
+  "min_control_trades": 200,
+  "rule": {
+    "gain": "sum of per-fold return_pct, arm minus its control",
+    "A_2023_26": "nnnc_switches.judge.judge_one PASS: early gain > 0 AND late gain > 0 AND paired and both risk verdicts map to pass (15 folds)",
+    "B_2022": "2022 gain > 0 AND paired verdict maps to pass AND both risk verdicts map to pass (3 folds)",
+    "family_ADOPT": "A PASS AND B PASS",
+    "promotion": "grace is shared by every family by definition (utils/FamilyExits FORBIDDEN_KEYS). Both families ADOPT -> propose ARM_D_OPEN / LEGACY presets 24 h. One family only -> report; the preset stays 6.5 h and a per-family grace is a user decision.",
+    "paired_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "INCONCLUSIVE_UNDERPOWERED": "pass", "INCONCLUSIVE_ARM_LOSES": "pass", "INCONCLUSIVE_ABSORBED": "inconclusive", "UNRESOLVABLE": "inconclusive"},
+    "risk_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "UNRESOLVABLE": "inconclusive"}
+  },
+  "screen": {
+    "file": "research/st_grace/screen.json",
+    "fidelity": {"MOM": 0.9963, "REV": 0.9979},
+    "replay_24h_pp": {"MOM": {"early": 34.767, "late": -7.793}, "REV": {"early": 47.284, "late": 21.259}},
+    "expectation": "REV passes 2023-26; MOM fails late. Arms historically keep ~0-0.7x of a grace replay gain (re-sequencing)."
+  },
+  "prior_evidence": [
+    "028: grace 12 h (C4) on gated reversion stopped at feasibility on 2022 -- stop-exit recovery 0.469 < 0.50 and replay gain <= 0 in 2022; the 2023-26 exploratory C4 arm (12 h) gained +8.44 pp in total and +6.26 late vs st_book_rev2",
+    "NNNC 24 h was adopted on 2023-26 only; no NNNC model covers 2022"
+  ]
+}
