@@ -13,6 +13,9 @@
 - `check_manifest(location, key)`: raises `ModelKeyMismatch(fields)` (FR-008).
 - `record_training(location, key, actual_timerange)`: writes the manifest and index entry after a
   successful train (FR-010).
+- Report mode: `FT_MODEL_KEY=report`. It resolves and logs the key and the manifest comparison but
+  returns the pre-030 path (R11). It is used once before strict switch-on.
+- Arm records gain `model_key` (`hash`, `prefix`, `kind`), written by `regime/run_arm.py` (R12).
 - Strict mode: `FT_MODEL_EVAL_STRICT=1`.
   - In strict mode, `locate` on a missing model raises `ModelMissing(hash, prefix, key)` before any
     training starts (FR-009).

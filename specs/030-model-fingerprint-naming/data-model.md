@@ -34,7 +34,7 @@ but unreadable.
 | `kind` | `keyed` (trained under 030), `migrated` (walk-forward set indexed from a plan) or `legacy` (single model, per-class key) |
 | `provenance` | `trained` (with the run's actual timerange); `reconstructed-from-plan` (plan path, run_id, params_sha, fold); or `legacy-unknown` (with a list of unknown inputs) |
 | `weights` | relative path, size, sha256 of the bytes at index time |
-| `users` | class names seen resolving to this key, each with its `trained_with` pins. Append-only. |
+| `users` | class names that resolved to this key, each with its `trained_with` pins. Written at migration and at training only, never at load (R12). |
 | `written` | ISO time |
 
 **Rules:**

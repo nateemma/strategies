@@ -117,6 +117,17 @@ NNWavelet, Anomaly, Sklearn, plus Framework and utils mixins) for assigned class
   read on the training path (`num_epochs`, `stride`, `refit_model`, `model_per_pair`,
   `combine_models`, `filter_signals`).
 
+**Where each list lives (constitution: Framework stays strategy-agnostic).** Each class declares
+only the names it owns:
+- `Framework/BaseStrategy`/`BaseNNStrategy` declare BaseStrategy and BaseNN names.
+- `utils/EntryFramework.EntryFrameworkMixin` declares the entry-framework names:
+  `FAMILY_EXIT_OVERRIDES`, `FAMILY_EXITS`, `REVERSION_REGIME_GATE`, `ENTRY_MODE`, `TRIGGER_*`,
+  `MODEL_ENTRY_FAMILY`, the coexistence and pre-emption rules.
+- Other `utils/` mixins declare theirs, and each family base declares its own.
+
+The resolver merges all of these along the MRO. `Framework/` never names a family or
+entry-framework concept.
+
 An unclassified name fails the test, so every new attribute has to be classified when it's added.
 
 A second audit covers methods: any training-path-named method defined in a family class must be
@@ -210,6 +221,11 @@ reference only class names, so no fingerprint changes.
 **Detecting walk-forward evaluation.** `run_folds.evaluate_fold` sets
 `FT_MODEL_EVAL_STRICT=1`, which the resolver reads. `train_fold` doesn't set it.
 
+**Verification chains export strict mode.** The baseline and after chains export
+`FT_MODEL_EVAL_STRICT=1` for every run, including the `regime/run_arm.py` NNMT arms that bypass
+`evaluate_fold`. A key miss anywhere in verification therefore stops the run instead of training
+(FR-020). On the baseline, where the loader is still the old one, the variable is inert.
+
 ## R9. Verification for families without weights
 
 **Finding.** Only NNNC and NNMT have weights on disk. The NNPredict, NNWavelet, Anomaly and
@@ -230,3 +246,36 @@ weights" therefore can't be met for them without training, and FR-020 forbids tr
   `scripts/model_index.py path <Family> <Class>` prints that path. Without this, `-f` would leave
   keyed models in place and its post-check would fail.
 - Checkpoint stems are unique per key (R7).
+
+## R11. When inputs are resolved (migration key = live key)
+
+**Risk.** Migration resolves keys from a stub instance, while a live run resolves them inside
+`maybe_train`. These can differ:
+- `process_one_hot_columns` mutates the class-level `include_list` / `pre_normalized_columns` in
+  place;
+- the whitelist comes from `dp` in a live run but from the config in migration;
+- classifier attributes are set only when `get_classifier` builds the classifier.
+
+Any difference would make the FR-008 manifest check stop every arm.
+
+**Decision.**
+- `resolve` reads list and dict attributes from the class's **declared** values: the MRO lookup of
+  the class attribute, deep-copied, and never the instance's mutated copy.
+- The whitelist comes from `config["exchange"]["pair_whitelist"]` (StaticPairList, in order).
+  `dp.current_whitelist()` is used only to assert equality in a live run.
+- Classifier identity is `get_classifier_type()` plus the classifier class looked up through the
+  family's factory, without building it. Mixin-set classifier attributes are declared strategy
+  attributes (`train_seed`, `pnl_loss_alpha`, `ponder_steps`), so they are on the attribute list.
+- **Report-only live check before strict switch-on.** One real arm D f00 run, with the new loader
+  in report mode (`FT_MODEL_KEY=report`: it resolves and logs the key and the manifest comparison
+  but loads by the old path), must show live key = migrated key, with no mismatched fields.
+
+## R12. Manifest `users` and concurrency
+
+**Decision.**
+- The manifest's `users` list is written only at migration and at training, never at load.
+- At load, the key hash and prefix are written into the arm record (`model_key`) by
+  `regime/run_arm.py`'s record fields.
+- Training into a key holds a lock file `<location>/.training.lock` (created exclusively). A
+  second run that finds it stops with an error naming the holder.
+- Index writes are atomic (temp file, then rename).

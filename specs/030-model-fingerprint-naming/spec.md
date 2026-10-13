@@ -274,10 +274,14 @@ method and gain target. The manifest lists every key input and the classes known
 - **FR-018**: Arm D and the reference NNNC arms MUST reproduce their per-fold trades 15/15 after the
   change. The reference arms are GbbRaw, GbbFwdMae, ForwardMAE_Raw and NNNC_MLX, together with the
   twin and a switch-experiment arm.
-- **FR-018a**: For each other in-scope family (NNMT, NNPredict, NNWavelet, Anomaly, Sklearn), at
-  least one representative strategy with existing weights MUST be run before and after the change
-  over the same timerange, on the same day, and MUST produce identical trades. Old records are not
-  the baseline, because many predate later fixes.
+- **FR-018a**: NNMT, the only other in-scope family with trained weights, MUST have
+  representative strategies run before and after the change over the same timerange, on the same
+  day, producing identical trades. Old records are not the baseline, because many predate later
+  fixes. The representatives are one legacy redirect and one legacy own-weights class.
+  - NNPredict, NNWavelet, Anomaly and Sklearn have no trained weights on disk (research R9).
+    Producing trades for them would need training, which FR-020 forbids. For these families,
+    every class MUST resolve a key, and a strict-mode run MUST stop with the missing-key message
+    before any training. (Amended at analyze, 2026-10-12.)
 - **FR-019**: Every NNNC strategy's 029 framework fingerprint MUST be unchanged, except where a
   change is listed and justified.
 - **FR-020**: No training MUST occur during migration or verification, and no weight file's bytes
@@ -306,8 +310,10 @@ method and gain target. The manifest lists every key input and the classes known
 
 - **SC-001**: Arm D and every reference NNNC arm reproduce their baseline per-fold trades in 15/15
   folds, with zero training runs and zero changed weight bytes.
-- **SC-002**: Every former `BorrowedModelMixin` user, run without the mixin, reproduces its
-  recorded trades 15/15 (or on its recorded folds).
+- **SC-002**: Every former `BorrowedModelMixin` user resolves, without the mixin, to exactly the
+  key of the weights it loaded with the mixin. That is checked for 100% of user fold classes. The
+  representative users, run without the mixin, reproduce their trades 15/15: the twin, one gate
+  arm (warm-up pin) and one non-arm-D model arm.
 - **SC-003**: For every declared weight-affecting input, a class differing only in that input gets
   a different key. For every post-model setting, the key is unchanged. Both are checked by tests,
   with 100% of declared inputs covered.
@@ -317,9 +323,10 @@ method and gain target. The manifest lists every key input and the classes known
   first attempt.
 - **SC-006**: Every NNNC strategy fingerprint is unchanged (approximately 300 strategies), or the
   change is listed and justified.
-- **SC-007**: Each in-scope non-NNNC family's representative strategy produces identical trades
-  before and after the change. Every NNMT path override is either removed with identical weights
-  loaded, or recorded as a legacy redirect.
+- **SC-007**: NNMT's representative strategies produce identical trades before and after the
+  change. Every NNMT path override is either removed with identical weights loaded, or recorded as
+  a legacy redirect. Every NNPredict, NNWavelet, Anomaly and Sklearn class resolves a key, and one
+  strict-mode run per family stops before training (FR-018a).
 - **SC-008**: In walk-forward evaluation, a run whose key has no weights stops before any training,
   in 100% of attempts, and names the missing key.
 
@@ -341,3 +348,6 @@ method and gain target. The manifest lists every key input and the classes known
   - TSPredict's per-pair model files.
 - **Model-code version.** It starts at one value for all existing models. Bumping it is a manual
   step when training behaviour changes, documented in the agent guide.
+- **Candle data isn't keyed.** The candle data on disk shapes the weights, but it is not part of
+  the key. A data refresh or gap-fill over a training window doesn't rekey models. The manifest
+  records the trained range, so a model can be traced to the data period it saw.

@@ -102,9 +102,14 @@ backtest time is unchanged.
 | Quality gate 7 (scalers regenerated) | Strengthened: a regenerated scaler rekeys every model that uses it. |
 | Staging / commit to master | Followed. |
 
-**Spec amendment needed (flagged for analyze).** FR-018a asks for a representative of each other
-family *with existing weights*. NNPredict, NNWavelet, Anomaly and Sklearn have none (research R9),
-so for them verification is key resolution plus a strict-mode halt. NNMT is verified by trades.
+**Spec amended at analyze (FR-018a, SC-002, SC-007).**
+- NNPredict, NNWavelet, Anomaly and Sklearn have no weights (R9), so they are verified by key
+  resolution plus a strict-mode halt. NNMT is verified by trades.
+- Borrowed users are verified by key equality for all, plus trades for representatives.
+
+**Framework neutrality of the key lists (C1).** Each class declares only the key names it owns. The
+entry-framework names live on `utils/EntryFramework.EntryFrameworkMixin`, never in `Framework/`
+(R5).
 
 ## Project Structure
 
@@ -151,9 +156,10 @@ family-specific input is a declaration in that family's base class.
 
 ## Phases
 
-1. **Baseline**, on unchanged code, same day:
+1. **Baseline**, on unchanged code, same day, with `FT_MODEL_EVAL_STRICT=1` exported for the
+   whole chain (inert on the old loader):
    - arm D 15 folds;
-   - FMR control (GBR, GFM and MLX were run today as `sw_*_ctl`; if the day changes, re-run them);
+   - FMR, GBR, GFM and MLX controls;
    - twin `wf_trgate`; `sw_aro_gate` and `sw_mlx_c2`;
    - NNMT_MLX_Base and NNMT_Ctl_s42 on W1;
    - weight sha256 snapshot, fingerprint scan, and the AST list of path overrides.
@@ -164,7 +170,9 @@ family-specific input is a declaration in that family's base class.
    - `migrate --dry-run`, then `migrate`;
    - snapshot committed;
    - conflicts gate the next phase (any conflict → stop and report);
-   - borrowed users' keys checked equal to their sources' keys, offline.
+   - borrowed users' keys checked equal to their sources' keys, offline;
+   - a **live-key check** (R11): arm D f00 and one gate arm f00, with the resolver in report mode.
+     The live key must equal the migrated key, with identical trades.
 4. **Switch the loader:**
    - `get_model_path` → `locate`, plus strict mode, the `run_folds` template pins, the
      `test_strat.sh` change, and the mixin removal.
