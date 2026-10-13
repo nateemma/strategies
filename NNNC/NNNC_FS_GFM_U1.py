@@ -1,0 +1,20 @@
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
+# type: ignore
+"""NNNC framework study, stage 2 (research/nnnc_framework/): exit:unclog_1d_hours = 12.0 on `NNNC_GbbFwdMae_Open`.
+
+One lever changed, nothing else. Weights: the base's per-fold models, found by model key (030).
+Pre-registered in research/nnnc_framework/preregistration.json.
+"""
+
+import sys
+from pathlib import Path
+
+
+sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
+
+from NNNC_GbbFwdMae_Open import NNNC_GbbFwdMae_Open
+
+
+class NNNC_FS_GFM_U1(NNNC_GbbFwdMae_Open):
+    FAMILY_EXIT_OVERRIDES = {"reversion": {'unclog_1d_hours': 12.0}}

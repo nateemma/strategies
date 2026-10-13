@@ -1,0 +1,250 @@
+{
+ "title": "NNNC framework study, stage 2: six entry/exit/stop levers chosen on the early half, tested on four NNNC models",
+ "date": "2026-10-13",
+ "label": "PROVISIONAL -- values chosen on early-half (f00-f07) replays/simulations of these models' own trades; the late half (f08-f14) is the out-of-sample test of the choice. Quality gate 2: 2023-26 halves only, no distant era (2022 is inside every model's training window).",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "min_control_trades": 200,
+ "primary_model": "ARO",
+ "replications_needed": 2,
+ "selection": {
+  "script": "research/nnnc_framework/select.py (committed 5984344 before any lever result)",
+  "screens": [
+   "diagnose.json (exit/stop levers; 027 replay with the .json operating point; null fidelity ARO 0.999, GBR/GFM >= 0.999, MLX 0.878 < 0.90 -> MLX not screened for exits: its 45 model_exit trades are the only mismatches)",
+   "entries.json (entry levers; simulator recall/precision >= 0.998 on all four models)"
+  ]
+ },
+ "models": {
+  "ARO": {
+   "base": "NNNC_A_Raw_Open",
+   "control": "wf_aro_b030"
+  },
+  "GBR": {
+   "base": "NNNC_GbbRaw_Open",
+   "control": "sw_gbr_ctl_b030"
+  },
+  "GFM": {
+   "base": "NNNC_GbbFwdMae_Open",
+   "control": "sw_gfm_ctl_b030"
+  },
+  "MLX": {
+   "base": "NNNC_MLX",
+   "control": "sw_mlx_ctl_b030"
+  }
+ },
+ "controls_note": "030 baseline runs (2026-10-12/13) on the current code; they predate this file by design and equal the earlier records 15/15",
+ "candidates": [
+  {
+   "name": "GR",
+   "lever": "exit:grace_hours",
+   "value": "24.0",
+   "early_sum_pp": 56.367,
+   "arms": {
+    "ARO": "fs_aro_gr",
+    "GBR": "fs_gbr_gr",
+    "GFM": "fs_gfm_gr",
+    "MLX": "fs_mlx_gr"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_GR",
+    "GBR": "NNNC_FS_GBR_GR",
+    "GFM": "NNNC_FS_GFM_GR",
+    "MLX": "NNNC_FS_MLX_GR"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  },
+  {
+   "name": "TH",
+   "lever": "entry:thr_shift",
+   "value": "-0.05",
+   "early_sum_pp": 21.158,
+   "arms": {
+    "ARO": "fs_aro_th",
+    "GBR": "fs_gbr_th",
+    "GFM": "fs_gfm_th",
+    "MLX": "fs_mlx_th"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_TH",
+    "GBR": "NNNC_FS_GBR_TH",
+    "GFM": "NNNC_FS_GFM_TH",
+    "MLX": "NNNC_FS_MLX_TH"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  },
+  {
+   "name": "TP",
+   "lever": "exit:take_profit",
+   "value": "0.04",
+   "early_sum_pp": 16.993,
+   "arms": {
+    "ARO": "fs_aro_tp",
+    "GBR": "fs_gbr_tp",
+    "GFM": "fs_gfm_tp",
+    "MLX": "fs_mlx_tp"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_TP",
+    "GBR": "NNNC_FS_GBR_TP",
+    "GFM": "NNNC_FS_GFM_TP",
+    "MLX": "NNNC_FS_MLX_TP"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  },
+  {
+   "name": "TK",
+   "lever": "exit:tp_atr_k",
+   "value": "4.5",
+   "early_sum_pp": 11.7,
+   "arms": {
+    "ARO": "fs_aro_tk",
+    "GBR": "fs_gbr_tk",
+    "GFM": "fs_gfm_tk",
+    "MLX": "fs_mlx_tk"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_TK",
+    "GBR": "NNNC_FS_GBR_TK",
+    "GFM": "NNNC_FS_GFM_TK",
+    "MLX": "NNNC_FS_MLX_TK"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  },
+  {
+   "name": "SS",
+   "lever": "exit:stop_scale",
+   "value": "2.0",
+   "early_sum_pp": 8.134,
+   "arms": {
+    "ARO": "fs_aro_ss",
+    "GBR": "fs_gbr_ss",
+    "GFM": "fs_gfm_ss",
+    "MLX": "fs_mlx_ss"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_SS",
+    "GBR": "NNNC_FS_GBR_SS",
+    "GFM": "NNNC_FS_GFM_SS",
+    "MLX": "NNNC_FS_MLX_SS"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  },
+  {
+   "name": "U1",
+   "lever": "exit:unclog_1d_hours",
+   "value": "12.0",
+   "early_sum_pp": 0.913,
+   "arms": {
+    "ARO": "fs_aro_u1",
+    "GBR": "fs_gbr_u1",
+    "GFM": "fs_gfm_u1",
+    "MLX": "fs_mlx_u1"
+   },
+   "classes": {
+    "ARO": "NNNC_FS_ARO_U1",
+    "GBR": "NNNC_FS_GBR_U1",
+    "GFM": "NNNC_FS_GFM_U1",
+    "MLX": "NNNC_FS_MLX_U1"
+   },
+   "controls": {
+    "ARO": "wf_aro_b030",
+    "GBR": "sw_gbr_ctl_b030",
+    "GFM": "sw_gfm_ctl_b030",
+    "MLX": "sw_mlx_ctl_b030"
+   }
+  }
+ ],
+ "rule": {
+  "gain": "sum of per-fold return_pct, arm minus its control, over a half",
+  "per_model_PASS": "early gain > 0 AND late gain > 0 AND paired verdict (15 folds) maps to pass AND both risk verdicts (Sharpe, maxDD; 15 folds) map to pass",
+  "per_model_INCONCLUSIVE": "control < min_control_trades, OR the arm changed trades in 0 folds, OR a mapped verdict is inconclusive",
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "switch_ADOPT": "PASS on the primary model (ARO) AND PASS on at least replications_needed of GBR, GFM, MLX",
+  "combination": "run only if >= 2 candidates are ADOPTED: all ADOPTED levers together on the four models, judged by the same rule; if both TP (fixed take-profit) and TK (ATR take-profit) are adopted they conflict -- the combination takes the one with the larger early_sum_pp (TP)",
+  "candidate_ADOPT": "PASS on ARO AND PASS on at least replications_needed of GBR, GFM, MLX"
+ },
+ "notes": [
+  "grace_hours 24, take_profit 0.04, tp_atr_k 4.5 and stop_scale 2.0 are the edges of their screened grids; this tests the chosen value, not the optimum",
+  "thr_shift -0.05 lowers every fold's threshold (MLX: its single .json threshold) by 0.05 and so ADDS trades; the screen ignores wallet shrinkage",
+  "the screens price levers one at a time, so TP and TK both widen the take-profit and are not independent"
+ ],
+ "reported_only": [
+  "per-half paired and risk verdicts",
+  "exit-reason counts",
+  "late-half replay/simulation deltas for the chosen values, computed after this commit",
+  "arm vs screen agreement (early half)"
+ ]
+}

@@ -1,0 +1,146 @@
+[
+ {
+  "name": "GR",
+  "lever": "exit:grace_hours",
+  "value": "24.0",
+  "early_sum_pp": 56.367,
+  "arms": {
+   "ARO": "fs_aro_gr",
+   "GBR": "fs_gbr_gr",
+   "GFM": "fs_gfm_gr",
+   "MLX": "fs_mlx_gr"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_GR",
+   "GBR": "NNNC_FS_GBR_GR",
+   "GFM": "NNNC_FS_GFM_GR",
+   "MLX": "NNNC_FS_MLX_GR"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ },
+ {
+  "name": "TH",
+  "lever": "entry:thr_shift",
+  "value": "-0.05",
+  "early_sum_pp": 21.158,
+  "arms": {
+   "ARO": "fs_aro_th",
+   "GBR": "fs_gbr_th",
+   "GFM": "fs_gfm_th",
+   "MLX": "fs_mlx_th"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_TH",
+   "GBR": "NNNC_FS_GBR_TH",
+   "GFM": "NNNC_FS_GFM_TH",
+   "MLX": "NNNC_FS_MLX_TH"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ },
+ {
+  "name": "TP",
+  "lever": "exit:take_profit",
+  "value": "0.04",
+  "early_sum_pp": 16.993,
+  "arms": {
+   "ARO": "fs_aro_tp",
+   "GBR": "fs_gbr_tp",
+   "GFM": "fs_gfm_tp",
+   "MLX": "fs_mlx_tp"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_TP",
+   "GBR": "NNNC_FS_GBR_TP",
+   "GFM": "NNNC_FS_GFM_TP",
+   "MLX": "NNNC_FS_MLX_TP"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ },
+ {
+  "name": "TK",
+  "lever": "exit:tp_atr_k",
+  "value": "4.5",
+  "early_sum_pp": 11.7,
+  "arms": {
+   "ARO": "fs_aro_tk",
+   "GBR": "fs_gbr_tk",
+   "GFM": "fs_gfm_tk",
+   "MLX": "fs_mlx_tk"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_TK",
+   "GBR": "NNNC_FS_GBR_TK",
+   "GFM": "NNNC_FS_GFM_TK",
+   "MLX": "NNNC_FS_MLX_TK"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ },
+ {
+  "name": "SS",
+  "lever": "exit:stop_scale",
+  "value": "2.0",
+  "early_sum_pp": 8.134,
+  "arms": {
+   "ARO": "fs_aro_ss",
+   "GBR": "fs_gbr_ss",
+   "GFM": "fs_gfm_ss",
+   "MLX": "fs_mlx_ss"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_SS",
+   "GBR": "NNNC_FS_GBR_SS",
+   "GFM": "NNNC_FS_GFM_SS",
+   "MLX": "NNNC_FS_MLX_SS"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ },
+ {
+  "name": "U1",
+  "lever": "exit:unclog_1d_hours",
+  "value": "12.0",
+  "early_sum_pp": 0.913,
+  "arms": {
+   "ARO": "fs_aro_u1",
+   "GBR": "fs_gbr_u1",
+   "GFM": "fs_gfm_u1",
+   "MLX": "fs_mlx_u1"
+  },
+  "classes": {
+   "ARO": "NNNC_FS_ARO_U1",
+   "GBR": "NNNC_FS_GBR_U1",
+   "GFM": "NNNC_FS_GFM_U1",
+   "MLX": "NNNC_FS_MLX_U1"
+  },
+  "controls": {
+   "ARO": "wf_aro_b030",
+   "GBR": "sw_gbr_ctl_b030",
+   "GFM": "sw_gfm_ctl_b030",
+   "MLX": "sw_mlx_ctl_b030"
+  }
+ }
+]
