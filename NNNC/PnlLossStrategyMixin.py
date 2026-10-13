@@ -29,6 +29,13 @@ class PnlLossStrategyMixin:
     # Optional training-seed override for robustness sweeps (None = default).
     train_seed = None
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "pnl_loss_alpha", "train_seed",
+    )
+
     def get_training_labels(self, dataframe):
         labels = super().get_training_labels(dataframe)
         if self.pnl_loss_alpha is not None:

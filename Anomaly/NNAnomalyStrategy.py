@@ -136,6 +136,19 @@ class NNAnomalyStrategy(BaseNNStrategy):
     # Utility functions
     # -----------
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "class_weights",
+    )
+    MODEL_KEY_IGNORED = (
+        "opt_framework", "opt_guards",
+    )
+    MODEL_KEY_METHODS = (
+        "get_trading_classes", "get_class_weights",
+    )
+
     def get_class_weights(self, category_array):
         """Get class weights for a given category array (each entry is a class identifier)"""
 

@@ -281,6 +281,56 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # Strategy info override
     # =========================================================================
 
+    # Feature 030 run pins (Framework/ModelKey.py). Walk-forward fold classes are generated with
+    # their training window and seed; MODEL_TRAINED_WITH names values the weights were trained
+    # with that differ from this class's own (e.g. {"startup_candle_count": 64} on a 4096-bar
+    # arm). Bump MODEL_CODE_VERSION when a change to training code changes what training
+    # produces, so old weights are not served to new code.
+    MODEL_TRAIN_TIMERANGE = None
+    MODEL_SEED = None
+    MODEL_TRAINED_WITH: dict = {}
+    MODEL_CODE_VERSION = 1
+
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "seq_len", "batch_size", "TRAIN_DATA_SPLIT", "shuffle_train_data", "use_markov_smoothing",
+        "markov_smoothing_alpha", "tensor_method", "lookahead_window", "RISK_LOOKBACK",
+        "FLOW_LOOKBACK", "LABEL_FILTER_WINDOW", "MIN_BUY_GAIN_THRESHOLD",
+        "MIN_SELL_LOSS_THRESHOLD", "TRAINING_TYPE", "LABEL_RVOL_THRESHOLD", "HORIZON",
+        "LABEL_MAX_DRAWDOWN", "use_forward_peak_profit_label", "apply_label_conflict_resolution",
+        "classifier_type", "aggregate_pairs", "regime_ema_period", "regime_deadband",
+        "risk_smoothing_span", "flow_smoothing_span", "momentum_smoothing_span", "task_thresholds",
+        "gan_type", "gan_augment", "gan_target_ratio", "gan_augment_seed", "gan_condition_tasks",
+        "use_post_gan_scaling", "gan_passthrough_columns", "gan_inference_sample_steps",
+        "gan_inference_guidance_scale", "gan_inference_zscore_clip",
+        "gan_inference_dispersion_scale", "gan_entropy_guidance", "gan_entropy_select_fraction",
+        "gan_entropy_guidance_model", "gan_synth_autoencoder_model_root",
+        "gan_synth_autoencoder_reject_pct", "gan_synth_autoencoder_threshold",
+        "gan_synth_density_components", "gan_synth_density_reject_pct",
+        "gan_synth_discrim_reject_pct", "gan_synth_mahalanobis_reject_pct",
+        "gan_synth_mahalanobis_threshold", "gan_synth_neural_discrim_model_path",
+        "gan_synth_neural_discrim_reject_pct", "gan_synth_neural_discrim_threshold",
+        "gan_synth_realsignal_model_root", "gan_synth_realsignal_reject_pct",
+        "gan_synth_realsignal_threshold",
+    )
+    MODEL_KEY_IGNORED = (
+        "num_epochs", "stride", "refit_model", "model_per_pair", "combine_models",
+        "dbg_scan_classifiers", "dbg_test_classifier", "filter_signals", "training_needed",
+        "classifier", "df_array", "label_array", "pair_count", "markov_transition_matrix",
+        "gan_run_diagnostics",
+    )
+    MODEL_KEY_METHODS = (
+        "get_training_labels", "get_train_buy_signals", "get_train_sell_signals",
+        "filter_peaks_by_future_performance", "augment_training_signals", "get_classifier_type",
+        "get_classifier", "add_sequential_index", "get_market_regime", "get_risk_level",
+        "get_flow", "get_momentum",
+    )
+    MODEL_KEY_METHODS_IGNORED = (
+        "get_predictions", "process_predictions", "get_markov_matrix_path", "model_exists",
+    )
+
     def print_strategy_info(self):
         """Print strategy information"""
         print("")

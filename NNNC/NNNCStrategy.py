@@ -237,6 +237,19 @@ class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
     MIN_BUY_GAIN_THRESHOLD = 0.02
     MIN_SELL_LOSS_THRESHOLD = 0.02
     
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "AUG_DILATION",
+    )
+    # NNNC_AblateG's `_thr`/`_guards` feed buy_params (prediction threshold, guards) and `_os`
+    # is the os module it reads them with: all post-model.
+    MODEL_KEY_IGNORED = (
+        "ORACLE_PRECISION", "ORACLE_SEED", "ORACLE_SUBSAMPLE", "TWIN_TRIGGER", "MODEL_SOURCE",
+        "_guards", "_os", "_thr",
+    )
+
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
         return self.classifier_type

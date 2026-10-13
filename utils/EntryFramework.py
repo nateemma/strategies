@@ -101,6 +101,16 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
     #: False when a subclass hierarchy resolves its attributes first (SimpleTrigger presets).
     _ENTRY_FRAMEWORK_AUTO = True
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "ENTRY_MODE", "FAMILY_EXIT_OVERRIDES", "FAMILY_EXITS", "MODEL_ENTRY_FAMILY",
+        "REVERSION_REGIME_GATE", "TRIGGER_NAME", "TRIGGERS", "DISABLED_TRIGGERS",
+        "FAMILY_PRIORITY", "MOMENTUM_PREEMPT", "MOMENTUM_RECENCY_BARS", "_ENTRY_FRAMEWORK_AUTO",
+        "_FAMILY_VALIDATE_ON_SUBCLASS",
+    )
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if cls._ENTRY_FRAMEWORK_AUTO:

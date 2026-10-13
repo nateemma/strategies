@@ -45,6 +45,18 @@ class TrainingEngine:
     """Training data-prep + orchestration. Stateless beyond what it reads via
     self; intended to be mixed into a BaseNNStrategy-like host."""
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "_MULTI_TASK_GAN_TYPES",
+    )
+    MODEL_KEY_METHODS = (
+        "maybe_train", "train_model", "prepare_training_data", "preprocess_training_data",
+        "enhance_training_data", "get_training_class_weights", "_format_for_gan_scaler",
+        "_invoke_balance_multi_task", "_build_entropy_scorer", "_apply_gan_inference_overrides",
+    )
+
     def get_training_class_weights(self, train_labels=None, validation_labels=None):
         """Get the class weights for the training data"""
         if self.apply_label_conflict_resolution and train_labels is not None:

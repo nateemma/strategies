@@ -611,6 +611,35 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Debug / Utility Methods
     # =========================================================================
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "strategy_config", "PEAK_WINDOW", "scaler_type", "inf_timeframe",
+    )
+    MODEL_KEY_IGNORED = (
+        "QUOTE_VOLUME_HEADROOM_MULT", "MIN_QUOTE_VOLUME", "atr_stoploss_cap", "atr_stoploss_floor",
+        "atr_stoploss_multiplier", "use_atr_adaptive_stoploss", "use_volume_confirmation_stoploss",
+        "use_custom_stoploss", "stoploss", "minimal_roi", "trailing_stop",
+        "trailing_stop_positive", "trailing_stop_positive_offset", "take_profit_atr_mult",
+        "use_entry_signal", "exit_profit_only", "ignore_roi_if_entry_signal",
+        "process_only_new_candles", "entry_trend_ema_period", "entry_trend_filter_enable",
+        "entry_trend_slope_window", "entry_bear_deadband", "entry_bear_ema_period",
+        "entry_bear_filter_enable", "buy_params", "sell_params", "opt_base_params", "plot_config",
+        "dbg_verbose", "curr_pair", "custom_trade_info", "dataframePopulator", "dataframeUtils",
+        "dbg_curr_df", "first_run", "first_time", "_abc_impl",
+    )
+    MODEL_KEY_METHODS = (
+        "populate_indicators", "iteration_init", "add_additional_indicators",
+        "add_debug_indicators", "aggregate_dataframes", "bot_start", "get_storage_location",
+    )
+    MODEL_KEY_METHODS_IGNORED = (
+        "get_entry_conditions", "get_exit_conditions", "populate_entry_trend",
+        "populate_exit_trend", "custom_exit", "custom_stoploss", "confirm_trade_entry",
+        "strategy_custom_exit", "_exit_params", "informative_pairs", "print_strategy_info",
+        "get_model_path",
+    )
+
     def debug_print(self, msg: str):
         """Print debug message if in backtest/plot mode"""
         if self.dbg_verbose and (self.dp.runmode.value in ("backtest", "plot")):

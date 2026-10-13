@@ -32,6 +32,13 @@ class NoisyCoconutStrategyMixin:
     noisy_k = 16
     noisy_seed = 42
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "noisy_k", "noisy_sigma", "noisy_seed", "reuse_model_from",
+    )
+
     def get_model_path(self) -> str:
         # Reuse the production model dir instead of this class's own name.
         root_dir = self.get_storage_location()

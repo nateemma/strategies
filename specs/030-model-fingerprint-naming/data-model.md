@@ -15,7 +15,7 @@ The resolved inputs, as canonical JSON with sorted keys and no whitespace.
 | `files` | `{role: sha16 \| "fitted-at-train:<name>" \| "absent"}`, where role is one of `main_scaler`, `pca`, `tensor_scaler`, `gan_generator`, `gan_scaler_a`, `coeff_*` |
 | `models` | `{entropy_guidance: <key hash or legacy key>}` when used |
 | `run` | `train_timerange` (or `"unpinned"`), `whitelist` (ordered list), `timeframe`, `startup_candle_count`, `seed` |
-| `trained_with` | the `MODEL_TRAINED_WITH` pins applied (already reflected in `attributes` and `run`), so they are visible |
+| *(not hashed)* | `MODEL_TRAINED_WITH` pins replace the runtime values in `attributes`/`run`. The pins themselves are not in the key, since that would stop a pinned arm resolving to the trained model; they are recorded in the manifest `users` and the arm record's `model_key` |
 
 **hash:** SHA-256 of the canonical JSON, first 16 hex characters.
 

@@ -24,6 +24,13 @@ class PonderStrategyMixin:
     # Optional training-seed override for robustness sweeps (None = default).
     train_seed = None
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "ponder_steps", "train_seed",
+    )
+
     def get_classifier(self, classifier_type, pair, seq_len, num_features):
         clf = super().get_classifier(classifier_type, pair, seq_len, num_features)
         if clf is not None:

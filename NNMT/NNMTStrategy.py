@@ -331,6 +331,27 @@ class NNMTStrategy(BaseNNStrategy):
     # Utility functions
     # -----------
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "PROFIT_HORIZON", "PROFIT_EMA_SPAN", "PROFIT_ATR_SCALE", "PROFIT_RANGE",
+        "PROFIT_STOP_LOSS_THRESHOLD", "PROFIT_TAKE_THRESHOLD", "PROFIT_HEAD_GAIN_THRESHOLD",
+        "_CLASSIFIER_ENTROPY_PENALTY", "_CLASSIFIER_MAX_EPOCHS", "_CLASSIFIER_TASK_WEIGHTS",
+        "_FILTER_TASKS", "class_weights", "regime_lookback", "risk_threshold",
+        "volatility_lookback", "use_forward_peak_regressor_filter", "profit_conflict_to_neutral",
+        "learning_rate",
+    )
+    MODEL_KEY_IGNORED = (
+        "bailout_min_bars", "bailout_min_loss", "bailout_require_consensus", "optimize_bias",
+        "_forward_peak_regressor_cache",
+    )
+    MODEL_KEY_METHODS = (
+        "get_profit_target", "_get_profit_target_peak", "get_market_target", "get_risk_target",
+        "get_flow_target", "get_momentum_target", "get_trading_classes", "get_class_weights",
+        "_apply_classifier_overrides", "_balance_iteratively", "_apply_post_gan_scaler",
+    )
+
     def get_class_weights(self, category_array):
         """Get class weights for a given category array (each entry is a class identifier)"""
 

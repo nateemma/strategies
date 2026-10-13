@@ -89,6 +89,14 @@ class NNPredict_Coeff(NNPredictStrategy):
     # =====================================================================
     # Predictor — Ridge linear baseline (the floor a nonlinear model must beat)
     # =====================================================================
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "coeff_pca_components", "gain_smoother", "gain_smooth_period", "ridge_alpha",
+        "wavelet_type", "wavelet_size", "coeff_scaler_name", "_wavelet",
+    )
+
     def get_classifier_type(self):
         return NNPredictRegressorRidge.RegressorTypeRidge.RIDGE
 

@@ -35,6 +35,13 @@ class StrategyDiagnostics:
     # Assessment / Reporting Methods
     # =========================================================================
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_METHODS_IGNORED = (
+        "print_distribution_compact", "analyze_distribution", "get_cumulative_distribution",
+    )
+
     def get_assessment_feedback(self, score: float, metric_type: str) -> str:
         """Provides qualitative feedback for a single metric score."""
         if metric_type == "MCC":

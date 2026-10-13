@@ -51,6 +51,13 @@ class FamilyCoexistenceMixin:
     #: None = no cap (neutral). An int in 1..9: max open pairs per family, same for every family.
     FAMILY_PAIR_CAP: int | None = None
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "FAMILY_PAIR_CAP",
+    )
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cap = cls.FAMILY_PAIR_CAP

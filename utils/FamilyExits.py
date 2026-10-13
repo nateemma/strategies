@@ -169,6 +169,13 @@ class FamilyExitMixin:
     #: calls `validate_family_exits(cls)` once its attributes are final.
     _FAMILY_VALIDATE_ON_SUBCLASS = True
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "FAMILY_EXITS", "_FAMILY_VALIDATE_ON_SUBCLASS",
+    )
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if cls._FAMILY_VALIDATE_ON_SUBCLASS:

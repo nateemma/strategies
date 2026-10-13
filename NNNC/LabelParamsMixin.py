@@ -39,6 +39,13 @@ class LabelParamsMixin:
     #: sell-side equivalent; None = mirror LABEL_PARAMS, {} = leave sell alone
     LABEL_PARAMS_SELL: dict | None = {}
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "LABEL_PARAMS", "LABEL_PARAMS_SELL",
+    )
+
     def _label_params(self, side: str) -> dict:
         base = {
             "horizon": self.HORIZON,

@@ -345,6 +345,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "NNNC/NNNC_SW_GBR_C2.py",
     "NNNC/NNNC_SW_GFM_C2.py",
     "NNNC/NNNC_SW_MLX_C2.py",
+    "NNNC/tests/test_model_key_nnnc.py",       # 030: declares the C2 value on a stub to show
+                                                 # an exit-only variant keeps its model key.
     "NNNC/tests/test_nnnc_merge.py",           # 029: sets grace hours/floor on a stub NNNC to
                                                  # drive StopInvariantMixin; computes nothing.
     "evaluation/tests/test_fingerprint_switches.py",  # declares grace 12.0 on a subclass to

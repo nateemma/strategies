@@ -199,6 +199,15 @@ class NNPredictStrategy(BaseNNStrategy):
     # Classifier (regressor) selection
     # =========================================================================
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "target_mode", "target_max_gain", "target_max_loss", "LABEL_SMOOTH_WINDOW",
+        "rolling_window", "entry_z", "magnitude_floor_mode", "magnitude_pctile", "min_magnitude",
+        "mag_std_mult", "atr_floor", "entry_quantile", "exit_quantile",
+    )
+
     def get_classifier_type(self):
         return NNPredictRegressor.RegressorType.LSTM
 

@@ -39,6 +39,13 @@ class CreateScalers(BaseNNStrategy):
     scaler_name = "main_scaler"
     tensor_scaler_name = "main_tensor_scaler"
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "scaler_name", "tensor_scaler_name", "combined_df",
+    )
+
     def remove_old_scaler(self, name) -> None:
         scaler_dir = self.get_storage_location()
         if scaler_exists(scaler_dir, name):

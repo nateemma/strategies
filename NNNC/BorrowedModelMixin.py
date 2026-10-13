@@ -19,6 +19,13 @@ _FOLD = re.compile(r"_(f\d{2})$")
 class BorrowedModelMixin:
     MODEL_SOURCE = "NNNC_ARO"
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "MODEL_SOURCE",
+    )
+
     def get_model_path(self) -> str:
         m = _FOLD.search(self.__class__.__name__)
         if not m:

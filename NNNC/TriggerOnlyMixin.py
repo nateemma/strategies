@@ -47,6 +47,13 @@ class TriggerOnlyMixin:
     GUARD_T = -0.2
     BBW_T = 0.035
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "GUARD_T", "BBW_T", "pnl_loss_alpha", "train_seed",
+    )
+
     def _trigger_mask(self, dataframe) -> np.ndarray:
         n = len(dataframe)
         gm = np.nan_to_num(

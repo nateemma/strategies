@@ -40,6 +40,14 @@ class BtcRegimeGate:
     btc_crash_lookback: int = 96        # bars over which to measure the drop (24h @15m)
     btc_crash_drop: float = 0.05        # min log-drop over lookback to count as a crash
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "btc_gate_enable", "btc_gate_mode", "btc_gate_ema_len", "btc_gate_use_adx",
+        "btc_gate_adx_min", "btc_crash_drop", "btc_crash_lookback",
+    )
+
     @property
     def btc_pair(self) -> str:
         stake = self.config.get("stake_currency", "USDT") if hasattr(self, "config") else "USDT"

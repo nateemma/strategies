@@ -196,6 +196,24 @@ class FeatureNormalizer:
     ]
     one_hot_columns = []
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "include_list", "pre_normalized_columns", "one_hot_columns", "use_pca_reduction",
+        "pca_passthrough_columns", "main_scaler_name", "pca_name", "gan_scaler_a_name",
+        "main_tensor_scaler_name",
+    )
+    MODEL_KEY_IGNORED = (
+        "main_scaler", "gan_scaler_a", "pca_col_max", "pca_col_min", "pca_components",
+        "pca_explained_variance", "pca_feature_columns", "pca_mean", "pca_n_components",
+    )
+    MODEL_KEY_METHODS = (
+        "check_columns_included", "scale_dataframe", "rolling_dataframe_normalise",
+        "process_one_hot_columns", "apply_pca", "clean_for_tensor", "normalise_for_gan",
+        "get_normalized_size",
+    )
+
     @staticmethod
     def get_pca_path(storage_location: str, name: str) -> Path:
         """Path for PCA artifact (same directory as scalers)."""

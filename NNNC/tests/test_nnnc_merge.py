@@ -94,6 +94,9 @@ def test_the_variants_that_replace_get_entry_conditions_are_known():
     assert found["NNNC_Breakout"] is True
 
 
+END_029 = "2257778"  # 029's last commit (liveness + report)
+
+
 def test_framework_directory_is_not_modified_by_this_feature():
     base = (STRAT / "specs/029-nnnc-simpletrigger-merge/baseline.md")
     if not base.is_file():
@@ -101,8 +104,10 @@ def test_framework_directory_is_not_modified_by_this_feature():
     m = re.search(r"Baseline commit: `([0-9a-f]{7,})`", base.read_text())
     if not m:
         pytest.skip("baseline commit not recorded yet")
-    changed = subprocess.run(["git", "-C", str(STRAT), "diff", "--name-only", m.group(1), "--",
-                              "Framework/"], capture_output=True, text=True, check=True).stdout
+    # Scoped to 029's own commits: later features (030's model key) edit Framework/ legitimately.
+    changed = subprocess.run(["git", "-C", str(STRAT), "diff", "--name-only", m.group(1),
+                              END_029, "--", "Framework/"],
+                             capture_output=True, text=True, check=True).stdout
     # Framework CODE must be untouched; its tests may gain allowlist entries for new files.
     code = [p for p in changed.split() if not p.startswith("Framework/tests/")]
     assert code == []

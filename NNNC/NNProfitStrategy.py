@@ -52,6 +52,17 @@ class NNProfitStrategy(BaseNNStrategy):
     loss_quantile = 0.9
     rank_top_pct = 0.1
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "profit_conflict_to_neutral", "profit_label_method", "profit_quantile", "loss_quantile",
+        "rank_top_pct", "triple_barrier_vol_mult", "triple_barrier_vol_window",
+    )
+    MODEL_KEY_METHODS = (
+        "get_profit_target",
+    )
+
     def get_classifier_type(self):
         """ Return the type of classifier used for training/predicting """
         return NNNClassifier.ClassifierType.LSTM

@@ -37,6 +37,13 @@ class HoldWindowMixin:
     # Only the 12h rule is deferred; unclog_1d and max_hold still bound the trade.
     _DEFERRABLE_EXITS = ("unclog_12h",)
 
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_IGNORED = (
+        "HOLD_WINDOW_HOURS", "_DEFERRABLE_EXITS",
+    )
+
     def custom_exit(
         self, pair, trade, current_time, current_rate, current_profit, **kwargs
     ) -> Optional[str]:

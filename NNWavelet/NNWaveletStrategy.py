@@ -62,6 +62,13 @@ class NNWaveletStrategy(NNPredict_Coeff):
     # fit for the old dimensionality after switching wavelet_type/size ("X has N
     # features, but RobustScaler is expecting M"). Keying on the wavelet gives
     # each its own persisted scaler.
+    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
+    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
+    # IGNORED act only after the model. The audit test keeps every name classified.
+    MODEL_KEY_ATTRIBUTES = (
+        "RAW_PREFIX", "_coeff_target", "_n_coeffs",
+    )
+
     @property
     def coeff_scaler_name(self):
         return f"nnwavelet_coeff_{self.wavelet_type.name}_{self.wavelet_size}"
