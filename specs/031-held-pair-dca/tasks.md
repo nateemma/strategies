@@ -169,7 +169,7 @@ right timing, size and average. The off-identity check is 15/15 on all reference
   Record the result in `specs/031-held-pair-dca/smoke.md`. The `hp_smoke` record is f00, early
   half, and is allowed before T024. The pre-registration lists it as exempt along with the
   fidelity records.
-- [ ] T016 [US1] Off-identity check (FR-007, SC-001). Re-run the 7 reference arms of T001 under
+- [X] T016 [US1] Off-identity check (FR-007, SC-001). Re-run the 7 reference arms of T001 under
   `_c031` tags as one chain, all 15 folds. Copy each plan with only `run_id`/`arm_tag` renamed, so
   classes, snapshots and model dirs are unchanged. Compare each per-fold `trades_hash`,
   `framework_sha` and model key with baseline.json. Every off record must carry no `hp_counters`
@@ -271,7 +271,7 @@ for correctly.
   log `.log`): `hp_aro_dca` f08–f14; `hp_gbr_dca`, `hp_gfm_dca` and `hp_mlx_dca` f00–f14;
   `st_e22_hp_rev` and `st_e22_hp_mom` e00–e02; `st_hp_rev` and `st_hp_mom` f00–f14. Monitor it to
   completion. Expect 0 errors and every record newer than T024.
-- [ ] T026 [P] [US3] Create `research/held_pair/exposure.py` per research R9. From the pooled arm and
+- [X] T026 [P] [US3] Create `research/held_pair/exposure.py` per research R9. From the pooled arm and
   control trades (with add fill times from the archives), compute:
   - average and peak committed stake;
   - adds per fold;
