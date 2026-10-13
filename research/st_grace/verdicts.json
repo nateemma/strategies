@@ -1,0 +1,295 @@
+{
+ "label": "PROVISIONAL -- 2022 (3 folds) is the confirmatory window; 2023-26 is EXPLORATORY (late-half replays were seen in screen.json, and the window was used by 027/028)",
+ "families": {
+  "MOM": {
+   "decision": "NOT ADOPTED",
+   "A_2023_26": {
+    "arm": "st_g24_mom",
+    "control": "st_bgo_mx",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain"
+    ],
+    "arm_trades": 5300,
+    "ctl_trades": 6156,
+    "arm_pp": 34.85,
+    "ctl_pp": 25.188,
+    "early_gain_pp": 12.866999999999997,
+    "late_gain_pp": -3.204999999999999,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 9.661348927587849,
+     "ci_pp_yr": [
+      -5.464637066809065,
+      10.715301732678512
+     ],
+     "p": 0.5332
+    },
+    "risk": {
+     "days": 1345,
+     "arm": {
+      "sharpe": 0.5799826559337751,
+      "maxdd": 24.12718214742067,
+      "daily_sd": 0.8535165052797733
+     },
+     "ctl": {
+      "sharpe": 0.49282428656686167,
+      "maxdd": 18.151009207922552,
+      "daily_sd": 0.7259817955678443
+     },
+     "sharpe_delta": 0.0871583693669134,
+     "sharpe_ci": [
+      -0.3931542998584056,
+      0.5722535772900711
+     ],
+     "sharpe_p": 0.741,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 5.976172939498117,
+     "maxdd_ci": [
+      -6.936562594180364,
+      19.78299344137045
+     ],
+     "maxdd_p": 0.392,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.2679,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.7426,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "force_exit": 59,
+     "metric_overbought": 645,
+     "roi": 1037,
+     "stop_loss": 14,
+     "trailing_stop_loss": 2018,
+     "unclog_12h": 972,
+     "unclog_1d": 555
+    },
+    "exits_ctl": {
+     "force_exit": 46,
+     "metric_overbought": 641,
+     "roi": 1122,
+     "stop_loss": 1,
+     "trailing_stop_loss": 3352,
+     "unclog_12h": 737,
+     "unclog_1d": 257
+    }
+   },
+   "B_2022": {
+    "arm": "st_e22_g24_mom",
+    "control": "st_e22_bgo_mx",
+    "verdict": "PASS",
+    "failed": [],
+    "gain_pp": 15.451,
+    "arm_pp": -42.554,
+    "ctl_pp": -58.005,
+    "arm_trades": 1508,
+    "ctl_trades": 1922,
+    "per_fold": {
+     "e00": -24.507,
+     "e01": -5.468,
+     "e02": -12.579
+    },
+    "per_fold_ctl": {
+     "e00": -33.923,
+     "e01": -12.014,
+     "e02": -12.068
+    },
+    "paired": {
+     "verdict": "INCONCLUSIVE_ARM_LOSES",
+     "delta_pp": 15.451261764307887,
+     "p": 0.2488
+    },
+    "risk": {
+     "days": 301,
+     "arm": {
+      "sharpe": -1.9093453532780877,
+      "maxdd": 61.808789345189346,
+      "daily_sd": 1.4146071122611428
+     },
+     "ctl": {
+      "sharpe": -2.540111235632225,
+      "maxdd": 66.54376406826974,
+      "daily_sd": 1.4494146019801755
+     },
+     "sharpe_delta": 0.6307658823541371,
+     "sharpe_ci": [
+      -0.27902563613240494,
+      1.7424238463917823
+     ],
+     "sharpe_p": 0.176,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": -4.734974723080391,
+     "maxdd_ci": [
+      -27.999977854862397,
+      7.935680715531722
+     ],
+     "maxdd_p": 0.314,
+     "verdict_maxdd": "UNCHANGED"
+    }
+   }
+  },
+  "REV": {
+   "decision": "NOT ADOPTED",
+   "A_2023_26": {
+    "arm": "st_g24_rev",
+    "control": "st_prom_c2",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain"
+    ],
+    "arm_trades": 2518,
+    "ctl_trades": 3347,
+    "arm_pp": 71.503,
+    "ctl_pp": 63.064,
+    "early_gain_pp": 8.869,
+    "late_gain_pp": -0.4300000000000006,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 8.438783791847015,
+     "ci_pp_yr": [
+      -3.1983493736196684,
+      7.6973743823171725
+     ],
+     "p": 0.4072
+    },
+    "risk": {
+     "days": 1341,
+     "arm": {
+      "sharpe": 2.241095163657603,
+      "maxdd": 7.628068490098158,
+      "daily_sd": 0.4545499554768981
+     },
+     "ctl": {
+      "sharpe": 1.8921240300830566,
+      "maxdd": 6.565938738692632,
+      "daily_sd": 0.47484248226617876
+     },
+     "sharpe_delta": 0.34897113357454645,
+     "sharpe_ci": [
+      -0.21897538696320437,
+      0.9102783974444557
+     ],
+     "sharpe_p": 0.245,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 1.0621297514055268,
+     "maxdd_ci": [
+      -5.061882762389517,
+      3.0561113924417285
+     ],
+     "maxdd_p": 0.711,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.2158,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.9537,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 91,
+     "take_profit": 1311,
+     "trailing_stop_loss": 501,
+     "unclog_12h": 514,
+     "unclog_1d": 72,
+     "stop_loss": 18,
+     "force_exit": 8,
+     "metric_overbought": 3
+    },
+    "exits_ctl": {
+     "roi": 136,
+     "take_profit": 1682,
+     "trailing_stop_loss": 1145,
+     "unclog_12h": 349,
+     "stop_loss": 12,
+     "unclog_1d": 13,
+     "force_exit": 9,
+     "metric_overbought": 1
+    }
+   },
+   "B_2022": {
+    "arm": "st_e22_g24_rev",
+    "control": "st_e22_prom_c2",
+    "verdict": "FAIL",
+    "failed": [
+     "2022 gain"
+    ],
+    "gain_pp": -6.104,
+    "arm_pp": -6.574,
+    "ctl_pp": -0.47,
+    "arm_trades": 653,
+    "ctl_trades": 919,
+    "per_fold": {
+     "e00": -8.212,
+     "e01": 2.771,
+     "e02": -1.133
+    },
+    "per_fold_ctl": {
+     "e00": -3.604,
+     "e01": 1.927,
+     "e02": 1.207
+    },
+    "paired": {
+     "verdict": "INCONCLUSIVE_ARM_LOSES",
+     "delta_pp": -6.103831414598303,
+     "p": 0.6197
+    },
+    "risk": {
+     "days": 273,
+     "arm": {
+      "sharpe": -0.43568652088342164,
+      "maxdd": 17.735966547730005,
+      "daily_sd": 1.055940289738653
+     },
+     "ctl": {
+      "sharpe": -0.025887741055679387,
+      "maxdd": 15.664114736679135,
+      "daily_sd": 1.2705374983328002
+     },
+     "sharpe_delta": -0.40979877982774227,
+     "sharpe_ci": [
+      -1.1821113759843564,
+      0.6613735518377177
+     ],
+     "sharpe_p": 0.439,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 2.0718518110508697,
+     "maxdd_ci": [
+      -6.035722533588862,
+      14.666959685418242
+     ],
+     "maxdd_p": 0.746,
+     "verdict_maxdd": "UNCHANGED"
+    }
+   }
+  }
+ }
+}
