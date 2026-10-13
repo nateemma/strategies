@@ -93,7 +93,9 @@ def _run_pipeline(tensor_method: int) -> dict:
     s = _build_strategy(tensor_method)
     df, labels = _fixed_inputs()
 
-    tsr_train, tsr_test, train_labels, test_labels = s.prepare_training_data(
+    # The 5th value is the per-sample loss weights (d05e54f); None unless a strategy opts in, and
+    # not part of these goldens.
+    tsr_train, tsr_test, train_labels, test_labels, _weights = s.prepare_training_data(
         [df], [labels], norm=False, pair_names=["TEST/USDT"]
     )
     tsr_train, tsr_test, train_labels, test_labels = s.preprocess_training_data(
