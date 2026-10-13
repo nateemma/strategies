@@ -218,7 +218,7 @@ conflicts; `verify-bytes` then reports equal.
 - [ ] T020 [US3] **STOP gate.** Confirm that `migrate` exited 0 (no conflicts) and that
   `verify-bytes weights_before.json` reports equal (manifests and index are excluded).
   - Commit the index snapshot `model_index_migrated.json`, `legacy_redirects.json` and the CLI.
-  - On any conflict: stop. Write it up in `verification.md` and mark T021–T034 `[-]`.
+  - On any conflict: stop. Write it up in `verification.md` and mark T021–T033 `[-]` (polish T034–T036 still runs).
 - [ ] T021 [US3] Offline borrowed-key check: for every `BorrowedModelMixin` user's fold class (the
   twin TGT, SIP, the Live_* and SW_* classes), resolve its key with the mixin removed in memory
   and `MODEL_TRAINED_WITH` applied (the gate arms) and the plan's fold window and seed. Assert it
