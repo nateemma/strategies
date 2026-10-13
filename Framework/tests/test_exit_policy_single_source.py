@@ -341,6 +341,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2_G24.py",
     "research/held_pair/screen.py",            # sets the grace hours on the study's ExitParams for
                                                  # the 027 replay; computes nothing.
+    "research/held_pair/screen2.py",           # 031 follow-up: sets the grace hours on the study's
+                                                 # ExitParams for the replay; computes nothing.
     "research/st_grace/judge.py",              # reads the arms' declared grace hours to refuse a
                                                  # drifted class; computes nothing.
     "research/st_grace/screen.py",             # reads the resolved grace hours and passes the C2

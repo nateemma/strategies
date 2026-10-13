@@ -1,0 +1,458 @@
+{
+ "label": "EXPLORATORY -- early half selects; late half already seen by the judged DCA arms; no fresh NNNC window remains for the held-pair question",
+ "grace": 24.0,
+ "models": {
+  "ARO": {
+   "base": {
+    "early_pp": 35.21506754671077,
+    "late_pp": 14.670822889429074,
+    "maxdd": 3.689463985539305,
+    "sharpe": 2.5162453338782798
+   },
+   "variants": {
+    "all:1": {
+     "early_pp": 26.165,
+     "late_pp": 0.023,
+     "adds": 436,
+     "maxdd": 8.628,
+     "dd_ratio": 2.339,
+     "sharpe": 2.228,
+     "leverage_pp": 22.3,
+     "beats_leverage": true,
+     "risk_matched_pp": -40.587
+    },
+    "all:0.5": {
+     "early_pp": 14.481,
+     "late_pp": 0.904,
+     "adds": 431,
+     "maxdd": 6.561,
+     "dd_ratio": 1.778,
+     "sharpe": 2.34,
+     "leverage_pp": 15.823,
+     "beats_leverage": false,
+     "risk_matched_pp": -23.444
+    },
+    "all:0.25": {
+     "early_pp": 10.15,
+     "late_pp": 1.76,
+     "adds": 428,
+     "maxdd": 5.29,
+     "dd_ratio": 1.434,
+     "sharpe": 2.5,
+     "leverage_pp": 10.253,
+     "beats_leverage": true,
+     "risk_matched_pp": -9.738
+    },
+    "loss:1": {
+     "early_pp": 24.53,
+     "late_pp": 1.127,
+     "adds": 409,
+     "maxdd": 8.386,
+     "dd_ratio": 2.273,
+     "sharpe": 2.217,
+     "leverage_pp": 20.9,
+     "beats_leverage": true,
+     "risk_matched_pp": -37.845
+    },
+    "loss:0.5": {
+     "early_pp": 13.892,
+     "late_pp": 1.129,
+     "adds": 402,
+     "maxdd": 6.323,
+     "dd_ratio": 1.714,
+     "sharpe": 2.332,
+     "leverage_pp": 15.024,
+     "beats_leverage": false,
+     "risk_matched_pp": -20.594
+    },
+    "loss:0.25": {
+     "early_pp": 10.105,
+     "late_pp": 1.742,
+     "adds": 399,
+     "maxdd": 5.26,
+     "dd_ratio": 1.426,
+     "sharpe": 2.491,
+     "leverage_pp": 9.755,
+     "beats_leverage": true,
+     "risk_matched_pp": -9.384
+    },
+    "profit:1": {
+     "early_pp": 3.237,
+     "late_pp": 3.308,
+     "adds": 66,
+     "maxdd": 3.469,
+     "dd_ratio": 0.94,
+     "sharpe": 2.759,
+     "leverage_pp": 2.969,
+     "beats_leverage": true,
+     "risk_matched_pp": 9.521
+    },
+    "profit:0.5": {
+     "early_pp": 1.769,
+     "late_pp": 2.816,
+     "adds": 66,
+     "maxdd": 3.469,
+     "dd_ratio": 0.94,
+     "sharpe": 2.709,
+     "leverage_pp": 1.69,
+     "beats_leverage": true,
+     "risk_matched_pp": 7.561
+    },
+    "profit:0.25": {
+     "early_pp": 0.486,
+     "late_pp": 2.279,
+     "adds": 66,
+     "maxdd": 3.495,
+     "dd_ratio": 0.947,
+     "sharpe": 2.66,
+     "leverage_pp": 1.003,
+     "beats_leverage": true,
+     "risk_matched_pp": 5.392
+    }
+   },
+   "calibration": {
+    "screen_all_1_late_pp": 0.023,
+    "judged_arm_late_pp": -0.97
+   }
+  },
+  "GBR": {
+   "base": {
+    "early_pp": 37.56525392717169,
+    "late_pp": 15.739274377445778,
+    "maxdd": 9.72885756971165,
+    "sharpe": 1.5745330422197068
+   },
+   "variants": {
+    "all:1": {
+     "early_pp": 42.641,
+     "late_pp": 0.497,
+     "adds": 623,
+     "maxdd": 13.876,
+     "dd_ratio": 1.426,
+     "sharpe": 1.946,
+     "leverage_pp": 20.631,
+     "beats_leverage": true,
+     "risk_matched_pp": 20.416
+    },
+    "all:0.5": {
+     "early_pp": 27.882,
+     "late_pp": 0.56,
+     "adds": 619,
+     "maxdd": 11.024,
+     "dd_ratio": 1.133,
+     "sharpe": 1.867,
+     "leverage_pp": 13.384,
+     "beats_leverage": true,
+     "risk_matched_pp": 21.344
+    },
+    "all:0.25": {
+     "early_pp": 18.602,
+     "late_pp": -0.161,
+     "adds": 613,
+     "maxdd": 10.063,
+     "dd_ratio": 1.034,
+     "sharpe": 1.786,
+     "leverage_pp": 8.12,
+     "beats_leverage": true,
+     "risk_matched_pp": 16.61
+    },
+    "loss:1": {
+     "early_pp": 41.032,
+     "late_pp": 0.962,
+     "adds": 591,
+     "maxdd": 13.52,
+     "dd_ratio": 1.39,
+     "sharpe": 1.921,
+     "leverage_pp": 20.184,
+     "beats_leverage": true,
+     "risk_matched_pp": 21.222
+    },
+    "loss:0.5": {
+     "early_pp": 26.856,
+     "late_pp": 0.974,
+     "adds": 587,
+     "maxdd": 10.464,
+     "dd_ratio": 1.076,
+     "sharpe": 1.862,
+     "leverage_pp": 13.083,
+     "beats_leverage": true,
+     "risk_matched_pp": 23.801
+    },
+    "loss:0.25": {
+     "early_pp": 17.781,
+     "late_pp": 0.326,
+     "adds": 581,
+     "maxdd": 10.063,
+     "dd_ratio": 1.034,
+     "sharpe": 1.784,
+     "leverage_pp": 7.948,
+     "beats_leverage": true,
+     "risk_matched_pp": 16.274
+    },
+    "profit:1": {
+     "early_pp": 2.702,
+     "late_pp": 3.317,
+     "adds": 58,
+     "maxdd": 9.729,
+     "dd_ratio": 1.0,
+     "sharpe": 1.771,
+     "leverage_pp": 1.281,
+     "beats_leverage": true,
+     "risk_matched_pp": 6.019
+    },
+    "profit:0.5": {
+     "early_pp": 1.686,
+     "late_pp": 1.938,
+     "adds": 58,
+     "maxdd": 9.729,
+     "dd_ratio": 1.0,
+     "sharpe": 1.694,
+     "leverage_pp": 0.783,
+     "beats_leverage": true,
+     "risk_matched_pp": 3.625
+    },
+    "profit:0.25": {
+     "early_pp": 1.341,
+     "late_pp": 1.114,
+     "adds": 58,
+     "maxdd": 9.729,
+     "dd_ratio": 1.0,
+     "sharpe": 1.656,
+     "leverage_pp": 0.443,
+     "beats_leverage": true,
+     "risk_matched_pp": 2.456
+    }
+   },
+   "calibration": {
+    "screen_all_1_late_pp": 0.497,
+    "judged_arm_late_pp": -7.74
+   }
+  },
+  "GFM": {
+   "base": {
+    "early_pp": 32.364877028417546,
+    "late_pp": 7.241653781116171,
+    "maxdd": 6.579286810386932,
+    "sharpe": 1.696779069999719
+   },
+   "variants": {
+    "all:1": {
+     "early_pp": 6.975,
+     "late_pp": -0.137,
+     "adds": 458,
+     "maxdd": 9.091,
+     "dd_ratio": 1.382,
+     "sharpe": 1.41,
+     "leverage_pp": 11.105,
+     "beats_leverage": false,
+     "risk_matched_pp": -8.284
+    },
+    "all:0.5": {
+     "early_pp": 5.541,
+     "late_pp": 2.674,
+     "adds": 457,
+     "maxdd": 6.75,
+     "dd_ratio": 1.026,
+     "sharpe": 1.641,
+     "leverage_pp": 7.462,
+     "beats_leverage": true,
+     "risk_matched_pp": 7.19
+    },
+    "all:0.25": {
+     "early_pp": 4.455,
+     "late_pp": 2.64,
+     "adds": 454,
+     "maxdd": 6.319,
+     "dd_ratio": 0.96,
+     "sharpe": 1.732,
+     "leverage_pp": 4.668,
+     "beats_leverage": true,
+     "risk_matched_pp": 8.665
+    },
+    "loss:1": {
+     "early_pp": 8.395,
+     "late_pp": 0.511,
+     "adds": 361,
+     "maxdd": 8.783,
+     "dd_ratio": 1.335,
+     "sharpe": 1.5,
+     "leverage_pp": 9.437,
+     "beats_leverage": false,
+     "risk_matched_pp": -4.361
+    },
+    "loss:0.5": {
+     "early_pp": 6.74,
+     "late_pp": 3.573,
+     "adds": 360,
+     "maxdd": 6.683,
+     "dd_ratio": 1.016,
+     "sharpe": 1.739,
+     "leverage_pp": 6.387,
+     "beats_leverage": true,
+     "risk_matched_pp": 9.691
+    },
+    "loss:0.25": {
+     "early_pp": 4.59,
+     "late_pp": 3.583,
+     "adds": 358,
+     "maxdd": 6.252,
+     "dd_ratio": 0.95,
+     "sharpe": 1.797,
+     "leverage_pp": 4.022,
+     "beats_leverage": true,
+     "risk_matched_pp": 10.145
+    },
+    "profit:1": {
+     "early_pp": 2.705,
+     "late_pp": 2.649,
+     "adds": 171,
+     "maxdd": 5.531,
+     "dd_ratio": 0.841,
+     "sharpe": 1.803,
+     "leverage_pp": 3.492,
+     "beats_leverage": true,
+     "risk_matched_pp": 11.665
+    },
+    "profit:0.5": {
+     "early_pp": 1.734,
+     "late_pp": 1.891,
+     "adds": 171,
+     "maxdd": 5.595,
+     "dd_ratio": 0.85,
+     "sharpe": 1.788,
+     "leverage_pp": 2.238,
+     "beats_leverage": true,
+     "risk_matched_pp": 9.55
+    },
+    "profit:0.25": {
+     "early_pp": 1.542,
+     "late_pp": 1.179,
+     "adds": 171,
+     "maxdd": 6.093,
+     "dd_ratio": 0.926,
+     "sharpe": 1.777,
+     "leverage_pp": 1.329,
+     "beats_leverage": true,
+     "risk_matched_pp": 5.65
+    }
+   },
+   "calibration": {
+    "screen_all_1_late_pp": -0.137,
+    "judged_arm_late_pp": 1.75
+   }
+  },
+  "MLX": {
+   "base": {
+    "early_pp": 22.163089723103372,
+    "late_pp": 14.486601025759454,
+    "maxdd": 2.2568015406988335,
+    "sharpe": 2.2707692870589042
+   },
+   "variants": {
+    "all:1": {
+     "early_pp": 9.588,
+     "late_pp": 8.699,
+     "adds": 85,
+     "maxdd": 4.538,
+     "dd_ratio": 2.011,
+     "sharpe": 2.366,
+     "leverage_pp": 8.305,
+     "beats_leverage": true,
+     "risk_matched_pp": -18.761
+    },
+    "all:0.5": {
+     "early_pp": 6.117,
+     "late_pp": 2.885,
+     "adds": 83,
+     "maxdd": 3.317,
+     "dd_ratio": 1.47,
+     "sharpe": 2.289,
+     "leverage_pp": 5.126,
+     "beats_leverage": true,
+     "risk_matched_pp": -8.209
+    },
+    "all:0.25": {
+     "early_pp": 2.638,
+     "late_pp": 1.99,
+     "adds": 83,
+     "maxdd": 3.062,
+     "dd_ratio": 1.357,
+     "sharpe": 2.261,
+     "leverage_pp": 3.182,
+     "beats_leverage": true,
+     "risk_matched_pp": -8.45
+    },
+    "loss:1": {
+     "early_pp": 9.355,
+     "late_pp": 8.054,
+     "adds": 76,
+     "maxdd": 4.538,
+     "dd_ratio": 2.011,
+     "sharpe": 2.359,
+     "leverage_pp": 7.275,
+     "beats_leverage": true,
+     "risk_matched_pp": -19.638
+    },
+    "loss:0.5": {
+     "early_pp": 6.179,
+     "late_pp": 2.626,
+     "adds": 74,
+     "maxdd": 3.317,
+     "dd_ratio": 1.47,
+     "sharpe": 2.288,
+     "leverage_pp": 4.579,
+     "beats_leverage": true,
+     "risk_matched_pp": -8.407
+    },
+    "loss:0.25": {
+     "early_pp": 3.048,
+     "late_pp": 1.991,
+     "adds": 74,
+     "maxdd": 3.062,
+     "dd_ratio": 1.357,
+     "sharpe": 2.274,
+     "leverage_pp": 2.913,
+     "beats_leverage": true,
+     "risk_matched_pp": -8.039
+    },
+    "profit:1": {
+     "early_pp": 0.233,
+     "late_pp": 0.823,
+     "adds": 11,
+     "maxdd": 2.257,
+     "dd_ratio": 1.0,
+     "sharpe": 2.283,
+     "leverage_pp": 1.253,
+     "beats_leverage": false,
+     "risk_matched_pp": 1.055
+    },
+    "profit:0.5": {
+     "early_pp": -0.061,
+     "late_pp": 0.476,
+     "adds": 11,
+     "maxdd": 2.257,
+     "dd_ratio": 1.0,
+     "sharpe": 2.279,
+     "leverage_pp": 0.696,
+     "beats_leverage": false,
+     "risk_matched_pp": 0.415
+    },
+    "profit:0.25": {
+     "early_pp": -0.41,
+     "late_pp": 0.214,
+     "adds": 11,
+     "maxdd": 2.257,
+     "dd_ratio": 1.0,
+     "sharpe": 2.265,
+     "leverage_pp": 0.345,
+     "beats_leverage": false,
+     "risk_matched_pp": -0.197
+    }
+   },
+   "calibration": {
+    "screen_all_1_late_pp": 8.699,
+    "judged_arm_late_pp": 5.39
+   }
+  }
+ }
+}

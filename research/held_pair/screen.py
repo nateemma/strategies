@@ -68,7 +68,7 @@ HALVES = ("early", "late") if os.environ.get("HP_HALVES") == "both" else ("early
 
 
 def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | None,
-             min_age_h: float) -> pd.DataFrame:
+             min_age_h: float, add_frac: float = 1.0) -> pd.DataFrame:
     t = model.tables[fold]
     f = model.folds[fold]
     sig = t.loc[mask, ["date", "pair"]]
@@ -114,6 +114,9 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
                 continue
             if cond == "loss" and net_from_price_ratio(o / tr["open_rate"], fee) >= 0:
                 continue
+            # 031 follow-up: pyramiding -- add only to a held trade that is in profit
+            if cond == "profit" and net_from_price_ratio(o / tr["open_rate"], fee) <= 0:
+                continue
             if policy == "ROT":
                 tr.update(x=e, price=o, reason="rotate")
             elif policy == "DCA":
@@ -121,7 +124,7 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
                     continue
                 open_stake = sum(x["stake"] for x in trades if x["x"] >= e)
                 qv = float(b.close[e - 1]) * float(E._vol(pair)[e - 1])
-                add = min(E.STAKE, qv / E.HEADROOM, WALLET - open_stake)
+                add = min(add_frac * E.STAKE, qv / E.HEADROOM, WALLET - open_stake)
                 if qv < E.MIN_QV or add < E.MIN_STAKE:
                     continue
                 amount = tr["stake"] / tr["open_rate"] + add / o
