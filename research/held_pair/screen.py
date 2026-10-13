@@ -30,6 +30,10 @@ Each policy can be conditioned: `loss` = only when the held trade is under water
 
 Policies are priced on the EARLY half (f00-f07) only; HP_HALVES=both adds the late half, for the
 report after the arms are pre-registered.
+
+    NNNC_FS_ROUND=2 PYTHONPATH=. ../../.venv/bin/python -m research.held_pair.screen --dump-adds ARO 24
+
+writes `adds_ARO.json`, the early-half DCA:all:1h adds at 24 h grace (031 fidelity input).
 """
 
 from __future__ import annotations
@@ -124,7 +128,7 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
                 avg = (tr["stake"] + add) / amount
                 x = replay(pair, e, avg, end, tick)
                 tr.update(x=x.idx, price=x.price, reason=x.reason, anchor=e, open_rate=avg,
-                          stake=tr["stake"] + add, adds=tr["adds"] + 1)
+                          stake=tr["stake"] + add, adds=tr["adds"] + 1, add_e=e, add_stake=add)
             else:  # ANCHOR
                 x = replay(pair, e, o, end, tick)
                 tr.update(x=x.idx, price=x.price, reason=x.reason, anchor=e,
@@ -151,7 +155,8 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
         held.setdefault(pair, []).append(len(trades))
         trades.append({"fold": fold, "pair": pair, "e": e, "open_rate": rate, "stake": stake,
                        "x": x.idx, "price": x.price, "reason": x.reason, "anchor": e,
-                       "anchors": 0, "adds": 0, "stacked": stacked})
+                       "anchors": 0, "adds": 0, "stacked": stacked, "add_e": -1,
+                       "add_stake": 0.0})
     out = pd.DataFrame(trades)
     if out.empty:
         return out
@@ -161,8 +166,40 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
     return out
 
 
+def dump_adds(m: str, grace: float, halves=("early",)) -> Path:
+    """031 T019: the DCA:all:1h adds (fold, pair, add date, trade open date, add stake) at
+    `grace`, for `research.held_pair.fidelity`."""
+    model = E.Model(m)
+    params = dataclasses.replace(model.params, stoploss_grace_hours=grace)
+    rows, delta = [], {}
+    for f in model.folds:
+        if F.half_of(f) not in halves:
+            continue
+        mask = model.tables[f]["enter_long"].to_numpy() == 1
+        sim = simulate(model, f, mask, params, "DCA", "all", 1.0)
+        base = simulate(model, f, mask, params, "NONE", None, 0.0)
+        delta[f] = round(float(sim["pp"].sum() - base["pp"].sum()), 4)
+        for t in sim.itertuples():
+            if t.add_e < 0:
+                continue
+            _, dates = F.bars_for(t.pair)
+            rows.append({"fold": f, "pair": t.pair, "add_date": str(dates[t.add_e]),
+                         "open_date": str(dates[t.e]), "add_stake": float(t.add_stake),
+                         "exit_idx_eq_add": bool(t.x == t.add_e)})
+    out = HERE / f"adds_{m}.json"
+    out.write_text(json.dumps({"model": m, "grace": grace, "policy": "DCA:all:1h",
+                               "halves": list(halves), "fold_delta_pp": delta, "adds": rows},
+                              indent=1))
+    print(f"{m}: {len(rows)} screen adds -> {out.name}")
+    return out
+
+
 def main(argv=None) -> int:
-    models = (argv or sys.argv[1:] or ["ARO,GBR,GFM,MLX"])[0].split(",")
+    args = list(argv or sys.argv[1:])
+    if args[:1] == ["--dump-adds"]:
+        dump_adds(args[1], float(args[2]))
+        return 0
+    models = (args or ["ARO,GBR,GFM,MLX"])[0].split(",")
     out_path = HERE / f"screen_nnnc{D.SUFFIX}{'_both' if len(HALVES) == 2 else ''}.json"
     res = json.loads(out_path.read_text()) if out_path.exists() else {}
     for m in models:

@@ -1,0 +1,1892 @@
+{
+ "model": "ARO",
+ "grace": 24.0,
+ "policy": "DCA:all:1h",
+ "halves": [
+  "early"
+ ],
+ "fold_delta_pp": {
+  "f00": 0.6568,
+  "f01": 0.3092,
+  "f02": -0.1662,
+  "f03": 1.4854,
+  "f04": 1.1595,
+  "f05": 6.8768,
+  "f06": 2.598,
+  "f07": 13.2459
+ },
+ "adds": [
+  {
+   "fold": "f00",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-01-14 10:30:00+00:00",
+   "open_date": "2023-01-14 09:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-01-22 19:15:00+00:00",
+   "open_date": "2023-01-22 14:15:00+00:00",
+   "add_stake": 229.93250000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "SOL/USDT",
+   "add_date": "2023-01-03 19:00:00+00:00",
+   "open_date": "2023-01-03 18:00:00+00:00",
+   "add_stake": 216.0933086,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-01-23 15:00:00+00:00",
+   "open_date": "2023-01-23 06:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "SOL/USDT",
+   "add_date": "2023-01-04 14:15:00+00:00",
+   "open_date": "2023-01-04 12:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "DOT/USDT",
+   "add_date": "2023-01-14 11:00:00+00:00",
+   "open_date": "2023-01-14 09:45:00+00:00",
+   "add_stake": 116.73222999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "SOL/USDT",
+   "add_date": "2023-01-15 02:15:00+00:00",
+   "open_date": "2023-01-15 01:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-02-09 16:45:00+00:00",
+   "open_date": "2023-02-09 00:00:00+00:00",
+   "add_stake": 560.5146,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-01-28 08:30:00+00:00",
+   "open_date": "2023-01-28 02:30:00+00:00",
+   "add_stake": 764.4074699999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f00",
+   "pair": "SOL/USDT",
+   "add_date": "2023-03-11 07:15:00+00:00",
+   "open_date": "2023-03-11 04:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f01",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-06-10 06:00:00+00:00",
+   "open_date": "2023-06-10 04:45:00+00:00",
+   "add_stake": 398.63558,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f01",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-06-10 20:15:00+00:00",
+   "open_date": "2023-06-10 19:15:00+00:00",
+   "add_stake": 506.64160000000004,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f01",
+   "pair": "BCH/USDT",
+   "add_date": "2023-06-25 05:45:00+00:00",
+   "open_date": "2023-06-25 03:15:00+00:00",
+   "add_stake": 109.1182,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "SOL/USDT",
+   "add_date": "2023-06-30 20:45:00+00:00",
+   "open_date": "2023-06-30 19:45:00+00:00",
+   "add_stake": 230.87400000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "BCH/USDT",
+   "add_date": "2023-07-01 01:30:00+00:00",
+   "open_date": "2023-07-01 00:15:00+00:00",
+   "add_stake": 721.47092,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "SOL/USDT",
+   "add_date": "2023-07-07 00:00:00+00:00",
+   "open_date": "2023-07-06 22:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "SOL/USDT",
+   "add_date": "2023-07-14 05:15:00+00:00",
+   "open_date": "2023-07-14 04:15:00+00:00",
+   "add_stake": 270.99612,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "SOL/USDT",
+   "add_date": "2023-07-14 13:00:00+00:00",
+   "open_date": "2023-07-14 10:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f02",
+   "pair": "LTC/USDT",
+   "add_date": "2023-08-17 22:45:00+00:00",
+   "open_date": "2023-08-17 21:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "LINK/USDT",
+   "add_date": "2023-10-23 11:00:00+00:00",
+   "open_date": "2023-10-23 10:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "LINK/USDT",
+   "add_date": "2023-10-28 12:30:00+00:00",
+   "open_date": "2023-10-28 07:15:00+00:00",
+   "add_stake": 590.202149,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-10-24 07:30:00+00:00",
+   "open_date": "2023-10-24 06:30:00+00:00",
+   "add_stake": 155.85420000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-10-25 23:30:00+00:00",
+   "open_date": "2023-10-25 22:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-11-18 07:00:00+00:00",
+   "open_date": "2023-11-18 03:45:00+00:00",
+   "add_stake": 140.72373,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "LINK/USDT",
+   "add_date": "2023-11-12 15:00:00+00:00",
+   "open_date": "2023-11-12 13:15:00+00:00",
+   "add_stake": 150.811864,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-11-20 18:30:00+00:00",
+   "open_date": "2023-11-20 17:00:00+00:00",
+   "add_stake": 104.38708,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AAVE/USDT",
+   "add_date": "2023-11-02 14:15:00+00:00",
+   "open_date": "2023-11-02 06:30:00+00:00",
+   "add_stake": 277.338312,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-03 00:15:00+00:00",
+   "open_date": "2023-11-02 23:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-11 05:15:00+00:00",
+   "open_date": "2023-11-11 04:00:00+00:00",
+   "add_stake": 103.15559999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-11 22:15:00+00:00",
+   "open_date": "2023-11-11 17:30:00+00:00",
+   "add_stake": 425.01696000000004,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-12 15:15:00+00:00",
+   "open_date": "2023-11-12 12:45:00+00:00",
+   "add_stake": 817.1559,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-12 15:15:00+00:00",
+   "open_date": "2023-11-12 13:45:00+00:00",
+   "add_stake": 286.54560000000004,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-13 06:30:00+00:00",
+   "open_date": "2023-11-13 04:15:00+00:00",
+   "add_stake": 315.1295,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-13 22:15:00+00:00",
+   "open_date": "2023-11-13 21:15:00+00:00",
+   "add_stake": 342.64296,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-14 12:15:00+00:00",
+   "open_date": "2023-11-14 11:15:00+00:00",
+   "add_stake": 830.33595,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-14 13:00:00+00:00",
+   "open_date": "2023-11-14 11:30:00+00:00",
+   "add_stake": 163.67883,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-16 16:30:00+00:00",
+   "open_date": "2023-11-16 12:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-16 21:30:00+00:00",
+   "open_date": "2023-11-16 19:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-17 08:00:00+00:00",
+   "open_date": "2023-11-17 07:00:00+00:00",
+   "add_stake": 346.11648,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-07 03:15:00+00:00",
+   "open_date": "2023-12-07 01:45:00+00:00",
+   "add_stake": 403.56078999999994,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-18 03:15:00+00:00",
+   "open_date": "2023-11-18 02:00:00+00:00",
+   "add_stake": 476.62623999999994,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-07 19:15:00+00:00",
+   "open_date": "2023-12-07 08:00:00+00:00",
+   "add_stake": 109.71600000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-11-19 02:00:00+00:00",
+   "open_date": "2023-11-19 01:00:00+00:00",
+   "add_stake": 124.5189,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-11-21 05:45:00+00:00",
+   "open_date": "2023-11-21 04:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-11 16:00:00+00:00",
+   "open_date": "2023-12-11 14:45:00+00:00",
+   "add_stake": 103.98927,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-13 02:30:00+00:00",
+   "open_date": "2023-12-13 01:30:00+00:00",
+   "add_stake": 102.63809999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-18 09:15:00+00:00",
+   "open_date": "2023-12-18 01:15:00+00:00",
+   "add_stake": 385.4305,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-22 08:00:00+00:00",
+   "open_date": "2023-12-22 07:00:00+00:00",
+   "add_stake": 153.44369999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-24 10:45:00+00:00",
+   "open_date": "2023-12-24 07:00:00+00:00",
+   "add_stake": 384.83835000000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-07 01:30:00+00:00",
+   "open_date": "2023-12-07 00:15:00+00:00",
+   "add_stake": 193.63717000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "DOT/USDT",
+   "add_date": "2023-12-09 16:30:00+00:00",
+   "open_date": "2023-12-09 15:30:00+00:00",
+   "add_stake": 189.75867,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-11 14:45:00+00:00",
+   "open_date": "2023-12-11 13:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-12 07:45:00+00:00",
+   "open_date": "2023-12-12 06:45:00+00:00",
+   "add_stake": 387.26982000000004,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-14 00:45:00+00:00",
+   "open_date": "2023-12-13 23:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-17 07:45:00+00:00",
+   "open_date": "2023-12-17 06:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "DOT/USDT",
+   "add_date": "2023-12-22 06:15:00+00:00",
+   "open_date": "2023-12-22 05:00:00+00:00",
+   "add_stake": 110.47843800000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "AVAX/USDT",
+   "add_date": "2023-12-22 10:45:00+00:00",
+   "open_date": "2023-12-22 09:15:00+00:00",
+   "add_stake": 131.23132,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-12-24 11:15:00+00:00",
+   "open_date": "2023-12-24 10:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-12-24 22:00:00+00:00",
+   "open_date": "2023-12-24 21:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f03",
+   "pair": "SOL/USDT",
+   "add_date": "2023-12-26 16:00:00+00:00",
+   "open_date": "2023-12-26 05:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-27 03:30:00+00:00",
+   "open_date": "2023-12-27 02:30:00+00:00",
+   "add_stake": 248.35068,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2023-12-28 13:15:00+00:00",
+   "open_date": "2023-12-28 12:00:00+00:00",
+   "add_stake": 395.9702,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-01-03 23:15:00+00:00",
+   "open_date": "2024-01-03 11:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-01-12 03:45:00+00:00",
+   "open_date": "2024-01-11 22:45:00+00:00",
+   "add_stake": 168.1365,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2023-12-28 01:30:00+00:00",
+   "open_date": "2023-12-27 14:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-07 13:15:00+00:00",
+   "open_date": "2024-03-07 08:15:00+00:00",
+   "add_stake": 263.2346,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-09 17:30:00+00:00",
+   "open_date": "2024-03-09 16:30:00+00:00",
+   "add_stake": 302.3467,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-15 08:30:00+00:00",
+   "open_date": "2024-03-15 03:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-16 17:30:00+00:00",
+   "open_date": "2024-03-16 10:15:00+00:00",
+   "add_stake": 206.08865999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-18 13:30:00+00:00",
+   "open_date": "2024-03-18 11:30:00+00:00",
+   "add_stake": 607.92228,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-03-19 20:00:00+00:00",
+   "open_date": "2024-03-19 18:15:00+00:00",
+   "add_stake": 402.42272,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2024-03-01 09:00:00+00:00",
+   "open_date": "2024-03-01 08:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "LINK/USDT",
+   "add_date": "2024-03-15 09:00:00+00:00",
+   "open_date": "2024-03-15 00:15:00+00:00",
+   "add_stake": 853.486319,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "BCH/USDT",
+   "add_date": "2024-03-03 21:00:00+00:00",
+   "open_date": "2024-03-03 19:30:00+00:00",
+   "add_stake": 134.65452,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "BCH/USDT",
+   "add_date": "2024-03-05 16:00:00+00:00",
+   "open_date": "2024-03-05 04:45:00+00:00",
+   "add_stake": 482.66832000000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "DOT/USDT",
+   "add_date": "2024-03-06 02:30:00+00:00",
+   "open_date": "2024-03-05 15:30:00+00:00",
+   "add_stake": 250.78341600000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2024-03-06 12:45:00+00:00",
+   "open_date": "2024-03-06 10:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "LINK/USDT",
+   "add_date": "2024-03-19 21:45:00+00:00",
+   "open_date": "2024-03-19 20:45:00+00:00",
+   "add_stake": 104.13041600000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "LTC/USDT",
+   "add_date": "2024-03-12 03:00:00+00:00",
+   "open_date": "2024-03-12 01:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-13 03:15:00+00:00",
+   "open_date": "2024-03-12 21:30:00+00:00",
+   "add_stake": 815.21108,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "DOT/USDT",
+   "add_date": "2024-03-15 08:45:00+00:00",
+   "open_date": "2024-03-15 02:30:00+00:00",
+   "add_stake": 288.680106,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "BCH/USDT",
+   "add_date": "2024-03-15 09:00:00+00:00",
+   "open_date": "2024-03-15 03:00:00+00:00",
+   "add_stake": 161.74083,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2024-03-15 21:30:00+00:00",
+   "open_date": "2024-03-15 20:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-15 22:15:00+00:00",
+   "open_date": "2024-03-15 21:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-16 05:30:00+00:00",
+   "open_date": "2024-03-16 01:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-17 01:00:00+00:00",
+   "open_date": "2024-03-16 17:15:00+00:00",
+   "add_stake": 156.78036,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-19 15:15:00+00:00",
+   "open_date": "2024-03-19 14:15:00+00:00",
+   "add_stake": 277.48740000000004,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-19 20:00:00+00:00",
+   "open_date": "2024-03-19 19:00:00+00:00",
+   "add_stake": 679.43802,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2024-03-19 20:30:00+00:00",
+   "open_date": "2024-03-19 19:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "DOT/USDT",
+   "add_date": "2024-03-20 04:00:00+00:00",
+   "open_date": "2024-03-19 22:30:00+00:00",
+   "add_stake": 119.27216000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-03-21 05:45:00+00:00",
+   "open_date": "2024-03-21 04:45:00+00:00",
+   "add_stake": 109.94479999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f04",
+   "pair": "SOL/USDT",
+   "add_date": "2024-03-22 04:00:00+00:00",
+   "open_date": "2024-03-22 02:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "XRP/USDT",
+   "add_date": "2024-04-13 23:45:00+00:00",
+   "open_date": "2024-04-13 22:45:00+00:00",
+   "add_stake": 820.4852000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-03 21:15:00+00:00",
+   "open_date": "2024-04-03 17:45:00+00:00",
+   "add_stake": 313.48771999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-10 02:00:00+00:00",
+   "open_date": "2024-04-10 00:45:00+00:00",
+   "add_stake": 187.7751,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-12 22:00:00+00:00",
+   "open_date": "2024-04-12 19:30:00+00:00",
+   "add_stake": 415.25154000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-13 16:15:00+00:00",
+   "open_date": "2024-04-13 14:45:00+00:00",
+   "add_stake": 138.1072,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-15 16:45:00+00:00",
+   "open_date": "2024-04-15 14:45:00+00:00",
+   "add_stake": 201.76416,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-18 06:45:00+00:00",
+   "open_date": "2024-04-17 21:00:00+00:00",
+   "add_stake": 149.26268,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "LTC/USDT",
+   "add_date": "2024-03-30 04:45:00+00:00",
+   "open_date": "2024-03-30 03:45:00+00:00",
+   "add_stake": 493.0367520000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-19 14:30:00+00:00",
+   "open_date": "2024-04-19 13:15:00+00:00",
+   "add_stake": 114.70599999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "LINK/USDT",
+   "add_date": "2024-04-14 14:15:00+00:00",
+   "open_date": "2024-04-14 11:45:00+00:00",
+   "add_stake": 116.94928999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-01 16:15:00+00:00",
+   "open_date": "2024-04-01 14:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "ZEC/USDT",
+   "add_date": "2024-04-13 21:30:00+00:00",
+   "open_date": "2024-04-13 20:15:00+00:00",
+   "add_stake": 103.5036,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-04-02 10:45:00+00:00",
+   "open_date": "2024-04-02 02:45:00+00:00",
+   "add_stake": 205.51631700000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-03 17:15:00+00:00",
+   "open_date": "2024-04-03 15:15:00+00:00",
+   "add_stake": 324.17190999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-04 17:30:00+00:00",
+   "open_date": "2024-04-04 16:15:00+00:00",
+   "add_stake": 149.78554000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-04-26 11:00:00+00:00",
+   "open_date": "2024-04-26 09:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-10 12:45:00+00:00",
+   "open_date": "2024-04-10 10:15:00+00:00",
+   "add_stake": 130.42254,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-12 22:45:00+00:00",
+   "open_date": "2024-04-12 21:00:00+00:00",
+   "add_stake": 286.571,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-04-13 02:00:00+00:00",
+   "open_date": "2024-04-12 21:15:00+00:00",
+   "add_stake": 575.42325,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "SOL/USDT",
+   "add_date": "2024-04-13 21:00:00+00:00",
+   "open_date": "2024-04-13 07:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-04-13 20:30:00+00:00",
+   "open_date": "2024-04-13 16:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-13 21:00:00+00:00",
+   "open_date": "2024-04-13 20:00:00+00:00",
+   "add_stake": 756.82635,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-14 03:30:00+00:00",
+   "open_date": "2024-04-13 22:45:00+00:00",
+   "add_stake": 121.89423,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "LTC/USDT",
+   "add_date": "2024-04-14 03:15:00+00:00",
+   "open_date": "2024-04-13 22:45:00+00:00",
+   "add_stake": 253.59571,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-04-14 03:15:00+00:00",
+   "open_date": "2024-04-13 23:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "SOL/USDT",
+   "add_date": "2024-04-14 03:30:00+00:00",
+   "open_date": "2024-04-14 02:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-04-14 13:45:00+00:00",
+   "open_date": "2024-04-14 11:30:00+00:00",
+   "add_stake": 269.7408,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-14 14:15:00+00:00",
+   "open_date": "2024-04-14 11:30:00+00:00",
+   "add_stake": 118.41270000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "SOL/USDT",
+   "add_date": "2024-04-14 14:45:00+00:00",
+   "open_date": "2024-04-14 13:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "SOL/USDT",
+   "add_date": "2024-04-15 03:00:00+00:00",
+   "open_date": "2024-04-15 02:00:00+00:00",
+   "add_stake": 314.77528,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "BCH/USDT",
+   "add_date": "2024-04-15 17:30:00+00:00",
+   "open_date": "2024-04-15 13:45:00+00:00",
+   "add_stake": 176.24864,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "SOL/USDT",
+   "add_date": "2024-04-16 03:45:00+00:00",
+   "open_date": "2024-04-15 14:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f05",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-06-18 15:30:00+00:00",
+   "open_date": "2024-06-18 14:15:00+00:00",
+   "add_stake": 128.87745,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "XRP/USDT",
+   "add_date": "2024-08-05 12:30:00+00:00",
+   "open_date": "2024-08-05 11:30:00+00:00",
+   "add_stake": 727.0106800000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "XRP/USDT",
+   "add_date": "2024-08-08 01:30:00+00:00",
+   "open_date": "2024-08-08 00:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-07-05 08:45:00+00:00",
+   "open_date": "2024-07-04 23:45:00+00:00",
+   "add_stake": 162.15504,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-08-05 06:30:00+00:00",
+   "open_date": "2024-08-05 01:00:00+00:00",
+   "add_stake": 113.77065000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "LINK/USDT",
+   "add_date": "2024-08-05 02:15:00+00:00",
+   "open_date": "2024-08-05 01:15:00+00:00",
+   "add_stake": 672.407676,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "ZEC/USDT",
+   "add_date": "2024-08-05 20:45:00+00:00",
+   "open_date": "2024-08-05 19:15:00+00:00",
+   "add_stake": 262.59000000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-08-05 06:30:00+00:00",
+   "open_date": "2024-08-05 00:45:00+00:00",
+   "add_stake": 241.91069499999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "BCH/USDT",
+   "add_date": "2024-08-05 03:15:00+00:00",
+   "open_date": "2024-08-05 00:45:00+00:00",
+   "add_stake": 138.4397,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-08-05 02:00:00+00:00",
+   "open_date": "2024-08-05 01:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "SOL/USDT",
+   "add_date": "2024-08-05 09:15:00+00:00",
+   "open_date": "2024-08-05 08:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "SOL/USDT",
+   "add_date": "2024-08-05 20:00:00+00:00",
+   "open_date": "2024-08-05 19:00:00+00:00",
+   "add_stake": 518.07796,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "SOL/USDT",
+   "add_date": "2024-08-07 14:45:00+00:00",
+   "open_date": "2024-08-07 07:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "SOL/USDT",
+   "add_date": "2024-08-08 06:15:00+00:00",
+   "open_date": "2024-08-08 05:00:00+00:00",
+   "add_stake": 867.0302819999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f06",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-08-28 07:45:00+00:00",
+   "open_date": "2024-08-27 22:15:00+00:00",
+   "add_stake": 105.21528,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-10-03 09:00:00+00:00",
+   "open_date": "2024-10-03 08:00:00+00:00",
+   "add_stake": 264.60614999999996,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-13 02:45:00+00:00",
+   "open_date": "2024-11-13 00:00:00+00:00",
+   "add_stake": 249.5505,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-15 08:15:00+00:00",
+   "open_date": "2024-11-15 05:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-17 01:45:00+00:00",
+   "open_date": "2024-11-17 00:45:00+00:00",
+   "add_stake": 650.75086,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-17 16:45:00+00:00",
+   "open_date": "2024-11-17 15:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-18 13:00:00+00:00",
+   "open_date": "2024-11-18 11:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-19 07:00:00+00:00",
+   "open_date": "2024-11-19 05:45:00+00:00",
+   "add_stake": 375.9965000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-24 05:45:00+00:00",
+   "open_date": "2024-11-24 04:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-25 14:30:00+00:00",
+   "open_date": "2024-11-25 13:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-26 08:30:00+00:00",
+   "open_date": "2024-11-25 21:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-27 03:15:00+00:00",
+   "open_date": "2024-11-27 01:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-11-30 13:45:00+00:00",
+   "open_date": "2024-11-30 12:45:00+00:00",
+   "add_stake": 899.2455,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-02 09:30:00+00:00",
+   "open_date": "2024-12-02 08:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-03 11:00:00+00:00",
+   "open_date": "2024-12-03 07:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-03 15:00:00+00:00",
+   "open_date": "2024-12-03 14:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-03 17:30:00+00:00",
+   "open_date": "2024-12-03 16:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-04 00:45:00+00:00",
+   "open_date": "2024-12-03 23:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-04 13:30:00+00:00",
+   "open_date": "2024-12-04 12:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-06 10:15:00+00:00",
+   "open_date": "2024-12-06 09:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-10 03:15:00+00:00",
+   "open_date": "2024-12-09 20:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-10 13:30:00+00:00",
+   "open_date": "2024-12-10 12:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "XRP/USDT",
+   "add_date": "2024-12-19 16:15:00+00:00",
+   "open_date": "2024-12-19 15:00:00+00:00",
+   "add_stake": 348.62183999999996,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-12 11:00:00+00:00",
+   "open_date": "2024-11-12 10:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-13 03:45:00+00:00",
+   "open_date": "2024-11-13 02:45:00+00:00",
+   "add_stake": 302.16585,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-13 20:15:00+00:00",
+   "open_date": "2024-11-13 19:15:00+00:00",
+   "add_stake": 558.42,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-16 16:15:00+00:00",
+   "open_date": "2024-11-16 15:15:00+00:00",
+   "add_stake": 282.38250000000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-17 18:45:00+00:00",
+   "open_date": "2024-11-17 11:15:00+00:00",
+   "add_stake": 448.09749999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-11-25 15:15:00+00:00",
+   "open_date": "2024-11-25 11:00:00+00:00",
+   "add_stake": 102.72352000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-11-24 10:45:00+00:00",
+   "open_date": "2024-11-24 04:45:00+00:00",
+   "add_stake": 145.0204,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-11-12 14:00:00+00:00",
+   "open_date": "2024-11-12 10:00:00+00:00",
+   "add_stake": 166.81008,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-11-26 00:00:00+00:00",
+   "open_date": "2024-11-25 22:30:00+00:00",
+   "add_stake": 172.20354,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-11-13 02:30:00+00:00",
+   "open_date": "2024-11-13 01:30:00+00:00",
+   "add_stake": 707.6780000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-11-14 15:00:00+00:00",
+   "open_date": "2024-11-14 10:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-11-14 23:15:00+00:00",
+   "open_date": "2024-11-14 11:00:00+00:00",
+   "add_stake": 485.77945,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-11-14 22:45:00+00:00",
+   "open_date": "2024-11-14 11:15:00+00:00",
+   "add_stake": 393.27218700000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-11-15 04:45:00+00:00",
+   "open_date": "2024-11-15 01:00:00+00:00",
+   "add_stake": 131.455758,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-11-15 08:45:00+00:00",
+   "open_date": "2024-11-15 05:00:00+00:00",
+   "add_stake": 118.93248000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-11-17 02:15:00+00:00",
+   "open_date": "2024-11-17 01:15:00+00:00",
+   "add_stake": 708.9460849999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-11-17 11:15:00+00:00",
+   "open_date": "2024-11-17 07:30:00+00:00",
+   "add_stake": 120.41105999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-12-06 13:00:00+00:00",
+   "open_date": "2024-12-06 09:30:00+00:00",
+   "add_stake": 422.71205,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-11-17 19:30:00+00:00",
+   "open_date": "2024-11-17 18:30:00+00:00",
+   "add_stake": 115.94752000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-03 14:30:00+00:00",
+   "open_date": "2024-12-03 13:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-12-10 03:30:00+00:00",
+   "open_date": "2024-12-10 00:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-04 02:45:00+00:00",
+   "open_date": "2024-12-04 01:30:00+00:00",
+   "add_stake": 275.41292,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-11-21 12:30:00+00:00",
+   "open_date": "2024-11-21 09:30:00+00:00",
+   "add_stake": 234.74600999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-12-10 16:00:00+00:00",
+   "open_date": "2024-12-10 12:15:00+00:00",
+   "add_stake": 573.76319,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-05 01:30:00+00:00",
+   "open_date": "2024-12-05 00:30:00+00:00",
+   "add_stake": 810.18736,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-11-23 09:30:00+00:00",
+   "open_date": "2024-11-23 08:30:00+00:00",
+   "add_stake": 246.26925999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-06 13:00:00+00:00",
+   "open_date": "2024-12-06 10:15:00+00:00",
+   "add_stake": 569.4677,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-11-23 17:15:00+00:00",
+   "open_date": "2024-11-23 16:15:00+00:00",
+   "add_stake": 192.8304,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-11-23 23:30:00+00:00",
+   "open_date": "2024-11-23 18:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-11-24 05:00:00+00:00",
+   "open_date": "2024-11-24 04:00:00+00:00",
+   "add_stake": 138.65359500000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-07 08:45:00+00:00",
+   "open_date": "2024-12-07 07:45:00+00:00",
+   "add_stake": 103.06799999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-11-25 01:30:00+00:00",
+   "open_date": "2024-11-24 09:45:00+00:00",
+   "add_stake": 245.35024799999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-11-25 14:00:00+00:00",
+   "open_date": "2024-11-25 12:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-11-25 18:30:00+00:00",
+   "open_date": "2024-11-25 17:15:00+00:00",
+   "add_stake": 209.71059999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-11-26 00:00:00+00:00",
+   "open_date": "2024-11-25 22:30:00+00:00",
+   "add_stake": 200.755142,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-09 20:15:00+00:00",
+   "open_date": "2024-12-09 15:45:00+00:00",
+   "add_stake": 265.36424,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "ZEC/USDT",
+   "add_date": "2024-12-10 03:30:00+00:00",
+   "open_date": "2024-12-10 00:30:00+00:00",
+   "add_stake": 116.38623300000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-11 02:00:00+00:00",
+   "open_date": "2024-12-11 00:45:00+00:00",
+   "add_stake": 116.02784999999999,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-12 12:30:00+00:00",
+   "open_date": "2024-12-12 10:00:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-13 08:15:00+00:00",
+   "open_date": "2024-12-13 07:15:00+00:00",
+   "add_stake": 294.95175,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "NEAR/USDT",
+   "add_date": "2024-12-20 08:30:00+00:00",
+   "open_date": "2024-12-20 06:45:00+00:00",
+   "add_stake": 323.96533999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-02 09:00:00+00:00",
+   "open_date": "2024-12-02 02:45:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-12-02 09:45:00+00:00",
+   "open_date": "2024-12-02 08:45:00+00:00",
+   "add_stake": 130.917,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-03 07:00:00+00:00",
+   "open_date": "2024-12-03 00:00:00+00:00",
+   "add_stake": 334.859076,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-03 03:00:00+00:00",
+   "open_date": "2024-12-03 01:45:00+00:00",
+   "add_stake": 103.28400000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-12-03 11:00:00+00:00",
+   "open_date": "2024-12-03 07:15:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-17 01:00:00+00:00",
+   "open_date": "2024-12-16 23:30:00+00:00",
+   "add_stake": 781.0640000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-04 01:15:00+00:00",
+   "open_date": "2024-12-04 00:15:00+00:00",
+   "add_stake": 225.183221,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-12-04 16:45:00+00:00",
+   "open_date": "2024-12-04 03:30:00+00:00",
+   "add_stake": 161.03570999999997,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-05 19:15:00+00:00",
+   "open_date": "2024-12-05 15:30:00+00:00",
+   "add_stake": 605.880288,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-12-05 22:30:00+00:00",
+   "open_date": "2024-12-05 20:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-05 22:30:00+00:00",
+   "open_date": "2024-12-05 20:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-06 09:15:00+00:00",
+   "open_date": "2024-12-06 03:15:00+00:00",
+   "add_stake": 200.870871,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-12-06 13:00:00+00:00",
+   "open_date": "2024-12-06 09:30:00+00:00",
+   "add_stake": 900.0,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-12-06 11:15:00+00:00",
+   "open_date": "2024-12-06 10:15:00+00:00",
+   "add_stake": 251.83800000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LINK/USDT",
+   "add_date": "2024-12-19 16:00:00+00:00",
+   "open_date": "2024-12-19 15:00:00+00:00",
+   "add_stake": 153.50974000000002,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-10 00:30:00+00:00",
+   "open_date": "2024-12-09 23:30:00+00:00",
+   "add_stake": 610.734114,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-12-10 03:15:00+00:00",
+   "open_date": "2024-12-10 00:00:00+00:00",
+   "add_stake": 571.11153,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-12-10 03:30:00+00:00",
+   "open_date": "2024-12-10 00:00:00+00:00",
+   "add_stake": 155.27939999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-12-10 04:30:00+00:00",
+   "open_date": "2024-12-10 03:15:00+00:00",
+   "add_stake": 207.69279999999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-12-10 15:30:00+00:00",
+   "open_date": "2024-12-10 12:30:00+00:00",
+   "add_stake": 429.2856,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-10 13:30:00+00:00",
+   "open_date": "2024-12-10 12:30:00+00:00",
+   "add_stake": 116.70448200000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-10 16:45:00+00:00",
+   "open_date": "2024-12-10 15:45:00+00:00",
+   "add_stake": 244.47196799999998,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-12-10 16:45:00+00:00",
+   "open_date": "2024-12-10 15:45:00+00:00",
+   "add_stake": 237.96447000000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-11 01:45:00+00:00",
+   "open_date": "2024-12-11 00:45:00+00:00",
+   "add_stake": 864.5862000000001,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-13 15:45:00+00:00",
+   "open_date": "2024-12-13 14:15:00+00:00",
+   "add_stake": 386.75338800000003,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-18 06:15:00+00:00",
+   "open_date": "2024-12-18 04:45:00+00:00",
+   "add_stake": 220.87436399999996,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "DOT/USDT",
+   "add_date": "2024-12-19 15:30:00+00:00",
+   "open_date": "2024-12-19 13:00:00+00:00",
+   "add_stake": 579.72432,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AVAX/USDT",
+   "add_date": "2024-12-19 15:00:00+00:00",
+   "open_date": "2024-12-19 13:45:00+00:00",
+   "add_stake": 422.86908000000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "LTC/USDT",
+   "add_date": "2024-12-19 15:00:00+00:00",
+   "open_date": "2024-12-19 13:45:00+00:00",
+   "add_stake": 439.079432,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "AAVE/USDT",
+   "add_date": "2024-12-19 16:15:00+00:00",
+   "open_date": "2024-12-19 15:15:00+00:00",
+   "add_stake": 123.69413,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "SOL/USDT",
+   "add_date": "2024-12-20 08:00:00+00:00",
+   "open_date": "2024-12-20 06:30:00+00:00",
+   "add_stake": 411.86559000000005,
+   "exit_idx_eq_add": false
+  },
+  {
+   "fold": "f07",
+   "pair": "BCH/USDT",
+   "add_date": "2024-12-20 09:15:00+00:00",
+   "open_date": "2024-12-20 07:00:00+00:00",
+   "add_stake": 129.683,
+   "exit_idx_eq_add": false
+  }
+ ]
+}

@@ -24,7 +24,11 @@ FRAMEWORK FEATURES, each off by default and declared on the class:
   regime gate         REVERSION_REGIME_GATE (026): reversion-tagged entries dropped (or, in
                       trigger mode, handed to a momentum trigger on the same bar) in the "off"
                       state; needs a >= 4096-bar startup;
-  stop invariants     `StopInvariantMixin` on every strategy (023 FR-017).
+  stop invariants     `StopInvariantMixin` on every strategy (023 FR-017);
+  held-pair add       HELD_PAIR_ADD (031): a fresh entry signal on a pair that holds an open long
+                      trade adds one stake to it (freqtrade position adjustment) instead of being
+                      ignored; trade clocks then restart at the last fill
+                      (`BaseStrategy.trade_clock_start`).
 
 Validation happens at class creation. A strategy that resolves its own attributes first (a
 SimpleTrigger preset) sets `_ENTRY_FRAMEWORK_AUTO = False` and calls `_finalise_entry_framework`
@@ -96,6 +100,12 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
     #: utils.LabelFamilies), a family name, or None (untagged, on the shared exit).
     MODEL_ENTRY_FAMILY = AUTO
 
+    #: 031: None = off. A dict (even {}) = on, merged PER KEY along the MRO over
+    #: HELD_PAIR_ADD_DEFAULTS into HELD_PAIR_ADD_RESOLVED; a subclass's None turns it off.
+    HELD_PAIR_ADD: dict | None = None
+    HELD_PAIR_ADD_DEFAULTS = {"max_adds": 1, "min_age_hours": 1.0, "under_water_only": False}
+    HELD_PAIR_ADD_RESOLVED: dict | None = None
+
     # FAMILY_EXITS is resolved here, so FamilyExitMixin must not validate before it is.
     _FAMILY_VALIDATE_ON_SUBCLASS = False
     #: False when a subclass hierarchy resolves its attributes first (SimpleTrigger presets).
@@ -108,8 +118,10 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         "ENTRY_MODE", "FAMILY_EXIT_OVERRIDES", "FAMILY_EXITS", "MODEL_ENTRY_FAMILY",
         "REVERSION_REGIME_GATE", "TRIGGER_NAME", "TRIGGERS", "DISABLED_TRIGGERS",
         "FAMILY_PRIORITY", "MOMENTUM_PREEMPT", "MOMENTUM_RECENCY_BARS", "_ENTRY_FRAMEWORK_AUTO",
-        "_FAMILY_VALIDATE_ON_SUBCLASS",
+        "_FAMILY_VALIDATE_ON_SUBCLASS", "HELD_PAIR_ADD", "HELD_PAIR_ADD_DEFAULTS",
+        "HELD_PAIR_ADD_RESOLVED", "position_adjustment_enable", "max_entry_position_adjustment",
     )
+    MODEL_KEY_METHODS_IGNORED = ("adjust_trade_position",)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -124,6 +136,46 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         cls.FAMILY_EXITS = cls._resolve_family_exits(base_family_exits)
         cls._validate_entry_framework()
         validate_family_exits(cls)
+        cls._resolve_held_pair_add()
+
+    @classmethod
+    def _resolve_held_pair_add(cls) -> None:
+        """031: merge HELD_PAIR_ADD along the MRO, validate it, and switch freqtrade's position
+        adjustment on for the class when it is on. Off touches no freqtrade attribute."""
+        merged = None
+        for klass in reversed(cls.__mro__):
+            if "HELD_PAIR_ADD" not in klass.__dict__:
+                continue
+            decl = klass.__dict__["HELD_PAIR_ADD"]
+            if decl is None:
+                merged = None
+                continue
+            if not isinstance(decl, dict):
+                raise cls.ENTRY_ERROR(
+                    f"{cls.__name__}: HELD_PAIR_ADD must be None or a dict, got {decl!r}")
+            merged = {**(merged or {}), **decl}
+        if merged is None:
+            cls.HELD_PAIR_ADD_RESOLVED = None
+            return
+        unknown = sorted(set(merged) - set(cls.HELD_PAIR_ADD_DEFAULTS))
+        if unknown:
+            raise cls.ENTRY_ERROR(f"{cls.__name__}: HELD_PAIR_ADD unknown keys {unknown}")
+        r = {**cls.HELD_PAIR_ADD_DEFAULTS, **merged}
+        if type(r["max_adds"]) is not int or r["max_adds"] < 1:
+            raise cls.ENTRY_ERROR(
+                f"{cls.__name__}: HELD_PAIR_ADD max_adds must be an int >= 1, got {r['max_adds']!r}")
+        if type(r["min_age_hours"]) not in (int, float) or r["min_age_hours"] < 0:
+            raise cls.ENTRY_ERROR(
+                f"{cls.__name__}: HELD_PAIR_ADD min_age_hours must be a number >= 0, got "
+                f"{r['min_age_hours']!r}")
+        if type(r["under_water_only"]) is not bool:
+            raise cls.ENTRY_ERROR(
+                f"{cls.__name__}: HELD_PAIR_ADD under_water_only must be a bool, got "
+                f"{r['under_water_only']!r}")
+        r["min_age_hours"] = float(r["min_age_hours"])
+        cls.HELD_PAIR_ADD_RESOLVED = r
+        cls.position_adjustment_enable = True
+        cls.max_entry_position_adjustment = r["max_adds"]
 
     @classmethod
     def _resolve_family_exits(cls, base: dict) -> dict:
@@ -454,6 +506,94 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
             "regime_gate_off_bars": int(off.sum()),
         }
         return tags, mask & ~drop
+
+    # --------------------------------------------------------------------- 031 held-pair add
+
+    #: AddDecision refusal reasons, in check order (data-model.md).
+    HP_REASONS = ("not_long", "open_order", "max_adds", "row_misaligned", "no_signal",
+                  "too_young", "in_profit", "thin", "below_min")
+
+    def _hp_count(self, key: str) -> None:
+        c = self.__dict__.get("_hp_counts")
+        if c is None:
+            c = self._hp_counts = {}
+            import atexit
+
+            atexit.register(self._hp_sink)
+        c[key] = c.get(key, 0) + 1
+
+    def _hp_refuse(self, reason: str):
+        self._hp_count(f"refused_{reason}")
+        return None
+
+    def _hp_sink(self) -> None:
+        """Write the add counters into the run's entry-condition sink (`run_arm` merges every
+        `*.json` there into `entry_condition_counts`; keys are prefixed `hp_`). The switch must
+        be on and the sink set."""
+        sink = os.environ.get("FT_ENTRY_CONDITION_SINK")
+        counts = self.__dict__.get("_hp_counts") or {}
+        if not sink or not counts or self.HELD_PAIR_ADD_RESOLVED is None:
+            return
+        calls = int(sum(counts.values()))
+        out = Path(sink)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"{self.__class__.__name__}_hp_add.json").write_text(json.dumps({
+            "counts": {f"hp_{k}": {"pass": int(v), "total": calls}
+                       for k, v in sorted(counts.items())}}))
+
+    def adjust_trade_position(self, trade, current_time, current_rate, current_profit,
+                              min_stake, max_stake, current_entry_rate=None,
+                              current_exit_rate=None, current_entry_profit=None,
+                              current_exit_profit=None, **kwargs):
+        """031: add one stake to a held trade when the strategy's own entry signal fires on its
+        pair (data-model AddDecision; checks in order, the first failure refuses).
+
+        freqtrade calls this at the open of each candle, before the exit checks, with
+        `current_rate` = that open and `max_stake` already bounded by the available wallet. The
+        signal candle is the one before (`current_time - timeframe`); a fresh entry would fill
+        at this same open. freqtrade does not call `custom_stake_amount` or
+        `confirm_trade_entry` for an add, so the liquidity cap and the quote-volume floor are
+        applied here.
+        """
+        hp = self.HELD_PAIR_ADD_RESOLVED
+        if hp is None:
+            return None  # off: never counted, never sinks
+        if getattr(trade, "is_short", False):
+            return self._hp_refuse("not_long")
+        if getattr(trade, "has_open_orders", False):
+            return self._hp_refuse("open_order")
+        if trade.nr_of_successful_entries - 1 >= hp["max_adds"]:
+            return self._hp_refuse("max_adds")
+        from datetime import timedelta
+
+        from freqtrade.exchange import timeframe_to_minutes
+
+        df, _ = self.dp.get_analyzed_dataframe(pair=trade.pair, timeframe=self.timeframe)
+        signal = current_time - timedelta(minutes=timeframe_to_minutes(self.timeframe))
+        if df is None or len(df) == 0 or df["date"].iloc[-1] != signal:
+            return self._hp_refuse("row_misaligned")
+        last = df.iloc[-1]
+        if last.get("enter_long") != 1:
+            return self._hp_refuse("no_signal")
+        age_h = (current_time - trade.date_last_filled_utc).total_seconds() / 3600.0
+        if age_h <= 0.0 or age_h < hp["min_age_hours"]:
+            return self._hp_refuse("too_young")
+        if hp["under_water_only"] and not current_profit < 0:
+            return self._hp_refuse("in_profit")
+        quote_volume = float(last["volume"]) * float(last["close"])
+        if quote_volume < self.MIN_QUOTE_VOLUME:
+            return self._hp_refuse("thin")
+        try:
+            proposed = self.wallets.get_trade_stake_amount(
+                trade.pair, self.config["max_open_trades"], update=False)
+        except Exception:  # noqa: BLE001 -- no wallet (tests) or freqtrade refuses a proposal
+            proposed = float(self.config["stake_amount"])
+        stake = min(float(proposed), quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT,
+                    float(max_stake))
+        if stake <= 0 or (min_stake and stake < min_stake):
+            return self._hp_refuse("below_min")
+        self._hp_count("adds")
+        return stake, "hp_add"
 
     # ------------------------------------------------------------------------- liveness sink
 

@@ -346,6 +346,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "research/st_grace/screen.py",             # reads the resolved grace hours and passes the C2
                                                  # multiplier to the 027 replay as Rules; computes
                                                  # nothing.
+    "utils/tests/test_held_pair_add.py",       # 031: sets grace hours/level on stubs and asserts
+                                                 # the clock restart; computes no stop level.
     "utils/tests/test_exit_switches.py",       # sets the switch on stubs; asserts the
                                                  # resolved take-profit, computes none of it.
     "NNNC/NNNC_Live_C2.py",                    # 029 liveness arm: FAMILY_EXIT_OVERRIDES

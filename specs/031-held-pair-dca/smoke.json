@@ -1,0 +1,135 @@
+{
+ "n_trades": 49,
+ "n_adds": 10,
+ "hp_counters": {
+  "adds": 10,
+  "refused_max_adds": 499,
+  "refused_no_signal": 1966,
+  "refused_thin": 10,
+  "refused_too_young": 102
+ },
+ "checked": 10,
+ "failures": [],
+ "adds": [
+  {
+   "pair": "SOL/USDT",
+   "open": "2023-01-03 18:00:00+00:00",
+   "add_fill": "2023-01-03 19:00:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 12.8749,
+   "avg": 12.874945008421198,
+   "add_stake": 216.09,
+   "cap": 216.09,
+   "total_stake": 1116.077483,
+   "hours_after_open": 1.0
+  },
+  {
+   "pair": "SOL/USDT",
+   "open": "2023-01-04 12:45:00+00:00",
+   "add_fill": "2023-01-04 14:15:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 13.3767,
+   "avg": 13.376712411471377,
+   "add_stake": 899.99,
+   "cap": 1565.92,
+   "total_stake": 1799.9837988,
+   "hours_after_open": 1.5
+  },
+  {
+   "pair": "NEAR/USDT",
+   "open": "2023-01-14 09:30:00+00:00",
+   "add_fill": "2023-01-14 10:30:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 2.079,
+   "avg": 2.0793175043327556,
+   "add_stake": 899.81,
+   "cap": 1911.97,
+   "total_stake": 1799.6493,
+   "hours_after_open": 1.0
+  },
+  {
+   "pair": "DOT/USDT",
+   "open": "2023-01-14 09:45:00+00:00",
+   "add_fill": "2023-01-14 11:00:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 5.94,
+   "avg": 5.943532094002105,
+   "add_stake": 116.7,
+   "cap": 116.73,
+   "total_stake": 1016.7006,
+   "hours_after_open": 1.25
+  },
+  {
+   "pair": "SOL/USDT",
+   "open": "2023-01-15 01:15:00+00:00",
+   "add_fill": "2023-01-15 02:15:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 22.8965,
+   "avg": 22.896521834811033,
+   "add_stake": 899.99,
+   "cap": 3167.78,
+   "total_stake": 1799.964271,
+   "hours_after_open": 1.0
+  },
+  {
+   "pair": "NEAR/USDT",
+   "open": "2023-01-22 14:15:00+00:00",
+   "add_fill": "2023-01-22 19:15:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 2.489,
+   "avg": 2.4887166666666665,
+   "add_stake": 229.73,
+   "cap": 229.93,
+   "total_stake": 447.969,
+   "hours_after_open": 5.0
+  },
+  {
+   "pair": "NEAR/USDT",
+   "open": "2023-01-23 06:15:00+00:00",
+   "add_fill": "2023-01-23 15:00:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 2.552,
+   "avg": 2.552448635235732,
+   "add_stake": 899.95,
+   "cap": 5087.41,
+   "total_stake": 1028.6368,
+   "hours_after_open": 8.75
+  },
+  {
+   "pair": "AVAX/USDT",
+   "open": "2023-01-28 02:30:00+00:00",
+   "add_fill": "2023-01-28 08:30:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 20.62,
+   "avg": 20.62377865906556,
+   "add_stake": 764.2,
+   "cap": 764.41,
+   "total_stake": 1664.1327,
+   "hours_after_open": 6.0
+  },
+  {
+   "pair": "NEAR/USDT",
+   "open": "2023-02-09 00:00:00+00:00",
+   "add_fill": "2023-02-09 16:45:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 2.538,
+   "avg": 2.5378709942481508,
+   "add_stake": 560.3,
+   "cap": 560.51,
+   "total_stake": 926.5767,
+   "hours_after_open": 16.75
+  },
+  {
+   "pair": "SOL/USDT",
+   "open": "2023-03-11 04:15:00+00:00",
+   "add_fill": "2023-03-11 07:15:00+00:00",
+   "signal_in_table": true,
+   "open_rate": 17.8705,
+   "avg": 17.87053287872452,
+   "add_stake": 900.0,
+   "cap": 2960.68,
+   "total_stake": 1666.73099,
+   "hours_after_open": 3.0
+  }
+ ]
+}

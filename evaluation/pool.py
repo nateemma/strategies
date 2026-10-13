@@ -62,6 +62,17 @@ def arm_record(tag: str, label: str) -> dict | None:
         return None
 
 
+def _entry_fields(t: dict) -> dict:
+    orders = t.get("orders")
+    if not isinstance(orders, list):
+        return {"n_entries": None, "entry_fills": None}
+    fills = [(o["order_filled_timestamp"], float(o.get("amount") or 0.0)
+              * float(o.get("safe_price") or o.get("price") or 0.0))
+             for o in orders if o.get("ft_is_entry") and o.get("order_filled_timestamp")]
+    n = max(len(fills), 1)
+    return {"n_entries": n, "entry_fills": fills if n > 1 else None}
+
+
 def pool(plan: dict) -> dict:
     pooled, per_fold, missing = [], [], []
     for f in plan["folds"]:
@@ -91,6 +102,9 @@ def pool(plan: dict) -> dict:
                 # 024 C6: the entry family ("<family>:<trigger>[+ov]"); additive, read by
                 # evaluation.contention. Absent in pre-024 archives' semantics ("model_entry ").
                 "enter_tag": t.get("enter_tag"),
+                # 031: filled entry orders (1 without a position add; None when the archive has
+                # no orders) and, for a trade with an add, each fill's (timestamp_ms, stake).
+                **_entry_fields(t),
             })
         per_fold.append({"fold_id": f["fold_id"], "n_trades": n,
                          "return_pct": rec.get("wallet_profit_pct"),

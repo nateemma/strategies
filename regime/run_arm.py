@@ -415,8 +415,37 @@ def summarize(result_path: Path | None) -> dict:
         "trades_per_day": round(len(trades) / max((trades["close_date"].max() - trades["open_date"].min()).days, 1), 4),
         "exit_reason_counts": exit_reason_counts(trades),
         **tag_accounting(trades),
+        **add_accounting(trades),
         **_wallet_stats(result_path),
     }
+
+
+def entry_counts(trades) -> list:
+    """031: filled entry orders per trade (1 without a position add), from the export's
+    `orders`. A trade without an `orders` list counts as one entry."""
+    out = []
+    for orders in trades["orders"] if "orders" in trades else [None] * len(trades):
+        n = sum(1 for o in (orders if isinstance(orders, list) else [])
+                if o.get("ft_is_entry") and o.get("order_filled_timestamp") is not None)
+        out.append(max(n, 1))
+    return out
+
+
+def add_accounting(trades) -> dict:
+    """031: position adds over the fold. Empty (fields omitted) when no trade has an add, so
+    every record without one is unchanged."""
+    n = entry_counts(trades)
+    adds = sum(k - 1 for k in n)
+    if adds == 0:
+        return {}
+    return {"n_adds": int(adds), "n_trades_with_adds": int(sum(k > 1 for k in n))}
+
+
+def hp_counters(entry_counts_: dict | None) -> dict:
+    """031: the held-pair add counters (`hp_` keys the strategy writes into the entry-condition
+    sink), as {name: count}; empty when the switch was off."""
+    return {k[3:]: int(v.get("pass", 0)) for k, v in sorted((entry_counts_ or {}).items())
+            if k.startswith("hp_")}
 
 
 def _counts(series) -> dict:
@@ -636,7 +665,9 @@ def main() -> int:
         ),
         "returncode": proc.returncode,
         **framework,
-        "entry_condition_counts": aggregate_sink(sink),
+        "entry_condition_counts": (ecc := aggregate_sink(sink)),
+        # 031: held-pair add counters (omitted when the switch is off)
+        **({"hp_counters": h} if (h := hp_counters(ecc)) else {}),
         "model_key": read_model_key(scratch),
         # 025 C3: rule A pair-cap refusals (omitted when none were logged)
         **({"coexistence_refusals": c} if (c := aggregate_coexistence(sink)) else {}),

@@ -95,7 +95,7 @@ right timing, size and average. The off-identity check is 15/15 on all reference
 
 ### Tests for User Story 1 (write first, confirm they fail)
 
-- [ ] T007 [P] [US1] `utils/tests/test_held_pair_add.py`, declaration tests:
+- [X] T007 [P] [US1] `utils/tests/test_held_pair_add.py`, declaration tests:
   - `None` stays off (`position_adjustment_enable` False, `max_entry_position_adjustment` -1);
   - `{}` turns on with the defaults (`max_adds` 1, `min_age_hours` 1.0, `under_water_only` False);
   - a subclass dict merges key by key over its parent's;
@@ -104,14 +104,14 @@ right timing, size and average. The off-identity check is 15/15 on all reference
     `EntryFrameworkError`;
   - both finalisation paths work: `_ENTRY_FRAMEWORK_AUTO` True (NNNC) and the SimpleTrigger preset
     path that finalises explicitly.
-- [ ] T008 [P] [US1] Same file, AddDecision tests. Use a fake `dp` returning a small analysed
+- [X] T008 [P] [US1] Same file, AddDecision tests. Use a fake `dp` returning a small analysed
   dataframe and a fake trade (`nr_of_successful_entries`, `date_last_filled_utc`, `is_short`,
   `has_open_orders`, `open_rate`, `pair`). One test per refusal in data-model.md order: `off`,
   `not_long`, `open_order`, `max_adds`, `row_misaligned`, `no_signal`, `too_young` (including age
   0), `in_profit`, `thin`, `below_min`. Also:
   - the accept path returns `(min(proposed, fillable, max_stake), "hp_add")`;
   - each refusal increments its counter.
-- [ ] T009 [P] [US1] Same file, clock tests with `position_adjustment_enable` True and a trade whose
+- [X] T009 [P] [US1] Same file, clock tests with `position_adjustment_enable` True and a trade whose
   `date_last_filled_utc` is 30 h after `open_date_utc`:
   - the grace branch is active again within 24 h of the last fill;
   - `custom_exit_decision` receives the age from the last fill;
@@ -119,7 +119,7 @@ right timing, size and average. The off-identity check is 15/15 on all reference
   - the ATR take-profit reads the row at `last_fill − timeframe` and re-resolves (new cache key);
   - the hold window uses the last fill;
   - with `position_adjustment_enable` False, every site uses `open_date_utc` (parametrised).
-- [ ] T010 [P] [US1] Same file, stop tests:
+- [X] T010 [P] [US1] Same file, stop tests:
   - after an add, the tightened (post-grace) stop price is anchored to the averaged `open_rate`;
   - `custom_stoploss(after_fill=True)` inside the restarted grace window returns `grace_level`;
   - `StopInvariantMixin` raises nothing across the sequence: entry → grace → tightened → add
@@ -127,7 +127,7 @@ right timing, size and average. The off-identity check is 15/15 on all reference
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] In `utils/EntryFramework.py`, add:
+- [X] T011 [US1] In `utils/EntryFramework.py`, add:
   - `HELD_PAIR_ADD = None` and `HELD_PAIR_ADD_DEFAULTS`;
   - MRO merge and validation in `_finalise_entry_framework`, setting `position_adjustment_enable`
     and `max_entry_position_adjustment` on the class when on;
@@ -135,7 +135,7 @@ right timing, size and average. The off-identity check is 15/15 on all reference
 
   Check that the SimpleTrigger preset path calls the same finalisation. If it does not, call it
   there.
-- [ ] T012 [US1] In `utils/EntryFramework.py`, implement `adjust_trade_position` per
+- [X] T012 [US1] In `utils/EntryFramework.py`, implement `adjust_trade_position` per
   contracts/interfaces.md and the data-model AddDecision order:
   - refusal counters in an instance dict;
   - stake via `self.wallets.get_trade_stake_amount(pair, self.config["max_open_trades"],
@@ -143,16 +143,16 @@ right timing, size and average. The off-identity check is 15/15 on all reference
   - `MIN_QUOTE_VOLUME` floor;
   - return `(stake, "hp_add")`.
 
-  Counters (`adds` plus one per refusal) are written to the sidecar file
-  `<user_data_dir>/backtest_results/hp_counters_<StrategyClass>.json`. The file is rewritten at
-  process exit via `atexit` (registered on the first call) and written only when the switch is on
-  (data-model AddDecision). T008 gains a test that the sidecar is written with the counts.
-- [ ] T013 [US1] In `evaluation/fingerprint.py`, add `"HELD_PAIR_ADD"` to
+  Counters (`adds` plus one per refusal) are written to the run's entry-condition sink as
+  `<StrategyClass>_hp_add.json`, at process exit via `atexit` (registered on the first counted
+  call), and only when the switch is on (data-model AddDecision). T008 gains a test that the file
+  is written with the counts.
+- [X] T013 [US1] In `evaluation/fingerprint.py`, add `"HELD_PAIR_ADD"` to
   `OPTIONAL_ATTRIBUTE_MEMBERS`. Add a test (`evaluation/test_fingerprint_held_pair.py`) checking
   that an off class hashes as before and an on class hashes differently.
-- [ ] T014 [US1] Run T007–T010 and T013 until they pass. Then run the full suites from T002 plus
+- [X] T014 [US1] Run T007–T010 and T013 until they pass. Then run the full suites from T002 plus
   the model-key audit test. The pass count must be the baseline plus the new tests.
-- [ ] T015 [US1] Smoke backtest. Write `research/held_pair/build_arms.py` (spec in T020) first and run
+- [X] T015 [US1] Smoke backtest. Write `research/held_pair/build_arms.py` (spec in T020) first and run
   it with `--only ARO --folds f00`. That generates `NNNC/NNNC_HP_ARO_DCA_f00.py/.json` (per-fold
   class, `model_dir` `saved_data/NNNC_ARO_f00`, `HELD_PAIR_ADD = {}`), `plan_hp_aro_dca.json`
   and a one-fold copy `plan_hp_smoke.json` (`run_id`/`arm_tag` `hp_smoke`, f00 only). Run
@@ -190,22 +190,21 @@ for correctly.
 
 **Independent Test**: `fidelity.json` shows ≥ 95% of adds matched, and the accounting tests pass.
 
-- [ ] T017 [US2] `regime/run_arm.py summarize`:
+- [X] T017 [US2] `regime/run_arm.py summarize`:
   - add `n_adds` and `n_trades_with_adds` from the exported trades' `orders` (entry-side, filled),
     or `nr_of_entries` if present, emitted only when > 0;
-  - pick up the sidecar `hp_counters_<StrategyClass>.json` (T012) into the record as
-    `hp_counters`, then delete the file;
-  - delete any stale sidecar for the class before the backtest starts.
+  - copy the `hp_` keys of `entry_condition_counts` (the T012 sink file, merged by
+    `aggregate_sink`; the sink directory is per run) into the record as `hp_counters`.
 
   Add a test (in `regime/tests/` if it exists, else `evaluation/test_run_arm_adds.py`) on a
   synthetic export with and without adds, and with and without a sidecar: no new keys when off,
   `trades_hash` definition unchanged. **Run this before T015**, which needs it.
-- [ ] T018 [P] [US2] `evaluation/pool.py`: add a per-trade `n_entries` (additive, `None` when
+- [X] T018 [P] [US2] `evaluation/pool.py`: add a per-trade `n_entries` (additive, `None` when
   absent). Add `evaluation/test_pool_multifill.py`: a synthetic record with one two-fill trade
   checks that `stake_amount` is the total, `profit_abs` passes through, the trade pairs with a
   one-fill control trade on `(fold_id, pair, open_date)` in `compare_pooled`, and `risk.compare`
   runs.
-- [ ] T019 [US2] `research/held_pair/screen.py`: record `add_e` (bar index of the add, −1 if none)
+- [X] T019 [US2] `research/held_pair/screen.py`: record `add_e` (bar index of the add, −1 if none)
   on each simulated trade, without changing any other arithmetic. Add a `--dump-adds MODEL GRACE`
   option that writes `adds_<model>.json` (fold, pair, add date, trade open date, add stake)
   for DCA:all:1h. Re-run the early-half screen for ARO and confirm that `screen_nnnc_r2.json`'s

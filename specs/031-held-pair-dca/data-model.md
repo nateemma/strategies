@@ -18,8 +18,10 @@
 - Derived class attributes when ON: `position_adjustment_enable = True` and
   `max_entry_position_adjustment = max_adds`. When OFF the base values (`False`, `-1`) are left
   untouched.
-- Hashing: `framework_sha` includes the resolved dict only when ON (`OPTIONAL_ATTRIBUTE_MEMBERS`).
-  It is model-key IGNORED.
+- Resolved into `HELD_PAIR_ADD_RESOLVED` (None when off).
+- Hashing: `framework_sha` includes `HELD_PAIR_ADD_RESOLVED` only when ON
+  (`OPTIONAL_ATTRIBUTE_MEMBERS`). All `HELD_PAIR_ADD*` names and the two freqtrade attributes are
+  model-key IGNORED, and `adjust_trade_position` is a model-key ignored method.
 
 ## AddDecision (per call of `adjust_trade_position`)
 
@@ -41,14 +43,16 @@ The rules are checked in order. The first failure returns `None` and increments 
 Output: the `stake`, with order tag `"hp_add"`.
 
 The counters (`adds` plus one per refusal) live in the strategy instance. Freqtrade runs in a
-`run_arm` subprocess, so they leave it through a sidecar file:
-- `hp_counters_<StrategyClass>.json` in the backtest results directory
-  (`self.config["user_data_dir"]/backtest_results`);
-- it is rewritten at process exit (`atexit`, registered on the first `adjust_trade_position` call);
+`run_arm` subprocess, so they leave it through a sidecar file. *(Implementation note: this is the
+run's existing per-run entry-condition sink, `FT_ENTRY_CONDITION_SINK`, which `run_arm` already
+creates fresh per run and merges.)*
+- `<StrategyClass>_hp_add.json` in the sink directory, in the entry-condition format
+  (`{"counts": {"hp_<key>": {"pass": n, "total": calls}}}`);
+- it is written at process exit (`atexit`, registered on the first counted call);
 - it is written only when the switch is on.
 
-`regime/run_arm.summarize` copies it into the arm record as `hp_counters`, and deletes the file so
-the next fold cannot read a stale one. Fidelity and judge read `hp_counters` from the record. They
+`run_arm` merges it into `entry_condition_counts`, and copies the `hp_` keys into the arm record as
+`hp_counters`. Fidelity and judge read `hp_counters` from the record. They
 are the liveness and diagnosis signal for "why no add".
 
 ## Trade clock

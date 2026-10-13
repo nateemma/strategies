@@ -76,7 +76,9 @@ ATTRIBUTE_MEMBERS = (
 #: most strategies: listing them in ATTRIBUTE_MEMBERS would add a `None` key to every resolved
 #: dict and change every recorded framework_sha. HOLD_WINDOW_HOURS (NNNC/_hold_window.py) defers
 #: unclog_12h; before this, an arm with it hashed identically to the same arm without it.
-OPTIONAL_ATTRIBUTE_MEMBERS = ("HOLD_WINDOW_HOURS", "take_profit_atr_mult")
+#: HELD_PAIR_ADD_RESOLVED (031) is the resolved held-pair add switch; None (off) on every
+#: recorded class.
+OPTIONAL_ATTRIBUTE_MEMBERS = ("HOLD_WINDOW_HOURS", "take_profit_atr_mult", "HELD_PAIR_ADD_RESOLVED")
 
 #: Default-off ExitParams switches added after recorded arms were hashed (028 C2). Omitted from
 #: the resolved family sets while None, so every recorded `framework_sha` is unchanged (FR-010);
