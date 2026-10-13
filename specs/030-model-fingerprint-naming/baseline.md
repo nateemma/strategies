@@ -1,5 +1,7 @@
 # Baseline (030 T004–T008)
 
+Baseline commit: `a62fb23`
+
 The baseline was run on 2026-10-12, on unchanged loader code, as one chain with
 `FT_MODEL_EVAL_STRICT=1` exported. The variable is inert on the old loader.
 - **Chain log:** 0 × `training on`, 0 tracebacks.
