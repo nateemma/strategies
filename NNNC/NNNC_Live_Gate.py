@@ -13,10 +13,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 
 
-class NNNC_Live_Gate(BorrowedModelMixin, NNNC_A_Raw_Open):
+class NNNC_Live_Gate(NNNC_A_Raw_Open):
     startup_candle_count = 4096
+    # 030: warm-up is a training input; these weights were trained with 64 startup candles.
+    MODEL_TRAINED_WITH = {"startup_candle_count": 64}
     REVERSION_REGIME_GATE = {"instrument": "volreg", "threshold": 1.3658023280926226, "off_when": "lt"}

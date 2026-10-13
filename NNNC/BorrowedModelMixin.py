@@ -1,43 +1,20 @@
 # pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
 # type: ignore
-"""Borrowed per-fold weights, never trained (feature 023 R12; extracted in 029).
+"""RETIRED in feature 030 -- weights are found by model key, not by a class-name redirect.
 
-A per-fold class `<Name>_fNN` loads `<MODEL_SOURCE>_fNN`'s saved model instead of its own.
-`get_model_path` keys off the class name in the base, so without this redirect a fold class would
-find no model and TRAIN one inside its own backtest. `train_model` raises, so a missing model is a
-loud failure, never a silent retrain. Used by the equivalence twin, the 029 stop-invariant probe
-and the 029 liveness arms.
+This mixin used to point a per-fold class `<Name>_fNN` at `<MODEL_SOURCE>_fNN`'s saved model
+(023 R12; extracted in 029), because `get_model_path` keyed off the class name. Since 030,
+`Framework/ModelKey.py` resolves weights from everything that shapes them, so a class that differs
+from its source only after the model (exits, gates, triggers) resolves to the source's key with no
+redirect. A class whose run differs in a training input the weights did not see (e.g. a 4096-bar
+warm-up on weights trained with 64) declares `MODEL_TRAINED_WITH`.
+
+The module stays so an old import fails with this explanation instead of an ImportError.
 """
-
-import re
-from pathlib import Path
-
-
-_FOLD = re.compile(r"_(f\d{2})$")
 
 
 class BorrowedModelMixin:
-    MODEL_SOURCE = "NNNC_ARO"
-
-    # Feature 030: the model key (Framework/ModelKey.py). This class declares the names it
-    # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
-    # IGNORED act only after the model. The audit test keeps every name classified.
-    MODEL_KEY_IGNORED = (
-        "MODEL_SOURCE",
-    )
-
-    def get_model_path(self) -> str:
-        m = _FOLD.search(self.__class__.__name__)
-        if not m:
-            raise ValueError(
-                f"{self.__class__.__name__}: runs only as a per-fold class (`*_fNN`) that "
-                f"borrows {self.MODEL_SOURCE}_fNN's weights"
-            )
-        src = f"{self.MODEL_SOURCE}_{m.group(1)}"
-        d = Path(self.get_storage_location()) / src
-        if not d.is_dir():
-            raise FileNotFoundError(f"borrowed model dir {d} is missing -- refusing to train")
-        return str(d / f"{src}.keras")
-
-    def train_model(self, *args, **kwargs):
-        raise RuntimeError(f"{self.__class__.__name__} must never train")
+    def __init_subclass__(cls, **kwargs):
+        raise TypeError(
+            f"{cls.__name__}: BorrowedModelMixin is retired (030). Drop it -- weights resolve by "
+            f"model key; declare MODEL_TRAINED_WITH for a training input your run changes.")

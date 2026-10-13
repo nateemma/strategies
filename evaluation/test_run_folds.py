@@ -105,7 +105,11 @@ def test_generate_fold_without_guards_matches_the_PRE_CHANGE_fixture(tmp_path, m
         "the generated params file changed for a plan with NO guards key -- fix run_folds.py, "
         "do NOT regenerate the fixture"
     )
-    assert hashlib.sha256(py.read_bytes()).hexdigest() == fix["py_sha256"]
+    # 030 replaced the class body `pass` with the model-key pins; everything else is unchanged.
+    pins = run_folds.PIN_BLOCK.format(train_timerange=FOLD["train_timerange"], seed=1)
+    assert pins in py.read_text()
+    pre_030 = py.read_text().replace(pins, "    pass\n")
+    assert hashlib.sha256(pre_030.encode()).hexdigest() == fix["py_sha256"]
     assert js.read_text() == fix["json_text"]
 
 

@@ -392,6 +392,32 @@ class TrainingEngine:
     # Training trigger (called from the populate_indicators hook)
     # ====================================================================
 
+    def _check_model_manifest(self) -> None:
+        """Feature 030 FR-008: weights whose manifest records a different key halt the run."""
+        loc = getattr(self, "_model_location", None)
+        if loc is not None:
+            from Framework import ModelKey as MK
+
+            MK.check_manifest(loc)
+
+    def _train_keyed(self, *args, **kwargs):
+        """train_model under the model key (feature 030): an exclusive lock while training
+        into a new key, then its manifest and index entry. Legacy and redirected paths train
+        exactly as before."""
+        from contextlib import nullcontext
+
+        from Framework import ModelKey as MK
+
+        loc = getattr(self, "_model_location", None)
+        fresh = loc is not None and loc.kind == "absent"
+        if fresh:
+            print(f"    model key: training {loc.prefix}__{loc.hash}", flush=True)
+        with (MK.training_lock(loc) if fresh else nullcontext()):
+            self.train_model(*args, **kwargs)
+        if fresh and self.classifier is not None and self.classifier.model_exists():
+            MK.record_training(loc, self.__class__.__name__, self.config.get("timerange"))
+            self._model_location = None  # re-resolve: now indexed as keyed
+
     def maybe_train(self, dataframe: DataFrame, labels, curr_pair: str) -> DataFrame:
         """Lazily build the classifier and run the training trigger.
 
@@ -411,6 +437,7 @@ class TrainingEngine:
             )
             self.classifier.set_model_path(self.get_model_path())
             self.classifier.set_batch_size(self.batch_size)
+            self._check_model_manifest()
 
         if self.aggregate_pairs:
             whitelist = self.dp.current_whitelist()
@@ -424,7 +451,7 @@ class TrainingEngine:
 
                 if self.training_needed and not self.model_exists():
                     self.debug_print(f"    Training model on {self.pair_count} pairs")
-                    self.train_model(
+                    self._train_keyed(
                         self.df_array,
                         self.label_array,
                         self.classifier,
@@ -442,7 +469,7 @@ class TrainingEngine:
 
         else:
             if not self.model_exists():
-                self.train_model(
+                self._train_keyed(
                     [dataframe], [labels], self.classifier,
                     pair_names=[self.curr_pair],
                 )

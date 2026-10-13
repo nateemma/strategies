@@ -1,0 +1,482 @@
+{
+ "NNMT_Band20": {
+  "defined_in": "NNMT_Band20",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band30": {
+  "defined_in": "NNMT_Band30",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band40": {
+  "defined_in": "NNMT_Band40",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Band50": {
+  "defined_in": "NNMT_Band50",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Cap20": {
+  "defined_in": "NNMT_Cap20",
+  "reason": "Alias the control's weights \u2014 the cap is the only difference.",
+  "target": "NNMT_Ctl_s42"
+ },
+ "NNMT_Cap40": {
+  "defined_in": "NNMT_Cap40",
+  "reason": "Alias the control's weights \u2014 the cap is the only difference.",
+  "target": "NNMT_Ctl_s42"
+ },
+ "NNMT_Ctl_s42": {
+  "defined_in": "NNMT_Ctl_s42",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNMT_Ctl_s7": {
+  "defined_in": "NNMT_Ctl_s7",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNMT_Lbl02_s42": {
+  "defined_in": "NNMT_Lbl02_s42",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNMT_Lbl02_s7": {
+  "defined_in": "NNMT_Lbl02_s7",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNMT_MLX_Base": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_NoModel": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Ora_Cur": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Ora_Patient": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle_Lbl02": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Oracle_Path": {
+  "defined_in": "NNMT_MLX_Base",
+  "reason": "Reuse NNMT_MLX's weights \u2014 the control retrains nothing.",
+  "target": "NNMT_MLX"
+ },
+ "NNMT_Path_s42": {
+  "defined_in": "NNMT_Lbl02_s42",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNMT_Path_s7": {
+  "defined_in": "NNMT_Lbl02_s7",
+  "reason": "Own weights, NOT NNMT_MLX's \u2014 this arm trains its own model.",
+  "target": "computed"
+ },
+ "NNNC_Aug0_s1": {
+  "defined_in": "NNNC_Aug0_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Aug0_s7": {
+  "defined_in": "NNNC_Aug0_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Aug1_s1": {
+  "defined_in": "NNNC_Aug1_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Aug1_s7": {
+  "defined_in": "NNNC_Aug1_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Aug2_s1": {
+  "defined_in": "NNNC_Aug2_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Aug2_s7": {
+  "defined_in": "NNNC_Aug2_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Band20": {
+  "defined_in": "NNNC_Band20",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band25": {
+  "defined_in": "NNNC_Band25",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band30": {
+  "defined_in": "NNNC_Band30",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Band50": {
+  "defined_in": "NNNC_Band50",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_BrkOra005": {
+  "defined_in": "NNNC_BrkOra005",
+  "reason": "Reuse the host's weights \u2014 loaded, never consulted.",
+  "target": "computed"
+ },
+ "NNNC_BrkOra02": {
+  "defined_in": "NNNC_BrkOra02",
+  "reason": "Reuse the host's weights \u2014 loaded, never consulted.",
+  "target": "computed"
+ },
+ "NNNC_BrkOra03": {
+  "defined_in": "NNNC_BrkOra03",
+  "reason": "Reuse the host's weights \u2014 loaded, never consulted.",
+  "target": "computed"
+ },
+ "NNNC_Brk_H1": {
+  "defined_in": "NNNC_Brk_H1",
+  "reason": "Reuse the HOST's weights -- H1 changes only the exit rule.",
+  "target": "computed"
+ },
+ "NNNC_DDPM_MLX_InJit": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_DDPM_MLX_Noisy": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_DDPM_MLX_P0": {
+  "defined_in": "NNNC_DDPM_MLX_P0",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_LblMatchGB_s1": {
+  "defined_in": "NNNC_LblMatchGB_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_LblMatchGB_s7": {
+  "defined_in": "NNNC_LblMatchGB_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_LblMatchG_s1": {
+  "defined_in": "NNNC_LblMatchG_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_LblMatchG_s7": {
+  "defined_in": "NNNC_LblMatchG_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_MLX_Cap20": {
+  "defined_in": "NNNC_MLX_Cap20",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_MLX_Cap40": {
+  "defined_in": "NNNC_MLX_Cap40",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_MLX_InJit": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_InJit_P0": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_Noisy": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_Noisy_P0": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_MLX_Open": {
+  "defined_in": "NNNC_MLX_Open",
+  "reason": "Reuse NNNC_MLX_Lbl02's weights.",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_MLX_P0": {
+  "defined_in": "NNNC_MLX_P0",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_NoModel": {
+  "defined_in": "NNNC_NoModel",
+  "reason": "Reuse NNNC_MLX's weights \u2014 nothing here is retrained.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Open_Cap20": {
+  "defined_in": "NNNC_Open_Cap20",
+  "reason": "Reuse NNNC_MLX_Lbl02's weights.",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap3": {
+  "defined_in": "NNNC_Open_Cap3",
+  "reason": "Reuse NNNC_MLX_Lbl02's weights.",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap40": {
+  "defined_in": "NNNC_Open_Cap40",
+  "reason": "Reuse NNNC_MLX_Lbl02's weights.",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_Cap5": {
+  "defined_in": "NNNC_Open_Cap5",
+  "reason": "Reuse NNNC_MLX_Lbl02's weights.",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Open_InJit_s01": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Open_Noisy_s01": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Open_Noisy_s02": {
+  "defined_in": "NoisyCoconutStrategyMixin",
+  "reason": "",
+  "target": "reuse_model_from"
+ },
+ "NNNC_Ora_BBW0": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Comb": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G00": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G02p": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_G10": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L024": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L026": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_L032": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Lbl02": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_Lbl03": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_P00": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P00b": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P30": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P50": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P60": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P70": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P80": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_P90": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_Prec": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_StopMid": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_StopTight": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_StopWide": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Ora_V0": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_V0b": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Ora_V1": {
+  "defined_in": "NNNC_Ora_Prec",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Oracle": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureExpectancy": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureSharpe": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FutureSortino": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FwdMae_H12": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_FwdMae_H48": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_GbbFwdMae_H48": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_LocalMinFollowthrough": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_MfeMaeRatio": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_Path": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_RiskAdjFuture": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_Oracle_TripleBarrier_H12": {
+  "defined_in": "NNNC_Oracle",
+  "reason": "Reuse NNNC_MLX's weights \u2014 the model is loaded but never consulted.",
+  "target": "NNNC_MLX"
+ },
+ "NNNC_TrigGate": {
+  "defined_in": "NNNC_TrigGate",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "NNNC_MLX_Lbl02"
+ },
+ "NNNC_Unguarded_s1": {
+  "defined_in": "NNNC_Unguarded_s1",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ },
+ "NNNC_Unguarded_s7": {
+  "defined_in": "NNNC_Unguarded_s7",
+  "reason": "Where this strategy's weights are (feature 030).",
+  "target": "computed"
+ }
+}

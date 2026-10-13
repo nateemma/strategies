@@ -46,6 +46,13 @@ ROOT = Path(__file__).resolve().parents[3]
 STRAT_DIR = ROOT / "user_data/strategies"
 SAVED = STRAT_DIR / "saved_data"
 
+#: Feature 030: a fold class pins the model key's training window and seed, so a backtest that
+#: only LOADS the fold's model resolves the same key as the run that trained it. The template's
+#: body was `pass` before 030 (test_run_folds checks the rest is byte-identical).
+PIN_BLOCK = '''    MODEL_TRAIN_TIMERANGE = "{train_timerange}"
+    MODEL_SEED = {seed}
+'''
+
 TEMPLATE = '''# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
 # type: ignore
 """{cls} — walk-forward fold {fold_id} (feature 007). GENERATED, do not edit.
@@ -67,8 +74,8 @@ from {base} import {base}
 
 
 class {cls}({base}):
-    pass
-'''
+''' + PIN_BLOCK
+
 
 
 def _log(msg: str) -> None:
@@ -125,7 +132,7 @@ def _require_trackable_verdict(plan: dict) -> None:
 
 def generate_fold(fold: dict, base: str, family: str, params: dict | None,
                   threshold: float | None = None,
-                  guards: dict | None = None) -> tuple[Path, Path | None]:
+                  guards: dict | None = None, seed: int = 1) -> tuple[Path, Path | None]:
     """Write the fold's class and its params file (FR-003; T006/T006a).
 
     `threshold`, when given, overrides `params["buy"]["prediction_threshold"]` on the
@@ -148,7 +155,7 @@ def generate_fold(fold: dict, base: str, family: str, params: dict | None,
     """
     cls = fold["strategy_class"]
     py = STRAT_DIR / family / f"{cls}.py"
-    py.write_text(TEMPLATE.format(cls=cls, base=base, family=family, **fold))
+    py.write_text(TEMPLATE.format(cls=cls, base=base, family=family, seed=int(seed), **fold))
     js = None
     if params is not None:
         js = STRAT_DIR / family / f"{cls}.json"
@@ -162,6 +169,23 @@ def generate_fold(fold: dict, base: str, family: str, params: dict | None,
             buy["entry_enable_guards"] = True       # FR-008 -- forced, never taken from input
         js.write_text(json.dumps(d, indent=4) + "\n")
     return py, js
+
+
+def fold_has_model(fold: dict, base: str, config: str, seed: int) -> bool:
+    """Feature 030 FR-017: does the fold's MODEL KEY have weights? The fold's class is `base`
+    pinned to the fold's training window and seed (what generate_fold writes), resolved under
+    the plan's config -- a variant that changes only post-model settings finds its source
+    model's weights, and a missing model is found here, before any backtest could train one."""
+    from evaluation.fingerprint import load_config
+    from Framework import ModelKey as MK
+
+    cls = _load_strategy_class(base)
+    pinned = type(fold["strategy_class"], (cls,), {
+        "MODEL_TRAIN_TIMERANGE": fold["train_timerange"], "MODEL_SEED": int(seed),
+        "__module__": cls.__module__})
+    cfg = Path(config)
+    cfg = cfg if cfg.is_absolute() else ROOT / cfg
+    return MK.locate_for(pinned, load_config(cfg), fold["strategy_class"]).kind != "absent"
 
 
 def model_exists(cls: str) -> bool:
@@ -230,7 +254,7 @@ def evaluate_fold(fold: dict, config: str) -> int:
     """
     start, end = fold["test_timerange"].split("-")
     cmd = (f'cd {ROOT} && PYTHONPATH=user_data/strategies '
-           f'.venv/bin/python -m regime.run_arm '
+           f'FT_MODEL_EVAL_STRICT=1 .venv/bin/python -m regime.run_arm '
            f'--strategy {fold["strategy_class"]} '
            f'--timerange {start}-{end} --label {fold["fold_id"].upper()} '
            f'--tag {fold["arm_tag"]} --config {config} '
@@ -362,7 +386,7 @@ def main() -> int:
         # treated such a fold as evaluated and skipped it permanently -- exactly the
         # failure mode FR-012 exists to prevent, one layer up.
         if (rec and rec.get("returncode") == 0 and not rec.get("error")
-                and (no_model or model_exists(model_key(f)))):
+                and (no_model or fold_has_model(f, base, plan["config"], a.seed))):
             _log(f"{f['fold_id']}: already evaluated — skipping (resumable)")
             results.append({**f, "status": "evaluated", "n_trades": rec.get("n_trades")})
             continue
@@ -382,21 +406,23 @@ def main() -> int:
             continue
         _log(f"{f['fold_id']}: generating {f['strategy_class']}")
         generate_fold(f, base, family, params, threshold=thresholds.get(f["fold_id"]),
-                      guards=guards_map.get(f["fold_id"]))
-        if not model_exists(model_key(f)) and plan.get("model_source"):
+                      guards=guards_map.get(f["fold_id"]), seed=a.seed)
+        has_model = fold_has_model(f, base, plan["config"], a.seed)
+        if not has_model and plan.get("model_source"):
             # Borrowed weights (feature 023) must already exist. Training here would fit a NEW
             # model under this class's name -- a different experiment -- so fail the fold.
             _log(f"{f['fold_id']}: *** borrowed model {model_key(f)} is missing -- refusing to "
                  f"train a replacement")
             results.append({**f, "status": "failed", "model_artifact_verified": False})
             continue
-        if model_exists(model_key(f)):
+        if has_model:
             # Resume at a finer grain: a trained artefact from an earlier attempt is reused rather
             # than retrained. Saves ~12 min per fold when only the evaluation needs re-running.
             _log(f"{f['fold_id']}: model already present — skipping training")
         else:
             _log(f"{f['fold_id']}: training on {f['train_timerange']}")
-            if not train_fold(f, family, a.seed, plan["config"]):
+            train_fold(f, family, a.seed, plan["config"])
+            if not fold_has_model(f, base, plan["config"], a.seed):
                 _log(f"{f['fold_id']}: *** NO MODEL ARTEFACT — fold FAILED "
                      f"(exit code is not evidence)")
                 results.append({**f, "status": "failed", "model_artifact_verified": False})

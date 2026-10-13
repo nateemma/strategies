@@ -246,7 +246,7 @@ class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
     # NNNC_AblateG's `_thr`/`_guards` feed buy_params (prediction threshold, guards) and `_os`
     # is the os module it reads them with: all post-model.
     MODEL_KEY_IGNORED = (
-        "ORACLE_PRECISION", "ORACLE_SEED", "ORACLE_SUBSAMPLE", "TWIN_TRIGGER", "MODEL_SOURCE",
+        "ORACLE_PRECISION", "ORACLE_SEED", "ORACLE_SUBSAMPLE", "TWIN_TRIGGER",
         "_guards", "_os", "_thr",
     )
 

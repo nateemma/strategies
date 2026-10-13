@@ -255,7 +255,21 @@ def build_env(scratch: Path, sink: Path | None = None) -> dict:
     env.pop("FT_ENTRY_CONDITION_SINK", None)
     if sink is not None:
         env["FT_ENTRY_CONDITION_SINK"] = str(sink)
+    # Feature 030 R12: the strategy reports the model key it resolved; never an inherited dir.
+    mk = scratch / "modelkey"
+    for stale in (mk.glob("*_modelkey.json") if mk.is_dir() else []):
+        stale.unlink()
+    env["FT_MODEL_KEY_SINK"] = str(mk)
     return env
+
+
+def read_model_key(scratch: Path) -> dict | None:
+    """030: the model key(s) the backtest resolved (Framework/ModelKey.emit_sink), or None
+    for a strategy with no model or a legacy redirect that bypasses the resolver."""
+    d = scratch / "modelkey"
+    found = sorted(d.glob("*_modelkey.json")) if d.is_dir() else []
+    keys = [json.loads(p.read_text()) for p in found]
+    return None if not keys else keys[0] if len(keys) == 1 else {"multiple": keys}
 
 
 def aggregate_coexistence(sink: Path | None) -> dict:
@@ -623,6 +637,7 @@ def main() -> int:
         "returncode": proc.returncode,
         **framework,
         "entry_condition_counts": aggregate_sink(sink),
+        "model_key": read_model_key(scratch),
         # 025 C3: rule A pair-cap refusals (omitted when none were logged)
         **({"coexistence_refusals": c} if (c := aggregate_coexistence(sink)) else {}),
         **result,

@@ -13,9 +13,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 
 
-class NNNC_Live_C2(BorrowedModelMixin, NNNC_A_Raw_Open):
+class NNNC_Live_C2(NNNC_A_Raw_Open):
     FAMILY_EXIT_OVERRIDES = {"reversion": {"take_profit_atr_mult": 2.8970711921574543}}

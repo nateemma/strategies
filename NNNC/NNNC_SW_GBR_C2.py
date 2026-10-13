@@ -13,10 +13,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_GbbRaw_Open import NNNC_GbbRaw_Open
 
 
-class NNNC_SW_GBR_C2(BorrowedModelMixin, NNNC_GbbRaw_Open):
-    MODEL_SOURCE = "NNNC_GBR"
+class NNNC_SW_GBR_C2(NNNC_GbbRaw_Open):
+    # Weights: `NNNC_GBR_fNN`, found by model key (030; was BorrowedModelMixin's MODEL_SOURCE).
     FAMILY_EXIT_OVERRIDES = {"reversion": {"take_profit_atr_mult": 2.8970711921574543}}

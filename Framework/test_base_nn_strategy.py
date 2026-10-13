@@ -72,7 +72,8 @@ class _NNStrat(BaseNNStrategy):
 
 
 def _make_strat() -> _NNStrat:
-    s = _NNStrat(config={})
+    # 030: the model key reads the config whitelist (every real run has one)
+    s = _NNStrat(config={"exchange": {"pair_whitelist": ["BTC/USDT"]}})
     s.dp = MagicMock()
     s.dp.runmode.value = "other"
     return s
@@ -200,8 +201,20 @@ class TestModelPaths:
     def test_get_model_path_ends_with_keras(self, strat):
         assert strat.get_model_path().endswith(".keras")
 
-    def test_get_model_path_contains_class_name(self, strat):
-        assert "_NNStrat" in strat.get_model_path()
+    def test_get_model_path_is_the_model_key_location(self, strat, tmp_path):
+        # 030: located by model key, not class name -- a class-named directory is only the
+        # legacy fallback, for models trained before 030.
+        strat.get_storage_location = lambda: str(tmp_path) + "/"
+        path = strat.get_model_path()
+        assert "/models/" in path and "__" in Path(path).name
+        assert "_NNStrat" not in path
+
+    def test_legacy_class_named_directory_still_resolves(self, tmp_path):
+        s = _make_strat()
+        s.get_storage_location = lambda: str(tmp_path) + "/"
+        (tmp_path / "_NNStrat").mkdir()
+        (tmp_path / "_NNStrat" / "_NNStrat.safetensors").write_bytes(b"w")
+        assert s.get_model_path() == str(tmp_path / "_NNStrat" / "_NNStrat.keras")
 
     def test_get_markov_matrix_path_ends_with_npy(self, strat):
         assert strat.get_markov_matrix_path().endswith(".npy")

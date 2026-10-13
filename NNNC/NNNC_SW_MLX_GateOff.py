@@ -13,10 +13,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_MLX import NNNC_MLX
 
 
-class NNNC_SW_MLX_GateOff(BorrowedModelMixin, NNNC_MLX):
-    MODEL_SOURCE = "NNNC_WF"
+class NNNC_SW_MLX_GateOff(NNNC_MLX):
+    # Weights: `NNNC_WF_fNN`, found by model key (030; was BorrowedModelMixin's MODEL_SOURCE).
     startup_candle_count = 4096
+    # 030: warm-up is a training input; these weights were trained with 64 startup candles.
+    MODEL_TRAINED_WITH = {"startup_candle_count": 64}

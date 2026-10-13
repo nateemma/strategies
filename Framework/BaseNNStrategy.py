@@ -389,11 +389,55 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # =========================================================================
 
     def get_model_path(self) -> str:
-        """Get the model path for saving/loading"""
+        """Where this strategy's weights are (feature 030).
+
+        Located by MODEL KEY -- the hash of everything that shapes the weights
+        (Framework/ModelKey.py) -- not by class name, so a variant that changes only
+        post-model settings (exits, guards, gates) finds its model's weights, and one that
+        changes any weight-affecting input can never load another model's. A class that
+        overrides this method keeps its own path (a recorded legacy redirect). Resolved once
+        per instance; re-resolved after training writes a new model.
+        """
+        from Framework import ModelKey as MK
+
         name = self.__class__.__name__
-        root_dir = self.get_storage_location()
-        model_path = root_dir + name + "/" + name + ".keras"
-        return model_path
+        legacy = self.get_storage_location() + name + "/" + name + ".keras"
+        loc = getattr(self, "_model_location", None)
+        if loc is None:
+            try:
+                loc = MK.locate_for(type(self), self.config, name,
+                                    storage=self.get_storage_location())
+                self._check_whitelist(MK)
+            except MK.ModelKeyError as exc:
+                if MK.report_mode():
+                    print(f"[model-key report] {name}: {type(exc).__name__}: {exc}", flush=True)
+                    return legacy
+                raise
+            if MK.report_mode():
+                try:
+                    MK.check_manifest(loc)
+                    verdict = "manifest OK" if loc.kind in ("keyed", "migrated") else "no manifest"
+                except MK.ModelKeyError as exc:
+                    verdict = f"MANIFEST MISMATCH {exc}"
+                print(f"[model-key report] {name}: {loc.kind} {loc.prefix}__{loc.hash} "
+                      f"-> {loc.path} (in use: {legacy}); {verdict}", flush=True)
+                MK.emit_sink(name, loc)
+                return legacy
+            MK.emit_sink(name, loc)
+            self._model_location = loc
+        return loc.path
+
+    def _check_whitelist(self, MK) -> None:
+        """The key reads the config whitelist; the run must actually trade that list."""
+        dp = getattr(self, "dp", None)
+        wl = (self.config.get("exchange") or {}).get("pair_whitelist")
+        if dp is not None and wl is not None:
+            try:
+                live = list(dp.current_whitelist())
+            except Exception:  # noqa: BLE001 -- no pairlist yet (e.g. at bot_start)
+                return
+            if live and live != list(wl):
+                raise MK.ModelKeyError(f"run whitelist {live} differs from config {list(wl)}")
 
     def get_markov_matrix_path(self) -> str:
         """Get the path for saving/loading the Markov transition matrix."""

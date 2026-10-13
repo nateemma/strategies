@@ -13,10 +13,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 
 
-class NNNC_SW_ARO_C2(BorrowedModelMixin, NNNC_A_Raw_Open):
-    MODEL_SOURCE = "NNNC_ARO"
+class NNNC_SW_ARO_C2(NNNC_A_Raw_Open):
+    # Weights: `NNNC_ARO_fNN`, found by model key (030; was BorrowedModelMixin's MODEL_SOURCE).
     FAMILY_EXIT_OVERRIDES = {"reversion": {"take_profit_atr_mult": 2.8970711921574543}}

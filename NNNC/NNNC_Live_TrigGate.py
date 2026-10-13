@@ -13,10 +13,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 
 
-class NNNC_Live_TrigGate(BorrowedModelMixin, NNNC_A_Raw_Open):
+class NNNC_Live_TrigGate(NNNC_A_Raw_Open):
     ENTRY_MODE = "trigger_and_model"
     TRIGGER_NAME = "gbb"

@@ -228,8 +228,9 @@ def _file_inputs(cls, attrs: dict, storage: Path) -> dict:
     return files
 
 
-def resolve(cls, config: dict) -> dict:
-    """The model key of strategy class `cls` under freqtrade `config`. Never instantiates."""
+def resolve(cls, config: dict, storage: Path | None = None) -> dict:
+    """The model key of strategy class `cls` under freqtrade `config`. Never instantiates.
+    `storage` overrides the class's storage root (an instance-level override)."""
     names = merged(cls, "MODEL_KEY_ATTRIBUTES")
     pins = merged_dict(cls, "MODEL_TRAINED_WITH")
     unknown = [p for p in pins if p not in names and p not in ("startup_candle_count", "timeframe")]
@@ -261,7 +262,7 @@ def resolve(cls, config: dict) -> dict:
                                              declared(cls, "startup_candle_count"))),
         "seed": int(seed),
     }
-    storage = storage_of(cls)
+    storage = Path(storage) if storage is not None else storage_of(cls)
     key = {"version": SCHEMA, "code_version": declared(cls, "MODEL_CODE_VERSION", 1),
            "attributes": attrs, "methods": methods, "files": _file_inputs(cls, attrs, storage),
            "models": {}, "run": run}
@@ -308,12 +309,13 @@ def _legacy_stem(storage: Path, name: str) -> Path:
     return Path(storage) / name / name
 
 
-def locate_for(cls, config: dict, class_name: str | None = None) -> Location:
+def locate_for(cls, config: dict, class_name: str | None = None,
+               storage: Path | None = None) -> Location:
     """Where `cls`'s weights are (see module docstring). Never trains; strict mode raises."""
     name = class_name or cls.__name__
-    key = resolve(cls, config)
+    storage = Path(storage) if storage is not None else storage_of(cls)
+    key = resolve(cls, config, storage)
     h, prefix = key_hash(key), key_prefix(key)
-    storage = storage_of(cls)
     idx = load_index(storage)
     conflicted = {c["hash"] for c in idx.get("conflicts", [])}
     ent = idx["entries"].get(h)

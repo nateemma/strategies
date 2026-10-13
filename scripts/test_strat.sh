@@ -187,11 +187,19 @@ echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."
 
 
-# force-retrain: remove the existing saved model so the strategy retrains from scratch
+# force-retrain: remove the existing saved model so the strategy retrains from scratch.
+# Feature 030: the model lives where its MODEL KEY resolves (scripts/model_index.py path), not
+# necessarily saved_data/<strategy>/ -- delete and later check THAT path.
+model_stem=""
 if [[ $force_retrain -ne 0 ]]; then
-    model_dir="${strat_dir}/saved_data/${strategy}"
+    model_stem=$(PYTHONPATH="${strat_dir}:${PYTHONPATH}" python "${strat_dir}/scripts/model_index.py" path "${strategy}" --config "${config_file}" 2>/dev/null | tail -1)
+    model_stem="${model_stem%.keras}"
+    if [ -z "${model_stem}" ]; then
+        echo "test_strat.sh: could not resolve the model path for ${strategy}" >&2
+        exit 2
+    fi
     for ext in keras sav safetensors; do
-        model_file="${model_dir}/${strategy}.${ext}"
+        model_file="${model_stem}.${ext}"
         if [ -f "${model_file}" ]; then
             echo "force-retrain: removing ${model_file}"
             rm -f "${model_file}"
@@ -232,13 +240,12 @@ if [[ ${rc} -ne 0 ]]; then
 fi
 
 if [[ $force_retrain -ne 0 ]]; then
-    model_dir="${strat_dir}/saved_data/${strategy}"
     found=0
     for ext in keras sav safetensors; do
-        [ -f "${model_dir}/${strategy}.${ext}" ] && found=1
+        [ -f "${model_stem}.${ext}" ] && found=1
     done
     if [[ ${found} -eq 0 ]]; then
-        echo "test_strat.sh: -f was given and no model artefact exists in ${model_dir} --" >&2
+        echo "test_strat.sh: -f was given and no model artefact exists at ${model_stem}.* --" >&2
         echo "               training did NOT complete. Do not treat this run as a success." >&2
         exit 3
     fi

@@ -13,11 +13,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from BorrowedModelMixin import BorrowedModelMixin
 from NNNC_GbbFwdMae_Open import NNNC_GbbFwdMae_Open
 
 
-class NNNC_SW_GFM_Gate(BorrowedModelMixin, NNNC_GbbFwdMae_Open):
-    MODEL_SOURCE = "NNNC_GFM"
+class NNNC_SW_GFM_Gate(NNNC_GbbFwdMae_Open):
+    # Weights: `NNNC_GFM_fNN`, found by model key (030; was BorrowedModelMixin's MODEL_SOURCE).
     startup_candle_count = 4096
+    # 030: warm-up is a training input; these weights were trained with 64 startup candles.
+    MODEL_TRAINED_WITH = {"startup_candle_count": 64}
     REVERSION_REGIME_GATE = {"instrument": "volreg", "threshold": 1.3658023280926226, "off_when": "lt"}
