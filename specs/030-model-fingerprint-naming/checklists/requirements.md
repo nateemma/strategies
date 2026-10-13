@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- **Q1–Q3 are open:** scope (FR-015), the training policy (FR-010) and legacy models (FR-013).
+- **Q1–Q3 resolved 2026-10-12:** Q1 B, Q2 B, Q3 A.
 - **Repository names are deliberate.** As in specs 023–029, the spec names repository artefacts
   (`BorrowedModelMixin`, `Framework/`, arm tags). This audience is the researcher, and those names
   are the requirements' subjects, not implementation choices.

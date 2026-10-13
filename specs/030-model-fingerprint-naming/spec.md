@@ -57,7 +57,20 @@ weights safely, without redirects or training.
 
 ## Clarifications
 
-*(Open questions are marked inline; see Q1–Q3.)*
+### Session 2026-10-12
+
+- Q1: Which families adopt the key in this feature? → **B: every family built on the shared NN
+  base class** (`BaseNNStrategy`): NNNC, NNMT, NNPredict, NNWavelet (via NNPredict), Anomaly and
+  Sklearn.
+  - NNMT's hand-written path overrides are migrated.
+  - TSPredict, which keys a model per pair under its own scheme, is out of scope.
+- Q2: When may a run train a missing model? → **B.** Walk-forward evaluation fails loudly on a
+  missing model. Other runs (manual backtests, hyperopt, the harness's own training step) still
+  train automatically, into the resolved key's location.
+- Q3: Old models whose training inputs can't be reconstructed? → **A: legacy key per class.**
+  - Each is registered under a legacy key tied to its own class name, with a manifest marking the
+    unknown inputs.
+  - It loads only for that class and is never shared.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -104,8 +117,9 @@ unchanged.
 **Acceptance Scenarios**:
 
 1. **Given** arm D, **When** a subclass changes the label gain target (or any other
-   weight-affecting input), **Then** its key differs, and with no weights under the new key the run
-   fails loudly rather than training (subject to Q2).
+   weight-affecting input), **Then** its key differs. With no weights under the new key, a walk-forward
+   evaluation fails loudly. Any other run trains a new model into the new key and never loads the
+   parent's weights.
 2. **Given** a model trained on a shared scaler, **When** that scaler's contents change, **Then**
    the model's key changes. The old weights are never paired with the new scaler.
 3. **Given** two walk-forward folds of one strategy, **When** their keys are resolved, **Then** they
@@ -135,8 +149,9 @@ since 021. Losing or silently swapping them would invalidate the record.
    **When** migration runs, **Then** it refuses to merge them and reports the conflict. Neither is
    served under the shared key until the conflict is resolved.
 3. **Given** a model whose training inputs can't be fully reconstructed (e.g. an old single model
-   with an unrecorded training window), **When** migration runs, **Then** it is handled under Q3.
-   It is never given a key that a different model could also resolve to.
+   with an unrecorded training window), **When** migration runs, **Then** it is registered under a
+   legacy key tied to its own class, with a manifest marking the unknown inputs. Only that class
+   loads it, and no other class can resolve to that key.
 
 ---
 
@@ -163,8 +178,11 @@ method and gain target. The manifest lists every key input and the classes known
 
 ### Edge Cases
 
-- **A class overrides model loading by hand** (the NNMT path overrides): it is either migrated to
-  the fingerprint or kept working unchanged, with the choice recorded per class. It must never
+- **A class overrides model loading by hand** (the NNMT path overrides). Most redirect to weights
+  trained under different inputs; for example, `NNMT_MLX_Base` pins the label threshold
+  `NNMT_MLX` was trained with. Each override is migrated: its class's resolved key must equal the
+  key of the weights it loads today, or the difference must be shown to be a post-model setting.
+  Where neither holds, the override stays and is recorded as a legacy redirect. It must never
   half-apply.
 - **Seed:** the key carries the seed. The walk-forward harness no longer needs to rename classes
   per seed to keep seeds apart, but existing seed-suffixed directories still resolve.
@@ -223,9 +241,10 @@ method and gain target. The manifest lists every key input and the classes known
 
 - **FR-009**: In walk-forward evaluation, a missing model MUST be a loud failure that names the key
   and its inputs, never a training run.
-- **FR-010**: Training into a key MUST follow the policy chosen in
-  [NEEDS CLARIFICATION: Q2 — may a run outside walk-forward evaluation still train on a missing
-  key automatically, or only an explicitly requested training run?]
+- **FR-010**: Outside walk-forward evaluation (manual backtests, hyperopt, the harness's training
+  step), a run with a missing model MAY train automatically, but only into the location of its own
+  resolved key, and it MUST write the manifest. It MUST print the key it is training, so a training
+  run is never silent in the log. (Q2 → B.)
 
 **Migration**
 
@@ -234,15 +253,16 @@ method and gain target. The manifest lists every key input and the classes known
   physically moved.
 - **FR-012**: Migration MUST refuse to assign one key to two directories whose weights differ, and
   MUST report every such conflict.
-- **FR-013**: Models whose training inputs can't be fully reconstructed MUST be handled per
-  [NEEDS CLARIFICATION: Q3 — legacy models with unrecorded inputs].
+- **FR-013**: Models whose training inputs can't be fully reconstructed MUST be registered under a
+  legacy key tied to their own class name, with a manifest marking the unknown inputs. Only that
+  class may resolve to the key, and it MUST never be shared. (Q3 → A.)
 - **FR-014**: Seed-suffixed and per-fold directories created under the old naming MUST continue to
   resolve for the classes that used them.
 
 **Scope and retirement**
 
-- **FR-015**: The families that adopt the key in this feature are
-  [NEEDS CLARIFICATION: Q1 — NNNC only, all BaseNNStrategy families, or also TSPredict].
+- **FR-015**: Every family built on `BaseNNStrategy` MUST adopt the key: NNNC, NNMT, NNPredict,
+  NNWavelet, Anomaly and Sklearn. TSPredict is out of scope. (Q1 → B.)
 - **FR-016**: `BorrowedModelMixin` MUST become unnecessary: each of its current users MUST load the
   same weights without it. The mixin is then removed, or left as a documented no-op if removing it
   would change a recorded fingerprint.
@@ -254,6 +274,10 @@ method and gain target. The manifest lists every key input and the classes known
 - **FR-018**: Arm D and the reference NNNC arms MUST reproduce their per-fold trades 15/15 after the
   change. The reference arms are GbbRaw, GbbFwdMae, ForwardMAE_Raw and NNNC_MLX, together with the
   twin and a switch-experiment arm.
+- **FR-018a**: For each other in-scope family (NNMT, NNPredict, NNWavelet, Anomaly, Sklearn), at
+  least one representative strategy with existing weights MUST be run before and after the change
+  over the same timerange, on the same day, and MUST produce identical trades. Old records are not
+  the baseline, because many predate later fixes.
 - **FR-019**: Every NNNC strategy's 029 framework fingerprint MUST be unchanged, except where a
   change is listed and justified.
 - **FR-020**: No training MUST occur during migration or verification, and no weight file's bytes
@@ -293,6 +317,11 @@ method and gain target. The manifest lists every key input and the classes known
   first attempt.
 - **SC-006**: Every NNNC strategy fingerprint is unchanged (approximately 300 strategies), or the
   change is listed and justified.
+- **SC-007**: Each in-scope non-NNNC family's representative strategy produces identical trades
+  before and after the change. Every NNMT path override is either removed with identical weights
+  loaded, or recorded as a legacy redirect.
+- **SC-008**: In walk-forward evaluation, a run whose key has no weights stops before any training,
+  in 100% of attempts, and names the missing key.
 
 ## Assumptions
 
@@ -309,6 +338,6 @@ method and gain target. The manifest lists every key input and the classes known
 - **Out of scope:**
   - retraining or changing any model;
   - the NNNC framework-feature study, which is queued next;
-  - TSPredict's per-pair model files, unless Q1 brings them in.
+  - TSPredict's per-pair model files.
 - **Model-code version.** It starts at one value for all existing models. Bumping it is a manual
   step when training behaviour changes, documented in the agent guide.
