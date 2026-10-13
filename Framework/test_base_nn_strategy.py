@@ -569,14 +569,17 @@ class TestAugmentTrainingSignals:
         conflict = (b2 > 0) & (s2 > 0)
         assert not np.any(conflict)
 
-    def test_buy_signals_extended_backwards(self, strat):
+    def test_buy_signals_not_extended_backwards(self, strat):
+        # The 2-bar backward dilation ("Trick 1") was removed on purpose in e7cf8cf (2026-09-08):
+        # it blurred the decision boundary and made every oracle enter two bars early. This pins
+        # its absence so it cannot come back by accident.
         buys = np.zeros(20)
         sells = np.zeros(20)
         buys[15] = 1.0
         b2, s2 = strat.augment_training_signals(buys.copy(), sells.copy())
-        # Index 14 and 13 should also be set (up to 2 entries earlier)
-        assert b2[14] == 1.0
-        assert b2[13] == 1.0
+        assert b2[15] == 1.0
+        assert b2[14] == 0.0
+        assert b2[13] == 0.0
 
     def test_no_signals_unchanged(self, strat):
         buys = np.zeros(10)
