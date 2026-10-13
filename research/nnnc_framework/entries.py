@@ -229,7 +229,7 @@ def levers(model: Model, vr: pd.Series) -> dict:
 def main(argv=None) -> int:
     models = (argv or sys.argv[1:] or ["ARO,GBR,GFM,MLX"])[0].split(",")
     vr = volreg_on_dates()
-    out_path = HERE / "entries.json"
+    out_path = HERE / f"entries{D.SUFFIX}.json"
     out = json.loads(out_path.read_text()) if out_path.exists() else {}
     for m in models:
         model = Model(m)

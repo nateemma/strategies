@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -35,7 +36,10 @@ from research.exit_coupling import paths as P  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 FAMILY = "reversion"  # every model's label is reversion-family (gbb / gbb-path)
-MODELS = {  # model -> (030 baseline control tag, base class, per-fold class prefix)
+#: Round 1. NOTE: exit_setup reads `<prefix>_f00.json`, a GENERATED fold file; NNNC_ARO_f00.json held
+#: 6.5 h when round 1 ran (committed diagnose.json) and 24 h since wf_aro_g24 regenerated it -- to
+#: re-run round 1 exactly, regenerate the fold files from plan_wf_aro_b030 first.
+MODELS_R1 = {  # model -> (030 baseline control tag, base class, per-fold class prefix)
     "ARO": ("wf_aro_b030", "NNNC_A_Raw_Open", "NNNC_ARO"),
     "GBR": ("sw_gbr_ctl_b030", "NNNC_GbbRaw_Open", "NNNC_GBR"),
     "GFM": ("sw_gfm_ctl_b030", "NNNC_GbbFwdMae_Open", "NNNC_GFM"),
@@ -66,7 +70,7 @@ OFF = 10.0  # a take-profit / threshold no trade reaches
 
 #: One lever at a time. Each value is (ExitParams overrides, Rules overrides). The first value of
 #: every lever is today's setting (delta 0 by construction, kept as a check).
-LEVERS = {
+LEVERS_R1 = {
     "take_profit": {v: ({"take_profit": v}, {}) for v in (0.022, 0.015, 0.03, 0.04, OFF)},
     "tp_atr_k": {"base": ({}, {})} | {k: ({}, {"take_profit_atr_mult": k})
                                       for k in (2.0, 2.5, 2.897, 3.5, 4.5)},
@@ -84,6 +88,39 @@ LEVERS = {
     "max_hold_days": {10: ({}, {})} | {d: ({"max_hold_days": d}, {}) for d in (2, 3, 5)},
     "metric_overbought": {0.98: ({}, {}), "off": ({"metric_overbought_threshold": OFF}, {})},
 }
+
+
+#: Round 2 (2026-10-13): the same screen on top of the adopted 24 h grace. Controls = arm D run
+#: from a fresh 24 h snapshot and the other models' adopted 24 h arms; their per-fold .json pins
+#: 24 h. Base values first, as in round 1.
+MODELS_R2 = {
+    "ARO": ("wf_aro_g24", "NNNC_A_Raw_Open", "NNNC_ARO"),
+    "GBR": ("fs_gbr_gr", "NNNC_GbbRaw_Open", "NNNC_FS_GBR_GR"),
+    "GFM": ("fs_gfm_gr", "NNNC_GbbFwdMae_Open", "NNNC_FS_GFM_GR"),
+    "MLX": ("fs_mlx_gr", "NNNC_MLX", "NNNC_FS_MLX_GR"),
+}
+LEVERS_R2 = {
+    "take_profit": {v: ({"take_profit": v}, {}) for v in (0.022, 0.015, 0.03, 0.04, OFF)},
+    "tp_atr_k": {"base": ({}, {})} | {k: ({}, {"take_profit_atr_mult": k})
+                                      for k in (2.5, 2.897, 3.5, 4.5, 6.0)},
+    "roi": {"base": ({}, {}), 0.03: ({"roi": 0.03}, {}), 0.08: ({"roi": 0.08}, {}),
+            "off": ({"roi": None}, {})},
+    "grace_hours": {24.0: ({}, {})} | {h: ({}, {"grace_hours": h}) for h in (18.0, 30.0, 36.0, 48.0)},
+    "grace_level": {-0.27: ({}, {})} | {lv: ({}, {"grace_level": lv})
+                                        for lv in (-0.20, -0.35, -0.45)},
+    "stop_scale": {1.0: ({}, {})} | {s: ({"_scale": s}, {}) for s in (0.75, 1.25, 1.5, 2.0, 2.5)},
+    "vol_confirm": {True: ({}, {}), False: ({"use_volume_confirmation_stoploss": False}, {})},
+    "unclog_12h_hours": {"base": ({}, {})} | {h: ({"unclog_12h_hours": h}, {}) for h in (6.0, 18.0)},
+    "unclog_1d_hours": {24.0: ({}, {})} | {h: ({"unclog_1d_hours": h}, {})
+                                           for h in (12.0, 36.0, 48.0)},
+    "max_hold_days": {10: ({}, {})} | {d: ({"max_hold_days": d}, {}) for d in (2, 3, 5)},
+    "metric_overbought": {0.98: ({}, {}), "off": ({"metric_overbought_threshold": OFF}, {})},
+}
+#: NNNC_FS_ROUND selects the round ("1" default): inputs, grids and output file (`_r2` suffix).
+ROUND = os.environ.get("NNNC_FS_ROUND", "1")
+SUFFIX = "" if ROUND == "1" else f"_r{ROUND}"
+MODELS = {"1": MODELS_R1, "2": MODELS_R2}[ROUND]
+LEVERS = {"1": LEVERS_R1, "2": LEVERS_R2}[ROUND]
 
 
 def lever_params(params, over: dict):
@@ -133,7 +170,7 @@ def lever_deltas(df: pd.DataFrame, class_name: str) -> dict:
 
 
 def main() -> int:
-    path = HERE / "diagnose.json"
+    path = HERE / f"diagnose{SUFFIX}.json"
     out = (json.loads(path.read_text()) if path.exists() else
            {"label": "PROVISIONAL; lever deltas are EARLY half (f00-f07) only, vs the null replay",
             "models": {}})

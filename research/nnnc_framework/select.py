@@ -23,6 +23,7 @@ on the LATE half (f08-f14), which no screen has touched.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 
@@ -31,7 +32,12 @@ PRIMARY, REPS = "ARO", ("GBR", "GFM", "MLX")
 MIN_PRIMARY_PP = 0.5
 REPS_NEEDED = 2
 MAX_CANDIDATES = 6
-BASE_VALUES = {"take_profit": "0.022", "tp_atr_k": "base", "roi": "base", "grace_hours": "6.5",
+#: NNNC_FS_ROUND: round 2 reads diagnose_r2/entries_r2 and writes selection_r2, same rule;
+#: its grace base is 24 h (adopted in round 1).
+ROUND = os.environ.get("NNNC_FS_ROUND", "1")
+SUFFIX = "" if ROUND == "1" else f"_r{ROUND}"
+BASE_VALUES = {"take_profit": "0.022", "tp_atr_k": "base", "roi": "base",
+               "grace_hours": "6.5" if ROUND == "1" else "24.0",
                "grace_level": "-0.27", "stop_scale": "1.0", "vol_confirm": "True",
                "unclog_12h_hours": "base", "unclog_1d_hours": "24.0", "max_hold_days": "10",
                "metric_overbought": "0.98"}
@@ -40,13 +46,13 @@ BASE_VALUES = {"take_profit": "0.022", "tp_atr_k": "base", "roi": "base", "grace
 def screens() -> dict:
     """{lever: {value: {model: early_pp}}} over both screens."""
     out: dict = {}
-    diag = json.loads((HERE / "diagnose.json").read_text())["models"]
+    diag = json.loads((HERE / f"diagnose{SUFFIX}.json").read_text())["models"]
     for m, d in diag.items():
         for lever, vals in (d.get("levers_early") or {}).items():
             for v, r in vals.items():
                 if v != BASE_VALUES.get(lever):
                     out.setdefault(f"exit:{lever}", {}).setdefault(v, {})[m] = r["early_pp"]
-    ent = json.loads((HERE / "entries.json").read_text())
+    ent = json.loads((HERE / f"entries{SUFFIX}.json").read_text())
     for m, d in ent.items():
         for lever, vals in (d.get("levers_early") or {}).items():
             if lever == "base":
@@ -79,7 +85,7 @@ def choose(sc: dict) -> dict:
 
 def main() -> int:
     res = choose(screens())
-    (HERE / "selection.json").write_text(json.dumps(res, indent=1))
+    (HERE / f"selection{SUFFIX}.json").write_text(json.dumps(res, indent=1))
     for c in res["candidates"]:
         print(c)
     return 0
