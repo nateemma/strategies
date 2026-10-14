@@ -166,3 +166,33 @@ def test_cmd_pick_consults_fold_has_model(monkeypatch):
     assert PT.cmd_pick(plan, None, 0.01) == {}
     assert PT.cmd_control_rate(plan, None, 0.5) == {}
     assert calls == [("f00", "BASE", "cfg.json", 1)] * 2
+
+
+# ---------------------------------------------------------------------------
+# 032 C4: the keep-mask counts ineligible bars as 0.0
+# ---------------------------------------------------------------------------
+
+
+def _probs_frame():
+    rng = np.random.default_rng(3)
+    p = rng.dirichlet([1, 1, 3], size=200)
+    p[:5] = np.nan
+    return pd.DataFrame(p, columns=["%predict_prob_sell", "%predict_prob_hold",
+                                    "%predict_prob_buy"])
+
+
+def test_keep_none_is_identical():
+    df = _probs_frame()
+    np.testing.assert_array_equal(effective_buy_probs(df, None), effective_buy_probs(df))
+
+
+def test_keep_zeroes_ineligible_bars_and_lowers_the_threshold():
+    df = _probs_frame()
+    keep = np.arange(len(df)) % 2 == 0
+    base, kept = effective_buy_probs(df), effective_buy_probs(df, keep)
+    assert len(kept) == len(base) == len(df) - 5          # counted, not dropped; NaN rows dropped
+    scored_keep = keep[5:]
+    assert (kept[~scored_keep] == 0.0).all()
+    np.testing.assert_array_equal(kept[scored_keep], base[scored_keep])
+    # the same rate must now come from fewer candidate bars, so the threshold can only fall
+    assert threshold_for_rate(kept, 0.1)[0] <= threshold_for_rate(base, 0.1)[0]

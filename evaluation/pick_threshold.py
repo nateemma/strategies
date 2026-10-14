@@ -105,8 +105,12 @@ class TrainWindow:
 # ---------------------------------------------------------------------------
 
 
-def effective_buy_probs(df: pd.DataFrame) -> np.ndarray:
+def effective_buy_probs(df: pd.DataFrame, keep: np.ndarray | None = None) -> np.ndarray:
     """Per-bar BUY probability where BUY is the argmax class, 0.0 everywhere else.
+
+    `keep` (feature 032): a per-row mask from the strategy's declared row filter. Rows outside it
+    can never enter (the strategy gates entries on the same mask), so they count as 0.0 --
+    counted, not dropped -- and the threshold keeps the same overall entry rate. None -> unchanged.
 
     Mirrors `BaseNNStrategy.argmax_with_threshold` exactly: a bar only ever becomes a BUY
     trading decision if BUY both has the highest probability AND clears the threshold.
@@ -119,6 +123,8 @@ def effective_buy_probs(df: pd.DataFrame) -> np.ndarray:
     if len(probs) == 0:
         return np.empty(0, dtype=float)
     is_buy_argmax = np.argmax(probs, axis=1) == TradingAction.BUY
+    if keep is not None:
+        is_buy_argmax &= np.asarray(keep, dtype=bool)[scored]
     return np.where(is_buy_argmax, probs[:, TradingAction.BUY], 0.0)
 
 
@@ -236,7 +242,13 @@ def predicted_buy_probs(strat, cfg, window: TrainWindow) -> np.ndarray:
             continue
         signalled = strat.advise_entry(df.copy(), {"pair": pair})
         trimmed = trim_dataframe(signalled, timerange, startup_candles=strat.startup_candle_count)
-        pooled.append(effective_buy_probs(trimmed))
+        spec = getattr(strat, "TRAIN_ROW_FILTER", None)
+        keep = None
+        if spec is not None:  # 032: ineligible bars cannot enter -> effective probability 0
+            from Framework.RowFilter import row_filter_mask
+
+            keep = row_filter_mask(trimmed, spec)
+        pooled.append(effective_buy_probs(trimmed, keep))
     if not pooled:
         raise RuntimeError(f"fold {window.fold_id}: no pairs produced any scored bars")
     return np.concatenate(pooled)

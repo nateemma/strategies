@@ -78,7 +78,7 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
 - the filtered build keeps exactly the eligible windows, unbroken;
 - the existing model keys and fingerprints pinned in tests are unchanged.
 
-- [ ] T006 [P] [US1] Tests in `Framework/tests/test_row_filter.py` for C2:
+- [X] T006 [P] [US1] Tests in `Framework/tests/test_row_filter.py` for C2:
   - (a) with no filter, the output equals the T004 fixture for every case;
   - (b) with a filter, each kept train sample's window, label and weight equal the unfiltered
     arrays at the same row, and no kept sample has an ineligible last bar, for both tensor
@@ -91,7 +91,7 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   - (g) `_row_filter_report` has the data-model fields and correct counts;
   - (h) the first `seq_len-1` rows (zero-padded windows) are kept or dropped only by their own
     last bar's eligibility, and a kept padded window equals the unfiltered one.
-- [ ] T007 [US1] Implement the filter in `Framework/TrainingEngine.py::prepare_training_data` (research R1):
+- [X] T007 [US1] Implement the filter in `Framework/TrainingEngine.py::prepare_training_data` (research R1):
   - read `getattr(self, "TRAIN_ROW_FILTER", None)`, with NO class default added;
   - per pair, build train and validation masks from the raw frame `dataframe[i]`, sliced
     `[:train_end][offset:]` and `[test_start:][offset:]`;
@@ -102,14 +102,14 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
 
   In `_train_keyed`, after a successful fresh training, write `row_filter.json` at the model
   key's location when a report exists. T006 and T004 must pass.
-- [ ] T008 [P] [US1] Tests in `Framework/tests/test_row_filter.py` for C3. Resolve keys via `Framework.ModelKey.resolve` (never instantiate):
+- [X] T008 [P] [US1] Tests in `Framework/tests/test_row_filter.py` for C3. Resolve keys via `Framework.ModelKey.resolve` (never instantiate):
   - `CandidateTrainingMixin + NNNC_A_Raw_Open` has a different model key from `NNNC_A_Raw_Open`;
   - every class in `Framework/tests/fixtures/model_keys_pre032.json` (captured in T004, before
     T007) still resolves to its recorded key;
   - the mixin's `get_entry_conditions` returns parent mask AND predicate on a stub frame, with
     `_st_tags` recomputed;
   - `HELD_PAIR_ADD` is None.
-- [ ] T009 [US1] Implement `NNNC/_candidate_training.py::CandidateTrainingMixin` (C3):
+- [X] T009 [US1] Implement `NNNC/_candidate_training.py::CandidateTrainingMixin` (C3):
   - `TRAIN_ROW_FILTER = (("guard_metric", "lt", 0.3), ("bb_width", "gt", 0.035))`;
   - `MODEL_KEY_ATTRIBUTES = ("TRAIN_ROW_FILTER",)`;
   - `HELD_PAIR_ADD = None`;
@@ -117,14 +117,14 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
 
   Run `Framework/tests/test_model_key_audit.py`; if it flags a name, classify it in the mixin.
   T008 must pass.
-- [ ] T010 [P] [US1] `evaluation/pick_threshold.py` keep-mask (C4):
+- [X] T010 [P] [US1] `evaluation/pick_threshold.py` keep-mask (C4):
   - `effective_buy_probs(df, keep=None)`: rows with `keep` False count as 0.0, and unscored rows
     are still dropped;
   - `predicted_buy_probs` passes `row_filter_mask(trimmed, strat.TRAIN_ROW_FILTER)` only when the
     strategy declares one.
 
   Tests in `evaluation/test_pick_threshold.py`: with `keep=None` the result is identical to
-  today; with `keep` the ineligible bars are 0.0; at a fixed rate the threshold rises when bars
+  today; with `keep` the ineligible bars are 0.0; at a fixed rate the threshold falls (or holds) when bars
   are zeroed.
 - [ ] T011 [US1] Run the full suite, check pytest's exit code, then commit T006–T010. Then run the SC-001 spot check:
   - re-run `wf_aro_g24` f00 under a fresh tag (`wf_aro_g24_p032`, via a copied plan with only

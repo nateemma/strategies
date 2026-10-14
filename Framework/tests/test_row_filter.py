@@ -184,3 +184,141 @@ def test_capture_pre032_model_keys():
 @pytest.mark.parametrize("name", KEY_CLASSES)
 def test_existing_model_keys_unchanged(name):
     assert _key(name) == json.loads(KEYS.read_text())[name]
+
+
+# --- C2 with a filter -----------------------------------------------------------------------
+
+
+def _expected_keep(m: int, weights: bool):
+    """Per split, the concatenated eligibility of each sample's LAST bar, built independently."""
+    frames, _ = _inputs(weights)
+    offset = SEQ_LEN - 1 if m == 0 else 0
+    tr, te = [], []
+    for f in frames:
+        train_end = int(0.8 * len(f)) - (SEQ_LEN - 1)
+        k = row_filter_mask(f, GBB)
+        tr.append(k[:train_end][offset:])
+        te.append(k[train_end:][offset:])
+    return np.concatenate(tr), np.concatenate(te)
+
+
+@pytest.mark.parametrize("m,w", CASES)
+def test_filter_keeps_exactly_the_eligible_windows_unbroken(m, w):
+    _needs_method(m)
+    full, filt = _build(m, w), _build(m, w, GBB)
+    keep_tr, keep_te = _expected_keep(m, w)
+    assert 0 < keep_tr.sum() < len(keep_tr)
+    # (b) train: same window, label, weight as the unfiltered row; no ineligible last bar
+    np.testing.assert_array_equal(filt["tsr_train"], full["tsr_train"][keep_tr])
+    np.testing.assert_array_equal(filt["train_labels"], full["train_labels"][keep_tr])
+    if w:
+        np.testing.assert_array_equal(filt["weights"], full["weights"][keep_tr])
+    # the last bar's guard/bb features (columns 4, 5 of the window's last step) pass the rule
+    last = filt["tsr_train"][:, -1, :]
+    assert (last[:, 4] < 0.3).all() and (last[:, 5] > 0.035).all()
+    # (c) validation filtered the same way
+    np.testing.assert_array_equal(filt["tsr_test"], full["tsr_test"][keep_te])
+    np.testing.assert_array_equal(filt["test_labels"], full["test_labels"][keep_te])
+
+
+def test_filter_zero_rows_raises():
+    with pytest.raises(ValueError, match="kept no"):
+        _build(3 if _mlx_ok() else 1, False, (("guard_metric", "lt", -5.0),))
+
+
+def _mlx_ok() -> bool:
+    try:
+        import mlx.core as mx
+
+        return hasattr(mx, "metal") and mx.metal.is_available()
+    except ImportError:
+        return False
+
+
+def test_filter_refuses_augmented_rows():
+    s = _host(1, GBB)
+    s.enhance_training_data = lambda df, lab, pair_name=None: (df.iloc[1:], lab[1:])
+    frames, labels = _inputs(False)
+    with pytest.raises(ValueError, match="augmented"):
+        s.prepare_training_data(frames, labels, norm=False)
+
+
+def test_class_weights_with_empty_sell_class():
+    b = _build(1, False, GBB)
+    labels = b["train_labels"].copy()
+    sell = labels[:, 0] == 1
+    labels[sell] = [0, 1, 0]  # eligible bars never carry SELL under the gbb rule
+    cw = b["host"].get_training_class_weights(train_labels=labels, validation_labels=None)
+    assert cw[0] == 0.0 and all(np.isfinite(cw)) and cw[1] > 0 and cw[2] > 0
+
+
+def test_row_filter_report_counts():
+    full, filt = _build(1, False), _build(1, False, GBB)
+    r = filt["host"]._row_filter_report
+    assert r["spec"] == [list(c) for c in GBB]
+    assert r["train"]["rows"] == len(full["train_labels"])
+    assert r["train"]["kept"] == len(filt["train_labels"]) == sum(r["train"]["class_counts"])
+    assert r["validation"]["kept"] == len(filt["test_labels"])
+    assert r["train"]["class_counts"] == np.bincount(
+        np.argmax(filt["train_labels"], axis=1), minlength=3).tolist()
+    assert abs(r["train"]["kept_share"] - r["train"]["kept"] / r["train"]["rows"]) < 1e-6
+
+
+@pytest.mark.parametrize("m", (1, 3))
+def test_padded_start_windows_follow_their_own_last_bar(m):
+    _needs_method(m)
+    full, filt = _build(m, False), _build(m, False, GBB)
+    keep_tr, _ = _expected_keep(m, False)
+    head = np.flatnonzero(keep_tr[: SEQ_LEN - 1])  # pair 0's zero-padded rows that are eligible
+    assert len(head) > 0
+    kept_pos = np.cumsum(keep_tr) - 1
+    for r in head:
+        np.testing.assert_array_equal(filt["tsr_train"][kept_pos[r]], full["tsr_train"][r])
+        assert (full["tsr_train"][r][: SEQ_LEN - 1 - r] == 0).all()  # it IS a padded window
+
+
+# --- C3 the NNNC mixin ----------------------------------------------------------------------
+
+
+def _mixin():
+    if str(STRAT / "NNNC") not in sys.path:
+        sys.path.insert(0, str(STRAT / "NNNC"))
+    from NNNC._candidate_training import CandidateTrainingMixin
+
+    return CandidateTrainingMixin
+
+
+def test_mixin_gives_a_new_model_key_and_leaves_the_base_alone():
+    from evaluation.fingerprint import load_config, load_strategy_class
+    from Framework import ModelKey as MK
+
+    cfg = load_config(STRAT / "config" / "config_wf.json")
+    base = load_strategy_class("NNNC_A_Raw_Open")
+    co = type("CoAro", (_mixin(), base), {"__module__": base.__module__})
+    k_base, k_co = MK.resolve(base, cfg), MK.resolve(co, cfg)
+    assert MK.key_hash(k_co) != MK.key_hash(k_base)
+    assert "TRAIN_ROW_FILTER" in k_co["attributes"]
+    assert "TRAIN_ROW_FILTER" not in k_base["attributes"]
+    assert MK.key_hash(k_base) == json.loads(KEYS.read_text())["NNNC_A_Raw_Open"]
+
+
+def test_mixin_entry_gate_and_add_off():
+    M = _mixin()
+
+    class Parent:
+        def get_entry_conditions(self, df):
+            return pd.Series(np.ones(len(df), dtype=bool), index=df.index)
+
+        def _model_tags(self, mask, n):
+            t = np.full(n, "", dtype=object)
+            t[mask] = "reversion:model"
+            return t
+
+    s = type("S", (M, Parent), {})()
+    df = pd.DataFrame({"guard_metric": [0.1, 0.5, 0.1, np.nan],
+                       "bb_width": [0.05, 0.05, 0.02, 0.05]}, index=[10, 11, 12, 13])
+    out = s.get_entry_conditions(df)
+    assert out.tolist() == [True, False, False, False]
+    assert list(out.index) == [10, 11, 12, 13]
+    assert s._st_tags.tolist() == ["reversion:model", "", "", ""]
+    assert M.HELD_PAIR_ADD is None

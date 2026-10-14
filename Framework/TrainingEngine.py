@@ -32,6 +32,8 @@ extraction can be validated in seconds.
 from typing import Optional, List, Any, Dict, Tuple
 
 import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -39,6 +41,17 @@ from sklearn.utils import shuffle
 
 from Predictors.KerasBasePredictor import KerasBasePredictor
 from Framework.BaseStrategy import GANType
+
+
+def _take_rows(tsr, idx: np.ndarray):
+    """Rows `idx` of a numpy or MLX tensor (feature 032 row filter)."""
+    if isinstance(tsr, np.ndarray):
+        return tsr[idx]
+    if not len(idx):
+        return tsr[:0]
+    import mlx.core as mx
+
+    return tsr[mx.array(idx.astype(np.int32))]
 
 
 class TrainingEngine:
@@ -151,6 +164,13 @@ class TrainingEngine:
         train_weights_parts = []
         have_weights = True
 
+        # Feature 032: an optional, strategy-declared row filter (Framework/RowFilter.py). Kept
+        # samples are the windows whose LAST bar passes it, so it is applied after windowing,
+        # with one index per split, to tensors, labels and weights alike. Absent -> unchanged.
+        row_filter = getattr(self, "TRAIN_ROW_FILTER", None)
+        rf_counts = {"train": [0, 0, np.zeros(3, dtype=np.int64)],
+                     "validation": [0, 0, np.zeros(3, dtype=np.int64)]}
+
         for i in range(num_pairs):
 
             pair_labels = np.asarray(labels[i])
@@ -187,9 +207,13 @@ class TrainingEngine:
                 if pair_names is not None and i < len(pair_names)
                 else None
             )
+            n_train_rows = len(train_df)
             train_df, train_labels = self.enhance_training_data(
                 train_df, train_labels, pair_name=pair_name
             )
+            if row_filter is not None and len(train_df) != n_train_rows:
+                raise ValueError("row filter cannot align with augmented training data "
+                                 f"({n_train_rows} rows before enhance, {len(train_df)} after)")
 
             train_labels = self.dataframeUtils.one_hot_encode(train_labels, 3)
             test_labels = self.dataframeUtils.one_hot_encode(test_labels, 3)
@@ -211,6 +235,33 @@ class TrainingEngine:
 
             if train_weights is not None:
                 train_weights = train_weights[offset:]
+
+            if row_filter is not None:
+                from Framework.RowFilter import row_filter_mask
+
+                keep = row_filter_mask(dataframe[i], row_filter)  # the RAW frame, pre-scaling
+                keep_train = keep[:train_end][offset:]
+                keep_test = keep[test_start:][offset:]
+                if len(keep_train) != len(train_labels) or len(keep_test) != len(test_labels):
+                    raise ValueError("row filter mask does not align with the training windows")
+                idx_train, idx_test = np.flatnonzero(keep_train), np.flatnonzero(keep_test)
+                tsr_train = _take_rows(tsr_train, idx_train)
+                tsr_test = _take_rows(tsr_test, idx_test)
+                for split, n, lab_after in (
+                    ("train", len(train_labels), train_labels[idx_train]),
+                    ("validation", len(test_labels), test_labels[idx_test]),
+                ):
+                    c = rf_counts[split]
+                    c[0] += n
+                    c[1] += len(lab_after)
+                    c[2] += np.bincount(np.argmax(lab_after, axis=1), minlength=3)[:3] \
+                        if len(lab_after) else 0
+                train_labels = train_labels[idx_train]
+                test_labels = test_labels[idx_test]
+                if train_weights is not None:
+                    train_weights = train_weights[idx_train]
+
+            if train_weights is not None:
                 train_weights_parts.append(train_weights)
             else:
                 have_weights = False
@@ -235,6 +286,18 @@ class TrainingEngine:
             if have_weights and train_weights_parts
             else None
         )
+
+        if row_filter is not None:
+            self._row_filter_report = {
+                "spec": [list(c) for c in row_filter],
+                **{split: {"rows": int(c[0]), "kept": int(c[1]),
+                           "kept_share": round(c[1] / c[0], 6) if c[0] else 0.0,
+                           "class_counts": [int(x) for x in c[2]]}
+                   for split, c in rf_counts.items()},
+            }
+            for split in ("train", "validation"):
+                if not rf_counts[split][1]:
+                    raise ValueError(f"row filter kept no {split} rows; refusing to train on nothing")
 
         return (
             aggr_tsr_train,
@@ -416,6 +479,12 @@ class TrainingEngine:
             self.train_model(*args, **kwargs)
         if fresh and self.classifier is not None and self.classifier.model_exists():
             MK.record_training(loc, self.__class__.__name__, self.config.get("timerange"))
+            report = getattr(self, "_row_filter_report", None)
+            if report is not None:  # feature 032: liveness evidence beside the weights
+                import json
+
+                (Path(loc.path).parent / "row_filter.json").write_text(
+                    json.dumps(report, indent=1) + "\n")
             self._model_location = None  # re-resolve: now indexed as keyed
 
     def maybe_train(self, dataframe: DataFrame, labels, curr_pair: str) -> DataFrame:
