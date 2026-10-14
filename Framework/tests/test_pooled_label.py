@@ -190,3 +190,170 @@ def test_path_outcome_matches_gbb_path_labels(real):
     np.testing.assert_array_equal(sell == 1, out_s == -0.02)
     assert (buy == 1).sum() > 10 and (sell == 1).sum() > 10
     pd.testing.assert_frame_equal(df, before)
+
+
+# --- C1: relabel ----------------------------------------------------------------------------
+
+
+def _spec(**over):
+    s = {"target": 0.02, "stop": -0.05, "horizon": 48, "reference": "bb_width",
+         "eligible": (("guard_metric", "lt", 0.3), ("bb_width", "gt", 0.035)),
+         "exit_eligible": (("guard_metric", "gt", 0.3), ("bb_width", "gt", 0.035)),
+         "exit_loss": 0.02, "exit_take_profit": 0.022, "buckets": 10, "share": 0.5,
+         "min_bucket": 20}
+    s.update(over)
+    return s
+
+
+def test_assign_hand_computed_buckets_ties_and_cut():
+    from Framework.PooledLabel import assign
+
+    # two buckets by ref (0.1 x4 | 0.9 x4); in bucket A outcomes tie at the target (0.02) and
+    # the tie-break (-bars) decides; bucket B is plain. share 0.5 -> 2 of 4 per bucket.
+    o = np.array([0.02, 0.02, 0.02, -0.05, 0.01, 0.005, -0.01, 0.003])
+    s2 = np.array([-5, -2, -9, 3, 0, 0, 0, 0], dtype=float)
+    ref = np.array([0.1] * 4 + [0.9] * 4)
+    pos = np.arange(8)
+    sel, rep = assign(o, s2, ref, pos, np.ones(8, bool), 0.5, 2, 1, "buy")
+    assert sel.tolist() == [True, True, False, False, True, True, False, False]
+    assert [b["pos_share"] for b in rep] == [0.5, 0.5]
+    sel_s, _ = assign(o, s2, ref, pos, np.ones(8, bool), 0.5, 2, 1, "sell")
+    assert sel_s.tolist() == [False, False, True, True, False, False, True, True]
+
+
+def test_assign_fit_rows_set_the_cut_and_validation_follows():
+    from Framework.PooledLabel import assign
+
+    rng = np.random.RandomState(1)
+    n = 400
+    o, ref = rng.normal(0, 0.01, n), rng.uniform(0, 1, n)
+    s2, pos = np.zeros(n), np.arange(n)
+    fit = np.arange(n) < 300
+    sel, rep = assign(o, s2, ref, pos, fit, 0.5, 4, 1, "buy")
+    o2 = o.copy()
+    o2[~fit] = rng.normal(0, 0.01, (~fit).sum())  # change only validation outcomes
+    sel2, rep2 = assign(o2, s2, ref, pos, fit, 0.5, 4, 1, "buy")
+    assert [b["cut"] for b in rep] == [b["cut"] for b in rep2]
+    assert [b["lo"] for b in rep] == [b["lo"] for b in rep2]
+    np.testing.assert_array_equal(sel[fit], sel2[fit])
+    for b in rep:  # validation labelled by the cut
+        assert b["val_n"] > 0 and 0.2 < b["val_pos_share"] < 0.8
+
+
+def test_assign_merges_small_buckets():
+    from Framework.PooledLabel import assign
+
+    ref = np.r_[np.zeros(50), np.ones(5)]  # quantile edges leave a 5-bar bucket
+    o = np.linspace(-0.01, 0.01, 55)
+    sel, rep = assign(o, np.zeros(55), ref, np.arange(55), np.ones(55, bool), 0.5, 4, 20, "buy")
+    assert all(b["n"] >= 20 for b in rep) and rep[0]["merged"]
+
+
+def _frames(n=1500, pairs=2, width_corr=True):
+    out = []
+    for i in range(pairs):
+        rng = np.random.RandomState(40 + i)
+        bw = rng.uniform(0.02, 0.12, n)
+        # wider bands -> bigger moves: the outcome is width-correlated by construction (R3 case)
+        ret = rng.normal(0, 1, n) * (0.002 + (0.08 * bw if width_corr else 0.004))
+        out.append(pd.DataFrame({"close": 100 * np.exp(np.cumsum(ret)),
+                                 "guard_metric": rng.uniform(-1, 1, n), "bb_width": bw}))
+    return out
+
+
+def test_relabel_shares_spearman_keep_and_classes():
+    from Framework.PooledLabel import KEEP_COL, relabel
+
+    frames = _frames()
+    labels = [np.full(len(f), 1, dtype=np.int64) for f in frames]
+    out, rep = relabel(frames, labels, _spec(), fit_ends=[1200, 1200])
+    for b in rep["buckets"]:
+        assert abs(b["pos_share"] - 0.5) <= 1 / b["n"] + 1e-9
+    assert abs(rep["spearman_buy"]) <= 0.05 and abs(rep["spearman_sell"]) <= 0.05
+    assert {b["side"] for b in rep["buckets"]} == {"buy", "sell"}
+    for f, lab in zip(frames, out):
+        k = f[KEEP_COL].to_numpy()
+        buy_el = (f.guard_metric < 0.3) & (f.bb_width > 0.035)
+        sell_el = (f.guard_metric > 0.3) & (f.bb_width > 0.035)
+        assert set(lab[(k == 1) & buy_el]) <= {1, 2} and set(lab[(k == 1) & sell_el]) <= {0, 1}
+        assert np.all(lab[~(buy_el | sell_el)] == 1)          # untouched (all HOLD on input)
+        assert np.all(np.isnan(k[-1:]))                         # no future at the last bar
+        assert np.all(np.isnan(k[~(buy_el | sell_el).to_numpy()]))
+
+
+def test_relabel_keep_column_drives_the_row_filter():
+    from Framework.PooledLabel import KEEP_COL, relabel
+    from Framework.RowFilter import row_filter_mask
+
+    frames = _frames(600)
+    relabel(frames, [np.ones(len(f), int) for f in frames], _spec(min_bucket=5))
+    for f in frames:
+        m = row_filter_mask(f, ((KEEP_COL, "gt", 0.5),))
+        np.testing.assert_array_equal(m, f[KEEP_COL].to_numpy() == 1.0)
+
+
+def test_relabel_deterministic_and_only_keep_column_added():
+    from Framework.PooledLabel import KEEP_COL, relabel
+
+    a, b = _frames(600), _frames(600)
+    before = [f.copy() for f in a]
+    la, _ = relabel(a, [np.ones(len(f), int) for f in a], _spec(min_bucket=5))
+    lb, _ = relabel(b, [np.ones(len(f), int) for f in b], _spec(min_bucket=5))
+    for x, y in zip(la, lb):
+        np.testing.assert_array_equal(x, y)
+    for f, g in zip(a, before):
+        pd.testing.assert_frame_equal(f.drop(columns=[KEEP_COL]), g)
+
+
+def test_relabel_overlap_and_bad_spec_and_missing_column():
+    from Framework.PooledLabel import relabel
+
+    fr = _frames(300)
+    ones = [np.ones(len(f), int) for f in fr]
+    with pytest.raises(ValueError, match="overlap"):
+        relabel(fr, ones, _spec(exit_eligible=(("bb_width", "gt", 0.035),), min_bucket=5))
+    for bad in ({"share": 1.0}, {"buckets": 1}, {"target": -0.1}, {"reference": 3}):
+        with pytest.raises(ValueError):
+            relabel(_frames(300), ones, _spec(**bad))
+    with pytest.raises(KeyError):
+        relabel(_frames(300), ones, _spec(reference="nope"))
+    with pytest.raises(ValueError):
+        relabel(_frames(300), ones, {"target": 0.02})
+
+
+# --- C1: the TrainingEngine hook ------------------------------------------------------------
+
+
+def test_hook_relabels_with_training_fit_ends():
+    from Framework.PooledLabel import KEEP_COL, relabel
+
+    spec = _spec(min_bucket=5, horizon=12)
+    r = _keyed_labels(POOLED_LABEL=spec, seq_len=16)
+    frames, labels = _inputs()
+    fit_ends = [int(0.8 * len(f)) - 15 for f in frames]
+    want, rep = relabel(frames, labels, spec, fit_ends)
+    for got, exp in zip(r.seen[1], want):
+        np.testing.assert_array_equal(got, exp)
+    assert all(KEEP_COL in f.columns for f in r.seen[0])
+    assert r._pooled_label_report["kept"] == rep["kept"]
+
+
+def test_hook_writes_width_relative_json_beside_fresh_weights(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+
+    from Framework import ModelKey as MK
+
+    monkeypatch.setattr(MK, "training_lock", lambda loc: nullcontext())
+    monkeypatch.setattr(MK, "record_training", lambda *a, **k: None)
+    loc = SimpleNamespace(kind="absent", prefix="p", hash="h", path=str(tmp_path / "m" / "w.bin"))
+    (tmp_path / "m").mkdir()
+
+    class _Clf:
+        def model_exists(self):
+            return True
+
+    r = _keyed_labels(POOLED_LABEL=_spec(min_bucket=5, horizon=12), seq_len=16,
+                      _model_location=loc, classifier=_Clf())
+    out = json.loads((tmp_path / "m" / "width_relative.json").read_text())
+    assert out["kept"] == r._pooled_label_report["kept"] and out["buckets"]

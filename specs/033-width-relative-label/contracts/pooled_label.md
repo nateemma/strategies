@@ -16,7 +16,7 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
   directly.
 - **Pure:** no I/O, and it does not modify its inputs.
 
-## `PooledLabel.relabel(frames, labels, spec, fit_split=None) -> (labels_out, report)`
+## `PooledLabel.relabel(frames, labels, spec, fit_ends=None) -> (labels_out, report)`
 
 - **Input:**
   - `frames`: the raw per-pair frames, as buffered by `maybe_train`;
@@ -28,7 +28,8 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
   - returns new label arrays: entry-eligible valid bars become BUY or HOLD, exit-eligible valid bars
     become SELL or HOLD, and every other bar keeps its label.
 - **Buckets:** computed once per side, over the pooled eligible valid bars of the fit rows: the
-  first `fit_split` of each frame (`None` = all rows). The edges and cuts are applied unchanged to
+  rows `[:fit_ends[i]]` of each frame (`None` = all rows). The engine passes exactly the training
+  rows `prepare_training_data` uses: `int(TRAIN_DATA_SPLIT × n) − (seq_len − 1)` per frame. The edges and cuts are applied unchanged to
   the remaining (validation) rows.
 - **Determinism:** the same inputs give the same output. The ranking key is
   `(outcome, tie-break, pair index, row)`:
@@ -41,7 +42,7 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
 
 ## TrainingEngine hook
 
-In `_train_keyed` (passing `fit_split = self.TRAIN_DATA_SPLIT`):
+In `_train_keyed` (passing `fit_ends` per frame, as above):
 - when `getattr(self, "POOLED_LABEL", None)` is not None, `relabel` runs on the buffered frames and
   labels before `train_model`;
 - `self._pooled_label_report` is set and written as `width_relative.json` beside the weights (as
@@ -52,7 +53,7 @@ In `_train_keyed` (passing `fit_split = self.TRAIN_DATA_SPLIT`):
 - `path_outcome` against `labels_gbb_path` on a scripted and a real frame;
 - hand-computed buckets and labels on a scripted 2-pair frame;
 - every bucket is about 50% after the split, including ties at the target;
-- with `fit_split`, the bucket edges and cuts are unchanged when only validation rows' outcomes
+- with `fit_ends`, the bucket edges and cuts are unchanged when only validation rows' outcomes
   change, and validation rows are labelled by those cuts;
 - NaN outcomes give `%wr_keep` NaN and are excluded by the row filter;
 - the sell side: `path_outcome(side="sell")` against `labels_gbb_path_sell`; SELL about 50% per

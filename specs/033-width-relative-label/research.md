@@ -129,7 +129,7 @@ features, because `remove_debug_columns` drops `^%` columns before scaling.
   `share` quantile.
 - The validation rows (the last 20%, used for early stopping) are labelled with those fitted edges
   and cuts, so validation labels never shape the buckets.
-- The engine passes `TRAIN_DATA_SPLIT` to `relabel` as `fit_split`.
+- The engine passes each frame's training-row count (`int(TRAIN_DATA_SPLIT × n) − (seq_len − 1)`, exactly as `prepare_training_data` splits) to `relabel` as `fit_ends`.
 
 ## R5. Label classes
 

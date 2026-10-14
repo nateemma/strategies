@@ -86,12 +86,12 @@ changes.
 - hand-computed labels match;
 - the label bounds hold on a scripted frame.
 
-- [ ] T005 [P] [US1] Tests `Framework/tests/test_pooled_label.py::test_relabel_*` for C1 `relabel`. They must cover:
+- [X] T005 [P] [US1] Tests `Framework/tests/test_pooled_label.py::test_relabel_*` for C1 `relabel`. They must cover:
   - a scripted 2-pair frame with known outcomes and widths: the buckets, BUY (top share), SELL
     (bottom share of the exit side) and HOLD, hand-computed, are equal;
   - ties at the target broken by `bars_to_exit`, then by position, deterministically;
   - every bucket within ±1 bar of `share × n` on the fit rows;
-  - with `fit_split`: the edges and cuts come from the fit rows only (changing only validation
+  - with `fit_ends`: the edges and cuts come from the fit rows only (changing only validation
     outcomes leaves them unchanged), and validation rows are labelled by those cuts;
   - the sell side ranks ascending (bottom share is SELL);
   - `%wr_keep` is 1.0 on eligible valid bars and NaN elsewhere, with NaN outcomes excluded;
@@ -102,16 +102,16 @@ changes.
   - the Spearman of the label with the reference is within ±0.05 on a frame where the outcome is
     width-correlated by construction (the R3 case);
   - inputs other than the `%wr_keep` column are not mutated.
-- [ ] T006 [US1] Implement `Framework/PooledLabel.py::relabel(frames, labels, spec, fit_split=None)` per C1 and data-model. It handles both sides, fits equal-count buckets and per-bucket cuts per side over the pooled eligible valid bars of the fit rows (the first `fit_split` of each frame), applies them to all rows, and uses the ranking key `(outcome, tie-break, pair index, row)`: descending for BUY, ascending for SELL. It works on the label format `maybe_train` buffers (check it in `Framework/BaseNNStrategy.py` around `get_training_labels`) and returns the same format. Generic only. T005 must pass.
-- [ ] T007 [P] [US1] Tests for the TrainingEngine hook in `Framework/tests/test_pooled_label.py::test_hook_*`:
+- [X] T006 [US1] Implement `Framework/PooledLabel.py::relabel(frames, labels, spec, fit_ends=None)` per C1 and data-model. It handles both sides, fits equal-count buckets and per-bucket cuts per side over the pooled eligible valid bars of the fit rows (`[:fit_ends[i]]` of each frame), applies them to all rows, and uses the ranking key `(outcome, tie-break, pair index, row)`: descending for BUY, ascending for SELL. It works on the label format `maybe_train` buffers (check it in `Framework/BaseNNStrategy.py` around `get_training_labels`) and returns the same format. Generic only. T005 must pass.
+- [X] T007 [P] [US1] Tests for the TrainingEngine hook in `Framework/tests/test_pooled_label.py::test_hook_*`:
   - with no `POOLED_LABEL`, the labels reaching `train_model` equal
     `train_keyed_labels_pre033.npz`;
   - with it declared, they equal `relabel`'s output;
   - `width_relative.json` is written beside the weights after a fresh training (stub model
     location, as 032's `row_filter.json` test);
   - the 032 row filter `(("%wr_keep","gt",0.5),)` keeps exactly the `%wr_keep` rows.
-- [ ] T008 [US1] Implement the hook in `Framework/TrainingEngine.py::_train_keyed`. Before `train_model`, when `getattr(self, "POOLED_LABEL", None)` is set, call `PooledLabel.relabel` on the buffered frames and labels with `fit_split=self.TRAIN_DATA_SPLIT`, and set `self._pooled_label_report`. After a fresh training, write `width_relative.json` next to `row_filter.json`. No class default. T007 and T002 must pass.
-- [ ] T009 [P] [US1] Tests in `research/width_relative/tests/test_mixins.py` for `WidthRelativeMixin` (C2):
+- [X] T008 [US1] Implement the hook in `Framework/TrainingEngine.py::_train_keyed`. Before `train_model`, when `getattr(self, "POOLED_LABEL", None)` is set, call `PooledLabel.relabel` on the buffered frames and labels with `fit_ends` = each frame's training rows (`int(TRAIN_DATA_SPLIT × n) − (seq_len − 1)`, as `prepare_training_data` splits), and set `self._pooled_label_report`. After a fresh training, write `width_relative.json` next to `row_filter.json`. No class default. T007 and T002 must pass.
+- [X] T009 [P] [US1] Tests in `research/width_relative/tests/test_mixins.py` for `WidthRelativeMixin` (C2):
   - the key of `WidthRelativeMixin + NNNC_A_Raw_Open` differs from `NNNC_A_Raw_Open`'s and from
     `NNNC_CO_ARO`'s;
   - changing `buckets` or `share` changes the key;
@@ -120,7 +120,7 @@ changes.
   - `HELD_PAIR_ADD` is None;
   - the spec values equal the class's `MIN_BUY_GAIN_THRESHOLD`, `MIN_SELL_LOSS_THRESHOLD` and
     `HORIZON`.
-- [ ] T010 [US1] Implement `NNNC/_width_relative.py::WidthRelativeMixin`:
+- [X] T010 [US1] Implement `NNNC/_width_relative.py::WidthRelativeMixin`:
   - `POOLED_LABEL`, built from the class's own label attributes (target, stop −0.05, exit loss,
     take-profit 0.022, horizon) with entry rule (guard_metric < 0.3, bb_width > 0.035), exit rule
     (guard_metric > 0.3, bb_width > 0.035), reference `bb_width`, buckets 10, share 0.5,
@@ -130,7 +130,7 @@ changes.
   - `HELD_PAIR_ADD = None`.
 
   Run `Framework/tests/test_model_key_audit.py` and classify any flagged name. T009 must pass.
-- [ ] T011 [P] [US1] Tests in `research/width_relative/tests/test_mixins.py` for `WidthSizerMixin` (C2):
+- [X] T011 [P] [US1] Tests in `research/width_relative/tests/test_mixins.py` for `WidthSizerMixin` (C2):
   - entries equal `WidthBookMixin`'s on a stub frame, with tags suffixed `:agree` or `:disagree`
     from `predict_buy`;
   - `custom_stake_amount` returns `proposed × 1.0/0.75` for agree and `× 0.5/0.75` for disagree,
@@ -140,7 +140,7 @@ changes.
   - setting one does not change the other in the same process;
   - `MODEL_KEY_IGNORED` contains `AGREE_SHARE` and `STAKE_WEIGHTS`, and they leave the model key
     unchanged.
-- [ ] T012 [US1] Implement `NNNC/_width_sizer.py::WidthSizerMixin` (C2):
+- [X] T012 [US1] Implement `NNNC/_width_sizer.py::WidthSizerMixin` (C2):
   - its own `prediction_threshold` `DecimalParameter(0.0, 1.0, decimals=4, default=0.5,
     space="buy", load=True)`;
   - `AGREE_SHARE = 0.5`, `STAKE_WEIGHTS = (1.0, 0.5)`;
@@ -149,7 +149,7 @@ changes.
   - `MODEL_KEY_IGNORED` extended.
 
   T011 must pass.
-- [ ] T013 [US1] SC-001 spot check: re-run the reference fold `wf_aro_hpon_p032` f00 (recorded trades_hash 846c306531c85348) and record identity in `specs/033-width-relative-label/verification.md`, together with the T002 fixture results.
+- [X] T013 [US1] SC-001 spot check: re-run the reference fold `wf_aro_hpon_p032` f00 (recorded trades_hash 846c306531c85348) and record identity in `specs/033-width-relative-label/verification.md`, together with the T002 fixture results.
 
 **Checkpoint**: run the full suite, then commit T005–T013.
 

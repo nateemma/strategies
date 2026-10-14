@@ -473,6 +473,15 @@ class TrainingEngine:
 
         loc = getattr(self, "_model_location", None)
         fresh = loc is not None and loc.kind == "absent"
+        pooled = getattr(self, "POOLED_LABEL", None)
+        if pooled is not None:  # feature 033: relabel relative to a reference, pooled over pairs
+            from Framework.PooledLabel import relabel
+
+            frames, labels = args[0], args[1]
+            # the rows prepare_training_data trains on; buckets are fitted on these only
+            fit_ends = [int(self.TRAIN_DATA_SPLIT * len(f)) - (self.seq_len - 1) for f in frames]
+            labels, self._pooled_label_report = relabel(frames, labels, pooled, fit_ends)
+            args = (frames, labels, *args[2:])
         if fresh:
             print(f"    model key: training {loc.prefix}__{loc.hash}", flush=True)
         with (MK.training_lock(loc) if fresh else nullcontext()):
@@ -485,6 +494,12 @@ class TrainingEngine:
 
                 (Path(loc.path).parent / "row_filter.json").write_text(
                     json.dumps(report, indent=1) + "\n")
+            pooled_report = getattr(self, "_pooled_label_report", None)
+            if pooled_report is not None:  # feature 033: label audit beside the weights
+                import json
+
+                (Path(loc.path).parent / "width_relative.json").write_text(
+                    json.dumps(pooled_report, indent=1, default=str) + "\n")
             self._model_location = None  # re-resolve: now indexed as keyed
 
     def maybe_train(self, dataframe: DataFrame, labels, curr_pair: str) -> DataFrame:

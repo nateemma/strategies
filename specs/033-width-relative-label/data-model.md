@@ -57,7 +57,7 @@ It is written once per trained fold, next to 032's `row_filter.json`.
 
 ## Label (per eligible, valid bar)
 
-Bucket edges and cuts are fitted on the training split (`fit_split`) and applied to the validation
+Bucket edges and cuts are fitted on the training split (`fit_ends`) and applied to the validation
 rows. The buy-side rule is BUY if the bar is in its bucket's top `share`, ranked by the key
 `(outcome desc, tie-break, position)`. The tie-break is `bars_to_exit` ascending for target hits
 and descending for stops. Otherwise the bar is HOLD. On exit-eligible valid bars, the rule is SELL if
