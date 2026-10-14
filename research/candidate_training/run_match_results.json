@@ -1,0 +1,163 @@
+{
+ "label": "EXPLORATORY run-matched CO arms (run_match_rule.md)",
+ "models": {
+  "ARO": {
+   "co_aro_rm": {
+    "all": {
+     "pp": 38.52,
+     "trades": 1251,
+     "pp_per_trade": 0.0308
+    },
+    "early": {
+     "pp": 32.98,
+     "trades": 652,
+     "pp_per_trade": 0.0506
+    },
+    "late": {
+     "pp": 5.54,
+     "trades": 599,
+     "pp_per_trade": 0.0092
+    },
+    "missing": []
+   },
+   "co_aro": {
+    "all": {
+     "pp": 35.7,
+     "trades": 766,
+     "pp_per_trade": 0.0466
+    },
+    "early": {
+     "pp": 25.23,
+     "trades": 372,
+     "pp_per_trade": 0.0678
+    },
+    "late": {
+     "pp": 10.46,
+     "trades": 394,
+     "pp_per_trade": 0.0266
+    },
+    "missing": []
+   },
+   "wf_aro_g24": {
+    "all": {
+     "pp": 49.97,
+     "trades": 1176,
+     "pp_per_trade": 0.0425
+    },
+    "early": {
+     "pp": 35.28,
+     "trades": 607,
+     "pp_per_trade": 0.0581
+    },
+    "late": {
+     "pp": 14.68,
+     "trades": 569,
+     "pp_per_trade": 0.0258
+    },
+    "missing": []
+   },
+   "w_aro": {
+    "all": {
+     "pp": 51.44,
+     "trades": 930,
+     "pp_per_trade": 0.0553
+    },
+    "early": {
+     "pp": 35.85,
+     "trades": 411,
+     "pp_per_trade": 0.0872
+    },
+    "late": {
+     "pp": 15.59,
+     "trades": 519,
+     "pp_per_trade": 0.03
+    },
+    "missing": []
+   },
+   "judge_vs_control": {
+    "verdict": "FAIL",
+    "late_gain_pp": -9.144
+   },
+   "passes_screen": false
+  },
+  "GBR": {
+   "co_gbr_rm": {
+    "all": {
+     "pp": 36.35,
+     "trades": 1379,
+     "pp_per_trade": 0.0264
+    },
+    "early": {
+     "pp": 29.35,
+     "trades": 822,
+     "pp_per_trade": 0.0357
+    },
+    "late": {
+     "pp": 7.0,
+     "trades": 557,
+     "pp_per_trade": 0.0126
+    },
+    "missing": []
+   },
+   "co_gbr": {
+    "all": {
+     "pp": 31.86,
+     "trades": 1219,
+     "pp_per_trade": 0.0261
+    },
+    "early": {
+     "pp": 23.19,
+     "trades": 633,
+     "pp_per_trade": 0.0366
+    },
+    "late": {
+     "pp": 8.67,
+     "trades": 586,
+     "pp_per_trade": 0.0148
+    },
+    "missing": []
+   },
+   "fs_gbr_gr": {
+    "all": {
+     "pp": 53.46,
+     "trades": 2021,
+     "pp_per_trade": 0.0265
+    },
+    "early": {
+     "pp": 37.94,
+     "trades": 1089,
+     "pp_per_trade": 0.0348
+    },
+    "late": {
+     "pp": 15.51,
+     "trades": 932,
+     "pp_per_trade": 0.0166
+    },
+    "missing": []
+   },
+   "w_gbr": {
+    "all": {
+     "pp": 53.68,
+     "trades": 928,
+     "pp_per_trade": 0.0578
+    },
+    "early": {
+     "pp": 36.72,
+     "trades": 493,
+     "pp_per_trade": 0.0745
+    },
+    "late": {
+     "pp": 16.96,
+     "trades": 435,
+     "pp_per_trade": 0.039
+    },
+    "missing": []
+   },
+   "judge_vs_control": {
+    "verdict": "FAIL",
+    "late_gain_pp": -8.514999999999999
+   },
+   "passes_screen": false
+  }
+ }
+}

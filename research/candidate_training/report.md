@@ -104,3 +104,80 @@ Fix-oriented follow-ups (exploratory, not run):
 - The first chain run was killed by the host for low memory during the ARO threshold pick, after all
   15 ARO folds had trained. It was restarted with one pick process per fold; the training was
   skipped as already done, and no record was written before the restart.
+
+## Follow-up 2: the CO model as a sizer on the width book (`co_sizing.py` → `co_sizing.json`)
+
+EXPLORATORY simulator screen. The rule was declared in the script before the run. Both models size
+the IDENTICAL width-book trades; the current model's numbers reproduce `width_sizing.json`.
+
+| | half | agree pp/trade (n) | disagree pp/trade (n) | gap | agree_0.5 pp per capital |
+|---|---|---|---|---|---|
+| ARO current | early | 0.146 (73) | 0.074 (339) | 0.072 | 39.4 |
+| ARO CO | early | 0.106 (110) | 0.080 (302) | 0.026 | 37.4 |
+| ARO current | late | 0.096 (118) | 0.011 (401) | 0.085 | 21.9 |
+| ARO CO | late | 0.090 (126) | 0.011 (393) | 0.079 | 21.6 |
+| GBR current | early | 0.114 (178) | 0.051 (316) | 0.063 | 41.8 |
+| GBR CO | early | 0.105 (169) | 0.058 (325) | 0.047 | 40.4 |
+| GBR current | late | 0.082 (175) | 0.010 (261) | 0.072 | 22.5 |
+| GBR CO | late | 0.057 (155) | 0.030 (281) | 0.027 | 19.1 |
+
+**Result: CO is NOT the better sizer, for either model.** Its gap and its pp per capital are lower in
+both halves. Rank weighting (reported only) is mixed: CO is higher for ARO late, GBR early and GBR
+late.
+
+The CO scores are LESS width-correlated than the current models'. Spearman of p_buy with bb_width
+on eligible bars, early / late:
+
+| ARO | CO_ARO | GBR | CO_GBR |
+|---|---|---|---|
+| 0.44 / 0.37 | 0.31 / 0.25 | 0.58 / 0.58 | 0.30 / 0.27 |
+
+So the CO model's S1 gain comes from something other than width, but it does not separate the
+widest candidates, which are the only ones the width book trades.
+
+## Harness note: picked thresholds are rounded to 2 decimals
+
+`prediction_threshold` is `DecimalParameter(0.2, 0.9, decimals=2)`. Any threshold
+`pick_threshold.py` writes into a fold's `.json` is rounded when it is loaded (CO_ARO f00: 0.5342
+traded as 0.53; control `wf_aro_g24` f00: 0.7337 traded as 0.73). This holds for every
+picked-threshold arm and control, not just 032.
+
+The achieved entry rate therefore differs from the target by up to half a 0.01 step of the score
+distribution. That can be large: one 0.01 step changes CO_ARO f04's training-tail runs from 133 to
+327. Nothing was changed. Raising `decimals` in Framework/BaseStrategy.py would change the trades
+of every picked-threshold record when re-run, so that is the user's decision.
+
+## Follow-up 1: run-matched thresholds (`run_match.py` → `run_match_results.json`)
+
+EXPLORATORY. The reading was declared in `run_match_rule.md` before any record existed. Each fold's
+threshold is the 0.01-grid value whose CO entry runs on the training window's validation tail come
+closest to the control's. Two amendments were committed before any P&L:
+- matching on the validation tail only;
+- loading fold params with `ft_bot_start()`. Without it, buy params stayed at their defaults, and
+  the threshold-0 pass leaked into the control.
+
+The threshold-0 equivalence was verified on ARO f00 with 0 mismatched bars.
+
+pp, trades and pp/trade over all 15 folds / early / late:
+
+| arm | all | early | late |
+|---|---|---|---|
+| co_aro_rm | 38.5 (1,251; 0.031) | 33.0 (652) | 5.5 (599) |
+| co_aro (032) | 35.7 (766; 0.047) | 25.2 (372) | 10.5 (394) |
+| wf_aro_g24 (control) | 50.0 (1,176; 0.043) | 35.3 (607) | 14.7 (569) |
+| w_aro (width) | 51.4 (930; 0.055) | 35.9 (411) | 15.6 (519) |
+| co_gbr_rm | 36.4 (1,379; 0.026) | 29.4 (822) | 7.0 (557) |
+| co_gbr (032) | 31.9 (1,219; 0.026) | 23.2 (633) | 8.7 (586) |
+| fs_gbr_gr (control) | 53.5 (2,021; 0.026) | 37.9 (1,089) | 15.5 (932) |
+| w_gbr (width) | 53.7 (928; 0.058) | 36.7 (493) | 17.0 (435) |
+
+**Result: FAILS the declared screen for both models.** `judge_one` vs the control is FAIL for both
+(late gain −9.1 / −8.5 pp).
+
+- **ARO:** matching the trade count worked (1,251 vs 1,176) and closed most of the early gap. But
+  the extra trades are poor: pp per trade fell from 0.047 to 0.031, below the control's 0.043. Late,
+  the arm is worse than 032's.
+- **GBR:** the 0.01 grid is too coarse to reach the control's count (1,379 vs 2,021), and the arm
+  trails in both halves.
+- **Conclusion:** the trade-count shortfall was not what held the CO books back. Lowering the
+  threshold to recover the count admits worse trades.

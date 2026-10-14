@@ -180,3 +180,8 @@ threshold rate-matched to the control.
   bars; for GBR, the signal rate is the same but the signals cluster.
 
 Nothing adopted. The width book still matches or beats every model book.
+- Follow-ups (EXPLORATORY, report.md):
+  - As a sizer on the width book, CO is worse than the current model for both ARO and GBR.
+  - Run-matched thresholds bring ARO's trade count up to the control's, but the extra trades are
+    poor (late 5.5 vs 14.7 pp). Both fail.
+  - Picked thresholds are rounded to 2 decimals on load (DecimalParameter).

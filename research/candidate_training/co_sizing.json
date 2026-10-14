@@ -1,0 +1,203 @@
+{
+ "label": "EXPLORATORY: CO vs current model as sizer on the identical width book",
+ "models": {
+  "ARO": {
+   "early": {
+    "cur": {
+     "trades": 412,
+     "unsized_pp": 35.71,
+     "agree": {
+      "n": 73,
+      "pp_per_trade": 0.1458
+     },
+     "disagree": {
+      "n": 339,
+      "pp_per_trade": 0.0739
+     },
+     "agree_0.5": {
+      "pp": 23.177,
+      "capital": 0.5886,
+      "pp_per_capital": 39.376
+     },
+     "rank": {
+      "pp": 29.442,
+      "capital": 0.7549,
+      "pp_per_capital": 39.003
+     },
+     "gap": 0.0719
+    },
+    "co": {
+     "trades": 412,
+     "unsized_pp": 35.71,
+     "agree": {
+      "n": 110,
+      "pp_per_trade": 0.106
+     },
+     "disagree": {
+      "n": 302,
+      "pp_per_trade": 0.0796
+     },
+     "agree_0.5": {
+      "pp": 23.685,
+      "capital": 0.6335,
+      "pp_per_capital": 37.387
+     },
+     "rank": {
+      "pp": 27.896,
+      "capital": 0.7549,
+      "pp_per_capital": 36.956
+     },
+     "gap": 0.0264
+    }
+   },
+   "late": {
+    "cur": {
+     "trades": 519,
+     "unsized_pp": 15.601,
+     "agree": {
+      "n": 118,
+      "pp_per_trade": 0.0957
+     },
+     "disagree": {
+      "n": 401,
+      "pp_per_trade": 0.0107
+     },
+     "agree_0.5": {
+      "pp": 13.449,
+      "capital": 0.6137,
+      "pp_per_capital": 21.915
+     },
+     "rank": {
+      "pp": 14.772,
+      "capital": 0.7534,
+      "pp_per_capital": 19.608
+     },
+     "gap": 0.085
+    },
+    "co": {
+     "trades": 519,
+     "unsized_pp": 15.601,
+     "agree": {
+      "n": 126,
+      "pp_per_trade": 0.0897
+     },
+     "disagree": {
+      "n": 393,
+      "pp_per_trade": 0.0109
+     },
+     "agree_0.5": {
+      "pp": 13.451,
+      "capital": 0.6214,
+      "pp_per_capital": 21.646
+     },
+     "rank": {
+      "pp": 15.534,
+      "capital": 0.7534,
+      "pp_per_capital": 20.619
+     },
+     "gap": 0.0788
+    }
+   },
+   "co_better_sizer": false
+  },
+  "GBR": {
+   "early": {
+    "cur": {
+     "trades": 494,
+     "unsized_pp": 36.496,
+     "agree": {
+      "n": 178,
+      "pp_per_trade": 0.1142
+     },
+     "disagree": {
+      "n": 316,
+      "pp_per_trade": 0.0512
+     },
+     "agree_0.5": {
+      "pp": 28.409,
+      "capital": 0.6802,
+      "pp_per_capital": 41.768
+     },
+     "rank": {
+      "pp": 29.561,
+      "capital": 0.754,
+      "pp_per_capital": 39.203
+     },
+     "gap": 0.063
+    },
+    "co": {
+     "trades": 494,
+     "unsized_pp": 36.496,
+     "agree": {
+      "n": 169,
+      "pp_per_trade": 0.1046
+     },
+     "disagree": {
+      "n": 325,
+      "pp_per_trade": 0.0579
+     },
+     "agree_0.5": {
+      "pp": 27.09,
+      "capital": 0.6711,
+      "pp_per_capital": 40.37
+     },
+     "rank": {
+      "pp": 29.623,
+      "capital": 0.754,
+      "pp_per_capital": 39.286
+     },
+     "gap": 0.0467
+    }
+   },
+   "late": {
+    "cur": {
+     "trades": 436,
+     "unsized_pp": 17.099,
+     "agree": {
+      "n": 175,
+      "pp_per_trade": 0.0822
+     },
+     "disagree": {
+      "n": 261,
+      "pp_per_trade": 0.0104
+     },
+     "agree_0.5": {
+      "pp": 15.744,
+      "capital": 0.7007,
+      "pp_per_capital": 22.47
+     },
+     "rank": {
+      "pp": 14.548,
+      "capital": 0.754,
+      "pp_per_capital": 19.294
+     },
+     "gap": 0.0718
+    },
+    "co": {
+     "trades": 436,
+     "unsized_pp": 17.099,
+     "agree": {
+      "n": 155,
+      "pp_per_trade": 0.0567
+     },
+     "disagree": {
+      "n": 281,
+      "pp_per_trade": 0.0296
+     },
+     "agree_0.5": {
+      "pp": 12.946,
+      "capital": 0.6778,
+      "pp_per_capital": 19.102
+     },
+     "rank": {
+      "pp": 15.418,
+      "capital": 0.754,
+      "pp_per_capital": 20.448
+     },
+     "gap": 0.0271
+    }
+   },
+   "co_better_sizer": false
+  }
+ }
+}
