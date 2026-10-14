@@ -1193,6 +1193,52 @@ def _first_touch_excursion(
     return out
 
 
+def path_outcome(
+    df: pd.DataFrame, target: float, stop: float, horizon: int, side: str = "buy"
+) -> tuple:
+    """Per-bar realised outcome of the barrier trade the gbb_path labels describe (feature 033).
+
+    Close-based, exactly like ``labels_gbb_path`` (``side="buy"``: target > 0, stop < 0) and
+    ``labels_gbb_path_sell`` (``side="sell"``: target < 0 is the fall, stop > 0 the take-profit).
+    Walking forward h = 1..horizon, the first close whose move ``(fut - close) / close`` reaches
+    the target gives ``target``, one that reaches the stop first gives ``stop``. With neither, the
+    close return at ``horizon``. Near the frame end a barrier hit within the remaining bars still
+    counts; otherwise NaN. So ``outcome == target`` exactly where the labeller (rule gates off)
+    is 1.
+
+    Returns ``(outcome, bars_to_exit)``; ``bars_to_exit`` is -1 where the outcome is NaN.
+    """
+    if side not in ("buy", "sell"):
+        raise ValueError(f"side must be 'buy' or 'sell', got {side!r}")
+    if side == "buy" and not (target > 0 > stop):
+        raise ValueError("side='buy' needs target > 0 > stop")
+    if side == "sell" and not (target < 0 < stop):
+        raise ValueError("side='sell' needs target < 0 < stop")
+    close = _safe_close(df)
+    n = len(close)
+    out = np.full(n, np.nan, dtype=float)
+    bars = np.full(n, -1, dtype=np.int64)
+    done = np.zeros(n, dtype=bool)
+    last = None
+    for h in range(1, int(horizon) + 1):
+        fut = np.full(n, np.nan, dtype=float)
+        if h < n:
+            fut[: n - h] = close[h:]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            move = (fut - close) / close
+        ok = ~done & np.isfinite(move)
+        hit_t = ok & ((move >= target) if side == "buy" else (move <= target))
+        hit_s = ok & ((move <= stop) if side == "buy" else (move >= stop))
+        out[hit_t], bars[hit_t] = target, h
+        out[hit_s], bars[hit_s] = stop, h
+        done |= hit_t | hit_s
+        last = move
+    if last is not None:
+        rest = ~done & np.isfinite(last)  # a full horizon with no barrier: the close return
+        out[rest], bars[rest] = last[rest], int(horizon)
+    return out, bars
+
+
 def labels_gbb_path(
     df: pd.DataFrame,
     # guard_threshold MATCHED TO THE LIVE ENTRY GATE 2026-09-08 (-0.2 -> 0.3).

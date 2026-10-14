@@ -44,13 +44,13 @@ description: "Task list for 033 width-relative label for NNNC models"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `research/width_relative/__init__.py` and `research/width_relative/tests/__init__.py`. Add `research/width_relative/tests` to the suite command in quickstart §1 and in these conventions.
+- [X] T001 Create `research/width_relative/__init__.py` and `research/width_relative/tests/__init__.py`. Add `research/width_relative/tests` to the suite command in quickstart §1 and in these conventions.
 
 ---
 
 ## Phase 2: Foundational (blocking)
 
-- [ ] T002 BEFORE any Framework or NNNC edit, capture the parity fixtures:
+- [X] T002 BEFORE any Framework or NNNC edit, capture the parity fixtures:
   - `Framework/tests/fixtures/model_keys_pre033.json`: the 030 model keys (via
     `Framework.ModelKey.resolve` under `config/config_wf.json`) of `NNNC_A_Raw_Open`,
     `NNNC_GbbRaw_Open`, `NNNC_FS_GBR_GR`, `NNNC_CO_ARO`, `NNNC_CO_GBR`, `NNNC_ARO_f00` and
@@ -58,7 +58,7 @@ description: "Task list for 033 width-relative label for NNNC models"
   - `Framework/tests/fixtures/train_keyed_labels_pre033.npz`: the labels that `_train_keyed`
     passes to `train_model` for a deterministic 2-pair synthetic frame. Build it with a stub host
     whose `train_model` records its arguments, using the 032 test frame builder.
-- [ ] T003 [P] Write `Framework/tests/test_pooled_label.py::test_path_outcome_*` for C1 `path_outcome`. It must cover:
+- [X] T003 [P] Write `Framework/tests/test_pooled_label.py::test_path_outcome_*` for C1 `path_outcome`. It must cover:
   - the buy side against `labels_gbb_path` with its rule gates disabled: `outcome == target`
     exactly where that label is 1, on bars with a full horizon, on a scripted frame and on one real
     pair-month from `user_data/data`;
@@ -69,7 +69,7 @@ description: "Task list for 033 width-relative label for NNNC models"
     gives a valid outcome; no hit gives NaN and `bars_to_exit` −1;
   - a wrong sign for the side → `ValueError`;
   - the input is not mutated.
-- [ ] T004 Implement `Framework/TrainingSignals.py::path_outcome(df, target, stop, horizon, side="buy")` (C1, research R2/R2b), close-based, reusing that module's forward helpers where they fit. Generic only. T003 must pass.
+- [X] T004 Implement `Framework/TrainingSignals.py::path_outcome(df, target, stop, horizon, side="buy")` (C1, research R2/R2b), close-based, reusing that module's forward helpers where they fit. Generic only. T003 must pass.
 
 **Checkpoint**: run the full suite, then commit T001–T004 (fixtures included).
 
