@@ -182,7 +182,7 @@ code-level, SC-002).
   - it is resumable.
 
   Unit-test the process check and the resume skip in `research/candidate_training/tests/test_train.py` with monkeypatched `ps` and fold functions.
-- [ ] T014 [US2] Pre-registration: `research/candidate_training/preregistration.json` and `.md`, per data-model.md and research R8:
+- [X] T014 [US2] Pre-registration: `research/candidate_training/preregistration.json` and `.md`, per data-model.md and research R8:
   - books, control and width tags, folds, early and late halves, `target_rate` 0.014735;
   - the S1/S2/S3 rules verbatim (S1 as AUC difference > 0 in both halves, with the CI for
     information only);

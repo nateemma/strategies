@@ -23,3 +23,5 @@ confirmation route). Summary:
 
 Threshold: `pick_threshold.py` at rate 0.014735 on each training window, with ineligible bars
 scored 0.
+
+Committed: 95df1cc9 (2026-10-13). Records predating this commit are refused.
