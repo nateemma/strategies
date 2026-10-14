@@ -52,3 +52,42 @@ run in the fold's validation tail.
 finding. Confirmation route: the folds after 2026-09-07, or dry-run.
 
 Committed: 1612b603 (2026-10-14 10:03). Records predating this commit are refused.
+
+## Amendment (2026-10-14, at the T018 smoke, before any chain run or P&L read)
+
+The exit-off arm's identity with the width book is checked on the per-fold set of (pair,
+open_date, close_date), not on trades_hash.
+
+**Why:** trades_hash includes `profit_ratio`. A different stake changes the coin amount's rounding,
+which moves `profit_ratio` at the 1e-7 level. On the smoke f00, all 27 trades were identical in pair
+and dates, while 9 profit ratios differed beyond 6 decimals.
+
+**What is unchanged:**
+- The flat-stake twin (STAKE_WEIGHTS (1.0, 1.0)) keeps the exact-hash check, and passed it:
+  036e04f3fc1e82c3, equal to `w_aro` f00.
+- The fail rule: more than 2 of 15 differing folds fails S0.
+
+**Threshold check:** arm records carry no threshold field, so the loaded threshold is checked from
+each fold's generated `.json` (4 decimals) and by `pick.py --verify`.
+
+## T018 smoke (ARO f00, after the pre-registration commit)
+
+- **Training:** kept 156,086 / 352,431 training rows (44.3%) and 18,435 / 88,301 validation rows
+  (20.9%).
+  - Train class counts SELL / HOLD / BUY: 29,524 / 78,042 / 48,520.
+  - `width_relative.json`: 10 buckets per side, all with shares 0.4999–0.5001; Spearman buy 0.0017,
+    sell 0.0010. S0 label bounds pass.
+  - Validation BUY shares 0.37–0.43 (reported).
+  - The BUY-side bucket median outcome is +2% in every bucket: more than half the candidates hit
+    the target, so the cut falls inside the target-hit ties and is decided by speed to target.
+- **Existing weights unchanged:** `NNNC_ARO_f00` sha 88d74be91d54c3e4 and `NNNC_CO_ARO_f00` sha
+  8f0f69a007b2b9bf are the same before and after.
+- **Pick:** threshold 0.5707; achieved agree share 0.505 on 93 run starts (a thin f00 validation
+  tail); argmax-BUY share 0.828.
+- **Exit-off arm f00:** 27 trades. `pick.py --verify`: threshold loaded 0.5707, 657 entry bars, 0
+  tag mismatches.
+- **Flat-stake twin f00:** trades_hash 036e04f3fc1e82c3, equal to `w_aro` f00. The sized arm's 27
+  trades are identical in pair and dates; its hash differs only through amount rounding (the
+  amendment above).
+
+All T018 checks passed.

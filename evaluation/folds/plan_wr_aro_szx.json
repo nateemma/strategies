@@ -225,5 +225,8 @@
   }
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
- "wr_note": "033 width-relative sizer, model exits ON; control wf_aro_g24; width book w_aro; thresholds picked after training (research/width_relative/pick.py)"
+ "wr_note": "033 width-relative sizer, model exits ON; control wf_aro_g24; width book w_aro; thresholds picked after training (research/width_relative/pick.py)",
+ "thresholds": {
+  "f00": 0.5707
+ }
 }

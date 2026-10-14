@@ -125,11 +125,19 @@ def test_every_multiply_defined_name_is_classified_exactly_once(kind):
         f"  {n}: {', '.join(v)[:120]}" for n, v in sorted(unclassified.items()))
 
 
+def _properties() -> set:
+    """Names defined as properties: ModelKey.resolve reads a computed key input through its
+    getter (e.g. 033's POOLED_LABEL, built from the class's own label attributes)."""
+    return {n for cls in STRATEGIES for k in cls.__mro__ if _own(k)
+            for n, v in k.__dict__.items() if isinstance(v, property)}
+
+
 def test_every_declared_key_attribute_exists_somewhere():
     declared = set()
     for cls in STRATEGIES:
         declared |= set(MK.merged(cls, "MODEL_KEY_ATTRIBUTES"))
-    missing = sorted(n for n in declared if n not in ATTRS)
+    props = _properties()
+    missing = sorted(n for n in declared if n not in ATTRS and n not in props)
     assert not missing, f"MODEL_KEY_ATTRIBUTES names no class defines (typo?): {missing}"
 
 

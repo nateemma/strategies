@@ -232,8 +232,9 @@ The trades-hash identity applies only to the exit-off arm: earlier exits change 
     (same pairs and candles);
   - thresholds load to 4 decimals;
   - the stake shortfall is reported;
-  - the sizer arm's per-fold `trades_hash` (pair, dates, profit ratio; not stake or tag) equals
-    `w_<m>`'s. A fold that differs had a trade blocked or changed by the wallet; it is reported and
+  - the sizer arm's per-fold trade set (pair, open_date, close_date) equals `w_<m>`'s. (Amended at
+    the T018 smoke: `trades_hash` also covers `profit_ratio`, which a different stake moves at the
+    1e-7 level through amount rounding. The flat-stake twin keeps the exact-hash check.) A fold that differs had a trade blocked or changed by the wallet; it is reported and
     flagged, not hidden.
 - **Per arm:** S0 for the exit-on arm is entry-rule violations 0, exit liveness, and parameters
   loaded. Its S2/S3 comparators are the exit-off arm (judge_one, late) and the width book (pp, both

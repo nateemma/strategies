@@ -52,7 +52,7 @@ def test_cuts_are_the_width_books_and_snapshots_differ_only_in_the_exit_switch(m
     assert (load_strategy_class(f"NNNC_WR_{m}").WIDTH_CUTS
             == load_strategy_class(f"NNNC_W_{m}").WIDTH_CUTS)
     c, sz, szx = _plan(ctl), _plan(f"wr_{m.lower()}_sz"), _plan(f"wr_{m.lower()}_szx")
-    assert sz["params_snapshot"] == c["params_snapshot"] and "thresholds" not in sz
+    assert sz["params_snapshot"] == c["params_snapshot"]
     a = json.loads((ROOT / c["params_snapshot"]).read_text())
     b = json.loads((ROOT / szx["params_snapshot"]).read_text())
     assert a["params"]["sell"].get("enable_exit_signal") is False

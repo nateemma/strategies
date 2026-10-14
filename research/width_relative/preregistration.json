@@ -100,13 +100,15 @@
     "sell_gt": 0
    },
    "instrument": {
-    "exit_off_trades_hash_equals_width_book": "per fold; a differing fold is reported and FLAGGED, it does not fail S0 unless more than 2 of 15 folds differ",
+    "exit_off_trades_hash_equals_width_book": "AMENDED 2026-10-14 (smoke, before the chain): see exit_off_trade_identity",
     "entry_violations": 0,
     "tag_to_agree_mismatches": 0,
-    "thresholds_loaded_4dp": true,
+    "thresholds_loaded_4dp": "each fold's generated .json threshold equals the plan's to 4 decimals, and pick.py --verify loads it (records carry no threshold field)",
     "exit_on_liveness": "every fold with exit-gate-passing bars inside open trades has >= 1 model exit",
     "stake_shortfall_flag_share": 0.05,
-    "zero_trade_fold": "INCONCLUSIVE"
+    "zero_trade_fold": "INCONCLUSIVE",
+    "exit_off_trade_identity": "per fold, the exit-off arm's set of (pair, open_date, close_date) equals the width book's; a differing fold is reported and FLAGGED, it fails S0 only if more than 2 of 15 folds differ. trades_hash is NOT used: it includes profit_ratio, which a different stake changes at the ~1e-7 level through coin-amount rounding (smoke f00: 27/27 trades identical, 9 profit_ratio differences beyond 6 decimals)",
+    "flat_stake_twin": "f00, STAKE_WEIGHTS (1.0, 1.0): trades_hash must EQUAL the width book's (smoke: 036e04f3fc1e82c3 = w_aro f00)"
    }
   },
   "S1": {
@@ -140,5 +142,13 @@
   "INCONCLUSIVE"
  ],
  "confirmation_route": "post-2026-09-07 folds or dry-run",
- "exempt_records": []
+ "exempt_records": [],
+ "amendments": [
+  {
+   "date": "2026-10-14",
+   "before": "any chain run or P&L read",
+   "change": "trade identity on (pair, open_date, close_date) instead of trades_hash; flat-stake twin keeps the exact hash; threshold check from the fold .json",
+   "reason": "T018 smoke: coin-amount rounding changes profit_ratio when only the stake differs"
+  }
+ ]
 }

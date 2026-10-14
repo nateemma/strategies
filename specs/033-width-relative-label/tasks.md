@@ -211,7 +211,7 @@ instrument and the S1 separation recorded.
   - the confirmation route.
 
   Record the commit id in the `.md`.
-- [ ] T018 [US2] Smoke, ARO f00 only (after T017): train → `width_relative.json` within the S0 bounds on both sides → `row_filter.json` has BUY > 0 and SELL > 0 → the existing `NNNC_ARO_f00` and `NNNC_CO_ARO_f00` weights are unchanged (sha) → pick f00 with `--verify` (0 mismatches) → the flat-stake twin (`STAKE_WEIGHTS` (1.0, 1.0), a one-off class) on f00 has trades_hash equal to `w_aro` f00's → the threshold loads to 4 decimals. Record the results in the preregistration `.md` (smoke section). Stop if any check fails.
+- [X] T018 [US2] Smoke, ARO f00 only (after T017): train → `width_relative.json` within the S0 bounds on both sides → `row_filter.json` has BUY > 0 and SELL > 0 → the existing `NNNC_ARO_f00` and `NNNC_CO_ARO_f00` weights are unchanged (sha) → pick f00 with `--verify` (0 mismatches) → the flat-stake twin (`STAKE_WEIGHTS` (1.0, 1.0), a one-off class) on f00 has trades_hash equal to `w_aro` f00's → the threshold loads to 4 decimals. Record the results in the preregistration `.md` (smoke section). Stop if any check fails.
 - [ ] T019 [US2] Chain ARO, then GBR (one chain), each in this order:
   1. train 15 folds;
   2. pick 15 folds, one per process;
@@ -224,7 +224,7 @@ instrument and the S1 separation recorded.
 - [ ] T021 [P] [US2] `research/width_relative/instrument.py` (S0; entries and labels only, no P&L) and tests. Per model:
   - the label audit from each fold's `width_relative.json` against the bounds;
   - `row_filter.json` class counts;
-  - the exit-off per-fold trades_hash against `w_<m>`;
+  - the exit-off per-fold trade identity with `w_<m>` on (pair, open_date, close_date) (pre-registration amendment: trades_hash includes profit_ratio, which the stake's amount rounding moves);
   - entry violations, where the signal bar fails the width-book rule, in both arms;
   - tag-to-agree mismatches against the signal tables (`buy_argmax` and `p_buy > threshold`);
   - exit liveness for the exit-on arm: `model_exit` count per fold, and gate-passing bars

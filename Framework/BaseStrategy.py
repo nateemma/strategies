@@ -637,7 +637,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         "get_entry_conditions", "get_exit_conditions", "populate_entry_trend",
         "populate_exit_trend", "custom_exit", "custom_stoploss", "confirm_trade_entry",
         "strategy_custom_exit", "_exit_params", "informative_pairs", "print_strategy_info",
-        "get_model_path",
+        "get_model_path", "custom_stake_amount",
     )
 
     def debug_print(self, msg: str):

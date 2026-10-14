@@ -1,0 +1,36 @@
+{
+ "run_id": "wr_aro_flat",
+ "family": "NNNC",
+ "base_strategy": "NNNC_WR_ARO_FLAT",
+ "anchored": true,
+ "min_train_days": 730,
+ "test_days": 90,
+ "data_start": "2021-01-01",
+ "data_end": "2026-09-07",
+ "config": "user_data/strategies/config/config_wf.json",
+ "params_snapshot": "user_data/strategies/evaluation/folds/params_20261013-g24_NNNC_A_Raw_Open.json",
+ "params_sha": "10d203e2ad2ee9da",
+ "validated": true,
+ "validation_errors": [],
+ "folds": [
+  {
+   "fold_id": "f00",
+   "train_start": "2021-01-01",
+   "train_end": "2022-12-31",
+   "test_start": "2023-01-01",
+   "test_end": "2023-04-01",
+   "train_timerange": "20210101-20230101",
+   "test_timerange": "20230101-20230401",
+   "test_days": 90,
+   "strategy_class": "NNNC_WR_ARO_FLAT_f00",
+   "model_dir": "user_data/strategies/saved_data/NNNC_WR_ARO_f00",
+   "arm_tag": "wr_aro_flat_f00",
+   "status": "planned"
+  }
+ ],
+ "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+ "wr_note": "033 T018 flat-stake instrument twin (f00 only)",
+ "thresholds": {
+  "f00": 0.5707
+ }
+}

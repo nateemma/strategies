@@ -38,6 +38,8 @@ PLANS = {"ARO": "wf_aro_b030", "GBR": "sw_gbr_ctl_b030", "GFM": "sw_gfm_ctl_b030
          "MLX": "sw_mlx_ctl_b030"}
 #: 032: candidate-only arms (research/candidate_training). Not in the default --models list.
 CO_PLANS = {"CO_ARO": "co_aro", "CO_GBR": "co_gbr"}
+#: 033: width-relative sizer arms (research/width_relative); the exit-off plan (same predictions).
+WR_PLANS = {"WR_ARO": "wr_aro_sz", "WR_GBR": "wr_gbr_sz"}
 KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
         "bb_width"]
 PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
@@ -90,7 +92,7 @@ def main(argv=None) -> int:
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     for m in a.models.split(","):
         plan = json.loads((STRAT / "evaluation/folds" /
-                           f"plan_{(PLANS | CO_PLANS)[m]}.json").read_text())
+                           f"plan_{(PLANS | CO_PLANS | WR_PLANS)[m]}.json").read_text())
         for f in plan["folds"]:
             dest = OUT / f"{m}_{f['fold_id']}.parquet"
             if dest.exists():
