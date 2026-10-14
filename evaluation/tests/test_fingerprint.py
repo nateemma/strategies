@@ -14,8 +14,10 @@ from evaluation import fingerprint as fp
 CONFIG = fp.STRAT_DIR / "config" / "config_wf.json"
 
 
-def _resolve(name, params_json="auto"):
+def _resolve(name, params_json="auto", no_add=False):
     cls = fp.load_strategy_class(name)
+    if no_add:  # 2026-10-13: NNNC's in-profit held-pair add put back to off (see ARM_D_SHA)
+        cls = type(cls.__name__ + "NoAdd", (cls,), {"HELD_PAIR_ADD": None})
     pj = fp.load_params_json(name) if params_json == "auto" else params_json
     return fp.resolve(cls, pj, fp.load_config(CONFIG))
 
@@ -23,7 +25,9 @@ def _resolve(name, params_json="auto"):
 #: 2026-10-13: NNNC's grace default moved 6.5 h -> 24 h (research/nnnc_framework/). Arm D's
 #: fingerprint is now ARM_D_SHA; with grace put back to 6.5 h it must still be the recorded
 #: 303456c1fa322b4c, so only the intended value moved. SimpleTrigger stays at 6.5 h.
-ARM_D_SHA = "7de225f72b71eef4"
+#: 2026-10-13 (later): NNNC's in-profit held-pair add on by default (research/held_pair/, 031
+#: follow-up). ARM_D_SHA moved again; with the add off AND grace at 6.5 h arm D is still 303456c.
+ARM_D_SHA = "ff03db982af38fa6"
 
 
 def _at_6_5h(name):
@@ -129,7 +133,8 @@ def test_hold_window_changes_the_sha_and_unset_leaves_shas_alone():
     assert "HOLD_WINDOW_HOURS" not in resolved_base["attributes"]
     assert sha_held != sha_base
     assert sha_base == "303456c1fa322b4c"
-    assert _resolve("NNNC_A_Raw_Open", _at_6_5h("NNNC_A_Raw_Open"))[0] == "303456c1fa322b4c"
+    assert _resolve("NNNC_A_Raw_Open", _at_6_5h("NNNC_A_Raw_Open"), no_add=True)[0] == \
+        "303456c1fa322b4c"
     assert _resolve("NNNC_A_Raw_Open")[0] == ARM_D_SHA
 
 
@@ -139,7 +144,7 @@ def test_hold_window_changes_the_sha_and_unset_leaves_shas_alone():
 def test_shared_single_trigger_classes_keep_their_023_sha():
     for name, pj in (("NNNC_A_Raw_Open", _at_6_5h("NNNC_A_Raw_Open")),
                      ("SimpleTrigger_Gbb", "auto")):
-        sha, resolved = _resolve(name, pj)
+        sha, resolved = _resolve(name, pj, no_add=name.startswith("NNNC"))
         assert sha == "303456c1fa322b4c", name
         assert "FAMILY_EXITS_RESOLVED" not in resolved["attributes"], name
 
@@ -190,7 +195,8 @@ def test_coexistence_settings_are_hashed_and_neutral_ones_are_not():
     shas = {_sha_of(type(f"Cap{k}", (base,), {"FAMILY_PAIR_CAP": k})) for k in (3, 5, 7)}
     shas |= {_sha_of(type(f"Win{w}", (base,), {"MOMENTUM_RECENCY_BARS": w})) for w in (4, 16, 48)}
     assert len(shas) == 6 and "27617f430beca1cd" not in shas
-    assert _resolve("NNNC_A_Raw_Open", _at_6_5h("NNNC_A_Raw_Open"))[0] == "303456c1fa322b4c"
+    assert _resolve("NNNC_A_Raw_Open", _at_6_5h("NNNC_A_Raw_Open"), no_add=True)[0] == \
+        "303456c1fa322b4c"
     assert _resolve("SimpleTrigger_Gbb")[0] == "303456c1fa322b4c"
 
 

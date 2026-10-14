@@ -227,5 +227,5 @@
  ],
  "validated": true,
  "validation_errors": [],
- "held_pair_note": "031: SimpleTrigger_BreakoutGbb_MomExit_G24_DCA = SimpleTrigger_BreakoutGbb_MomExit_G24 + HELD_PAIR_ADD {}; control st_g24_mom"
+ "held_pair_note": "031: SimpleTrigger_BreakoutGbb_MomExit_G24_DCA = SimpleTrigger_BreakoutGbb_MomExit_G24 + HELD_PAIR_ADD {'in_profit_only': False}; control st_g24_mom"
 }

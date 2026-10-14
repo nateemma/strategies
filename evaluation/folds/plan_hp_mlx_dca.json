@@ -225,5 +225,5 @@
   }
  ],
  "model_source_note": "weights = user_data/strategies/saved_data/NNNC_WF_f00 (by model key)",
- "held_pair_note": "031: NNNC_HP_MLX_DCA = NNNC_FS_MLX_GR + HELD_PAIR_ADD {}; control fs_mlx_gr"
+ "held_pair_note": "031: NNNC_HP_MLX_DCA = NNNC_FS_MLX_GR + HELD_PAIR_ADD {'in_profit_only': False}; control fs_mlx_gr"
 }

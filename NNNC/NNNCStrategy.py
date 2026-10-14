@@ -97,6 +97,28 @@ class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
         -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True
     )
 
+    # 2026-10-13: held-pair add ON by default, in-profit only (031 follow-up,
+    # research/held_pair/, pre-registered cb158ba, verdicts e398714). A fresh entry signal on a
+    # pair holding a trade that is IN PROFIT adds one stake (freqtrade position adjustment); the
+    # trade's clocks then count from the add. f00-f14, all four models PASS: ARO +3.19/+3.31 pp
+    # early/late (paired IMPROVED p 0.006), GBR +2.70/+3.32 (IMPROVED), GFM +2.59/+2.65, MLX
+    # +0.69/+0.82; Sharpe up, max drawdown not up, exposure +3-10%. EXPLORATORY: both halves had
+    # been seen for the held-pair question; SimpleTrigger reversion confirmed it on 2022 (+5.85).
+    # The 2026-09 profit-gated pyramiding test on NNNC_MLX (research/posadj, 5d6ef83: not
+    # resolved) used 6.5 h grace, no clock restart and 2 adds; MLX is again ~flat here.
+    # Momentum-labelled models are exempt (`_resolve_held_pair_add` below): the add failed on the
+    # momentum book (2022 -38 pp). A class declares HELD_PAIR_ADD = None to turn it off.
+    HELD_PAIR_ADD = {"in_profit_only": True}
+
+    @classmethod
+    def _resolve_held_pair_add(cls) -> None:
+        super()._resolve_held_pair_add()
+        if cls.HELD_PAIR_ADD_RESOLVED is None or cls._model_family() != "momentum":
+            return
+        below = cls.__mro__[: cls.__mro__.index(NNNCStrategy)]
+        if not any("HELD_PAIR_ADD" in k.__dict__ for k in below):
+            cls._held_pair_add_off()
+
     # HORIZON is now inherited from BaseNNStrategy → TrainingConfig.HORIZON.
     # Production = 3. The 2026-05-28 univariate H sweep landed at H=3 at
     # threshold=0.005 (+21.68% vs +15.97%); the 2026-05-30 learnability

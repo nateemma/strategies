@@ -1166,12 +1166,13 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         """When `trade`'s age-based exit and stop rules start counting (feature 031 R4).
 
         The single source for trade age in the stop grace window, `custom_exit_decision`, the
-        discretionary minimum hold and the ATR take-profit's signal bar. With position adjustment
-        on, an add restarts the clocks: age counts from the last entry fill
-        (`trade.date_last_filled_utc`, which is the open date until an add fills). Off -- every
-        strategy unless it declares an add switch -- it is `trade.open_date_utc`, unchanged.
+        discretionary minimum hold and the ATR take-profit's signal bar. A strategy that sets
+        `TRADE_CLOCK_FROM_LAST_FILL` (an add switch that restarts the clocks) counts age from the
+        last entry fill (`trade.date_last_filled_utc`, the open date until an add fills).
+        Otherwise -- including strategies with their own position adjustment -- it is
+        `trade.open_date_utc`, unchanged.
         """
-        if getattr(self, "position_adjustment_enable", False):
+        if getattr(self, "TRADE_CLOCK_FROM_LAST_FILL", False):
             return trade.date_last_filled_utc
         return trade.open_date_utc
 

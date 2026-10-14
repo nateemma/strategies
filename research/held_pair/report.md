@@ -206,3 +206,28 @@ BTC-trend gate was exhausted, and volreg failed on NNNC entries.
 the first held-pair variant that improves NNNC on return, Sharpe and drawdown together. It is a
 reasonable candidate to enable on NNNC, labelled exploratory, and to confirm forward. It should
 not be enabled on momentum books.
+
+## Promotion (user decision, 2026-10-13)
+
+The in-profit add is **on by default for NNNC**: `NNNCStrategy.HELD_PAIR_ADD = {"in_profit_only": True}`.
+- **Exempt.**
+  - Momentum-labelled NNNC models, unless they declare the switch themselves.
+  - The 2026-09 `RepeatSignalPositionAdjustMixin` study classes (`_PAP`), which keep their own
+    position adjustment and open-date clocks.
+  - Every SimpleTrigger preset.
+- **The original any-signal arm classes now declare `in_profit_only: False`**, so they keep their
+  recorded meaning and fingerprints.
+- **Fingerprints.** Over all 421 NNNC and SimpleTrigger classes, exactly 221 changed, each only by
+  gaining the in-profit add. With the add off (and grace at 6.5 h), arm D still resolves to its
+  recorded `303456c1fa322b4c`.
+- **Behaviour.** Arm D's plan re-run with the default (`wf_aro_hpon`) equals the pre-registered
+  in-profit arm `hp_aro_dca_p` in 15/15 folds. No retraining.
+- **Clock flag fix.** The clock restart is now its own flag, `TRADE_CLOCK_FROM_LAST_FILL`, set only
+  by the switch. Before this, `trade_clock_start` keyed off `position_adjustment_enable`, which the
+  `_PAP` classes also set.
+- **Earlier records predate the default.** To reproduce an NNNC record made before this commit,
+  declare `HELD_PAIR_ADD = None`.
+- **Prior art** (`research/posadj/RESULTS.md`, `5d6ef83`, 2026-09). Profit-gated pyramiding on
+  NNNC_MLX was "not resolved" (−0.30 pp/yr, 19 trades with adds). That run used 6.5 h grace, no
+  clock restart, up to 2 adds and the older stack. MLX is flat again here (+0.7 pp per half); the
+  gain is on ARO, GBR and GFM.

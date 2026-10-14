@@ -28,12 +28,17 @@ RECORDED = {
 #: Moved on purpose since: NNNC's grace default 6.5 h -> 24 h (2026-10-13, research/nnnc_framework/).
 #: These are checked with grace put back to 6.5 h -- everything else must still match the record.
 GRACE_MOVED = {"NNNC_MLX_Open"}
+#: ... and NNNC's in-profit held-pair add on by default (2026-10-13, research/held_pair/): checked
+#: with the add off.
+ADD_MOVED = {"NNNC_MLX_Open"}
 
 
 def _sha(name):
     import copy
 
     cls = fp.load_strategy_class(name)
+    if name in ADD_MOVED:
+        cls = type(cls.__name__ + "NoAdd", (cls,), {"HELD_PAIR_ADD": None})
     pj = fp.load_params_json(name)
     if name in GRACE_MOVED:
         pj = copy.deepcopy(pj)

@@ -28,6 +28,13 @@ def _arm_d_json_at_6_5h():
     return j
 
 
+def _arm_d_no_add():
+    """Arm D with NNNC's in-profit held-pair add (on by default since 2026-10-13,
+    research/held_pair/) put back to off. ARM_D_OPEN has no add."""
+    ref = fp.load_strategy_class("NNNC_A_Raw_Open")
+    return type("NNNC_A_Raw_OpenNoAdd", (ref,), {"HELD_PAIR_ADD": None})
+
+
 def _triggeronly():
     spec = importlib.util.spec_from_file_location(
         "_to_ref", fp.STRAT_DIR / "SimpleStrategies" / "TriggerOnly.py"
@@ -52,9 +59,10 @@ def test_arm_d_open_resolves_to_arm_d():
     class _ArmD(SimpleTriggerStrategy):
         TRIGGER_NAME = "gbb"
 
-    ref = fp.load_strategy_class("NNNC_A_Raw_Open")
+    ref = _arm_d_no_add()
     assert _sha(_ArmD) == _sha(ref, _arm_d_json_at_6_5h())
     assert _sha(_ArmD) != _sha(ref, fp.load_params_json("NNNC_A_Raw_Open"))
+    assert _sha(_ArmD) != _sha(fp.load_strategy_class("NNNC_A_Raw_Open"), _arm_d_json_at_6_5h())
 
 
 def test_legacy_resolves_to_triggeronly():
@@ -81,7 +89,7 @@ def test_presets_differ_exactly_where_research_r1_says():
 def test_simple_trigger_gbb_is_arm_d_twin():
     # T033: the US3 twin shares arm D's framework (FR-013)
     gbb = fp.load_strategy_class("SimpleTrigger_Gbb")
-    ref = fp.load_strategy_class("NNNC_A_Raw_Open")
+    ref = _arm_d_no_add()
     assert _sha(gbb) == _sha(ref, _arm_d_json_at_6_5h())
 
 

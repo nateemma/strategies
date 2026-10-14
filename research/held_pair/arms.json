@@ -1,6 +1,7 @@
 {
  "ARO": {
   "book": "ARO",
+  "variant": "dca",
   "arm": "hp_aro_dca",
   "class": "NNNC_HP_ARO_DCA",
   "control": "wf_aro_g24",
@@ -25,6 +26,7 @@
  },
  "GBR": {
   "book": "GBR",
+  "variant": "dca",
   "arm": "hp_gbr_dca",
   "class": "NNNC_HP_GBR_DCA",
   "control": "fs_gbr_gr",
@@ -49,6 +51,7 @@
  },
  "GFM": {
   "book": "GFM",
+  "variant": "dca",
   "arm": "hp_gfm_dca",
   "class": "NNNC_HP_GFM_DCA",
   "control": "fs_gfm_gr",
@@ -73,6 +76,7 @@
  },
  "MLX": {
   "book": "MLX",
+  "variant": "dca",
   "arm": "hp_mlx_dca",
   "class": "NNNC_HP_MLX_DCA",
   "control": "fs_mlx_gr",
@@ -97,6 +101,7 @@
  },
  "ST_REV": {
   "book": "ST_REV",
+  "variant": "dca",
   "arm": "st_hp_rev",
   "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA",
   "control": "st_g24_rev",
@@ -121,6 +126,7 @@
  },
  "ST_MOM": {
   "book": "ST_MOM",
+  "variant": "dca",
   "arm": "st_hp_mom",
   "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCA",
   "control": "st_g24_mom",
@@ -145,6 +151,7 @@
  },
  "ST_REV_2022": {
   "book": "ST_REV_2022",
+  "variant": "dca",
   "arm": "st_e22_hp_rev",
   "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA",
   "control": "st_e22_g24_rev",
@@ -157,6 +164,7 @@
  },
  "ST_MOM_2022": {
   "book": "ST_MOM_2022",
+  "variant": "dca",
   "arm": "st_e22_hp_mom",
   "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCA",
   "control": "st_e22_g24_mom",

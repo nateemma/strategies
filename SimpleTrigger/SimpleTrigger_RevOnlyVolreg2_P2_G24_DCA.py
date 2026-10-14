@@ -19,4 +19,4 @@ from SimpleTrigger.SimpleTrigger_RevOnlyVolreg2_P2_G24 import SimpleTrigger_RevO
 
 
 class SimpleTrigger_RevOnlyVolreg2_P2_G24_DCA(SimpleTrigger_RevOnlyVolreg2_P2_G24):
-    HELD_PAIR_ADD = {}
+    HELD_PAIR_ADD = {'in_profit_only': False}

@@ -52,6 +52,8 @@ from utils.StopInvariants import StopInvariantMixin
 
 
 ENTRY_MODES = ("triggers", "model", "trigger_and_model")
+#: 031: classes on which `_resolve_held_pair_add` set freqtrade's position-adjust attributes.
+_HP_SET: set = set()
 #: MODEL_ENTRY_FAMILY sentinel: resolve from the class's training label.
 AUTO = "auto"
 #: 026: a market-wide regime instrument needs ~2,900 bars of history to be defined from a fold's
@@ -124,9 +126,9 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         "FAMILY_PRIORITY", "MOMENTUM_PREEMPT", "MOMENTUM_RECENCY_BARS", "_ENTRY_FRAMEWORK_AUTO",
         "_FAMILY_VALIDATE_ON_SUBCLASS", "HELD_PAIR_ADD", "HELD_PAIR_ADD_DEFAULTS",
         "HELD_PAIR_ADD_RESOLVED", "HELD_PAIR_ADD_OPTIONAL", "position_adjustment_enable",
-        "max_entry_position_adjustment",
+        "max_entry_position_adjustment", "TRADE_CLOCK_FROM_LAST_FILL",
     )
-    MODEL_KEY_METHODS_IGNORED = ("adjust_trade_position",)
+    MODEL_KEY_METHODS_IGNORED = ("adjust_trade_position", "_resolve_held_pair_add")
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -160,7 +162,7 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
                     f"{cls.__name__}: HELD_PAIR_ADD must be None or a dict, got {decl!r}")
             merged = {**(merged or {}), **decl}
         if merged is None:
-            cls.HELD_PAIR_ADD_RESOLVED = None
+            cls._held_pair_add_off()
             return
         unknown = sorted(set(merged) - set(cls.HELD_PAIR_ADD_DEFAULTS)
                          - set(cls.HELD_PAIR_ADD_OPTIONAL))
@@ -200,6 +202,22 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         cls.HELD_PAIR_ADD_RESOLVED = r
         cls.position_adjustment_enable = True
         cls.max_entry_position_adjustment = r["max_adds"]
+        cls.TRADE_CLOCK_FROM_LAST_FILL = True
+        _HP_SET.add(cls)
+
+    @classmethod
+    def _held_pair_add_off(cls) -> None:
+        """Off. A class whose ancestor turned the switch on gets back the freqtrade attributes it
+        would have had without it -- from the nearest class that set them itself (e.g. another
+        position-adjust mixin), else freqtrade's defaults -- and its clocks count from the open."""
+        cls.HELD_PAIR_ADD_RESOLVED = None
+        if not any(k in _HP_SET for k in cls.__mro__[1:]):
+            return
+        for name in ("position_adjustment_enable", "max_entry_position_adjustment"):
+            owner = next(k for k in cls.__mro__[1:] if name in k.__dict__ and k not in _HP_SET)
+            setattr(cls, name, owner.__dict__[name])
+        cls.TRADE_CLOCK_FROM_LAST_FILL = False
+        _HP_SET.discard(cls)
 
     @classmethod
     def _resolve_family_exits(cls, base: dict) -> dict:

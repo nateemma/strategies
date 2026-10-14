@@ -242,5 +242,5 @@
   "f14": 0.7420234237670897
  },
  "model_source_note": "weights = user_data/strategies/saved_data/NNNC_GFM_f00 (by model key)",
- "held_pair_note": "031: NNNC_HP_GFM_DCA = NNNC_FS_GFM_GR + HELD_PAIR_ADD {}; control fs_gfm_gr"
+ "held_pair_note": "031: NNNC_HP_GFM_DCA = NNNC_FS_GFM_GR + HELD_PAIR_ADD {'in_profit_only': False}; control fs_gfm_gr"
 }

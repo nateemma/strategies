@@ -242,5 +242,5 @@
   "f13": 0.7746041331768035,
   "f14": 0.7731902599334717
  },
- "held_pair_note": "031: NNNC_HP_ARO_DCA = NNNC_A_Raw_Open + HELD_PAIR_ADD {}; control wf_aro_g24"
+ "held_pair_note": "031: NNNC_HP_ARO_DCA = NNNC_A_Raw_Open + HELD_PAIR_ADD {'in_profit_only': False}; control wf_aro_g24"
 }

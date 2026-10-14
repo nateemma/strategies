@@ -19,4 +19,4 @@ from NNNC_FS_GFM_GR import NNNC_FS_GFM_GR
 
 
 class NNNC_HP_GFM_DCA(NNNC_FS_GFM_GR):
-    HELD_PAIR_ADD = {}
+    HELD_PAIR_ADD = {'in_profit_only': False}

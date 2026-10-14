@@ -46,6 +46,9 @@ class RepeatSignalPositionAdjustMixin:
     """Add to an open position when the strategy re-signals entry on that pair."""
 
     position_adjustment_enable = True
+    # 2026-10-13: the shared held-pair add switch (031, on by default for NNNC) stays OFF here --
+    # this mixin is its own, earlier position-adjustment study and keeps its recorded behaviour.
+    HELD_PAIR_ADD = None
 
     # Number of ADDITIONAL entries allowed beyond the first. 2 keeps worst-case exposure on one
     # pair at 3x the fixed stake, against a 10-slot book -- so a fully pyramided pair is 30% of

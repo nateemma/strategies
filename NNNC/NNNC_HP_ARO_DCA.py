@@ -19,4 +19,4 @@ from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 
 
 class NNNC_HP_ARO_DCA(NNNC_A_Raw_Open):
-    HELD_PAIR_ADD = {}
+    HELD_PAIR_ADD = {'in_profit_only': False}

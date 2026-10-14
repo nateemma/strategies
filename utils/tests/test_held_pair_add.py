@@ -72,6 +72,8 @@ def test_subclass_merges_per_key_and_none_turns_it_off():
     assert Grand.HELD_PAIR_ADD_RESOLVED == {"max_adds": 1, "min_age_hours": 4.0,
                                             "under_water_only": True}
     assert Back.HELD_PAIR_ADD_RESOLVED is None
+    assert Back.position_adjustment_enable is False and Back.max_entry_position_adjustment == -1
+    assert Back.TRADE_CLOCK_FROM_LAST_FILL is False
 
 
 @pytest.mark.parametrize("decl", [{"bogus": 1}, {"max_adds": 0}, {"max_adds": 1.5},
@@ -188,7 +190,7 @@ LAST_FILL = T0 + timedelta(hours=30)
 
 
 def _ns(adjust: bool, **kw):
-    s = types.SimpleNamespace(position_adjustment_enable=adjust, **kw)
+    s = types.SimpleNamespace(TRADE_CLOCK_FROM_LAST_FILL=adjust, **kw)
     return s
 
 
@@ -246,7 +248,7 @@ def test_atr_take_profit_reads_the_add_signal_bar_and_re_resolves():
     p = ExitParams(take_profit_atr_mult=2.0)
     t = _added_trade()
     assert BaseStrategy._apply_atr_take_profit(s, p, t).take_profit == atr_take_profit(2.0, 0.012)
-    s.position_adjustment_enable = False  # off: the entry's own signal bar, cached separately
+    s.TRADE_CLOCK_FROM_LAST_FILL = False  # off: the entry's own signal bar, cached separately
     assert BaseStrategy._apply_atr_take_profit(s, p, t).take_profit == atr_take_profit(2.0, 0.004)
 
 
@@ -269,7 +271,7 @@ def test_every_age_site_uses_the_clock():
 
 
 class _StopParent:
-    position_adjustment_enable = True
+    TRADE_CLOCK_FROM_LAST_FILL = True
 
     def trade_clock_start(self, trade):
         return BaseStrategy.trade_clock_start(self, trade)
@@ -369,3 +371,18 @@ def test_roi_due_refuses_only_when_entry_signals_do_not_suppress_roi():
     s.ignore_roi_if_entry_signal = False
     assert _call(s) is None
     assert s._hp_counts == {"refused_exit_due": 1}
+
+
+def test_off_keeps_another_mixins_position_adjustment_and_its_open_date_clock():
+    """A strategy with its OWN position adjustment (the 2026-09 RepeatSignal mixin) keeps its
+    attributes and counts trade age from the open, even under a parent with the switch on."""
+    class OtherAdjust:
+        position_adjustment_enable = True
+        max_entry_position_adjustment = 2
+        HELD_PAIR_ADD = None
+
+    cls = type("Pap", (OtherAdjust, On), {})
+    assert cls.HELD_PAIR_ADD_RESOLVED is None
+    assert cls.position_adjustment_enable is True and cls.max_entry_position_adjustment == 2
+    assert cls.TRADE_CLOCK_FROM_LAST_FILL is False
+    assert BaseStrategy.trade_clock_start(object.__new__(cls), _added_trade()) == T0

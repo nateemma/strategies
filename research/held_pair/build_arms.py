@@ -66,7 +66,9 @@ class {name}({base}):
 
 
 #: variant -> (HELD_PAIR_ADD declaration, class suffix, tag suffix)
-VARIANTS = {"dca": ({}, "", ""), "profit": ({"in_profit_only": True}, "P", "_p")}
+#: "dca" declares in_profit_only False explicitly: NNNCStrategy turns the in-profit add on by
+#: default (2026-10-13), and a bare {} would merge with it.
+VARIANTS = {"dca": ({"in_profit_only": False}, "", ""), "profit": ({"in_profit_only": True}, "P", "_p")}
 
 
 def build(book: str, variant: str = "dca") -> dict:

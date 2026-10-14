@@ -24,6 +24,8 @@ def test_off_classes_hash_as_recorded_and_on_differs():
     base = json.loads(BASELINE.read_text())["bases"]
     for name in ("NNNC_A_Raw_Open", "SimpleTrigger_RevOnlyVolreg2_P2_G24"):
         cls = load_strategy_class(name)
+        if name.startswith("NNNC"):  # NNNC's in-profit add is on by default (2026-10-13)
+            cls = type(name + "NoAdd", (cls,), {"HELD_PAIR_ADD": None})
         sha, resolved = resolve(cls, None, CONFIG)
         assert "HELD_PAIR_ADD_RESOLVED" not in resolved["attributes"]
         on = type(name + "On", (cls,), {"HELD_PAIR_ADD": {}})
@@ -35,4 +37,9 @@ def test_off_classes_hash_as_recorded_and_on_differs():
     from evaluation.fingerprint import resolve_by_name
 
     for name, sha in base.items():
-        assert resolve_by_name(name, STRAT / "config" / "config_wf.json")[0] == sha
+        cls = load_strategy_class(name)
+        if name.startswith("NNNC"):
+            cls = type(name + "NoAdd", (cls,), {"HELD_PAIR_ADD": None})
+        from evaluation.fingerprint import load_params_json
+
+        assert resolve(cls, load_params_json(name), CONFIG)[0] == sha, name
