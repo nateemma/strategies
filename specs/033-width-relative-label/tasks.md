@@ -165,7 +165,7 @@ instrument and the S1 separation recorded.
 - 30 trained folds;
 - 60 arm records.
 
-- [ ] T014 [P] [US2] `research/width_relative/build_arms.py` (C2). It generates:
+- [X] T014 [P] [US2] `research/width_relative/build_arms.py` (C2). It generates:
   - `NNNC/NNNC_WR_ARO.py/.json` (bases `WidthSizerMixin, WidthBookMixin, WidthRelativeMixin,
     NNNC_A_Raw_Open`) and `NNNC/NNNC_WR_GBR.py/.json` (`... NNNC_FS_GBR_GR`). The `.json` files
     are copied from the controls' params snapshots (24 h grace), with `enable_exit_signal` false,
@@ -178,7 +178,7 @@ instrument and the S1 separation recorded.
   - each arm's fingerprint inputs equal the control's except the declared mixins and the exit
     switch;
   - both plans resolve to the same model key per fold.
-- [ ] T015 [P] [US2] `research/width_relative/pick.py --model M --fold fNN --out PATH` (research R7). It:
+- [X] T015 [P] [US2] `research/width_relative/pick.py --model M --fold fNN --out PATH` (research R7). It:
   - loads the `_sz` fold class with `ft_bot_start()` and threshold 0;
   - keeps the validation tail (the last `1 − TRAIN_DATA_SPLIT` of each pair's training frame);
   - takes the FIRST bar of each width-book candidate run (`enter_long` rising from 0 to 1 per
@@ -191,8 +191,8 @@ instrument and the S1 separation recorded.
 
   Tests in `research/width_relative/tests/test_pick.py` for the quantile and achieved share on
   synthetic arrays.
-- [ ] T016 [P] [US2] `research/width_relative/train.py --model M [--fold fNN]`: the 032 `train.py` pattern (one fold per process, resumable, refuses if another chain runs, ignores `sh -c` wrappers). It trains the `_sz` plan's fold classes and prints each fold's `width_relative.json` and `row_filter.json` summaries.
-- [ ] T017 [US2] Write and COMMIT `research/width_relative/preregistration.json/.md` (research R9), BEFORE any training. It covers:
+- [X] T016 [P] [US2] `research/width_relative/train.py --model M [--fold fNN]`: the 032 `train.py` pattern (one fold per process, resumable, refuses if another chain runs, ignores `sh -c` wrappers). It trains the `_sz` plan's fold classes and prints each fold's `width_relative.json` and `row_filter.json` summaries.
+- [X] T017 [US2] Write and COMMIT `research/width_relative/preregistration.json/.md` (research R9), BEFORE any training. It covers:
   - S0 bounds per fold and side: bucket share [0.40, 0.60], |Spearman| ≤ 0.05, kept > 0,
     BUY > 0, SELL > 0;
   - the exit-off trades_hash identity with `w_<m>` per fold, with differences reported and

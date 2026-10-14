@@ -50,3 +50,5 @@ run in the fold's validation tail.
 
 **Outcomes:** PASS (PROVISIONAL), FAIL or INCONCLUSIVE. There is no distant era, so nothing is a
 finding. Confirmation route: the folds after 2026-09-07, or dry-run.
+
+Committed: 1612b603 (2026-10-14 10:03). Records predating this commit are refused.
