@@ -185,3 +185,20 @@ Nothing adopted. The width book still matches or beats every model book.
   - Run-matched thresholds bring ARO's trade count up to the control's, but the extra trades are
     poor (late 5.5 vs 14.7 pp). Both fail.
   - Picked thresholds are rounded to 2 decimals on load (DecimalParameter).
+
+## 8. Width-relative label (feature 033 → `research/width_relative/report.md`)
+
+Pre-registered.
+- **The label:** the gbb_path trade outcome is ranked within training-fold bb_width deciles. The
+  top half is BUY, and the exit side mirrors it (the bottom half is SELL). The label works as
+  designed: about 50% per bucket and Spearman with width ≈ 0.
+- **The arms:** the model is used as a capital-neutral sizer on the width book, with model exits
+  off and on.
+- **The result: all four arms FAIL.**
+  - **S1 (exit-off):** the new model separates width-book trades worse than the current model.
+    The early gap is 0.043 vs 0.072 (ARO) and 0.005 vs 0.063 (GBR).
+  - **S2 (exit-on):** model exits add nothing. ARO is −0.45 pp. GBR is +0.74 pp at seed 1 and
+    −0.09 pp at seed 2.
+- **Context, not judged:** the exit-off sizers' early pp, read as a comparator, sit above the width
+  book and the controls.
+- **Next (offered):** a sizer arm with the current models' weights.

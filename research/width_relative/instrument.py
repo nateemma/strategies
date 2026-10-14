@@ -13,8 +13,12 @@ Per model (ARO, GBR):
              (gbb rule AND bb_width >= the fold's cut) -- must be 0;
   tags       both arms: ':agree' tags must equal buy_argmax AND p_buy > threshold at the signal bar;
   threshold  each fold's generated .json threshold equals the plan's to 4 decimals;
-  stakes     realised agree share among trades, mean stake vs the width book's 900, and trades whose
-             stake is below the intended proposed x weight (flag above 5% of a fold's trades);
+  stakes     realised agree share among trades; mean stake and capital ratio vs the width book's own
+             stakes on the same folds; realised agree / disagree mean-stake ratio; and wallet
+             shortfalls: trades whose stake is below proposed x weight where the width book's stake
+             on the SAME trade shows no liquidity cap (BaseStrategy's fillable cap binds on 44-77% of
+             width-book trades too, so a flat 900 baseline would count shared caps as shortfalls).
+             Flag above 5% of a fold's matched trades. Reported only; not an S0 pass condition;
   exits      exit-on arm (`wr_<m>_szx`): model exits per fold and exit-gate-passing bars (rvol > 2.0
              AND guard_metric > -0.1) inside open trades; a fold with such bars and no model exit
              fails liveness;
@@ -65,18 +69,32 @@ def stake_weight(tag: str, share: float = 0.5, weights=(1.0, 0.5)) -> float:
     return (wa if str(tag).endswith(":agree") else wd) / (share * wa + (1 - share) * wd)
 
 
-def stake_checks(trades: list[dict]) -> dict:
+def stake_checks(trades: list[dict], width_trades: list[dict]) -> dict:
     if not trades:
         return {"trades": 0}
     tags = [t.get("enter_tag") or "" for t in trades]
     agree = np.array([s.endswith(":agree") for s in tags])
     stake = np.array([float(t["stake_amount"]) for t in trades])
-    intended = np.array([PROPOSED_STAKE * stake_weight(s) for s in tags])
-    short = stake < intended * (1 - 1e-6)
+    w_stake = {(t["pair"], str(t["open_date"])): float(t["stake_amount"]) for t in width_trades}
+    w_all = np.array(list(w_stake.values())) if w_stake else np.array([np.nan])
+    short = matched = 0
+    for t, tag, st in zip(trades, tags, stake):
+        ws = w_stake.get((t["pair"], str(t["open_date"])))
+        if ws is None or ws < PROPOSED_STAKE * (1 - 1e-3):  # unmatched, or capped in the book too
+            continue
+        matched += 1
+        short += st < PROPOSED_STAKE * stake_weight(tag) * (1 - 1e-3)
+    ma = float(stake[agree].mean()) if agree.any() else None
+    md = float(stake[~agree].mean()) if (~agree).any() else None
     return {"trades": len(trades), "agree_share": round(float(agree.mean()), 4),
-            "mean_stake": round(float(stake.mean()), 2), "width_book_stake": PROPOSED_STAKE,
-            "short_stakes": int(short.sum()), "short_share": round(float(short.mean()), 4),
-            "flag": bool(short.mean() > SHORT_FLAG)}
+            "mean_stake": round(float(stake.mean()), 2),
+            "width_book_mean_stake": round(float(np.nanmean(w_all)), 2),
+            "capital_ratio_vs_width": round(float(stake.sum() / np.nansum(w_all)), 4)
+            if np.nansum(w_all) else None,
+            "agree_disagree_stake_ratio": round(ma / md, 3) if ma and md else None,
+            "uncapped_matched": matched, "wallet_short": int(short),
+            "wallet_short_share": round(short / matched, 4) if matched else None,
+            "flag": bool(matched and short / matched > SHORT_FLAG)}
 
 
 def _utc(x):
@@ -164,7 +182,8 @@ def main() -> int:
             fold = {"label": label_checks(rep, rf), "threshold_plan": thr[fid]}
             from evaluation.bootstrap import _trades
 
-            w_keys = trade_keys(_trades(arm_record(fw["arm_tag"], fid.upper())) or [])
+            w_trades = _trades(arm_record(fw["arm_tag"], fid.upper())) or []
+            w_keys = trade_keys(w_trades)
             for arm, ff in (("exit_off", f), ("exit_on", fx)):
                 r = arm_record(ff["arm_tag"], fid.upper())
                 trades = _trades(r) or []
@@ -173,7 +192,7 @@ def main() -> int:
                      "threshold_loaded_ok": jt is not None
                      and round(float(jt), 4) == round(float(thr[fid]), 4)}
                 a |= entry_and_tag_checks(trades, table, cut, float(thr[fid]), F.bars_for)
-                a |= {"stakes": stake_checks(trades)}
+                a |= {"stakes": stake_checks(trades, w_trades)}
                 if arm == "exit_off":
                     keys = trade_keys(trades)
                     a["trades_equal_width_book"] = keys == w_keys

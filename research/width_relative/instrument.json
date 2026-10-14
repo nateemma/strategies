@@ -1,0 +1,2027 @@
+{
+ "label": "033 S0: label + instrument checks (no P&L read)",
+ "models": {
+  "ARO": {
+   "folds": {
+    "f00": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5001
+      ],
+      "spearman": [
+       0.0017,
+       0.001
+      ],
+      "train_class_counts": [
+       29524,
+       78042,
+       48520
+      ],
+      "kept": 174521,
+      "invalid": 30,
+      "pass": true
+     },
+     "threshold_plan": 0.5707,
+     "exit_off": {
+      "n_trades": 27,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 27,
+       "agree_share": 0.2963,
+       "mean_stake": 570.5,
+       "width_book_mean_stake": 626.06,
+       "capital_ratio_vs_width": 0.9113,
+       "agree_disagree_stake_ratio": 2.043,
+       "uncapped_matched": 15,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 27,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 27,
+       "agree_share": 0.2963,
+       "mean_stake": 570.5,
+       "width_book_mean_stake": 626.06,
+       "capital_ratio_vs_width": 0.9113,
+       "agree_disagree_stake_ratio": 2.043,
+       "uncapped_matched": 15,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 8,
+      "trades_with_gate_bars": 16,
+      "liveness_fail": false
+     }
+    },
+    "f01": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0015,
+       0.0007
+      ],
+      "train_class_counts": [
+       32024,
+       84609,
+       52580
+      ],
+      "kept": 192893,
+      "invalid": 84,
+      "pass": true
+     },
+     "threshold_plan": 0.5644,
+     "exit_off": {
+      "n_trades": 25,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 25,
+       "agree_share": 0.4,
+       "mean_stake": 475.22,
+       "width_book_mean_stake": 525.5,
+       "capital_ratio_vs_width": 0.9043,
+       "agree_disagree_stake_ratio": 1.13,
+       "uncapped_matched": 6,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1667,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 25,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 25,
+       "agree_share": 0.4,
+       "mean_stake": 475.22,
+       "width_book_mean_stake": 525.5,
+       "capital_ratio_vs_width": 0.9043,
+       "agree_disagree_stake_ratio": 1.13,
+       "uncapped_matched": 6,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1667,
+       "flag": true
+      },
+      "model_exits": 1,
+      "trades_with_gate_bars": 17,
+      "liveness_fail": false
+     }
+    },
+    "f02": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5001
+      ],
+      "spearman": [
+       0.0016,
+       0.0002
+      ],
+      "train_class_counts": [
+       35057,
+       91780,
+       56729
+      ],
+      "kept": 204309,
+      "invalid": 87,
+      "pass": true
+     },
+     "threshold_plan": 0.5959,
+     "exit_off": {
+      "n_trades": 10,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 10,
+       "agree_share": 0.2,
+       "mean_stake": 488.04,
+       "width_book_mean_stake": 567.27,
+       "capital_ratio_vs_width": 0.8603,
+       "agree_disagree_stake_ratio": 1.439,
+       "uncapped_matched": 3,
+       "wallet_short": 1,
+       "wallet_short_share": 0.3333,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 10,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 10,
+       "agree_share": 0.2,
+       "mean_stake": 488.04,
+       "width_book_mean_stake": 567.27,
+       "capital_ratio_vs_width": 0.8603,
+       "agree_disagree_stake_ratio": 1.439,
+       "uncapped_matched": 3,
+       "wallet_short": 1,
+       "wallet_short_share": 0.3333,
+       "flag": true
+      },
+      "model_exits": 5,
+      "trades_with_gate_bars": 6,
+      "liveness_fail": false
+     }
+    },
+    "f03": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0019,
+       -0.0002
+      ],
+      "train_class_counts": [
+       37360,
+       97494,
+       60122
+      ],
+      "kept": 216388,
+      "invalid": 92,
+      "pass": true
+     },
+     "threshold_plan": 0.5687,
+     "exit_off": {
+      "n_trades": 16,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 16,
+       "agree_share": 0.4375,
+       "mean_stake": 589.73,
+       "width_book_mean_stake": 608.48,
+       "capital_ratio_vs_width": 0.9692,
+       "agree_disagree_stake_ratio": 1.544,
+       "uncapped_matched": 7,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 16,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 16,
+       "agree_share": 0.4375,
+       "mean_stake": 589.73,
+       "width_book_mean_stake": 608.48,
+       "capital_ratio_vs_width": 0.9692,
+       "agree_disagree_stake_ratio": 1.544,
+       "uncapped_matched": 7,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 3,
+      "trades_with_gate_bars": 7,
+      "liveness_fail": false
+     }
+    },
+    "f04": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5001
+      ],
+      "spearman": [
+       0.002,
+       -0.0001
+      ],
+      "train_class_counts": [
+       39600,
+       102924,
+       63330
+      ],
+      "kept": 237765,
+      "invalid": 124,
+      "pass": true
+     },
+     "threshold_plan": 0.5542,
+     "exit_off": {
+      "n_trades": 128,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 128,
+       "agree_share": 0.7109,
+       "mean_stake": 590.89,
+       "width_book_mean_stake": 547.67,
+       "capital_ratio_vs_width": 1.0789,
+       "agree_disagree_stake_ratio": 1.452,
+       "uncapped_matched": 54,
+       "wallet_short": 3,
+       "wallet_short_share": 0.0556,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 130,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 130,
+       "agree_share": 0.7077,
+       "mean_stake": 590.8,
+       "width_book_mean_stake": 547.67,
+       "capital_ratio_vs_width": 1.0956,
+       "agree_disagree_stake_ratio": 1.487,
+       "uncapped_matched": 54,
+       "wallet_short": 3,
+       "wallet_short_share": 0.0556,
+       "flag": true
+      },
+      "model_exits": 36,
+      "trades_with_gate_bars": 82,
+      "liveness_fail": false
+     }
+    },
+    "f05": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.002,
+       0.0002
+      ],
+      "train_class_counts": [
+       41400,
+       107686,
+       66280
+      ],
+      "kept": 265672,
+      "invalid": 108,
+      "pass": true
+     },
+     "threshold_plan": 0.5768,
+     "exit_off": {
+      "n_trades": 60,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 60,
+       "agree_share": 0.1833,
+       "mean_stake": 407.49,
+       "width_book_mean_stake": 474.71,
+       "capital_ratio_vs_width": 0.8584,
+       "agree_disagree_stake_ratio": 1.528,
+       "uncapped_matched": 18,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0556,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 60,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 60,
+       "agree_share": 0.1833,
+       "mean_stake": 407.49,
+       "width_book_mean_stake": 474.71,
+       "capital_ratio_vs_width": 0.8584,
+       "agree_disagree_stake_ratio": 1.528,
+       "uncapped_matched": 18,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0556,
+       "flag": true
+      },
+      "model_exits": 13,
+      "trades_with_gate_bars": 40,
+      "liveness_fail": false
+     }
+    },
+    "f06": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       -0.0
+      ],
+      "train_class_counts": [
+       44981,
+       115886,
+       70900
+      ],
+      "kept": 286777,
+      "invalid": 72,
+      "pass": true
+     },
+     "threshold_plan": 0.5647,
+     "exit_off": {
+      "n_trades": 46,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 46,
+       "agree_share": 0.3043,
+       "mean_stake": 395.75,
+       "width_book_mean_stake": 439.91,
+       "capital_ratio_vs_width": 0.8996,
+       "agree_disagree_stake_ratio": 1.596,
+       "uncapped_matched": 11,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0909,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 46,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 46,
+       "agree_share": 0.3043,
+       "mean_stake": 395.75,
+       "width_book_mean_stake": 439.91,
+       "capital_ratio_vs_width": 0.8996,
+       "agree_disagree_stake_ratio": 1.596,
+       "uncapped_matched": 11,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0909,
+       "flag": true
+      },
+      "model_exits": 10,
+      "trades_with_gate_bars": 31,
+      "liveness_fail": false
+     }
+    },
+    "f07": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0002
+      ],
+      "train_class_counts": [
+       48840,
+       125295,
+       76442
+      ],
+      "kept": 311258,
+      "invalid": 34,
+      "pass": true
+     },
+     "threshold_plan": 0.577,
+     "exit_off": {
+      "n_trades": 99,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 99,
+       "agree_share": 0.5556,
+       "mean_stake": 502.33,
+       "width_book_mean_stake": 493.51,
+       "capital_ratio_vs_width": 1.0179,
+       "agree_disagree_stake_ratio": 1.464,
+       "uncapped_matched": 30,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 101,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 101,
+       "agree_share": 0.5545,
+       "mean_stake": 500.79,
+       "width_book_mean_stake": 493.51,
+       "capital_ratio_vs_width": 1.0352,
+       "agree_disagree_stake_ratio": 1.433,
+       "uncapped_matched": 30,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 15,
+      "trades_with_gate_bars": 52,
+      "liveness_fail": false
+     }
+    },
+    "f08": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0002
+      ],
+      "train_class_counts": [
+       52820,
+       135593,
+       82778
+      ],
+      "kept": 343897,
+      "invalid": 90,
+      "pass": true
+     },
+     "threshold_plan": 0.5755,
+     "exit_off": {
+      "n_trades": 147,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 147,
+       "agree_share": 0.381,
+       "mean_stake": 435.04,
+       "width_book_mean_stake": 457.6,
+       "capital_ratio_vs_width": 0.9507,
+       "agree_disagree_stake_ratio": 1.573,
+       "uncapped_matched": 42,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0238,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 150,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 150,
+       "agree_share": 0.3867,
+       "mean_stake": 441.31,
+       "width_book_mean_stake": 457.6,
+       "capital_ratio_vs_width": 0.9841,
+       "agree_disagree_stake_ratio": 1.586,
+       "uncapped_matched": 42,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0238,
+       "flag": false
+      },
+      "model_exits": 36,
+      "trades_with_gate_bars": 95,
+      "liveness_fail": false
+     }
+    },
+    "f09": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0001
+      ],
+      "train_class_counts": [
+       56695,
+       145480,
+       88787
+      ],
+      "kept": 380770,
+      "invalid": 111,
+      "pass": true
+     },
+     "threshold_plan": 0.5837,
+     "exit_off": {
+      "n_trades": 39,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 39,
+       "agree_share": 0.2308,
+       "mean_stake": 355.78,
+       "width_book_mean_stake": 429.2,
+       "capital_ratio_vs_width": 0.8289,
+       "agree_disagree_stake_ratio": 0.952,
+       "uncapped_matched": 9,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 39,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 39,
+       "agree_share": 0.2308,
+       "mean_stake": 355.78,
+       "width_book_mean_stake": 429.2,
+       "capital_ratio_vs_width": 0.8289,
+       "agree_disagree_stake_ratio": 0.952,
+       "uncapped_matched": 9,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 5,
+      "trades_with_gate_bars": 21,
+      "liveness_fail": false
+     }
+    },
+    "f10": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0017,
+       0.0002
+      ],
+      "train_class_counts": [
+       60300,
+       154045,
+       93756
+      ],
+      "kept": 405310,
+      "invalid": 66,
+      "pass": true
+     },
+     "threshold_plan": 0.5851,
+     "exit_off": {
+      "n_trades": 3,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 3,
+       "agree_share": 0.3333,
+       "mean_stake": 539.13,
+       "width_book_mean_stake": 439.16,
+       "capital_ratio_vs_width": 1.2277,
+       "agree_disagree_stake_ratio": 5.745,
+       "uncapped_matched": 1,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 3,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 3,
+       "agree_share": 0.3333,
+       "mean_stake": 539.13,
+       "width_book_mean_stake": 439.16,
+       "capital_ratio_vs_width": 1.2277,
+       "agree_disagree_stake_ratio": 5.745,
+       "uncapped_matched": 1,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 1,
+      "trades_with_gate_bars": 2,
+      "liveness_fail": false
+     }
+    },
+    "f11": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0004
+      ],
+      "train_class_counts": [
+       64840,
+       165735,
+       100880
+      ],
+      "kept": 426362,
+      "invalid": 43,
+      "pass": true
+     },
+     "threshold_plan": 0.5731,
+     "exit_off": {
+      "n_trades": 208,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 208,
+       "agree_share": 0.4519,
+       "mean_stake": 445.08,
+       "width_book_mean_stake": 461.12,
+       "capital_ratio_vs_width": 0.9652,
+       "agree_disagree_stake_ratio": 1.511,
+       "uncapped_matched": 47,
+       "wallet_short": 5,
+       "wallet_short_share": 0.1064,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 209,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 209,
+       "agree_share": 0.4545,
+       "mean_stake": 443.11,
+       "width_book_mean_stake": 461.12,
+       "capital_ratio_vs_width": 0.9656,
+       "agree_disagree_stake_ratio": 1.497,
+       "uncapped_matched": 47,
+       "wallet_short": 5,
+       "wallet_short_share": 0.1064,
+       "flag": true
+      },
+      "model_exits": 43,
+      "trades_with_gate_bars": 133,
+      "liveness_fail": false
+     }
+    },
+    "f12": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0019,
+       0.0006
+      ],
+      "train_class_counts": [
+       70260,
+       179940,
+       109691
+      ],
+      "kept": 456713,
+      "invalid": 146,
+      "pass": true
+     },
+     "threshold_plan": 0.5779,
+     "exit_off": {
+      "n_trades": 39,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 39,
+       "agree_share": 0.4615,
+       "mean_stake": 377.39,
+       "width_book_mean_stake": 400.36,
+       "capital_ratio_vs_width": 0.9426,
+       "agree_disagree_stake_ratio": 0.969,
+       "uncapped_matched": 8,
+       "wallet_short": 1,
+       "wallet_short_share": 0.125,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 39,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 39,
+       "agree_share": 0.4615,
+       "mean_stake": 377.39,
+       "width_book_mean_stake": 400.36,
+       "capital_ratio_vs_width": 0.9426,
+       "agree_disagree_stake_ratio": 0.969,
+       "uncapped_matched": 8,
+       "wallet_short": 1,
+       "wallet_short_share": 0.125,
+       "flag": true
+      },
+      "model_exits": 9,
+      "trades_with_gate_bars": 24,
+      "liveness_fail": false
+     }
+    },
+    "f13": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0005
+      ],
+      "train_class_counts": [
+       75619,
+       193462,
+       117860
+      ],
+      "kept": 483446,
+      "invalid": 46,
+      "pass": true
+     },
+     "threshold_plan": 0.5739,
+     "exit_off": {
+      "n_trades": 37,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 37,
+       "agree_share": 0.7568,
+       "mean_stake": 344.33,
+       "width_book_mean_stake": 316.58,
+       "capital_ratio_vs_width": 1.0877,
+       "agree_disagree_stake_ratio": 1.613,
+       "uncapped_matched": 4,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 37,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 37,
+       "agree_share": 0.7568,
+       "mean_stake": 344.33,
+       "width_book_mean_stake": 316.58,
+       "capital_ratio_vs_width": 1.0877,
+       "agree_disagree_stake_ratio": 1.613,
+       "uncapped_matched": 4,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 6,
+      "trades_with_gate_bars": 21,
+      "liveness_fail": false
+     }
+    },
+    "f14": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0017,
+       0.0002
+      ],
+      "train_class_counts": [
+       80157,
+       204237,
+       124080
+      ],
+      "kept": 502153,
+      "invalid": 58,
+      "pass": true
+     },
+     "threshold_plan": 0.5692,
+     "exit_off": {
+      "n_trades": 46,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 46,
+       "agree_share": 0.3478,
+       "mean_stake": 472.06,
+       "width_book_mean_stake": 515.45,
+       "capital_ratio_vs_width": 0.9158,
+       "agree_disagree_stake_ratio": 1.503,
+       "uncapped_matched": 18,
+       "wallet_short": 2,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 46,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 46,
+       "agree_share": 0.3478,
+       "mean_stake": 472.06,
+       "width_book_mean_stake": 515.45,
+       "capital_ratio_vs_width": 0.9158,
+       "agree_disagree_stake_ratio": 1.503,
+       "uncapped_matched": 18,
+       "wallet_short": 2,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "model_exits": 20,
+      "trades_with_gate_bars": 34,
+      "liveness_fail": false
+     }
+    }
+   },
+   "arms": {
+    "exit_off": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f01",
+      "f02",
+      "f04",
+      "f05",
+      "f06",
+      "f11",
+      "f12",
+      "f14"
+     ],
+     "hash_diff_folds": [],
+     "hash_ok": true,
+     "S0_pass": true,
+     "S0_inconclusive": false
+    },
+    "exit_on": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f01",
+      "f02",
+      "f04",
+      "f05",
+      "f06",
+      "f11",
+      "f12",
+      "f14"
+     ],
+     "liveness_fail_folds": [],
+     "S0_pass": true,
+     "S0_inconclusive": false
+    }
+   },
+   "label_pass": true
+  },
+  "GBR": {
+   "folds": {
+    "f00": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5001
+      ],
+      "spearman": [
+       0.0017,
+       0.001
+      ],
+      "train_class_counts": [
+       29524,
+       78042,
+       48520
+      ],
+      "kept": 174521,
+      "invalid": 30,
+      "pass": true
+     },
+     "threshold_plan": 0.5512,
+     "exit_off": {
+      "n_trades": 21,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 21,
+       "agree_share": 0.4286,
+       "mean_stake": 627.99,
+       "width_book_mean_stake": 645.48,
+       "capital_ratio_vs_width": 0.9729,
+       "agree_disagree_stake_ratio": 1.986,
+       "uncapped_matched": 12,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0833,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 21,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 21,
+       "agree_share": 0.4286,
+       "mean_stake": 627.99,
+       "width_book_mean_stake": 645.48,
+       "capital_ratio_vs_width": 0.9729,
+       "agree_disagree_stake_ratio": 1.986,
+       "uncapped_matched": 12,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0833,
+       "flag": true
+      },
+      "model_exits": 6,
+      "trades_with_gate_bars": 10,
+      "liveness_fail": false
+     }
+    },
+    "f01": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0015,
+       0.0007
+      ],
+      "train_class_counts": [
+       32024,
+       84609,
+       52580
+      ],
+      "kept": 192893,
+      "invalid": 84,
+      "pass": true
+     },
+     "threshold_plan": 0.5363,
+     "exit_off": {
+      "n_trades": 20,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 20,
+       "agree_share": 0.65,
+       "mean_stake": 535.29,
+       "width_book_mean_stake": 521.88,
+       "capital_ratio_vs_width": 1.0257,
+       "agree_disagree_stake_ratio": 1.709,
+       "uncapped_matched": 3,
+       "wallet_short": 2,
+       "wallet_short_share": 0.6667,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 20,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 20,
+       "agree_share": 0.65,
+       "mean_stake": 535.29,
+       "width_book_mean_stake": 521.88,
+       "capital_ratio_vs_width": 1.0257,
+       "agree_disagree_stake_ratio": 1.709,
+       "uncapped_matched": 3,
+       "wallet_short": 2,
+       "wallet_short_share": 0.6667,
+       "flag": true
+      },
+      "model_exits": 7,
+      "trades_with_gate_bars": 13,
+      "liveness_fail": false
+     }
+    },
+    "f02": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5001
+      ],
+      "spearman": [
+       0.0016,
+       0.0002
+      ],
+      "train_class_counts": [
+       35057,
+       91780,
+       56729
+      ],
+      "kept": 204309,
+      "invalid": 87,
+      "pass": true
+     },
+     "threshold_plan": 0.5504,
+     "exit_off": {
+      "n_trades": 6,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 6,
+       "agree_share": 0.6667,
+       "mean_stake": 370.95,
+       "width_book_mean_stake": 400.7,
+       "capital_ratio_vs_width": 0.9258,
+       "agree_disagree_stake_ratio": 0.637,
+       "uncapped_matched": 0,
+       "wallet_short": 0,
+       "wallet_short_share": null,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 6,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 6,
+       "agree_share": 0.6667,
+       "mean_stake": 370.95,
+       "width_book_mean_stake": 400.7,
+       "capital_ratio_vs_width": 0.9258,
+       "agree_disagree_stake_ratio": 0.637,
+       "uncapped_matched": 0,
+       "wallet_short": 0,
+       "wallet_short_share": null,
+       "flag": false
+      },
+      "model_exits": 3,
+      "trades_with_gate_bars": 5,
+      "liveness_fail": false
+     }
+    },
+    "f03": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0019,
+       -0.0002
+      ],
+      "train_class_counts": [
+       37360,
+       97494,
+       60122
+      ],
+      "kept": 216388,
+      "invalid": 92,
+      "pass": true
+     },
+     "threshold_plan": 0.5531,
+     "exit_off": {
+      "n_trades": 28,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 28,
+       "agree_share": 0.6429,
+       "mean_stake": 526.55,
+       "width_book_mean_stake": 506.23,
+       "capital_ratio_vs_width": 1.0401,
+       "agree_disagree_stake_ratio": 1.537,
+       "uncapped_matched": 9,
+       "wallet_short": 2,
+       "wallet_short_share": 0.2222,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 28,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 28,
+       "agree_share": 0.6429,
+       "mean_stake": 526.55,
+       "width_book_mean_stake": 506.23,
+       "capital_ratio_vs_width": 1.0401,
+       "agree_disagree_stake_ratio": 1.537,
+       "uncapped_matched": 9,
+       "wallet_short": 2,
+       "wallet_short_share": 0.2222,
+       "flag": true
+      },
+      "model_exits": 10,
+      "trades_with_gate_bars": 18,
+      "liveness_fail": false
+     }
+    },
+    "f04": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5001
+      ],
+      "spearman": [
+       0.002,
+       -0.0001
+      ],
+      "train_class_counts": [
+       39600,
+       102924,
+       63330
+      ],
+      "kept": 237765,
+      "invalid": 124,
+      "pass": true
+     },
+     "threshold_plan": 0.563,
+     "exit_off": {
+      "n_trades": 152,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 152,
+       "agree_share": 0.6053,
+       "mean_stake": 523.89,
+       "width_book_mean_stake": 503.33,
+       "capital_ratio_vs_width": 1.0408,
+       "agree_disagree_stake_ratio": 1.649,
+       "uncapped_matched": 48,
+       "wallet_short": 4,
+       "wallet_short_share": 0.0833,
+       "flag": true
+      },
+      "trades_equal_width_book": false,
+      "trades_only_arm": 2,
+      "trades_only_width": 2
+     },
+     "exit_on": {
+      "n_trades": 157,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 157,
+       "agree_share": 0.6051,
+       "mean_stake": 522.36,
+       "width_book_mean_stake": 503.33,
+       "capital_ratio_vs_width": 1.072,
+       "agree_disagree_stake_ratio": 1.689,
+       "uncapped_matched": 47,
+       "wallet_short": 4,
+       "wallet_short_share": 0.0851,
+       "flag": true
+      },
+      "model_exits": 52,
+      "trades_with_gate_bars": 105,
+      "liveness_fail": false
+     }
+    },
+    "f05": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.002,
+       0.0002
+      ],
+      "train_class_counts": [
+       41400,
+       107686,
+       66280
+      ],
+      "kept": 265672,
+      "invalid": 108,
+      "pass": true
+     },
+     "threshold_plan": 0.5779,
+     "exit_off": {
+      "n_trades": 65,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 65,
+       "agree_share": 0.5385,
+       "mean_stake": 589.02,
+       "width_book_mean_stake": 539.01,
+       "capital_ratio_vs_width": 1.0928,
+       "agree_disagree_stake_ratio": 2.585,
+       "uncapped_matched": 27,
+       "wallet_short": 2,
+       "wallet_short_share": 0.0741,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 65,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 65,
+       "agree_share": 0.5385,
+       "mean_stake": 589.02,
+       "width_book_mean_stake": 539.01,
+       "capital_ratio_vs_width": 1.0928,
+       "agree_disagree_stake_ratio": 2.585,
+       "uncapped_matched": 27,
+       "wallet_short": 2,
+       "wallet_short_share": 0.0741,
+       "flag": true
+      },
+      "model_exits": 12,
+      "trades_with_gate_bars": 42,
+      "liveness_fail": false
+     }
+    },
+    "f06": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       -0.0
+      ],
+      "train_class_counts": [
+       44981,
+       115886,
+       70900
+      ],
+      "kept": 286777,
+      "invalid": 72,
+      "pass": true
+     },
+     "threshold_plan": 0.5699,
+     "exit_off": {
+      "n_trades": 41,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 41,
+       "agree_share": 0.4634,
+       "mean_stake": 433.95,
+       "width_book_mean_stake": 416.78,
+       "capital_ratio_vs_width": 1.0412,
+       "agree_disagree_stake_ratio": 2.554,
+       "uncapped_matched": 9,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 41,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 41,
+       "agree_share": 0.4634,
+       "mean_stake": 433.95,
+       "width_book_mean_stake": 416.78,
+       "capital_ratio_vs_width": 1.0412,
+       "agree_disagree_stake_ratio": 2.554,
+       "uncapped_matched": 9,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "model_exits": 8,
+      "trades_with_gate_bars": 28,
+      "liveness_fail": false
+     }
+    },
+    "f07": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.4999,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0002
+      ],
+      "train_class_counts": [
+       48840,
+       125295,
+       76442
+      ],
+      "kept": 311258,
+      "invalid": 34,
+      "pass": true
+     },
+     "threshold_plan": 0.5602,
+     "exit_off": {
+      "n_trades": 160,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 160,
+       "agree_share": 0.7688,
+       "mean_stake": 534.46,
+       "width_book_mean_stake": 489.81,
+       "capital_ratio_vs_width": 1.0912,
+       "agree_disagree_stake_ratio": 1.579,
+       "uncapped_matched": 49,
+       "wallet_short": 5,
+       "wallet_short_share": 0.102,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 165,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 165,
+       "agree_share": 0.7758,
+       "mean_stake": 535.55,
+       "width_book_mean_stake": 489.81,
+       "capital_ratio_vs_width": 1.1276,
+       "agree_disagree_stake_ratio": 1.577,
+       "uncapped_matched": 49,
+       "wallet_short": 5,
+       "wallet_short_share": 0.102,
+       "flag": true
+      },
+      "model_exits": 44,
+      "trades_with_gate_bars": 104,
+      "liveness_fail": false
+     }
+    },
+    "f08": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0002
+      ],
+      "train_class_counts": [
+       52820,
+       135593,
+       82778
+      ],
+      "kept": 343897,
+      "invalid": 90,
+      "pass": true
+     },
+     "threshold_plan": 0.5659,
+     "exit_off": {
+      "n_trades": 99,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 99,
+       "agree_share": 0.7475,
+       "mean_stake": 533.96,
+       "width_book_mean_stake": 482.72,
+       "capital_ratio_vs_width": 1.1061,
+       "agree_disagree_stake_ratio": 1.801,
+       "uncapped_matched": 36,
+       "wallet_short": 4,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 100,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 100,
+       "agree_share": 0.75,
+       "mean_stake": 540.62,
+       "width_book_mean_stake": 482.72,
+       "capital_ratio_vs_width": 1.1312,
+       "agree_disagree_stake_ratio": 1.825,
+       "uncapped_matched": 36,
+       "wallet_short": 4,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "model_exits": 23,
+      "trades_with_gate_bars": 59,
+      "liveness_fail": false
+     }
+    },
+    "f09": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0001
+      ],
+      "train_class_counts": [
+       56695,
+       145480,
+       88787
+      ],
+      "kept": 380770,
+      "invalid": 111,
+      "pass": true
+     },
+     "threshold_plan": 0.5644,
+     "exit_off": {
+      "n_trades": 40,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 40,
+       "agree_share": 0.45,
+       "mean_stake": 431.08,
+       "width_book_mean_stake": 425.28,
+       "capital_ratio_vs_width": 1.0136,
+       "agree_disagree_stake_ratio": 2.116,
+       "uncapped_matched": 9,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 39,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 39,
+       "agree_share": 0.4615,
+       "mean_stake": 438.29,
+       "width_book_mean_stake": 425.28,
+       "capital_ratio_vs_width": 1.0048,
+       "agree_disagree_stake_ratio": 2.069,
+       "uncapped_matched": 9,
+       "wallet_short": 1,
+       "wallet_short_share": 0.1111,
+       "flag": true
+      },
+      "model_exits": 5,
+      "trades_with_gate_bars": 21,
+      "liveness_fail": false
+     }
+    },
+    "f10": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0017,
+       0.0002
+      ],
+      "train_class_counts": [
+       60300,
+       154045,
+       93756
+      ],
+      "kept": 405310,
+      "invalid": 66,
+      "pass": true
+     },
+     "threshold_plan": 0.5695,
+     "exit_off": {
+      "n_trades": 3,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 3,
+       "agree_share": 0.3333,
+       "mean_stake": 539.13,
+       "width_book_mean_stake": 439.16,
+       "capital_ratio_vs_width": 1.2277,
+       "agree_disagree_stake_ratio": 5.745,
+       "uncapped_matched": 1,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 3,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 3,
+       "agree_share": 0.3333,
+       "mean_stake": 539.13,
+       "width_book_mean_stake": 439.16,
+       "capital_ratio_vs_width": 1.2277,
+       "agree_disagree_stake_ratio": 5.745,
+       "uncapped_matched": 1,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 1,
+      "trades_with_gate_bars": 2,
+      "liveness_fail": false
+     }
+    },
+    "f11": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0004
+      ],
+      "train_class_counts": [
+       64840,
+       165735,
+       100880
+      ],
+      "kept": 426362,
+      "invalid": 43,
+      "pass": true
+     },
+     "threshold_plan": 0.5756,
+     "exit_off": {
+      "n_trades": 180,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 180,
+       "agree_share": 0.5778,
+       "mean_stake": 475.9,
+       "width_book_mean_stake": 468.45,
+       "capital_ratio_vs_width": 1.0159,
+       "agree_disagree_stake_ratio": 1.511,
+       "uncapped_matched": 43,
+       "wallet_short": 5,
+       "wallet_short_share": 0.1163,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 180,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 180,
+       "agree_share": 0.5778,
+       "mean_stake": 473.17,
+       "width_book_mean_stake": 468.45,
+       "capital_ratio_vs_width": 1.0101,
+       "agree_disagree_stake_ratio": 1.492,
+       "uncapped_matched": 43,
+       "wallet_short": 5,
+       "wallet_short_share": 0.1163,
+       "flag": true
+      },
+      "model_exits": 32,
+      "trades_with_gate_bars": 114,
+      "liveness_fail": false
+     }
+    },
+    "f12": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0019,
+       0.0006
+      ],
+      "train_class_counts": [
+       70260,
+       179940,
+       109691
+      ],
+      "kept": 456713,
+      "invalid": 146,
+      "pass": true
+     },
+     "threshold_plan": 0.5609,
+     "exit_off": {
+      "n_trades": 49,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 49,
+       "agree_share": 0.6939,
+       "mean_stake": 491.42,
+       "width_book_mean_stake": 461.87,
+       "capital_ratio_vs_width": 1.064,
+       "agree_disagree_stake_ratio": 1.685,
+       "uncapped_matched": 13,
+       "wallet_short": 3,
+       "wallet_short_share": 0.2308,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 49,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 49,
+       "agree_share": 0.6939,
+       "mean_stake": 491.42,
+       "width_book_mean_stake": 461.87,
+       "capital_ratio_vs_width": 1.064,
+       "agree_disagree_stake_ratio": 1.685,
+       "uncapped_matched": 13,
+       "wallet_short": 3,
+       "wallet_short_share": 0.2308,
+       "flag": true
+      },
+      "model_exits": 13,
+      "trades_with_gate_bars": 33,
+      "liveness_fail": false
+     }
+    },
+    "f13": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0018,
+       0.0005
+      ],
+      "train_class_counts": [
+       75619,
+       193462,
+       117860
+      ],
+      "kept": 483446,
+      "invalid": 46,
+      "pass": true
+     },
+     "threshold_plan": 0.5586,
+     "exit_off": {
+      "n_trades": 52,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 52,
+       "agree_share": 0.7115,
+       "mean_stake": 488.88,
+       "width_book_mean_stake": 464.56,
+       "capital_ratio_vs_width": 1.0524,
+       "agree_disagree_stake_ratio": 1.432,
+       "uncapped_matched": 13,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0769,
+       "flag": true
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 52,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 52,
+       "agree_share": 0.7115,
+       "mean_stake": 488.88,
+       "width_book_mean_stake": 464.56,
+       "capital_ratio_vs_width": 1.0524,
+       "agree_disagree_stake_ratio": 1.432,
+       "uncapped_matched": 13,
+       "wallet_short": 1,
+       "wallet_short_share": 0.0769,
+       "flag": true
+      },
+      "model_exits": 12,
+      "trades_with_gate_bars": 36,
+      "liveness_fail": false
+     }
+    },
+    "f14": {
+     "label": {
+      "present": true,
+      "share_range": [
+       0.5,
+       0.5
+      ],
+      "spearman": [
+       0.0017,
+       0.0002
+      ],
+      "train_class_counts": [
+       80157,
+       204237,
+       124080
+      ],
+      "kept": 502153,
+      "invalid": 58,
+      "pass": true
+     },
+     "threshold_plan": 0.5582,
+     "exit_off": {
+      "n_trades": 12,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 12,
+       "agree_share": 0.5,
+       "mean_stake": 590.25,
+       "width_book_mean_stake": 590.26,
+       "capital_ratio_vs_width": 1.0,
+       "agree_disagree_stake_ratio": 1.657,
+       "uncapped_matched": 6,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "trades_equal_width_book": true,
+      "trades_only_arm": 0,
+      "trades_only_width": 0
+     },
+     "exit_on": {
+      "n_trades": 12,
+      "threshold_loaded_ok": true,
+      "entry_violations": 0,
+      "tag_mismatches": 0,
+      "stakes": {
+       "trades": 12,
+       "agree_share": 0.5,
+       "mean_stake": 590.25,
+       "width_book_mean_stake": 590.26,
+       "capital_ratio_vs_width": 1.0,
+       "agree_disagree_stake_ratio": 1.657,
+       "uncapped_matched": 6,
+       "wallet_short": 0,
+       "wallet_short_share": 0.0,
+       "flag": false
+      },
+      "model_exits": 3,
+      "trades_with_gate_bars": 9,
+      "liveness_fail": false
+     }
+    }
+   },
+   "arms": {
+    "exit_off": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f00",
+      "f01",
+      "f03",
+      "f04",
+      "f05",
+      "f06",
+      "f07",
+      "f08",
+      "f09",
+      "f11",
+      "f12",
+      "f13"
+     ],
+     "hash_diff_folds": [
+      "f04"
+     ],
+     "hash_ok": true,
+     "S0_pass": true,
+     "S0_inconclusive": false
+    },
+    "exit_on": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f00",
+      "f01",
+      "f03",
+      "f04",
+      "f05",
+      "f06",
+      "f07",
+      "f08",
+      "f09",
+      "f11",
+      "f12",
+      "f13"
+     ],
+     "liveness_fail_folds": [],
+     "S0_pass": true,
+     "S0_inconclusive": false
+    }
+   },
+   "label_pass": true
+  }
+ }
+}

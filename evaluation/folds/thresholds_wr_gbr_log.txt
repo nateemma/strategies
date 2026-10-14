@@ -1,0 +1,15 @@
+{"fold": "f00", "threshold": 0.5512, "target_share": 0.5, "achieved_share": 0.4941, "run_starts": 85, "buy_argmax_share": 0.8471}
+{"fold": "f01", "threshold": 0.5363, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 84, "buy_argmax_share": 0.7976}
+{"fold": "f02", "threshold": 0.5504, "target_share": 0.5, "achieved_share": 0.5135, "run_starts": 37, "buy_argmax_share": 0.8378}
+{"fold": "f03", "threshold": 0.5531, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 106, "buy_argmax_share": 0.7736}
+{"fold": "f04", "threshold": 0.563, "target_share": 0.5, "achieved_share": 0.4983, "run_starts": 293, "buy_argmax_share": 0.7986}
+{"fold": "f05", "threshold": 0.5779, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 244, "buy_argmax_share": 0.9385}
+{"fold": "f06", "threshold": 0.5699, "target_share": 0.5, "achieved_share": 0.5021, "run_starts": 233, "buy_argmax_share": 0.8412}
+{"fold": "f07", "threshold": 0.5602, "target_share": 0.5, "achieved_share": 0.501, "run_starts": 501, "buy_argmax_share": 0.9042}
+{"fold": "f08", "threshold": 0.5659, "target_share": 0.5, "achieved_share": 0.501, "run_starts": 489, "buy_argmax_share": 0.8998}
+{"fold": "f09", "threshold": 0.5644, "target_share": 0.5, "achieved_share": 0.5006, "run_starts": 821, "buy_argmax_share": 0.9294}
+{"fold": "f10", "threshold": 0.5695, "target_share": 0.5, "achieved_share": 0.501, "run_starts": 501, "buy_argmax_share": 0.9381}
+{"fold": "f11", "threshold": 0.5756, "target_share": 0.5, "achieved_share": 0.4988, "run_starts": 866, "buy_argmax_share": 0.8857}
+{"fold": "f12", "threshold": 0.5609, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 832, "buy_argmax_share": 0.9099}
+{"fold": "f13", "threshold": 0.5586, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 932, "buy_argmax_share": 0.9313}
+{"fold": "f14", "threshold": 0.5582, "target_share": 0.5, "achieved_share": 0.5, "run_starts": 564, "buy_argmax_share": 0.9362}

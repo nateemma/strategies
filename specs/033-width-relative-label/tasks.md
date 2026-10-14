@@ -212,7 +212,7 @@ instrument and the S1 separation recorded.
 
   Record the commit id in the `.md`.
 - [X] T018 [US2] Smoke, ARO f00 only (after T017): train → `width_relative.json` within the S0 bounds on both sides → `row_filter.json` has BUY > 0 and SELL > 0 → the existing `NNNC_ARO_f00` and `NNNC_CO_ARO_f00` weights are unchanged (sha) → pick f00 with `--verify` (0 mismatches) → the flat-stake twin (`STAKE_WEIGHTS` (1.0, 1.0), a one-off class) on f00 has trades_hash equal to `w_aro` f00's → the threshold loads to 4 decimals. Record the results in the preregistration `.md` (smoke section). Stop if any check fails.
-- [ ] T019 [US2] Chain ARO, then GBR (one chain), each in this order:
+- [X] T019 [US2] Chain ARO, then GBR (one chain), each in this order:
   1. train 15 folds;
   2. pick 15 folds, one per process;
   3. write the thresholds into both plans;
@@ -220,8 +220,8 @@ instrument and the S1 separation recorded.
   5. `run_folds` on `_szx`.
 
   Save the pick logs to `evaluation/folds/thresholds_wr_<m>_log.txt`.
-- [ ] T020 [US2] Register the WR plans in `research/nnnc_framework/signals.py` (as 032's `CO_PLANS`, runtime registration), then run `signals --models WR_ARO,WR_GBR`. The signal tables come from the `_sz` plan (exit-off; the predictions are the same).
-- [ ] T021 [P] [US2] `research/width_relative/instrument.py` (S0; entries and labels only, no P&L) and tests. Per model:
+- [X] T020 [US2] Register the WR plans in `research/nnnc_framework/signals.py` (as 032's `CO_PLANS`, runtime registration), then run `signals --models WR_ARO,WR_GBR`. The signal tables come from the `_sz` plan (exit-off; the predictions are the same).
+- [X] T021 [P] [US2] `research/width_relative/instrument.py` (S0; entries and labels only, no P&L) and tests. Per model:
   - the label audit from each fold's `width_relative.json` against the bounds;
   - `row_filter.json` class counts;
   - the exit-off per-fold trade identity with `w_<m>` on (pair, open_date, close_date) (pre-registration amendment: trades_hash includes profit_ratio, which the stake's amount rounding moves);
@@ -236,8 +236,8 @@ instrument and the S1 separation recorded.
     test-window agree share among trades and the mean stake, against the width book's 900 (FR-008).
 
   The output is `instrument.json`.
-- [ ] T022 [P] [US2] `research/width_relative/separation.py` (S1) and tests. It applies `research/candidate_training/co_sizing.py`'s method to the identical width-book trades, with agree recomputed from the WR signal tables at the fold thresholds. It reports the new and current gaps and the agree_0.5 pp per capital on the EARLY half (f00–f07) only. It refuses to compute late-half numbers unless `--after-s3` is passed and `verdicts.json` records S3 for that arm. The output is `separation.json`.
-- [ ] T023 [US2] Run T021 and T022. Commit their JSON. (Order: instrument first, then S1. No P&L of the arms is read yet.)
+- [X] T022 [P] [US2] `research/width_relative/separation.py` (S1) and tests. It applies `research/candidate_training/co_sizing.py`'s method to the identical width-book trades, with agree recomputed from the WR signal tables at the fold thresholds. It reports the new and current gaps and the agree_0.5 pp per capital on the EARLY half (f00–f07) only. It refuses to compute late-half numbers unless `--after-s3` is passed and `verdicts.json` records S3 for that arm. The output is `separation.json`.
+- [X] T023 [US2] Run T021 and T022. Commit their JSON. (Order: instrument first, then S1. No P&L of the arms is read yet.)
 
 **Checkpoint**: run the full suite, then commit T014–T023.
 
@@ -261,9 +261,9 @@ instrument and the S1 separation recorded.
 
   Tests with stubs: the stage order (unread pools raise); an exit-off S1 fail leaves the exit-on
   arm judged, with the exit-off records readable as its comparator; a small margin is INCONCLUSIVE; a refusal on a stale record.
-- [ ] T025 [US3] Run `judge.py`. Commit `verdicts.json`.
-- [ ] T025a [US3] CONDITIONAL, only if a stage is INCONCLUSIVE on the small-margin rule: run the paired seed-2 repeat for that arm and its comparator over that stage's folds, then re-judge. Commit.
-- [ ] T026 [US3] Write `research/width_relative/report.md`. It contains:
+- [X] T025 [US3] Run `judge.py`. Commit `verdicts.json`.
+- [X] T025a (triggered: GBR exit-on S2 +0.74 pp; seed 2 -0.09 -> FAIL) [US3] CONDITIONAL, only if a stage is INCONCLUSIVE on the small-margin rule: run the paired seed-2 repeat for that arm and its comparator over that stage's folds, then re-judge. Commit.
+- [X] T026 [US3] Write `research/width_relative/report.md`. It contains:
   - the stage tables per model and arm;
   - the label audit;
   - the instrument results (including the exit liveness and stake shortfall);
@@ -278,9 +278,9 @@ instrument and the S1 separation recorded.
 
 ## Phase 6: Polish
 
-- [ ] T027 [P] If any new script names an exit parameter, add it to the allowlist in `Framework/tests/test_exit_policy_single_source.py` (configuring only, with a one-line reason). Run the suite.
-- [ ] T028 [P] Memory: write `project_033_width_relative_label.md` and add its line to MEMORY.md. Update `project_model_check_width_sort.md` and `project_032_candidate_training.md` (next-step pointer).
-- [ ] T029 Mark all tasks `[X]`. Run the final full suite, then commit.
+- [X] T027 [P] If any new script names an exit parameter, add it to the allowlist in `Framework/tests/test_exit_policy_single_source.py` (configuring only, with a one-line reason). Run the suite.
+- [X] T028 [P] Memory: write `project_033_width_relative_label.md` and add its line to MEMORY.md. Update `project_model_check_width_sort.md` and `project_032_candidate_training.md` (next-step pointer).
+- [X] T029 Mark all tasks `[X]`. Run the final full suite, then commit.
 
 ---
 

@@ -1,0 +1,248 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "models": {
+  "ARO": {
+   "exit_off": {
+    "arm": "wr_aro_sz",
+    "S0": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f01",
+      "f02",
+      "f04",
+      "f05",
+      "f06",
+      "f11",
+      "f12",
+      "f14"
+     ],
+     "hash_diff_folds": [],
+     "hash_ok": true,
+     "S0_pass": true,
+     "S0_inconclusive": false,
+     "label_pass": true
+    },
+    "S1": {
+     "early": {
+      "current": {
+       "trades": 412,
+       "unsized_pp": 35.71,
+       "agree": {
+        "n": 73,
+        "pp_per_trade": 0.1458
+       },
+       "disagree": {
+        "n": 339,
+        "pp_per_trade": 0.0739
+       },
+       "agree_0.5_pp_per_capital": 39.376,
+       "gap": 0.0719
+      },
+      "width_relative": {
+       "trades": 412,
+       "unsized_pp": 35.71,
+       "agree": {
+        "n": 199,
+        "pp_per_trade": 0.1091
+       },
+       "disagree": {
+        "n": 213,
+        "pp_per_trade": 0.0657
+       },
+       "agree_0.5_pp_per_capital": 38.716,
+       "gap": 0.0434
+      }
+     },
+     "pass": false,
+     "current_gap_early_preregistered": 0.072
+    },
+    "S2": "not_reached",
+    "S3": "not_reached",
+    "decision": "FAIL",
+    "stopped_at": "S1",
+    "reason": "width-relative separation inside the width book is not above the current model's (early half)"
+   },
+   "exit_on": {
+    "arm": "wr_aro_szx",
+    "S0": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f01",
+      "f02",
+      "f04",
+      "f05",
+      "f06",
+      "f11",
+      "f12",
+      "f14"
+     ],
+     "liveness_fail_folds": [],
+     "S0_pass": true,
+     "S0_inconclusive": false,
+     "label_pass": true
+    },
+    "S1": "n/a",
+    "S2": {
+     "early_pp": {
+      "arm": 36.586,
+      "exit_off": 37.033,
+      "width": 35.851
+     },
+     "margins": {
+      "vs_exit_off": -0.44700000000000273,
+      "vs_width": 0.7349999999999994
+     },
+     "pass": false
+    },
+    "S3": "not_reached",
+    "decision": "FAIL",
+    "stopped_at": "S2",
+    "reason": "early half did not beat both ('exit_off', 'width')"
+   }
+  },
+  "GBR": {
+   "exit_off": {
+    "arm": "wr_gbr_sz",
+    "S0": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f00",
+      "f01",
+      "f03",
+      "f04",
+      "f05",
+      "f06",
+      "f07",
+      "f08",
+      "f09",
+      "f11",
+      "f12",
+      "f13"
+     ],
+     "hash_diff_folds": [
+      "f04"
+     ],
+     "hash_ok": true,
+     "S0_pass": true,
+     "S0_inconclusive": false,
+     "label_pass": true
+    },
+    "S1": {
+     "early": {
+      "current": {
+       "trades": 494,
+       "unsized_pp": 36.496,
+       "agree": {
+        "n": 178,
+        "pp_per_trade": 0.1142
+       },
+       "disagree": {
+        "n": 316,
+        "pp_per_trade": 0.0512
+       },
+       "agree_0.5_pp_per_capital": 41.768,
+       "gap": 0.063
+      },
+      "width_relative": {
+       "trades": 494,
+       "unsized_pp": 36.496,
+       "agree": {
+        "n": 313,
+        "pp_per_trade": 0.0756
+       },
+       "disagree": {
+        "n": 181,
+        "pp_per_trade": 0.0709
+       },
+       "agree_0.5_pp_per_capital": 36.824,
+       "gap": 0.0047
+      }
+     },
+     "pass": false,
+     "current_gap_early_preregistered": 0.063
+    },
+    "S2": "not_reached",
+    "S3": "not_reached",
+    "decision": "FAIL",
+    "stopped_at": "S1",
+    "reason": "width-relative separation inside the width book is not above the current model's (early half)"
+   },
+   "exit_on": {
+    "arm": "wr_gbr_szx",
+    "S0": {
+     "entry_violations": 0,
+     "tag_mismatches": 0,
+     "thresholds_loaded_ok": true,
+     "zero_trade_folds": [],
+     "stake_flag_folds": [
+      "f00",
+      "f01",
+      "f03",
+      "f04",
+      "f05",
+      "f06",
+      "f07",
+      "f08",
+      "f09",
+      "f11",
+      "f12",
+      "f13"
+     ],
+     "liveness_fail_folds": [],
+     "S0_pass": true,
+     "S0_inconclusive": false,
+     "label_pass": true
+    },
+    "S1": "n/a",
+    "S2": {
+     "early_pp": {
+      "arm": 40.012,
+      "exit_off": 39.267,
+      "width": 36.719
+     },
+     "margins": {
+      "vs_exit_off": 0.7449999999999974,
+      "vs_width": 3.2929999999999993
+     },
+     "pass": true,
+     "small_margin": true,
+     "seed2": {
+      "seed": 2,
+      "folds": [
+       "f00",
+       "f01",
+       "f02",
+       "f03",
+       "f04",
+       "f05",
+       "f06",
+       "f07"
+      ],
+      "early_pp": {
+       "arm": 41.580999999999996,
+       "exit_off": 41.669,
+       "width": 36.719
+      },
+      "margins": {
+       "vs_exit_off": -0.08800000000000097,
+       "vs_width": 4.861999999999995
+      }
+     }
+    },
+    "S3": "not_reached",
+    "decision": "FAIL",
+    "stopped_at": "S2",
+    "reason": "seed-2 repeat: early margin not > 0 on both seeds"
+   }
+  }
+ }
+}

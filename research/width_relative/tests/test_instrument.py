@@ -22,14 +22,21 @@ def test_label_checks_bounds():
     assert not I.label_checks(None, None)["pass"]
 
 
-def test_stake_weights_and_shortfall():
+def test_stake_weights_and_shortfall_exclude_shared_liquidity_caps():
     assert I.stake_weight("r:model:agree") == pytest.approx(4 / 3)
     assert I.stake_weight("r:model:disagree") == pytest.approx(2 / 3)
-    tr = [{"enter_tag": "r:model:agree", "stake_amount": 1200.0},
-          {"enter_tag": "r:model:disagree", "stake_amount": 600.0},
-          {"enter_tag": "r:model:agree", "stake_amount": 1000.0}]
-    s = I.stake_checks(tr)
-    assert s["agree_share"] == round(2 / 3, 4) and s["short_stakes"] == 1 and s["flag"]
+    k = lambda i: {"pair": f"P{i}", "open_date": f"2023-01-0{i} 00:00"}
+    width = [k(1) | {"stake_amount": 900.0}, k(2) | {"stake_amount": 900.0},
+             k(3) | {"stake_amount": 900.0}, k(4) | {"stake_amount": 300.0}]
+    tr = [k(1) | {"enter_tag": "r:model:agree", "stake_amount": 1200.0},
+          k(2) | {"enter_tag": "r:model:disagree", "stake_amount": 600.0},
+          k(3) | {"enter_tag": "r:model:agree", "stake_amount": 1000.0},   # wallet short
+          k(4) | {"enter_tag": "r:model:agree", "stake_amount": 300.0}]    # capped in both
+    s = I.stake_checks(tr, width)
+    assert s["uncapped_matched"] == 3 and s["wallet_short"] == 1 and s["flag"]
+    assert s["agree_share"] == 0.75
+    assert s["capital_ratio_vs_width"] == round(3100 / 3000, 4)
+    assert s["agree_disagree_stake_ratio"] == round((2500 / 3) / 600, 3)
 
 
 def test_trade_identity_ignores_stake_and_profit():

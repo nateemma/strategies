@@ -70,9 +70,12 @@ def _sum(pooled: dict, ids) -> float:
     return float(sum(f["return_pct"] or 0.0 for f in pooled["per_fold"] if f["fold_id"] in ids))
 
 
-def judge_arm(pr: dict, m: str, arm: str, inst: dict, sep: dict, pool_fn, judge_one_fn) -> dict:
+def judge_arm(pr: dict, m: str, arm: str, inst: dict, sep: dict, pool_fn, judge_one_fn,
+              seed2_fn=None) -> dict:
     """One model-arm's staged verdict. `pool_fn(tag)` and `judge_one_fn(pr, a, c)` are called
-    only for stages that are reached."""
+    only for stages that are reached. `seed2_fn(m, arm, comps)`, when given (T025a), returns the
+    seed-2 early margins for an S2 that passed by under `small_margin_pp`: the stage then passes
+    only if every margin is > 0 on BOTH seeds, and fails otherwise."""
     b = pr["books"][m]
     small = float(pr["small_margin_pp"])
     tag = b[arm]
@@ -114,7 +117,12 @@ def judge_arm(pr: dict, m: str, arm: str, inst: dict, sep: dict, pool_fn, judge_
         return done("FAIL", "S2", f"early half did not beat both {comps}")
     if min(m2.values()) < small:
         res["S2"]["small_margin"] = True
-        return done("INCONCLUSIVE", "S2", f"margin under {small} pp: paired seed-2 repeat (T025a)")
+        if seed2_fn is None:
+            return done("INCONCLUSIVE", "S2", f"margin under {small} pp: paired seed-2 repeat (T025a)")
+        s2 = seed2_fn(m, arm, comps)
+        res["S2"]["seed2"] = s2
+        if not all(v > 0 for v in s2["margins"].values()):
+            return done("FAIL", "S2", "seed-2 repeat: early margin not > 0 on both seeds")
 
     primary = "control" if arm == "exit_off" else "exit_off"
     jp = judge_one_fn(pr, tag, comp_tag[primary])
@@ -137,6 +145,36 @@ def judge_arm(pr: dict, m: str, arm: str, inst: dict, sep: dict, pool_fn, judge_
     return done("PASS (PROVISIONAL)", "S3", "all stages passed; provisional, not a finding")
 
 
+def seed_plan(tag: str, seed: int) -> dict:
+    """The seed-`seed` repeat plan of `tag` (`plan_<tag>_r<seed>.json`), its folds' arm tags
+    suffixed as `run_folds --seed` names the records."""
+    from research.nnnc_switches.judge import _plan
+
+    p = _plan(f"{tag}_r{seed}")
+    p["folds"] = [dict(f, arm_tag=f"{f['arm_tag']}_s{seed}") for f in p["folds"]]
+    return p
+
+
+def seed_margins(pr: dict, m: str, arm: str, comps, seed: int, pool) -> dict:
+    """Early margins of the seed-`seed` arm vs its comparators: model-backed comparators (the
+    exit-off arm, the control) at the same seed; the model-free width book is seedless."""
+    from research.nnnc_switches.judge import _plan
+
+    b = pr["books"][m]
+    tags = {"width": b["width"], "control": b["control"], "exit_off": b["exit_off"]}
+    arm_plan = seed_plan(b[arm], seed)
+    early = set(pr["early"]) & {f["fold_id"] for f in arm_plan["folds"]}
+    ap = pool(arm_plan)
+    cp = {c: pool(_plan(tags[c]) if c == "width" else seed_plan(tags[c], seed)) for c in comps}
+    for name, p in (("arm", ap), *cp.items()):
+        miss = set(p["folds_missing"]) & early
+        if miss:
+            raise SystemExit(f"seed-{seed} repeat: {name} folds missing {sorted(miss)}")
+    e = {"arm": _sum(ap, early)} | {c: _sum(p, early) for c, p in cp.items()}
+    return {"seed": seed, "folds": sorted(early), "early_pp": e,
+            "margins": {f"vs_{c}": e["arm"] - e[c] for c in comps}}
+
+
 def main(argv=None) -> int:
     from evaluation.pool import pool
     from research.nnnc_switches.judge import _plan, judge_one
@@ -146,13 +184,22 @@ def main(argv=None) -> int:
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seed-repeat", type=int, default=None,
+                    help="T025a: judge small-margin stages with this seed's repeat records")
+    a = ap.parse_args(argv)
+    seed2_fn = None
+    if a.seed_repeat:
+        seed2_fn = lambda m, arm, comps: seed_margins(pr, m, arm, comps, a.seed_repeat, pool)
     inst = json.loads((HERE / "instrument.json").read_text())
     sep = json.loads((HERE / "separation.json").read_text())
     out = {"label": pr["label"], "models": {}}
     for m in pr["books"]:
         out["models"][m] = {}
         for arm in ("exit_off", "exit_on"):
-            r = judge_arm(pr, m, arm, inst, sep, lambda t: pool(_plan(t)), judge_one)
+            r = judge_arm(pr, m, arm, inst, sep, lambda t: pool(_plan(t)), judge_one, seed2_fn)
             out["models"][m][arm] = r
             print(f"{m} {arm}: {r['decision']} (stopped at {r['stopped_at']}: {r['reason']})",
                   flush=True)

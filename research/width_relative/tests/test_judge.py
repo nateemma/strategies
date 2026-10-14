@@ -100,3 +100,13 @@ def test_refuses_a_record_older_than_the_commit(tmp_path, monkeypatch):
                                                 "wr_aro_szx_f02_F02.json"]
     os.utime(p, (3000, 3000))
     assert J.refusals(PR, commit_ts=2000.0) == []
+
+
+def test_seed2_repeat_resolves_a_small_s2_margin_both_ways():
+    pp = PP | {"wr_aro_szx": 3.1}  # 8 x 0.1 = 0.8 pp over exit_off (3.0): small
+    pass2 = lambda m, arm, comps: {"margins": {"vs_exit_off": 0.4, "vs_width": 5.0}}
+    fail2 = lambda m, arm, comps: {"margins": {"vs_exit_off": -0.2, "vs_width": 5.0}}
+    r = J.judge_arm(PR, "ARO", "exit_on", _inst(), _sep(), _pool(pp), _judge(), pass2)
+    assert r["decision"] == "PASS (PROVISIONAL)" and r["S2"]["seed2"]["margins"]["vs_exit_off"] == 0.4
+    r = J.judge_arm(PR, "ARO", "exit_on", _inst(), _sep(), _pool(pp), _raise, fail2)
+    assert r["decision"] == "FAIL" and r["stopped_at"] == "S2" and r["S3"] == J.NR

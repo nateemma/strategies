@@ -73,10 +73,12 @@ def main(argv=None) -> int:
     ap.add_argument("--model", choices=("ARO", "GBR"), required=True)
     ap.add_argument("--fold", required=True)
     ap.add_argument("--out")
+    ap.add_argument("--plan", help="plan file name in evaluation/folds (default plan_wr_<m>_sz.json); "
+                                   "the seed-2 repeat passes its own suffixed plan")
     ap.add_argument("--verify", action="store_true",
                     help="rescore at the plan's threshold: tags must equal eff > threshold")
     a = ap.parse_args(argv)
-    plan = json.loads((FOLDS_DIR / f"plan_wr_{a.model.lower()}_sz.json").read_text())
+    plan = json.loads((FOLDS_DIR / (a.plan or f"plan_wr_{a.model.lower()}_sz.json")).read_text())
     if a.verify:
         t = float(plan["thresholds"][a.fold])
         frames, strat = _frames(plan, a.fold, None)  # the fold .json's own threshold
