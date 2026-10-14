@@ -344,6 +344,7 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "research/model_calibration/width_twin.py",        # model check: sets the grace hours on the
                                                          # simulator's ExitParams; computes nothing.
     "research/model_calibration/width_plus_model.py",  # same: sets grace hours for the simulator.
+    "research/model_calibration/width_backtest.py",    # same: sets grace hours for the simulator.
     "research/held_pair/regime_check.py",      # 031 follow-up: sets the grace hours on the study's
                                                  # ExitParams for the replay; computes nothing.
     "research/held_pair/screen2.py",           # 031 follow-up: sets the grace hours on the study's

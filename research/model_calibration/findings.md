@@ -79,3 +79,28 @@ gbb trigger twin: the trigger twin did not sort by band width.
 
 **Before any of these:** confirm the width book with a real backtest. The simulator has not been
 fidelity-checked on a non-model entry mask.
+
+## 4. Confirmed by real backtest (`width_backtest.py` → `width_backtest.json`)
+
+Arms `w_aro`, `w_gbr`, `w_gfm`, `w_mlx` (`NNNC_W_<M>` = `WidthBookMixin` + the control's base; the
+model loads but does not select; held-pair add off; 24 h grace) against each model's own 24 h
+control, f00–f14:
+
+| | width early / late | model early / late | width − model (15 folds) | trades width / model | Sharpe width / model | maxDD width / model | paired |
+|---|---|---|---|---|---|---|---|
+| ARO | 35.85 / 15.59 | 35.28 / 14.68 | **+1.48** | 930 / 1,176 | 2.41 / 2.54 | 4.9 / 3.7 | UNCHANGED p 0.90 |
+| GBR | 36.72 / 16.96 | 37.94 / 15.51 | **+0.22** | 928 / 2,021 | 2.41 / 1.60 | 5.4 / 9.7 | UNCHANGED p 0.99 |
+| GFM | 47.29 / 16.78 | 32.56 / 7.20 | **+24.31** | 1,146 / 1,879 | 2.70 / 1.72 | 5.0 / 6.6 | UNCHANGED p 0.08 |
+| MLX | 19.90 / 14.20 | 21.29 / 13.90 | **−1.09** | 351 / 360 | 2.17 / 2.24 | 2.5 / 2.3 | UNCHANGED p 0.76 |
+
+- **The simulator is faithful on this non-model entry mask too.** Trade recall is 99.7–99.9%,
+  precision 99.7–99.8%, and simulated pp is within 0.6 per half.
+- **The finding holds at backtest level.** A model-free book of the gbb rule plus a band-width cut
+  matches ARO, GBR and MLX, which are all UNCHANGED, with gaps of +1.5, +0.2 and −1.1 pp over 15
+  folds. It beats GFM by 24 pp.
+- **GBR matches with less than half the trades, a higher Sharpe and half the drawdown.**
+- **Labels.** This is a diagnostic, not a pre-registered test: both halves were seen in the
+  simulator first, and f00's cut is not causal.
+
+**Consequence.** The width book is the honest baseline for NNNC model work. A model variant that
+does not beat it adds nothing over one sorted rule feature.

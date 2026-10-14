@@ -1,0 +1,177 @@
+{
+ "label": "DIAGNOSTIC -- PROVISIONAL (simulator results seen first; f00 cut not causal)",
+ "models": {
+  "ARO": {
+   "width": {
+    "early": 35.851,
+    "late": 15.592
+   },
+   "control": {
+    "early": 35.282,
+    "late": 14.683
+   },
+   "gain": {
+    "early": 0.569,
+    "late": 0.909
+   },
+   "trades": {
+    "width": 930,
+    "control": 1176
+   },
+   "paired": {
+    "verdict": "UNCHANGED",
+    "p": 0.9023
+   },
+   "risk": {
+    "sharpe": "UNCHANGED",
+    "maxdd": "UNCHANGED",
+    "sharpe_arm_ctl": [
+     2.412,
+     2.539
+    ],
+    "maxdd_arm_ctl": [
+     4.876,
+     3.694
+    ]
+   },
+   "simulator": {
+    "recall": 0.9989,
+    "precision": 0.9979,
+    "sim_pp": {
+     "early": 35.71,
+     "late": 15.601
+    },
+    "simulated_trades": 931
+   }
+  },
+  "GBR": {
+   "width": {
+    "early": 36.719,
+    "late": 16.958
+   },
+   "control": {
+    "early": 37.943,
+    "late": 15.514
+   },
+   "gain": {
+    "early": -1.224,
+    "late": 1.444
+   },
+   "trades": {
+    "width": 928,
+    "control": 2021
+   },
+   "paired": {
+    "verdict": "UNCHANGED",
+    "p": 0.9856
+   },
+   "risk": {
+    "sharpe": "UNCHANGED",
+    "maxdd": "UNCHANGED",
+    "sharpe_arm_ctl": [
+     2.408,
+     1.596
+    ],
+    "maxdd_arm_ctl": [
+     5.378,
+     9.736
+    ]
+   },
+   "simulator": {
+    "recall": 0.9989,
+    "precision": 0.9968,
+    "sim_pp": {
+     "early": 36.496,
+     "late": 17.099
+    },
+    "simulated_trades": 930
+   }
+  },
+  "GFM": {
+   "width": {
+    "early": 47.289,
+    "late": 16.778
+   },
+   "control": {
+    "early": 32.562,
+    "late": 7.2
+   },
+   "gain": {
+    "early": 14.727,
+    "late": 9.578
+   },
+   "trades": {
+    "width": 1146,
+    "control": 1879
+   },
+   "paired": {
+    "verdict": "UNCHANGED",
+    "p": 0.0839
+   },
+   "risk": {
+    "sharpe": "UNCHANGED",
+    "maxdd": "UNCHANGED",
+    "sharpe_arm_ctl": [
+     2.702,
+     1.722
+    ],
+    "maxdd_arm_ctl": [
+     4.968,
+     6.584
+    ]
+   },
+   "simulator": {
+    "recall": 0.9991,
+    "precision": 0.9983,
+    "sim_pp": {
+     "early": 47.053,
+     "late": 17.016
+    },
+    "simulated_trades": 1147
+   }
+  },
+  "MLX": {
+   "width": {
+    "early": 19.902,
+    "late": 14.2
+   },
+   "control": {
+    "early": 21.285,
+    "late": 13.902
+   },
+   "gain": {
+    "early": -1.383,
+    "late": 0.298
+   },
+   "trades": {
+    "width": 351,
+    "control": 360
+   },
+   "paired": {
+    "verdict": "UNCHANGED",
+    "p": 0.7586
+   },
+   "risk": {
+    "sharpe": "UNCHANGED",
+    "maxdd": "UNCHANGED",
+    "sharpe_arm_ctl": [
+     2.167,
+     2.241
+    ],
+    "maxdd_arm_ctl": [
+     2.492,
+     2.254
+    ]
+   },
+   "simulator": {
+    "recall": 0.9972,
+    "precision": 0.9972,
+    "sim_pp": {
+     "early": 20.786,
+     "late": 14.821
+    },
+    "simulated_trades": 351
+   }
+  }
+ }
+}
