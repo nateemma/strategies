@@ -1,0 +1,435 @@
+{
+ "label": "EXPLORATORY screen (early selects, late checks)",
+ "models": {
+  "ARO": {
+   "width": {
+    "early": {
+     "pp": 35.71,
+     "trades": 412
+    },
+    "late": {
+     "pp": 15.601,
+     "trades": 519
+    }
+   },
+   "q50": {
+    "early": {
+     "pp": 53.278,
+     "trades": 2418
+    },
+    "late": {
+     "pp": 10.794,
+     "trades": 1923
+    }
+   },
+   "q70": {
+    "early": {
+     "pp": 42.947,
+     "trades": 1693
+    },
+    "late": {
+     "pp": 7.937,
+     "trades": 1329
+    }
+   },
+   "q80": {
+    "early": {
+     "pp": 56.894,
+     "trades": 1285
+    },
+    "late": {
+     "pp": 11.269,
+     "trades": 980
+    }
+   },
+   "q90": {
+    "early": {
+     "pp": 45.703,
+     "trades": 727
+    },
+    "late": {
+     "pp": 10.826,
+     "trades": 603
+    }
+   },
+   "w+rvol": {
+    "early": {
+     "pp": 37.483,
+     "trades": 401
+    },
+    "late": {
+     "pp": 15.327,
+     "trades": 483
+    }
+   },
+   "w+adx": {
+    "early": {
+     "pp": 19.879,
+     "trades": 196
+    },
+    "late": {
+     "pp": 2.401,
+     "trades": 206
+    }
+   },
+   "w+atr_pct": {
+    "early": {
+     "pp": 28.588,
+     "trades": 279
+    },
+    "late": {
+     "pp": 7.89,
+     "trades": 285
+    }
+   },
+   "w+depth": {
+    "early": {
+     "pp": 23.376,
+     "trades": 266
+    },
+    "late": {
+     "pp": 10.032,
+     "trades": 363
+    }
+   },
+   "w+low_close_norm": {
+    "early": {
+     "pp": 25.956,
+     "trades": 280
+    },
+    "late": {
+     "pp": 12.256,
+     "trades": 388
+    }
+   }
+  },
+  "GBR": {
+   "width": {
+    "early": {
+     "pp": 36.496,
+     "trades": 494
+    },
+    "late": {
+     "pp": 17.099,
+     "trades": 436
+    }
+   },
+   "q50": {
+    "early": {
+     "pp": 53.28,
+     "trades": 2418
+    },
+    "late": {
+     "pp": 10.794,
+     "trades": 1923
+    }
+   },
+   "q70": {
+    "early": {
+     "pp": 42.948,
+     "trades": 1693
+    },
+    "late": {
+     "pp": 7.934,
+     "trades": 1329
+    }
+   },
+   "q80": {
+    "early": {
+     "pp": 56.897,
+     "trades": 1285
+    },
+    "late": {
+     "pp": 11.262,
+     "trades": 980
+    }
+   },
+   "q90": {
+    "early": {
+     "pp": 45.706,
+     "trades": 727
+    },
+    "late": {
+     "pp": 10.82,
+     "trades": 603
+    }
+   },
+   "w+rvol": {
+    "early": {
+     "pp": 39.352,
+     "trades": 477
+    },
+    "late": {
+     "pp": 22.318,
+     "trades": 414
+    }
+   },
+   "w+adx": {
+    "early": {
+     "pp": 19.477,
+     "trades": 226
+    },
+    "late": {
+     "pp": 7.129,
+     "trades": 181
+    }
+   },
+   "w+atr_pct": {
+    "early": {
+     "pp": 28.039,
+     "trades": 330
+    },
+    "late": {
+     "pp": 8.562,
+     "trades": 256
+    }
+   },
+   "w+depth": {
+    "early": {
+     "pp": 26.062,
+     "trades": 306
+    },
+    "late": {
+     "pp": 17.015,
+     "trades": 328
+    }
+   },
+   "w+low_close_norm": {
+    "early": {
+     "pp": 29.175,
+     "trades": 335
+    },
+    "late": {
+     "pp": 20.893,
+     "trades": 344
+    }
+   }
+  },
+  "GFM": {
+   "width": {
+    "early": {
+     "pp": 47.053,
+     "trades": 574
+    },
+    "late": {
+     "pp": 17.016,
+     "trades": 573
+    }
+   },
+   "q50": {
+    "early": {
+     "pp": 53.288,
+     "trades": 2418
+    },
+    "late": {
+     "pp": 10.799,
+     "trades": 1923
+    }
+   },
+   "q70": {
+    "early": {
+     "pp": 42.959,
+     "trades": 1693
+    },
+    "late": {
+     "pp": 7.935,
+     "trades": 1329
+    }
+   },
+   "q80": {
+    "early": {
+     "pp": 56.905,
+     "trades": 1285
+    },
+    "late": {
+     "pp": 11.261,
+     "trades": 980
+    }
+   },
+   "q90": {
+    "early": {
+     "pp": 45.707,
+     "trades": 727
+    },
+    "late": {
+     "pp": 10.822,
+     "trades": 603
+    }
+   },
+   "w+rvol": {
+    "early": {
+     "pp": 46.163,
+     "trades": 555
+    },
+    "late": {
+     "pp": 19.264,
+     "trades": 527
+    }
+   },
+   "w+adx": {
+    "early": {
+     "pp": 21.297,
+     "trades": 269
+    },
+    "late": {
+     "pp": 1.16,
+     "trades": 209
+    }
+   },
+   "w+atr_pct": {
+    "early": {
+     "pp": 35.364,
+     "trades": 353
+    },
+    "late": {
+     "pp": 8.209,
+     "trades": 323
+    }
+   },
+   "w+depth": {
+    "early": {
+     "pp": 28.466,
+     "trades": 342
+    },
+    "late": {
+     "pp": 9.732,
+     "trades": 397
+    }
+   },
+   "w+low_close_norm": {
+    "early": {
+     "pp": 31.713,
+     "trades": 377
+    },
+    "late": {
+     "pp": 10.174,
+     "trades": 423
+    }
+   }
+  },
+  "MLX": {
+   "width": {
+    "early": {
+     "pp": 20.786,
+     "trades": 184
+    },
+    "late": {
+     "pp": 14.821,
+     "trades": 167
+    }
+   },
+   "q50": {
+    "early": {
+     "pp": 20.408,
+     "trades": 123
+    },
+    "late": {
+     "pp": 13.062,
+     "trades": 93
+    }
+   },
+   "q70": {
+    "early": {
+     "pp": 15.68,
+     "trades": 81
+    },
+    "late": {
+     "pp": 10.22,
+     "trades": 73
+    }
+   },
+   "q80": {
+    "early": {
+     "pp": 14.117,
+     "trades": 63
+    },
+    "late": {
+     "pp": 8.838,
+     "trades": 65
+    }
+   },
+   "q90": {
+    "early": {
+     "pp": 8.181,
+     "trades": 35
+    },
+    "late": {
+     "pp": 9.05,
+     "trades": 50
+    }
+   },
+   "w+rvol": {
+    "early": {
+     "pp": 13.634,
+     "trades": 124
+    },
+    "late": {
+     "pp": 16.675,
+     "trades": 114
+    }
+   },
+   "w+adx": {
+    "early": {
+     "pp": 8.736,
+     "trades": 82
+    },
+    "late": {
+     "pp": 8.382,
+     "trades": 99
+    }
+   },
+   "w+atr_pct": {
+    "early": {
+     "pp": 16.139,
+     "trades": 116
+    },
+    "late": {
+     "pp": 9.951,
+     "trades": 70
+    }
+   },
+   "w+depth": {
+    "early": {
+     "pp": 15.783,
+     "trades": 110
+    },
+    "late": {
+     "pp": 16.336,
+     "trades": 118
+    }
+   },
+   "w+low_close_norm": {
+    "early": {
+     "pp": 17.533,
+     "trades": 108
+    },
+    "late": {
+     "pp": 16.804,
+     "trades": 113
+    }
+   }
+  }
+ },
+ "verdict": {
+  "quantile": {
+   "candidate": "q80",
+   "late_beats_width": {
+    "ARO": false,
+    "GBR": false,
+    "GFM": false,
+    "MLX": false
+   },
+   "replaces_width_book": false
+  },
+  "second_feature": {
+   "candidate": "w+rvol",
+   "late_beats_width": {
+    "ARO": false,
+    "GBR": true,
+    "GFM": true,
+    "MLX": true
+   },
+   "replaces_width_book": true
+  }
+ }
+}

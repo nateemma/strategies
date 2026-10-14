@@ -104,3 +104,66 @@ control, f00–f14:
 
 **Consequence.** The width book is the honest baseline for NNNC model work. A model variant that
 does not beat it adds nothing over one sorted rule feature.
+
+## 5. The model as a sizer on the width book (`width_sizing.py` → `width_sizing.json`)
+
+Simulator screen, EXPLORATORY (the agree side was already seen in `width_plus_model.py`). The width
+book picks the trades; each trade keeps its simulated exit and is re-weighted by the model at its
+signal bar. "pp per capital" is the sized book's pp divided by its mean weight, i.e. its return on
+the capital it actually used.
+
+| | agree n / pp per trade, early | disagree, early | agree, late | disagree, late |
+|---|---|---|---|---|
+| ARO | 73 / 0.146 | 339 / 0.074 | 118 / 0.096 | 401 / **0.011** |
+| GBR | 178 / 0.114 | 316 / 0.051 | 175 / 0.082 | 261 / **0.010** |
+| GFM | 11 / 0.035 | 563 / 0.083 | 31 / 0.047 | 542 / 0.029 |
+| MLX | 180 / 0.113 | 4 / 0.107 | 166 / 0.088 | 1 / 0.218 |
+
+pp per unit capital, early / late:
+
+| | unsized | agree 1.0 / 0.5 | agree 1.0 / 0.25 | rank (0.5–1.0 by p_buy) |
+|---|---|---|---|---|
+| ARO | 35.7 / 15.6 | 39.4 / 21.9 | 44.2 / 29.4 | 39.0 / 19.6 |
+| GBR | 36.5 / 17.1 | 41.8 / 22.5 | 46.8 / 27.3 | 39.2 / 19.3 |
+| GFM | 47.1 / 17.0 | 46.5 / 17.5 | 45.6 / 18.4 | 48.9 / 17.1 |
+| MLX | 20.8 / 14.8 | 20.8 / 14.8 | 20.8 / 14.7 | 22.4 / 17.2 |
+
+- **Declared rule: NOT a useful sizer (2 of 4 models; needed 3).** ARO and GBR pass both parts; GFM
+  and MLX fail.
+- **The failures are structural, not a reversal.** MLX's model book already IS the width book (5 of
+  351 trades disagree), so there is nothing to size. GFM's model agrees on only 42 of 1,147 width
+  trades, and those are no better.
+- **Where the model and width disagree, the model is right on ARO and GBR.** Late-half trades the
+  model would not take earn about 0.01 pp each, against 0.08–0.10 for trades it would. So within the
+  width book the model does carry information, but only on the two models whose threshold leaves
+  room for disagreement.
+- **The continuous rank weight beats unsized per unit capital on all four models in both halves**
+  (listed before the run, but not the declared test).
+- **Caveat.** Return per unit capital assumes the freed capital is worth nothing; scaling agree
+  trades up instead would meet the liquidity cap.
+
+## 6. Width-book variants (`width_variants.py` → `width_variants.json`)
+
+Simulator screen; early half selects within each family, late half checks (declared before the
+run). pp early / late (trades over 15 folds):
+
+| variant | ARO | GBR | GFM | MLX |
+|---|---|---|---|---|
+| width (count-matched cut) | 35.7 / 15.6 (931) | 36.5 / 17.1 (930) | 47.1 / 17.0 (1,147) | 20.8 / 14.8 (351) |
+| q50 | 53.3 / 10.8 (4,341) | same | same | 20.4 / 13.1 (216) |
+| q80 (family pick) | 56.9 / 11.3 (2,265) | same | same | 14.1 / 8.8 (128) |
+| q90 | 45.7 / 10.8 (1,330) | same | same | 8.2 / 9.1 (85) |
+| **w+rvol (family pick)** | 37.5 / 15.3 (884) | 39.4 / **22.3** (891) | 46.2 / **19.3** (1,082) | 13.6 / **16.7** (238) |
+| w+depth | 23.4 / 10.0 | 26.1 / 17.0 | 28.5 / 9.7 | 15.8 / 16.3 |
+| w+low_close_norm | 26.0 / 12.3 | 29.2 / 20.9 | 31.7 / 10.2 | 17.5 / 16.8 |
+| w+atr_pct | 28.6 / 7.9 | 28.0 / 8.6 | 35.4 / 8.2 | 16.1 / 10.0 |
+| w+adx | 19.9 / 2.4 | 19.5 / 7.1 | 21.3 / 1.2 | 8.7 / 8.4 |
+
+(ARO, GBR and GFM share gates, so a model-free quantile cut gives them the same book.)
+
+- **Model-free quantile cuts: NOT adopted (late beats width on 0 of 4).** More trades, more early pp,
+  much less late pp. The count-matched cut sits above q90 and the declared grid stopped at q90.
+- **width + rvol: passes the declared rule (late beats width on GBR, GFM, MLX; ARO −0.3).** The margins
+  are small (+5.2, +2.3, +1.9 late), and MLX gives back 7.2 early, so over 15 folds it is +1.5 / +8.1
+  / +1.4 / −5.3. This is within simulator noise for everything except GBR.
+- **Every other second feature makes the book worse.** Width is doing nearly all of the work.

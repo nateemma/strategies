@@ -1,0 +1,268 @@
+{
+ "label": "EXPLORATORY screen (agree side seen in width_plus_model.py)",
+ "models": {
+  "ARO": {
+   "early": {
+    "trades": 412,
+    "unsized_pp": 35.71,
+    "agree": {
+     "n": 73,
+     "pp_per_trade": 0.1458
+    },
+    "disagree": {
+     "n": 339,
+     "pp_per_trade": 0.0739
+    },
+    "agree_0.5": {
+     "pp": 23.177,
+     "capital": 0.5886,
+     "pp_per_capital": 39.376,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 16.91,
+     "capital": 0.3829,
+     "pp_per_capital": 44.164,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 29.442,
+     "capital": 0.7549,
+     "pp_per_capital": 39.003,
+     "beats_unsized_per_capital": true
+    }
+   },
+   "late": {
+    "trades": 519,
+    "unsized_pp": 15.601,
+    "agree": {
+     "n": 118,
+     "pp_per_trade": 0.0957
+    },
+    "disagree": {
+     "n": 401,
+     "pp_per_trade": 0.0107
+    },
+    "agree_0.5": {
+     "pp": 13.449,
+     "capital": 0.6137,
+     "pp_per_capital": 21.915,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 12.373,
+     "capital": 0.4205,
+     "pp_per_capital": 29.424,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 14.772,
+     "capital": 0.7534,
+     "pp_per_capital": 19.608,
+     "beats_unsized_per_capital": true
+    }
+   }
+  },
+  "GBR": {
+   "early": {
+    "trades": 494,
+    "unsized_pp": 36.496,
+    "agree": {
+     "n": 178,
+     "pp_per_trade": 0.1142
+    },
+    "disagree": {
+     "n": 316,
+     "pp_per_trade": 0.0512
+    },
+    "agree_0.5": {
+     "pp": 28.409,
+     "capital": 0.6802,
+     "pp_per_capital": 41.768,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 24.365,
+     "capital": 0.5202,
+     "pp_per_capital": 46.834,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 29.561,
+     "capital": 0.754,
+     "pp_per_capital": 39.203,
+     "beats_unsized_per_capital": true
+    }
+   },
+   "late": {
+    "trades": 436,
+    "unsized_pp": 17.099,
+    "agree": {
+     "n": 175,
+     "pp_per_trade": 0.0822
+    },
+    "disagree": {
+     "n": 261,
+     "pp_per_trade": 0.0104
+    },
+    "agree_0.5": {
+     "pp": 15.744,
+     "capital": 0.7007,
+     "pp_per_capital": 22.47,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 15.067,
+     "capital": 0.551,
+     "pp_per_capital": 27.344,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 14.548,
+     "capital": 0.754,
+     "pp_per_capital": 19.294,
+     "beats_unsized_per_capital": true
+    }
+   }
+  },
+  "GFM": {
+   "early": {
+    "trades": 574,
+    "unsized_pp": 47.053,
+    "agree": {
+     "n": 11,
+     "pp_per_trade": 0.0345
+    },
+    "disagree": {
+     "n": 563,
+     "pp_per_trade": 0.0829
+    },
+    "agree_0.5": {
+     "pp": 23.716,
+     "capital": 0.5096,
+     "pp_per_capital": 46.54,
+     "beats_unsized_per_capital": false
+    },
+    "agree_0.25": {
+     "pp": 12.048,
+     "capital": 0.2644,
+     "pp_per_capital": 45.571,
+     "beats_unsized_per_capital": false
+    },
+    "rank": {
+     "pp": 36.862,
+     "capital": 0.7535,
+     "pp_per_capital": 48.922,
+     "beats_unsized_per_capital": true
+    }
+   },
+   "late": {
+    "trades": 573,
+    "unsized_pp": 17.016,
+    "agree": {
+     "n": 31,
+     "pp_per_trade": 0.0473
+    },
+    "disagree": {
+     "n": 542,
+     "pp_per_trade": 0.0287
+    },
+    "agree_0.5": {
+     "pp": 9.242,
+     "capital": 0.5271,
+     "pp_per_capital": 17.535,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 5.354,
+     "capital": 0.2906,
+     "pp_per_capital": 18.427,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 12.847,
+     "capital": 0.7531,
+     "pp_per_capital": 17.06,
+     "beats_unsized_per_capital": true
+    }
+   }
+  },
+  "MLX": {
+   "early": {
+    "trades": 184,
+    "unsized_pp": 20.786,
+    "agree": {
+     "n": 180,
+     "pp_per_trade": 0.1131
+    },
+    "disagree": {
+     "n": 4,
+     "pp_per_trade": 0.1065
+    },
+    "agree_0.5": {
+     "pp": 20.573,
+     "capital": 0.9891,
+     "pp_per_capital": 20.799,
+     "beats_unsized_per_capital": true
+    },
+    "agree_0.25": {
+     "pp": 20.466,
+     "capital": 0.9837,
+     "pp_per_capital": 20.805,
+     "beats_unsized_per_capital": true
+    },
+    "rank": {
+     "pp": 17.049,
+     "capital": 0.7609,
+     "pp_per_capital": 22.407,
+     "beats_unsized_per_capital": true
+    }
+   },
+   "late": {
+    "trades": 167,
+    "unsized_pp": 14.821,
+    "agree": {
+     "n": 166,
+     "pp_per_trade": 0.088
+    },
+    "disagree": {
+     "n": 1,
+     "pp_per_trade": 0.2182
+    },
+    "agree_0.5": {
+     "pp": 14.712,
+     "capital": 0.997,
+     "pp_per_capital": 14.756,
+     "beats_unsized_per_capital": false
+    },
+    "agree_0.25": {
+     "pp": 14.657,
+     "capital": 0.9955,
+     "pp_per_capital": 14.723,
+     "beats_unsized_per_capital": false
+    },
+    "rank": {
+     "pp": 13.045,
+     "capital": 0.7605,
+     "pp_per_capital": 17.154,
+     "beats_unsized_per_capital": true
+    }
+   }
+  }
+ },
+ "verdict": {
+  "agree_beats_disagree": {
+   "ARO": true,
+   "GBR": true,
+   "GFM": false,
+   "MLX": false
+  },
+  "agree_0.5_beats_unsized_per_capital": {
+   "ARO": true,
+   "GBR": true,
+   "GFM": false,
+   "MLX": false
+  },
+  "useful_sizer": false
+ }
+}
