@@ -24,3 +24,15 @@ data: the 2022 window or the folds after 2026-09-07.
 **Threshold rounding:** `prediction_threshold` is a `DecimalParameter(decimals=2)`, so every threshold
 `pick_threshold.py` writes is rounded when it is loaded. This holds for 032's arms and for every
 picked-threshold control. `run_match.py` therefore searches the 0.01 grid only.
+
+## Amendment (2026-10-14, before any backtest or P&L)
+
+The first run matched over the WHOLE training window, and it could not reach the target. On data it
+was trained on, the control fires about 13 times more often than it does out of sample. On ARO f00
+it produced 14,603 runs (about 9% of bars), while the CO model peaks at about 10,000 runs at
+threshold 0.49. Every ARO fold therefore picked 0.49. That chain was stopped during matching, before
+any `co_*_rm` record existed.
+
+The matching now uses only the validation tail: the last 20% of each pair's training frame
+(`TRAIN_DATA_SPLIT` 0.8). Neither model trains on it; it is used only for early stopping. The arms,
+comparators and reading above are unchanged.

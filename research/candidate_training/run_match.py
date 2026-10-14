@@ -4,7 +4,10 @@
 032 matched the share of BUY bars, but the CO arms took ~40% fewer trades: their signals come in
 longer runs, and only a run's first bar can open a trade on a pair. This picks, per fold, the
 threshold at which the CO model's number of entry runs on the TRAINING window equals the control's
-at the control's own fold threshold. Only training data is read (pick_threshold.TrainWindow).
+at the control's own fold threshold. Only training data is read (pick_threshold.TrainWindow), and
+only its VALIDATION TAIL: the last (1 - TRAIN_DATA_SPLIT) of each pair's frame, which neither model
+trained on (early stopping only). Matching on the whole window failed: the control fires ~13x more
+in-sample than out of sample (ARO f00: 14,603 runs, ~9% of bars), beyond the CO model's maximum.
 
   control runs: the control fold strategy as generated (its plan threshold), enter_long per pair.
   CO runs(t):   the CO fold strategy scored ONCE at prediction_threshold 0, so enter_long marks every
@@ -88,6 +91,7 @@ def _signals(plan: dict, fid: str, threshold: float | None):
             continue
         s = trim_dataframe(strat.advise_entry(df.copy(), {"pair": pair}), timerange,
                            startup_candles=strat.startup_candle_count)
+        s = s.iloc[int(strat.TRAIN_DATA_SPLIT * len(s)):]  # validation tail (approx. split row)
         out[pair] = (s["enter_long"].fillna(0).to_numpy() == 1,
                      s["%predict_prob_buy"].fillna(0.0).to_numpy(float))
     return out
