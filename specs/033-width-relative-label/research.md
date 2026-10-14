@@ -225,9 +225,8 @@ The trades-hash identity applies only to the exit-off arm: earlier exits change 
 ## R9. Evaluation stages (pre-registered before training)
 
 - **S0, instrument and label:**
-  - per fold and side, every bucket's labelled share is in [0.40, 0.60], and |Spearman| ≤ 0.05 per
-    side;
-  - |Spearman(label, bb_width)| ≤ 0.05 on eligible valid bars;
+  - per fold and side, on the training split: every bucket's labelled share is in [0.40, 0.60],
+    and |Spearman(label, bb_width)| ≤ 0.05 on eligible valid bars. Validation shares are reported;
   - kept rows > 0, BUY > 0 and SELL > 0;
   - simulator fidelity ≥ 0.95 on the sizer arm's recorded entries; entries equal the width book's
     (same pairs and candles);

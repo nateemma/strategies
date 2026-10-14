@@ -34,7 +34,8 @@ description: "Task list for 033 width-relative label for NNNC models"
 - **No training of any `NNNC_WR_*` class before T017 (the pre-registration) is committed.** No
   `wr_*` arm record may exist before it either.
 - **Stages are read in order, per arm (FR-013).** A failed stage leaves that arm's later stages
-  `not_reached`, and their records unread.
+  `not_reached`, and those records are not judged as that arm's outcome. They stay readable only
+  as the other arm's comparator (the exit-off arm for the exit-on arm).
 - Results are at most PASS (PROVISIONAL) (one era).
 
 ## Format: `[ID] [P?] [Story] Description`

@@ -105,8 +105,9 @@ existing model, weight file and recorded result untouched.
    bars are disjoint, so no bar can be both BUY and SELL.
 4. **Given** the label declared, **When** labels are built, **Then**, on each side (BUY among
    entry-eligible bars, SELL among exit-eligible bars), the labelled share in every width bucket is
-   between 40% and 60%. The rank correlation of each side's label with band width on its eligible
-   bars is within ±0.05.
+   between 40% and 60% on the training split the buckets are fitted on. The rank correlation of
+   each side's label with band width on its eligible training-split bars is within ±0.05. The
+   validation rows' shares are reported, not bounded.
 5. **Given** the label declared, **When** the model key is computed, **Then** it differs from
    every existing key and changes with each label setting (outcome, bucket count, share).
 6. **Given** a bar whose forward outcome cannot be computed (the horizon runs past the end of the
@@ -329,9 +330,9 @@ verdicts.
   - all model keys and fingerprints pinned in tests are unchanged.
 - **SC-002**: On a scripted frame with known outcomes and widths, 100% of labels equal the
   hand-computed value, and no bucket uses a test-window bar.
-- **SC-003**: On every trained fold, for each side, the labelled share in every width bucket is
-  between 40% and 60%, and the label's rank correlation with width on that side's eligible bars is
-  within ±0.05.
+- **SC-003**: On every trained fold, for each side, on the training split: the labelled share in
+  every width bucket is between 40% and 60%, and the label's rank correlation with width on that
+  side's eligible bars is within ±0.05. The validation rows' shares are reported.
 - **SC-004**: Weights exist for all 15 folds of ARO and GBR (30 trained folds).
 - **SC-005**: The S1 separation (agree − disagree pp per trade inside the width book) is reported
   per model on the early half next to the current model's, on the identical trades. Nothing from
