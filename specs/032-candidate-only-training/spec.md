@@ -79,7 +79,7 @@ eligible, each with its original, unbroken window and its own label.
    weights and class weights are identical to the build captured before the change. Every
    existing model key and strategy fingerprint is unchanged. A backtest never calls the training
    path for a model that already exists, so recorded trades cannot change. One reference fold
-   (wf_aro_g24 f00) is re-run as a spot check.
+   (wf_aro_hpon f00, recorded on the current defaults) is re-run as a spot check.
 2. **Given** a filter declared, **When** the training data is built, **Then** the kept samples are
    exactly the windows whose last bar satisfies the predicate. Each kept window is the same
    contiguous window it was before filtering; no window joins bars that were not adjacent.
@@ -228,7 +228,8 @@ the verdicts with paired and risk results.
 - **SC-001**: With no filter declared:
   - the scripted training-data build is identical to the pre-change capture in 100% of cases;
   - all existing model keys and fingerprints pinned in tests are unchanged;
-  - the reference fold wf_aro_g24 f00, re-run, reproduces its recorded trades exactly.
+  - a recorded reference fold (wf_aro_hpon f00, on the current defaults), re-run, reproduces its
+    recorded trades exactly.
 - **SC-002**: On a scripted training-data build, 100% of kept samples equal the corresponding
   unfiltered window and label, and 0 kept samples have an ineligible last bar.
 - **SC-003**: Candidate-only weights exist for all 15 folds of ARO and GBR (30 trained folds).

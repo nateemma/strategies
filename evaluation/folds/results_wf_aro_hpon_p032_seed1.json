@@ -1,0 +1,28 @@
+{
+  "run_id": "wf_aro_hpon_p032",
+  "seed": 1,
+  "params_sha": "10d203e2ad2ee9da",
+  "elapsed_minutes": 0.3,
+  "folds_planned": 15,
+  "folds_complete": 1,
+  "status": "partial",
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "NNNC_ARO_f00",
+      "model_dir": "user_data/strategies/saved_data/NNNC_ARO_f00",
+      "arm_tag": "wf_aro_hpon_p032_f00",
+      "status": "evaluated",
+      "model_artifact_verified": true,
+      "n_trades": 48,
+      "arm_returncode": 0
+    }
+  ]
+}

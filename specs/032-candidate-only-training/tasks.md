@@ -126,10 +126,11 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   Tests in `evaluation/test_pick_threshold.py`: with `keep=None` the result is identical to
   today; with `keep` the ineligible bars are 0.0; at a fixed rate the threshold falls (or holds) when bars
   are zeroed.
-- [ ] T011 [US1] Run the full suite, check pytest's exit code, then commit T006–T010. Then run the SC-001 spot check:
-  - re-run `wf_aro_g24` f00 under a fresh tag (`wf_aro_g24_p032`, via a copied plan with only
-    `run_id` and `arm_tag` changed), one chain;
-  - its `trades_hash` must equal `regime/arms/wf_aro_g24_f00_F00.json`'s;
+- [X] T011 [US1] Run the full suite, check pytest's exit code, then commit T006–T010. Then run the SC-001 spot check:
+  - re-run `wf_aro_hpon` f00 under a fresh tag (`wf_aro_hpon_p032`, via a copied plan with only
+    `run_id` and `arm_tag` changed), one chain. This replaces `wf_aro_g24`, which predates the add
+    default (e3a32dc); see verification.md;
+  - its `trades_hash` must equal `regime/arms/wf_aro_hpon_f00_F00.json`'s;
   - record it in `specs/032-candidate-only-training/verification.md` and commit.
 
 **Checkpoint**: the switch exists, is off by default, and is proven identical when off (SC-001
