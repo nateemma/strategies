@@ -49,7 +49,10 @@ pandas, scipy (Spearman, AUC)
 - training about 12 min per ARO fold: 7 × 8 ≈ 11 h, one sequential chain;
 - 56 signal-table passes and 56 single-fold sizer picks;
 - S2: at most 3 survivors × 2 roles × 8 folds of backtests (about 13 s each), plus up to 24
-  entry-rate picks.
+  entry-rate picks;
+- conditional: a seed-2 repeat (≈ 1.6 h per label on f00–f07, plus ≈ 1.6 h for the ARO control at
+  seed 2, which has no records yet), the S3 winner on f08–f14 (≈ 1.4 h) and the GBR repeat
+  (15 folds, ≈ 0.5 h).
 
 **Constraints**: one chain at a time; picks one fold per process; byte-identical when off;
 Framework/ strategy-agnostic; live bot untouched; no default promoted.

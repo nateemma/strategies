@@ -7,7 +7,7 @@
 | tag | str | one of CONTROL, GFM, FMAE, TB, MMR, FEXP, QF, LMF, BOG; unique |
 | method | int | a `LabelMethod` id (27, 28, 0, 1, 3, 12, 2, 4, 24) |
 | label_params | dict | declared extras (research R2); `{}` if none; never edited after the pre-registration commit |
-| label_params_sell | dict or None | None = mirror label_params |
+| label_params_sell | dict or None | None = mirror label_params; TB declares `{"pt": 0.05, "sl": 0.02}` (research R2) |
 | reuse | str or None | existing plan whose weights are reused (`wf_aro_g24`, `sw_gfm_ctl_b030`); None = trained |
 | roles | tuple | ("sz", "es") for all except BOG ("sz",) and CONTROL (none: comparator) |
 | order | int | training order in the chain |

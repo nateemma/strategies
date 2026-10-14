@@ -86,12 +86,13 @@ AUC, each next to the gbb_path control's, and a pre-registered survivor list.
 
 **Acceptance Scenarios**:
 
-1. **Given** the committed pre-registration, **When** the screen runs, **Then** every candidate has
-   trained weights for all 8 early folds under its own model key, and no existing model key, weight
+1. **Given** the committed pre-registration, **When** the screen runs, **Then** every candidate that
+   passed S0a has trained weights for all 8 early folds under its own model key, and no existing model key, weight
    file or record is changed.
 2. **Given** trained candidates, **When** S0 runs, **Then** each label's per-fold positive rate,
    class balance and Spearman correlation with bb_width on rule-eligible bars are recorded, and a
-   label with no positive rows in any fold is marked INCONCLUSIVE rather than scored.
+   label whose kept BUY share is under 1% of training rows in any fold (S0a) is INCONCLUSIVE and
+   is neither trained nor scored.
 3. **Given** S0 passes, **When** S1 runs, **Then** each label's agree − disagree gap is computed on
    the identical width-book trades used for the control, with the control's gap reproducing the
    pre-registered 0.072 (ARO) or 0.063 (GBR) within rounding.
@@ -119,7 +120,8 @@ control, with a staged verdict per arm.
    disagree tag matches the model's decision on its entry bar.
 2. **Given** a survivor in the entry-source role, **When** it is backtested, **Then** its entries
    come only from its own model decision under the control's guards (no gbb trigger gate), and its
-   picked entry-signal bar rate on the validation tail is within ±5% of the control's 0.014735.
+   entry-signal bar rate on the fold's training window, where its threshold is picked, is within
+   ±5% of the control's 0.014735.
 3. **Given** the early-half results, **When** S2 is judged, **Then** an arm passes only if it beats
    both the width book and the control; a margin under 1 pp triggers the paired seed-2 repeat.
 4. **Given** no survivor, **When** the screen ends, **Then** no backtest is run and the report
@@ -205,15 +207,15 @@ width book) and, on a pass, the second model's repeat verdict.
 - **FR-008a (S0a, label audit before training)**: Before the pre-registration is committed, each
   candidate's labels (no model) are computed on every early fold's training window: BUY / SELL /
   HOLD shares after the peak filter and conflict resolution, raw BUY–SELL overlap, whether each
-  declared parameter changes the labels, and whether the feature columns equal the control's. A
+  declared parameter that differs from its labeler's default changes the labels (one equal to the
+  default is recorded as such), and whether the feature columns equal the control's. A
   candidate whose kept BUY share is under 1% of training rows in any early fold is INCONCLUSIVE and
   is not trained. (Planning found mfe_mae_ratio has no sell variant, so its raw SELL labels equal
   its BUY labels; this audit puts its trainability on record.)
 - **FR-009 (S0, label and instrument)**: Per candidate and fold, record the BUY and SELL positive
   rates, class balance of kept training rows, and Spearman(label, bb_width) on rule-eligible bars.
-  Verify the label parameters actually reached the labeler (a declared parameter that changes
-  nothing is a failure). S0 fails a candidate (INCONCLUSIVE) only for missing weights, a parameter
-  that did not take effect, or no positive rows.
+  Parameter liveness is checked once, at S0a (FR-008a). S0 fails a candidate (INCONCLUSIVE) only
+  for missing weights or a model key that is not distinct.
 - **FR-010 (S1, separation)**: On the identical early-half width-book trades, compute each
   candidate's agree − disagree pp per trade at the pre-registered agree share (threshold picked per
   fold on the first bar of each width-book candidate run in the validation tail), and its
@@ -229,8 +231,9 @@ width book) and, on a pass, the second model's repeat verdict.
   - **sizer**: the width book's entries, staked by the model's agree / disagree decision;
   - **entry source (ungated)**: the control's own entry configuration (model decision plus the
     control's guards, no gbb trigger gate) with only the label changed. Its threshold is picked per
-    fold on the validation tail so that its entry-signal bar rate equals the control's pre-registered
-    rate (0.014735, as in 032). breakout_gbb is scored in the sizer role only.
+    fold the way the control's thresholds were: over the fold's training window, ineligible bars
+    counted as zero, so that its entry-signal bar rate equals the control's pre-registered rate
+    (0.014735, as in 032). breakout_gbb is scored in the sizer role only.
 
   A role passes only if its early pp beats both comparators; a margin under 1 pp is resolved by a
   paired seed-2 repeat (pass only if every margin is positive on both seeds).
@@ -280,8 +283,11 @@ width book) and, on a pass, the second model's repeat verdict.
 - **SC-004**: No late-half (f08–f14) P&L is read for any candidate except the S2 winner.
 - **SC-005**: The report states, for each candidate label, whether it separates width-book trades
   better than gbb_path, and whether any survivor beats the width book and the control on return.
-- **SC-006**: Total compute stays within one sequential chain: at most 8 candidates × 8 folds of
-  training for the screen, plus at most 3 survivors × 2 roles × 8 folds of backtests.
+- **SC-006**: Total compute stays within one sequential chain: at most 7 candidates × 8 folds of
+  training for the screen, plus at most 3 survivors × 2 roles × 8 folds of backtests. Conditional
+  extras, run only when their stage is reached: a seed-2 repeat (the survivor and, if no records
+  exist, the ARO control at seed 2 on f00–f07), the S3 winner on f08–f14, and the GBR repeat
+  (15 folds).
 
 ## Assumptions
 

@@ -6,7 +6,7 @@
 class NNNC_LS_<TAG>(LabelParamsMixin, NNNC_A_Raw_Open):
     TRAINING_TYPE = <method id>
     LABEL_PARAMS = <declared extras>          # from research/label_screen/candidates.py
-    LABEL_PARAMS_SELL = None                  # mirror, unless declared
+    LABEL_PARAMS_SELL = None                  # mirror; TB declares {"pt": 0.05, "sl": 0.02}
     prediction_threshold = DecimalParameter(0.0, 1.0, default=0.5, decimals=4, space="buy",
                                             load=True, optimize=False)
 ```

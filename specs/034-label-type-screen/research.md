@@ -38,15 +38,26 @@ adverse-excursion caps (0.04, as GFM) where a labeler has one.**
 | gbb_path (control) | 27 | none (existing weights) | `wf_aro_g24` |
 | gbb_fwdmae | 28 | as GFM: `LABEL_MAX_DRAWDOWN` 0.04 (existing weights) | `NNNC_GbbFwdMae_Open` |
 | forward_mae | 0 | `max_drawdown` 0.04 | GFM's stop-matched cap |
-| triple_barrier | 1 | `pt` 0.02, `sl` 0.05 (gbb_path's own target and stop) | `NNNC_Oracle_TripleBarrier_H12` used pt = sl at H12 |
+| triple_barrier | 1 | buy `pt` 0.02, `sl` 0.05 (gbb_path's own target and stop); **sell declared explicitly** `pt` 0.05, `sl` 0.02 | `NNNC_Oracle_TripleBarrier_H12` used pt = sl at H12 |
 | mfe_mae_ratio | 3 | none (`min_ratio` 2.0 default) | `NNNC_Oracle_MfeMaeRatio` |
 | future_expectancy | 12 | none (`min_expectancy` 0.01 default) | `NNNC_Oracle_FutureExpectancy` |
 | quantile_future | 2 | none (`top_quantile` 0.8 default) | — |
 | local_min_followthrough | 4 | `max_drawdown` 0.04 | `NNNC_Oracle_LocalMinFollowthrough` |
 | breakout_gbb | 24 | none (guard 0.2, width 0.035 defaults) | `NNNC_BreakoutOpen` |
 
+- **triple_barrier's sell side is not mirrored by reusing the buy values.** In
+  `labels_triple_barrier_sell`, `sl` is the DOWN barrier and `pt` the up barrier, so reusing
+  `{pt 0.02, sl 0.05}` would label "−5% before +2%". The mirror of the buy rule (+2% before −5%)
+  is "−2% before +5%": `LABEL_PARAMS_SELL = {"pt": 0.05, "sl": 0.02}`. The training call's
+  `min_loss` 0.02 raises `sl` to at least 0.02 and the buy side's `min_gain` 0.02 raises `pt` to at
+  least 0.02, so neither changes these values.
+- **Sell-path key handling**: the explicit sell branches in `get_train_sell_signals` filter params
+  to a hand-written `allowed` set and drop anything else silently (strict keys are honoured only on
+  the fallback). So each declared sell key is checked against its branch's `allowed` set (T003), and
+  S0a's liveness diff catches a key that is accepted but has no effect.
 - **Liveness**: S0a records, per candidate, the labels with and without each declared extra on
-  f00's training window. A declared extra that changes no label is an S0 failure (Constitution IV).
+  f00's training window. A declared extra that differs from the labeler's default but changes no label is an S0a failure
+  (Constitution IV); an extra equal to the default (e.g. TB sell `sl` 0.02) is recorded as such.
 - **Alternatives**: labeler defaults only (horizon 36, 0.7% gains) would change two variables at
   once against the control; tuning per label is out of scope.
 
@@ -72,7 +83,10 @@ adverse-excursion caps (0.04, as GFM) where a labeler has one.**
   pre-registered reference; its tables are `research/nnnc_framework/signals/ARO_fNN.parquet`.
 - **gbb_fwdmae**: GFM on the same LSTM_RAW architecture (`sw_gfm_ctl_b030`), with signal tables
   already on disk (`GFM_fNN`). S1 needs no training or inference. If it survives, its arms are
-  built on `NNNC_GbbFwdMae_Open` with 24 h grace (the control's params snapshot).
+  built on `NNNC_GbbFwdMae_Open` with the ARO control's 24 h-grace params snapshot
+  (`params_20261013-g24_NNNC_A_Raw_Open.json`; GFM inherits `NNNC_A_Raw_Open`, so every key in it
+  applies) and the `sw_gfm_ctl_b030` folds and dates. Weights are found by model key, which must
+  equal GFM's existing fold keys (tested at f00 and f07).
 - **Caveat recorded**: GFM's weights were trained before the 24 h grace change; grace is an exit
   parameter and not in the model key, so the weights are the same ones a retrain would produce
   (030 key semantics).
@@ -103,8 +117,9 @@ adverse-excursion caps (0.04, as GFM) where a labeler has one.**
 
 ## R7. Entry-source threshold
 
-- **Decision**: as 032 Q1, `evaluation/pick_threshold.py --mode pick --target-rate 0.014735` per
-  fold on the training window, with ineligible bars counted as zero. Stored at 4 decimals in the
+- **Decision**: as 032 Q1 and as the control's own thresholds were picked,
+  `evaluation/pick_threshold.py --mode pick --target-rate 0.014735` per fold on the training window
+  (not the validation tail used for the sizer's agree share), with ineligible bars counted as zero. Stored at 4 decimals in the
   plan; loading is verified (`--verify`-style check) before the backtest.
 - **Rationale**: the same overall entry rate as the control keeps trade counts comparable.
 - **Alternatives**: run-matched thresholds (032 follow-up 1; recovered counts but not quality).
