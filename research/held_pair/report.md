@@ -131,3 +131,78 @@ Fix-oriented next steps, if the held-pair lever is pursued:
   override);
 - `utils/EntryFramework.py` `HELD_PAIR_ADD`;
 - `Framework/BaseStrategy.py` `trade_clock_start` / `_fillable_stake`.
+
+---
+
+# Follow-up (same day): in-profit adds, add size, regime check
+
+## Screen ([screen2.py](screen2.py), `40ca13c`, EXPLORATORY)
+
+Variants: condition × add size, as {any signal, under water, in profit} × {1, ½, ¼ stake}. The
+**risk-matched gain** is the arm's pp minus the no-add book's pp scaled up to the arm's drawdown.
+Above zero, the add beats simple leverage at equal drawdown.
+- **Full-size adds on any signal**: risk-matched −40.6 on ARO, −18.8 on MLX and −8.3 on GFM;
+  +20.4 on GBR. By this measure MLX's earlier adoption is leverage too.
+- **Smaller adds** cut drawdown, but stay risk-matched negative on ARO and MLX.
+- **In-profit adds (pyramiding)**: positive in both halves on ARO, GBR and GFM, drawdown ratio
+  0.84–1.0, risk-matched positive on all four. Selected.
+
+## Regime check ([regime_check.py](regime_check.py), `fc243e7`)
+
+The volatility regime instrument (026, cut 1.366) does not separate what an add earns. The rule,
+declared before the run, needed opposite signs in the two states in both halves on 3 of 4
+models. Results:
+- full-size adds on any signal: 0 of 4;
+- in-profit adds: 1 of 4.
+
+Not worth gating. This is consistent with the project's record: feature 001 cleared 1 of 32, the
+BTC-trend gate was exhausted, and volreg failed on NNNC entries.
+
+## Exit-due guard (a fault found by the fidelity gate)
+
+- The first in-profit fidelity run matched 86.8% of adds, a FAIL.
+- Every unmatched add fell on the candle where the held trade's take-profit fired. freqtrade
+  checks the add before that candle's exits, so the add restarted the clock. The 1 h minimum hold
+  then vetoed the take-profit, and the trade stayed open.
+- `adjust_trade_position` now refuses an add when the trade's own exit is due at the open
+  (`exit_due`).
+- Rerun: 47/47 adds matched; arm +3.19 vs screen +3.24.
+- The same guard accounts for the 6 unmatched adds of the original DCA fidelity run. The judged
+  DCA (any-signal) records predate it, so a rerun would differ on about 1–2% of their adds.
+
+## Pre-registered in-profit arms (`cb158ba`; verdicts [verdicts_profit.json](verdicts_profit.json))
+
+| book | early / late (pp) | paired | Sharpe ctl → arm | maxDD ctl → arm | trade gain vs leverage | adds | decision |
+|---|---|---|---|---|---|---|---|
+| ARO | +3.19 / +3.31 | IMPROVED p 0.006 | 2.55 → 2.79 | 3.69 → 3.47 | +6.50 vs +3.06 | 66 | PASS (exploratory) |
+| GBR | +2.70 / +3.32 | IMPROVED p 0.007 | 1.60 → 1.80 (IMPROVED) | 9.74 → 9.74 | +6.02 vs +3.08 | 58 | PASS (exploratory) |
+| GFM | +2.59 / +2.65 | UNCHANGED p 0.18 | 1.72 → 1.83 | 6.58 → 5.53 | +5.24 vs +3.54 | 171 | PASS (exploratory) |
+| MLX | +0.69 / +0.82 | UNDERPOWERED p 0.017 | 2.24 → 2.28 | 2.25 → 2.25 | +1.51 vs +0.93 | 10 | PASS (exploratory); gate 5 repeat identical |
+| ST reversion | 2022 **+5.85** (−6.57 → −0.72); 2023–26 +21.26 / +1.72 | 2022 ARM_LOSES; 2023–26 IMPROVED p 0.04 | 2.24 → 2.22 | 2022 17.7 → 19.6; 2023–26 7.6 → 12.1 | +22.98 vs +25.35 (no) | 220 / 733 | **ADOPTED (2022 confirmatory)** |
+| ST momentum | 2022 **−38.38**; 2023–26 +25.15 / −1.09 | — | 0.58 → 0.62 | 2022 61.8 → 107.2 WORSENED | — | 888 / 2,792 | **NOT ADOPTED** |
+
+**What changed against the any-signal add.**
+- On NNNC the in-profit add is small but clean. It is positive in both halves on all four models,
+  with paired IMPROVED on ARO and GBR. Sharpe is up and drawdown is not up. Exposure rises only
+  3–10%, and it beats the leverage control on every model.
+- Adding only to winners avoids the losers that sank the any-signal add.
+- The in-profit numbers match the screen almost exactly, both halves, on every NNNC model.
+
+**SimpleTrigger.**
+- Reversion passes the distant-era test, 2022, which the any-signal add failed (−4.7 → +5.9).
+  Its 2023–26 gain is mostly extra capital, though (+22.98 vs a +25.35 leverage control).
+- Momentum still fails: in-profit adds pyramid into trends that reverse, and 2022 drawdown almost
+  doubles. In a momentum book, being in profit is the normal state, so the condition filters
+  little (2,792 adds).
+
+**Evidence level.**
+- The NNNC verdicts are EXPLORATORY: both halves were seen for the held-pair question.
+- The confirmatory support is SimpleTrigger reversion in 2022. That is a different entry source,
+  so it supports the mechanism, not the NNNC books directly.
+- A truly fresh NNNC check would need forward data: the dry-run, or folds after 2026-09-07 as
+  they accumulate.
+
+**Recommendation (the user's decision; the switch stays off by default).** The in-profit add is
+the first held-pair variant that improves NNNC on return, Sharpe and drawdown together. It is a
+reasonable candidate to enable on NNNC, labelled exploratory, and to confirm forward. It should
+not be enabled on momentum books.

@@ -1,0 +1,33 @@
+{
+ "run_id": "hp_mlx_dca_p_rep",
+ "family": "NNNC",
+ "base_strategy": "NNNC_HP_MLX_DCAP",
+ "anchored": true,
+ "min_train_days": 730,
+ "test_days": 90,
+ "data_start": "2021-01-01",
+ "data_end": "2026-09-07",
+ "config": "user_data/strategies/config/config_wf.json",
+ "params_snapshot": "user_data/strategies/evaluation/folds/params_fs_NNNC_FS_MLX_GR.json",
+ "params_sha": "a775aa2e2cbc9792",
+ "validated": true,
+ "validation_errors": [],
+ "folds": [
+  {
+   "fold_id": "f08",
+   "train_start": "2021-01-01",
+   "train_end": "2024-12-20",
+   "test_start": "2024-12-21",
+   "test_end": "2025-03-21",
+   "train_timerange": "20210101-20241221",
+   "test_timerange": "20241221-20250321",
+   "test_days": 90,
+   "strategy_class": "NNNC_HP_MLX_DCAP_f08",
+   "model_dir": "user_data/strategies/saved_data/NNNC_WF_f08",
+   "arm_tag": "hp_mlx_dca_p_rep_f08",
+   "status": "planned"
+  }
+ ],
+ "model_source_note": "weights = user_data/strategies/saved_data/NNNC_WF_f00 (by model key)",
+ "held_pair_note": "031: NNNC_HP_MLX_DCAP = NNNC_FS_MLX_GR + HELD_PAIR_ADD {'in_profit_only': True}; control fs_mlx_gr"
+}
