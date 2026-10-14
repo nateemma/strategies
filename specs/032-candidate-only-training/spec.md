@@ -97,38 +97,41 @@ eligible, each with its original, unbroken window and its own label.
 
 ### User Story 2 - Measure whether the retrained model ranks candidates better (Priority: P2)
 
-The researcher trains the candidate-only versions of ARO and GBR over the 15 walk-forward folds,
-then measures ranking within the candidates and the simulated books, before any backtest.
+The researcher trains the candidate-only versions of ARO and GBR over the 15 walk-forward folds
+and backtests each fold. The researcher then measures ranking within the candidates first, then the
+early-half books. The books are the real fold backtests; the simulator is the instrument check
+(plan research R8).
 
-**Why this priority**: Training is the expensive step (about 3 hours per model). The cheap
-measurements decide whether a backtest is worth running.
+**Why this priority**: Training is the expensive step (about 3 hours per model); a fold
+backtest adds a few minutes. The stages decide what is read, in order: a failed stage leaves the
+later stages unread.
 
 **Independent Test**: A report with, per model and half: within-candidate AUC for the retrained
-and the current model, and simulated book pp and trades for the retrained model, the current
-model and the width book.
+and the current model, and book pp and trades (real fold records) for the retrained model, the current
+model and the width book (real records).
 
 **Acceptance Scenarios**:
 
 1. **Given** the retrained models, **When** their per-bar scores are collected for every test
    fold, **Then** the within-candidate AUC is computed on exactly the same eligible bars and labels
    as the current model's 0.53–0.62.
-2. **Given** the scores, **When** the simulated books are built, **Then** the simulator's
+2. **Given** the arm's fold records, **When** the books are read, **Then** the simulator's
    fidelity on the retrained model's own entries is checked first and reported.
-3. **Given** the early half f00–f07, **When** the simulated retrained book is compared with the
-   width book, **Then** the result is reported against the pre-registered stage rule.
-4. **Given** the early-half rule passes, **When** the late half f08–f14 is simulated, **Then** the
-   result is reported as the confirmatory simulator check.
+3. **Given** the early half f00–f07, **When** the retrained book is compared with the
+   width book and the control, **Then** the result is reported against the pre-registered stage rule.
+4. **Given** the early-half rule passes, **When** the late half f08–f14 is read, **Then** it is
+   judged as the confirmatory stage (User Story 3).
 
 ---
 
 ### User Story 3 - Pre-registered walk-forward judgement (Priority: P3)
 
-If the simulator stages pass, the researcher commits a pre-registration, runs the candidate-only
-arms as real walk-forward backtests, and judges each against its model control and the width
-book.
+The researcher commits a pre-registration with every stage rule BEFORE training starts. After
+the early stages pass, the late half of the walk-forward arms is judged against the model control
+and the width book.
 
-**Why this priority**: Only a real backtest can decide adoption. It comes last because it costs a
-backtest chain per model and is only worth running if the cheap stages pass.
+**Why this priority**: Only the confirmatory stage can decide adoption. It is read last, and
+only if the earlier stages pass.
 
 **Independent Test**: The committed pre-registration, the arm records (15 folds per model), and
 the verdicts with paired and risk results.
@@ -189,11 +192,11 @@ the verdicts with paired and risk results.
   and the threshold MUST match the 24 h controls (wf_aro_g24, fs_gbr_gr).
 - **FR-010**: A within-candidate measurement MUST report AUC on rule-eligible bars per model and
   half, for the retrained and the current model on identical bars and labels.
-- **FR-011**: The simulator MUST be checked for fidelity on each retrained model's own entries
-  before its simulated book is reported.
-- **FR-012**: The stage rules MUST be committed before the stage they govern is looked at:
-  - the early-half simulator rule before the early-half books are computed;
-  - the late-half simulator rule and the walk-forward rule before the late-half books are computed.
+- **FR-011**: The simulator MUST be checked for fidelity on each retrained model's own backtested
+  entries (instrument check) before any stage book is read.
+- **FR-012**: All stage rules MUST be committed in one pre-registration before training starts.
+  The stages MUST be read in order; a failed stage leaves the later stages recorded as not
+  reached.
 - **FR-013**: The walk-forward arms MUST be judged with the existing judge against the model control
   and against the width book. The judge MUST refuse records that predate the pre-registration.
 - **FR-014**: Training MUST run one fold at a time, one trainer at a time.
@@ -223,7 +226,7 @@ the verdicts with paired and risk results.
 - **SC-004**: The within-candidate AUC of each retrained model is reported per half next to the
   current model's, on the same bars.
 - **SC-005**: The simulator reproduces each retrained model's backtested entries at least 95% (pair
-  and candle) before its books are used.
+  and candle), and 0 entries violate the eligibility predicate.
 - **SC-006**: Each stage's outcome (pass, fail, or not reached) is recorded against its committed
   rule. The run ends with a verdict per model, including the stage that stopped it.
 
