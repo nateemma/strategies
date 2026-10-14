@@ -1,0 +1,144 @@
+{
+ "title": "033 width-relative label: NNNC models trained on a label relative to band width, used as a capital-neutral stake sizer on the width book (model exits off and on)",
+ "date": "2026-10-14",
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "setting": {
+  "label": "POOLED_LABEL (NNNC/_width_relative.py): gbb_path trade outcome (+2% target / -5% stop / 48-bar close) on entry-eligible bars (guard_metric<0.3, bb_width>0.035), top half of each of 10 bb_width deciles = BUY; gbb_path_sell outcome (2% fall / 2.2% take-profit / 48-bar close) on exit-eligible bars (guard_metric>0.3, bb_width>0.035), bottom half of each decile = SELL; deciles and cuts fitted on the training rows only; speed tie-break; min_bucket 500",
+  "training_rows": "%wr_keep: entry- or exit-eligible bars with a valid outcome, train and validation",
+  "sizer": "width book entries (NNNC_W_<M> cuts); stake = proposed x (1.0 agree | 0.5 disagree) / 0.75 (AGREE_SHARE 0.5): 1.333x / 0.667x",
+  "threshold": "research/width_relative/pick.py: 4-decimal threshold at the 0.5 quantile of the effective BUY probability over the first bar of each width-book candidate run in the fold's validation tail",
+  "exit_on": "same class, weights, thresholds and stakes; enable_exit_signal true; exit gate unchanged (rvol>2.0, guard_metric>-0.1)"
+ },
+ "books": {
+  "ARO": {
+   "exit_off": "wr_aro_sz",
+   "exit_on": "wr_aro_szx",
+   "control": "wf_aro_g24",
+   "width": "w_aro",
+   "class": "NNNC_WR_ARO",
+   "current_model": "ARO"
+  },
+  "GBR": {
+   "exit_off": "wr_gbr_sz",
+   "exit_on": "wr_gbr_szx",
+   "control": "fs_gbr_gr",
+   "width": "w_gbr",
+   "class": "NNNC_WR_GBR",
+   "current_model": "GBR"
+  }
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "thirds": {
+  "t1": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04"
+  ],
+  "t2": [
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09"
+  ],
+  "t3": [
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "stages": {
+  "S0": {
+   "label": {
+    "bucket_share": [
+     0.4,
+     0.6
+    ],
+    "abs_spearman_max": 0.05,
+    "on": "training rows, each side, every fold",
+    "kept_gt": 0,
+    "buy_gt": 0,
+    "sell_gt": 0
+   },
+   "instrument": {
+    "exit_off_trades_hash_equals_width_book": "per fold; a differing fold is reported and FLAGGED, it does not fail S0 unless more than 2 of 15 folds differ",
+    "entry_violations": 0,
+    "tag_to_agree_mismatches": 0,
+    "thresholds_loaded_4dp": true,
+    "exit_on_liveness": "every fold with exit-gate-passing bars inside open trades has >= 1 model exit",
+    "stake_shortfall_flag_share": 0.05,
+    "zero_trade_fold": "INCONCLUSIVE"
+   }
+  },
+  "S1": {
+   "arm": "exit_off",
+   "half": "early",
+   "rule": "agree - disagree pp/trade gap of the width-relative model > the current model's on the identical width-book trades (simulator, co_sizing method)",
+   "current_gap_early": {
+    "ARO": 0.072,
+    "GBR": 0.063
+   },
+   "late_gap": "not computed before S3; reported as context after S3 (separation.py --after-s3)"
+  },
+  "S2": {
+   "half": "early",
+   "exit_off": "arm pp > width book pp AND arm pp > control pp",
+   "exit_on": "arm pp > exit-off arm pp AND arm pp > width book pp"
+  },
+  "S3": {
+   "half": "late",
+   "exit_off": "judge_one(arm, control) PASS AND late pp > width book late pp",
+   "exit_on": "judge_one(exit-on, exit-off) PASS AND late pp > width book late pp",
+   "reported": "judge_one(arm, width)"
+  }
+ },
+ "per_arm": "each arm is judged independently; an S1 failure stops the exit-off arm only; an arm's records stay readable as the other arm's comparator",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "a stage passing by < 1 pp is INCONCLUSIVE until a paired seed-2 repeat (T025a)",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds or dry-run",
+ "exempt_records": []
+}
