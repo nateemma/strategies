@@ -196,7 +196,7 @@ code-level, SC-002).
 
   Commit it alone (named files) BEFORE any `NNNC_CO_*` training. Record the commit hash in the
   `.md`.
-- [ ] T015 [US2] Smoke: `train.py --model ARO` on f00 only (`--folds f00`). Check that:
+- [X] T015 [US2] Smoke: `train.py --model ARO` on f00 only (`--folds f00`). Check that:
   - `row_filter.json` has a train kept share between 10% and 35%, SELL count 0 and BUY share
     between 30% and 70%;
   - the model key directory is new and the existing ARO f00 weights are untouched (by file sha);

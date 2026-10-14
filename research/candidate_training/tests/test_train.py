@@ -15,6 +15,8 @@ def test_other_chains_ignores_the_dry_run_bot_and_itself():
     assert T.other_chains(PS_IDLE, own_pid=999) == []
     own = ["   999 python -m research.candidate_training.train --model ARO"]
     assert T.other_chains(own, own_pid=999) == []
+    wrapper = ["   998 /bin/zsh -c source x && python -m research.candidate_training.train --model ARO"]
+    assert T.other_chains(wrapper, own_pid=999) == []
 
 
 @pytest.mark.parametrize("cmd", [

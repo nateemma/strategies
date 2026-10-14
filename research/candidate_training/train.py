@@ -37,6 +37,9 @@ def other_chains(ps_lines: list[str], own_pid: int) -> list[str]:
         pid, _, cmd = line.strip().partition(" ")
         if not pid.isdigit() or int(pid) == own_pid:
             continue
+        tok = cmd.split()
+        if len(tok) > 1 and Path(tok[0]).name in ("zsh", "bash", "sh") and tok[1] == "-c":
+            continue  # a wrapper shell (e.g. the one that launched us); its child is what counts
         if any(b in cmd for b in BUSY):
             out.append(cmd)
     return out
