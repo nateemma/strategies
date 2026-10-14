@@ -1,0 +1,183 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2): NNNC needs 730 training days and data starts 2021-01-01, so no distant-era window exists. A pass is PASS (PROVISIONAL), a provisional result with a forward-confirmation route.",
+ "models": {
+  "ARO": {
+   "book": "ARO",
+   "S1": {
+    "early": {
+     "bars": 100833,
+     "label_rate": 0.5109,
+     "auc_retrained": 0.626,
+     "auc_current": 0.6177,
+     "diff": 0.0083,
+     "ci95_info_only": [
+      0.0017,
+      0.0153
+     ]
+    },
+    "late": {
+     "bars": 104239,
+     "label_rate": 0.4814,
+     "auc_retrained": 0.6063,
+     "auc_current": 0.6009,
+     "diff": 0.0055,
+     "ci95_info_only": [
+      0.001,
+      0.0103
+     ]
+    },
+    "pass": true
+   },
+   "S2": {
+    "early_pp": {
+     "arm": 25.233,
+     "control": 35.282,
+     "width": 35.851
+    },
+    "margins": {
+     "vs_width": -10.617999999999999,
+     "vs_control": -10.048999999999996
+    },
+    "pass": false
+   },
+   "S3": "not_reached",
+   "instrument": {
+    "fidelity": {
+     "recall": 0.9987,
+     "precision": 0.9948,
+     "recorded": 766,
+     "simulated": 769
+    },
+    "fidelity_pass": true,
+    "entry_violations": 0,
+    "sell_rows_kept": 0,
+    "trades_per_fold": {
+     "f00": 23,
+     "f01": 18,
+     "f02": 15,
+     "f03": 37,
+     "f04": 79,
+     "f05": 41,
+     "f06": 32,
+     "f07": 127,
+     "f08": 132,
+     "f09": 24,
+     "f10": 20,
+     "f11": 120,
+     "f12": 40,
+     "f13": 41,
+     "f14": 17
+    }
+   },
+   "thirds": {
+    "t1": {
+     "arm": 12.785,
+     "control": 15.841,
+     "width": 20.163
+    },
+    "t2": {
+     "arm": 12.776,
+     "control": 26.27,
+     "width": 21.022
+    },
+    "t3": {
+     "arm": 10.136,
+     "control": 7.854000000000001,
+     "width": 10.258000000000001
+    }
+   },
+   "decision": "FAIL",
+   "stopped_at": "S2",
+   "reason": "early half did not beat both the width book and the control"
+  },
+  "GBR": {
+   "book": "GBR",
+   "S1": {
+    "early": {
+     "bars": 100833,
+     "label_rate": 0.5109,
+     "auc_retrained": 0.6222,
+     "auc_current": 0.591,
+     "diff": 0.0312,
+     "ci95_info_only": [
+      0.0232,
+      0.0384
+     ]
+    },
+    "late": {
+     "bars": 104239,
+     "label_rate": 0.4814,
+     "auc_retrained": 0.6145,
+     "auc_current": 0.5832,
+     "diff": 0.0313,
+     "ci95_info_only": [
+      0.0236,
+      0.0394
+     ]
+    },
+    "pass": true
+   },
+   "S2": {
+    "early_pp": {
+     "arm": 23.192,
+     "control": 37.943,
+     "width": 36.719
+    },
+    "margins": {
+     "vs_width": -13.527000000000001,
+     "vs_control": -14.750999999999998
+    },
+    "pass": false
+   },
+   "S3": "not_reached",
+   "instrument": {
+    "fidelity": {
+     "recall": 0.9975,
+     "precision": 0.9975,
+     "recorded": 1219,
+     "simulated": 1219
+    },
+    "fidelity_pass": true,
+    "entry_violations": 0,
+    "sell_rows_kept": 0,
+    "trades_per_fold": {
+     "f00": 21,
+     "f01": 13,
+     "f02": 13,
+     "f03": 70,
+     "f04": 204,
+     "f05": 64,
+     "f06": 36,
+     "f07": 212,
+     "f08": 176,
+     "f09": 42,
+     "f10": 38,
+     "f11": 192,
+     "f12": 58,
+     "f13": 56,
+     "f14": 24
+    }
+   },
+   "thirds": {
+    "t1": {
+     "arm": 14.850999999999999,
+     "control": 30.598,
+     "width": 17.935000000000002
+    },
+    "t2": {
+     "arm": 12.132,
+     "control": 13.944,
+     "width": 28.704
+    },
+    "t3": {
+     "arm": 4.880999999999999,
+     "control": 8.915,
+     "width": 7.038
+    }
+   },
+   "decision": "FAIL",
+   "stopped_at": "S2",
+   "reason": "early half did not beat both the width book and the control"
+  }
+ }
+}

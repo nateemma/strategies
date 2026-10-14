@@ -167,3 +167,16 @@ run). pp early / late (trades over 15 folds):
   are small (+5.2, +2.3, +1.9 late), and MLX gives back 7.2 early, so over 15 folds it is +1.5 / +8.1
   / +1.4 / −5.3. This is within simulator noise for everything except GBR.
 - **Every other second feature makes the book worse.** Width is doing nearly all of the work.
+
+## 7. Candidate-only training (feature 032 → `research/candidate_training/report.md`)
+
+Pre-registered: retrain ARO and GBR on rule-eligible rows only (`TRAIN_ROW_FILTER`), with the
+threshold rate-matched to the control.
+
+- **S1 passed** (within-candidate AUC): GBR +0.031 in both halves; ARO +0.008 / +0.006.
+- **S2 FAILED for both** (early f00–f07, pp): ARO 25.2 vs control 35.3 vs width 35.9; GBR 23.2 vs
+  37.9 vs 36.7. S3 was not reached.
+- The arms take about 40% fewer trades at a similar pp per trade. For ARO, the arm signals on fewer
+  bars; for GBR, the signal rate is the same but the signals cluster.
+
+Nothing adopted. The width book still matches or beats every model book.

@@ -1,0 +1,609 @@
+{
+ "label": "032 instrument checks (entries only; no P&L read)",
+ "models": {
+  "CO_ARO": {
+   "fidelity": {
+    "recall": 0.9987,
+    "precision": 0.9948,
+    "recorded": 766,
+    "simulated": 769
+   },
+   "fidelity_pass": true,
+   "entry_violations": 0,
+   "trades_per_fold": {
+    "f00": 23,
+    "f01": 18,
+    "f02": 15,
+    "f03": 37,
+    "f04": 79,
+    "f05": 41,
+    "f06": 32,
+    "f07": 127,
+    "f08": 132,
+    "f09": 24,
+    "f10": 20,
+    "f11": 120,
+    "f12": 40,
+    "f13": 41,
+    "f14": 17
+   },
+   "liveness": {
+    "f00": {
+     "train_kept_share": 0.275322,
+     "train_class_counts": [
+      0,
+      44510,
+      52522
+     ],
+     "val_kept_share": 0.130418,
+     "val_class_counts": [
+      0,
+      6372,
+      5144
+     ]
+    },
+    "f01": {
+     "train_kept_share": 0.253616,
+     "train_class_counts": [
+      0,
+      48984,
+      56175
+     ],
+     "val_kept_share": 0.132784,
+     "val_class_counts": [
+      0,
+      7734,
+      6056
+     ]
+    },
+    "f02": {
+     "train_kept_share": 0.237936,
+     "train_class_counts": [
+      0,
+      53588,
+      59871
+     ],
+     "val_kept_share": 0.103363,
+     "val_class_counts": [
+      0,
+      7294,
+      5048
+     ]
+    },
+    "f03": {
+     "train_kept_share": 0.195568,
+     "train_class_counts": [
+      0,
+      57597,
+      62655
+     ],
+     "val_kept_share": 0.083793,
+     "val_class_counts": [
+      0,
+      7334,
+      5563
+     ]
+    },
+    "f04": {
+     "train_kept_share": 0.185174,
+     "train_class_counts": [
+      0,
+      61186,
+      65474
+     ],
+     "val_kept_share": 0.108222,
+     "val_class_counts": [
+      0,
+      9186,
+      9341
+     ]
+    },
+    "f05": {
+     "train_kept_share": 0.176016,
+     "train_class_counts": [
+      0,
+      64422,
+      68140
+     ],
+     "val_kept_share": 0.15618,
+     "val_class_counts": [
+      0,
+      13427,
+      16009
+     ]
+    },
+    "f06": {
+     "train_kept_share": 0.17245,
+     "train_class_counts": [
+      0,
+      68588,
+      73208
+     ],
+     "val_kept_share": 0.162757,
+     "val_class_counts": [
+      0,
+      16056,
+      17432
+     ]
+    },
+    "f07": {
+     "train_kept_share": 0.171524,
+     "train_class_counts": [
+      0,
+      73836,
+      79055
+     ],
+     "val_kept_share": 0.164683,
+     "val_class_counts": [
+      0,
+      17979,
+      18751
+     ]
+    },
+    "f08": {
+     "train_kept_share": 0.172359,
+     "train_class_counts": [
+      0,
+      79715,
+      85833
+     ],
+     "val_kept_share": 0.182581,
+     "val_class_counts": [
+      0,
+      20605,
+      23272
+     ]
+    },
+    "f09": {
+     "train_kept_share": 0.172471,
+     "train_class_counts": [
+      0,
+      85574,
+      92003
+     ],
+     "val_kept_share": 0.213133,
+     "val_class_counts": [
+      0,
+      26012,
+      28890
+     ]
+    },
+    "f10": {
+     "train_kept_share": 0.170658,
+     "train_class_counts": [
+      0,
+      90745,
+      96761
+     ],
+     "val_kept_share": 0.215134,
+     "val_class_counts": [
+      0,
+      27941,
+      31194
+     ]
+    },
+    "f11": {
+     "train_kept_share": 0.172767,
+     "train_class_counts": [
+      0,
+      97211,
+      104554
+     ],
+     "val_kept_share": 0.195208,
+     "val_class_counts": [
+      0,
+      28077,
+      28954
+     ]
+    },
+    "f12": {
+     "train_kept_share": 0.177354,
+     "train_class_counts": [
+      0,
+      105201,
+      114180
+     ],
+     "val_kept_share": 0.188702,
+     "val_class_counts": [
+      0,
+      29667,
+      28724
+     ]
+    },
+    "f13": {
+     "train_kept_share": 0.180471,
+     "train_class_counts": [
+      0,
+      113044,
+      122666
+     ],
+     "val_kept_share": 0.179569,
+     "val_class_counts": [
+      0,
+      30322,
+      28346
+     ]
+    },
+    "f14": {
+     "train_kept_share": 0.180458,
+     "train_class_counts": [
+      0,
+      119259,
+      128908
+     ],
+     "val_kept_share": 0.167799,
+     "val_class_counts": [
+      0,
+      30718,
+      27004
+     ]
+    }
+   },
+   "sell_rows_kept": 0,
+   "thresholds": {
+    "f00": {
+     "threshold": 0.5342,
+     "achieved_rate": 0.014736
+    },
+    "f01": {
+     "threshold": 0.5326,
+     "achieved_rate": 0.014736
+    },
+    "f02": {
+     "threshold": 0.5294,
+     "achieved_rate": 0.014736
+    },
+    "f03": {
+     "threshold": 0.5462,
+     "achieved_rate": 0.014735
+    },
+    "f04": {
+     "threshold": 0.5554,
+     "achieved_rate": 0.014735
+    },
+    "f05": {
+     "threshold": 0.555,
+     "achieved_rate": 0.014736
+    },
+    "f06": {
+     "threshold": 0.547,
+     "achieved_rate": 0.014736
+    },
+    "f07": {
+     "threshold": 0.5556,
+     "achieved_rate": 0.014736
+    },
+    "f08": {
+     "threshold": 0.5585,
+     "achieved_rate": 0.014736
+    },
+    "f09": {
+     "threshold": 0.564,
+     "achieved_rate": 0.014735
+    },
+    "f10": {
+     "threshold": 0.5603,
+     "achieved_rate": 0.014735
+    },
+    "f11": {
+     "threshold": 0.5456,
+     "achieved_rate": 0.014735
+    },
+    "f12": {
+     "threshold": 0.5609,
+     "achieved_rate": 0.014735
+    },
+    "f13": {
+     "threshold": 0.5484,
+     "achieved_rate": 0.014735
+    },
+    "f14": {
+     "threshold": 0.5434,
+     "achieved_rate": 0.014735
+    }
+   }
+  },
+  "CO_GBR": {
+   "fidelity": {
+    "recall": 0.9975,
+    "precision": 0.9975,
+    "recorded": 1219,
+    "simulated": 1219
+   },
+   "fidelity_pass": true,
+   "entry_violations": 0,
+   "trades_per_fold": {
+    "f00": 21,
+    "f01": 13,
+    "f02": 13,
+    "f03": 70,
+    "f04": 204,
+    "f05": 64,
+    "f06": 36,
+    "f07": 212,
+    "f08": 176,
+    "f09": 42,
+    "f10": 38,
+    "f11": 192,
+    "f12": 58,
+    "f13": 56,
+    "f14": 24
+   },
+   "liveness": {
+    "f00": {
+     "train_kept_share": 0.275322,
+     "train_class_counts": [
+      0,
+      44510,
+      52522
+     ],
+     "val_kept_share": 0.130418,
+     "val_class_counts": [
+      0,
+      6372,
+      5144
+     ]
+    },
+    "f01": {
+     "train_kept_share": 0.253616,
+     "train_class_counts": [
+      0,
+      48984,
+      56175
+     ],
+     "val_kept_share": 0.132784,
+     "val_class_counts": [
+      0,
+      7734,
+      6056
+     ]
+    },
+    "f02": {
+     "train_kept_share": 0.237936,
+     "train_class_counts": [
+      0,
+      53588,
+      59871
+     ],
+     "val_kept_share": 0.103363,
+     "val_class_counts": [
+      0,
+      7294,
+      5048
+     ]
+    },
+    "f03": {
+     "train_kept_share": 0.195568,
+     "train_class_counts": [
+      0,
+      57597,
+      62655
+     ],
+     "val_kept_share": 0.083793,
+     "val_class_counts": [
+      0,
+      7334,
+      5563
+     ]
+    },
+    "f04": {
+     "train_kept_share": 0.185174,
+     "train_class_counts": [
+      0,
+      61186,
+      65474
+     ],
+     "val_kept_share": 0.108222,
+     "val_class_counts": [
+      0,
+      9186,
+      9341
+     ]
+    },
+    "f05": {
+     "train_kept_share": 0.176016,
+     "train_class_counts": [
+      0,
+      64422,
+      68140
+     ],
+     "val_kept_share": 0.15618,
+     "val_class_counts": [
+      0,
+      13427,
+      16009
+     ]
+    },
+    "f06": {
+     "train_kept_share": 0.17245,
+     "train_class_counts": [
+      0,
+      68588,
+      73208
+     ],
+     "val_kept_share": 0.162757,
+     "val_class_counts": [
+      0,
+      16056,
+      17432
+     ]
+    },
+    "f07": {
+     "train_kept_share": 0.171524,
+     "train_class_counts": [
+      0,
+      73836,
+      79055
+     ],
+     "val_kept_share": 0.164683,
+     "val_class_counts": [
+      0,
+      17979,
+      18751
+     ]
+    },
+    "f08": {
+     "train_kept_share": 0.172359,
+     "train_class_counts": [
+      0,
+      79715,
+      85833
+     ],
+     "val_kept_share": 0.182581,
+     "val_class_counts": [
+      0,
+      20605,
+      23272
+     ]
+    },
+    "f09": {
+     "train_kept_share": 0.172471,
+     "train_class_counts": [
+      0,
+      85574,
+      92003
+     ],
+     "val_kept_share": 0.213133,
+     "val_class_counts": [
+      0,
+      26012,
+      28890
+     ]
+    },
+    "f10": {
+     "train_kept_share": 0.170658,
+     "train_class_counts": [
+      0,
+      90745,
+      96761
+     ],
+     "val_kept_share": 0.215134,
+     "val_class_counts": [
+      0,
+      27941,
+      31194
+     ]
+    },
+    "f11": {
+     "train_kept_share": 0.172767,
+     "train_class_counts": [
+      0,
+      97211,
+      104554
+     ],
+     "val_kept_share": 0.195208,
+     "val_class_counts": [
+      0,
+      28077,
+      28954
+     ]
+    },
+    "f12": {
+     "train_kept_share": 0.177354,
+     "train_class_counts": [
+      0,
+      105201,
+      114180
+     ],
+     "val_kept_share": 0.188702,
+     "val_class_counts": [
+      0,
+      29667,
+      28724
+     ]
+    },
+    "f13": {
+     "train_kept_share": 0.180471,
+     "train_class_counts": [
+      0,
+      113044,
+      122666
+     ],
+     "val_kept_share": 0.179569,
+     "val_class_counts": [
+      0,
+      30322,
+      28346
+     ]
+    },
+    "f14": {
+     "train_kept_share": 0.180458,
+     "train_class_counts": [
+      0,
+      119259,
+      128908
+     ],
+     "val_kept_share": 0.167799,
+     "val_class_counts": [
+      0,
+      30718,
+      27004
+     ]
+    }
+   },
+   "sell_rows_kept": 0,
+   "thresholds": {
+    "f00": {
+     "threshold": 0.5517,
+     "achieved_rate": 0.014736
+    },
+    "f01": {
+     "threshold": 0.543,
+     "achieved_rate": 0.014736
+    },
+    "f02": {
+     "threshold": 0.5419,
+     "achieved_rate": 0.014736
+    },
+    "f03": {
+     "threshold": 0.5486,
+     "achieved_rate": 0.014735
+    },
+    "f04": {
+     "threshold": 0.5442,
+     "achieved_rate": 0.014735
+    },
+    "f05": {
+     "threshold": 0.5399,
+     "achieved_rate": 0.014735
+    },
+    "f06": {
+     "threshold": 0.5467,
+     "achieved_rate": 0.014736
+    },
+    "f07": {
+     "threshold": 0.5392,
+     "achieved_rate": 0.014736
+    },
+    "f08": {
+     "threshold": 0.5428,
+     "achieved_rate": 0.014736
+    },
+    "f09": {
+     "threshold": 0.5433,
+     "achieved_rate": 0.014735
+    },
+    "f10": {
+     "threshold": 0.545,
+     "achieved_rate": 0.014735
+    },
+    "f11": {
+     "threshold": 0.5417,
+     "achieved_rate": 0.014735
+    },
+    "f12": {
+     "threshold": 0.5445,
+     "achieved_rate": 0.014735
+    },
+    "f13": {
+     "threshold": 0.5502,
+     "achieved_rate": 0.014735
+    },
+    "f14": {
+     "threshold": 0.5508,
+     "achieved_rate": 0.014735
+    }
+   }
+  }
+ }
+}

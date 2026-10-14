@@ -204,20 +204,20 @@ code-level, SC-002).
     threshold with an achieved rate within 10% of the target.
 
   STOP and diagnose before T016 if any check fails. No backtest at this step.
-- [ ] T016 [US2] Train ARO f01–f14 (`train.py --model ARO`, background, one chain).
+- [X] T016 [US2] Train ARO f01–f14 (`train.py --model ARO`, background, one chain).
   Then run `pick_threshold.py --plan plan_co_aro.json --target-rate 0.014735 --out
   evaluation/folds/thresholds_co_aro.json` and write the map into `plan_co_aro.json` `thresholds`.
   Then run `run_folds --plan plan_co_aro.json`: every fold must log "model already present" and
   15/15 must be evaluated with trades. Record per-fold achieved rates.
-- [ ] T017 [US2] The same for GBR (train, pick into `thresholds_co_gbr.json`, plan, `run_folds`), started only after T016's chain has exited.
-- [ ] T018 [P] [US2] Instrument checks, with the result committed in `research/candidate_training/instrument.json`. Read entries only, not P&L:
+- [X] T017 [US2] The same for GBR (train, pick into `thresholds_co_gbr.json`, plan, `run_folds`), started only after T016's chain has exited.
+- [X] T018 [P] [US2] Instrument checks, with the result committed in `research/candidate_training/instrument.json`. Read entries only, not P&L:
   - add `CO_ARO` / `CO_GBR` (plans `co_aro` / `co_gbr`, prefixes `NNNC_CO_ARO` / `NNNC_CO_GBR`) to
     `research/nnnc_framework/signals.py` `PLANS` and to `diagnose.MODELS_R2`;
   - run `signals.py --models CO_ARO,CO_GBR`;
   - (a) simulator recall and precision on each arm's recorded entries, ≥ 95% (SC-005);
   - (b) entry violations = 0, i.e. no recorded entry bar fails the predicate;
   - (c) every fold's `row_filter.json` summary.
-- [ ] T019 [US2] `research/candidate_training/auc.py` (S1):
+- [X] T019 [US2] `research/candidate_training/auc.py` (S1):
   - within-candidate AUC per model and half, for the retrained and the current model, on
     identical eligible bars and labels (reusing `research/model_calibration/within_candidates.py`
     helpers);
@@ -236,7 +236,7 @@ code-level, SC-002).
 
 **Independent test**: `verdicts.json` with the stages in order, `not_reached` after a failure, and the judge refusing stale or uncommitted inputs.
 
-- [ ] T020 [P] [US3] `research/candidate_training/judge.py` (C5). It refuses (exit 2) if `preregistration.json` is uncommitted or dirty, or if any `co_*` record predates its commit (reuse the pattern in `research/held_pair/judge.py::refusals`). It then evaluates per model:
+- [X] T020 [P] [US3] `research/candidate_training/judge.py` (C5). It refuses (exit 2) if `preregistration.json` is uncommitted or dirty, or if any `co_*` record predates its commit (reuse the pattern in `research/held_pair/judge.py::refusals`). It then evaluates per model:
   - S1 from `auc.json`;
   - S2 from early pp of the arm, control and width book (`evaluation.pool`);
   - S3 from `research.nnnc_switches.judge.judge_one(arm, control)`, plus late pp against the
@@ -251,14 +251,14 @@ code-level, SC-002).
   order (an S1 fail makes S2/S3 `not_reached` without reading pools, asserted by a pool stub that
   raises); a zero-trade fold → INCONCLUSIVE; a 0.5 pp margin → INCONCLUSIVE pending repeat; the
   word "ADOPTED" never appears in the output.
-- [ ] T021 [US3] Run `judge.py`. Commit `verdicts.json`.
-- [ ] T021a [US3] CONDITIONAL, only if T021 marks a stage INCONCLUSIVE on the small-margin rule. Paired seed-2 repeat over that stage's folds:
+- [X] T021 [US3] Run `judge.py`. Commit `verdicts.json`.
+- [X] T021a (not triggered: no stage passed by under 1 pp) [US3] CONDITIONAL, only if T021 marks a stage INCONCLUSIVE on the small-margin rule. Paired seed-2 repeat over that stage's folds:
   - `run_folds --seed 2` for the arm (train → pick → evaluate, one chain);
   - the same for the control (its seed-2 model);
   - re-run `judge.py --seed-repeat 2` so the stage passes only if the margin is > 0 on both seeds.
 
   Commit the repeat records and the updated `verdicts.json`.
-- [ ] T022 [US3] Write `research/candidate_training/report.md`:
+- [X] T022 [US3] Write `research/candidate_training/report.md`:
   - the stage table per model and the decision;
   - liveness, fidelity and entry violations;
   - the PROVISIONAL label;
@@ -272,9 +272,9 @@ code-level, SC-002).
 
 ## Phase 6: Polish
 
-- [ ] T023 [P] If any new research script sets an exit parameter, allowlist it in `Framework/tests/test_exit_policy_single_source.py`. Run the full suite and check pytest's exit code.
-- [ ] T024 [P] Memory: add a `project_032_candidate_training.md` file and its line in MEMORY.md; update `project_model_check_width_sort.md`.
-- [ ] T025 Mark all tasks `[X]` in this file. Final full suite, then commit.
+- [X] T023 [P] If any new research script sets an exit parameter, allowlist it in `Framework/tests/test_exit_policy_single_source.py`. Run the full suite and check pytest's exit code.
+- [X] T024 [P] Memory: add a `project_032_candidate_training.md` file and its line in MEMORY.md; update `project_model_check_width_sort.md`.
+- [X] T025 Mark all tasks `[X]` in this file. Final full suite, then commit.
 
 ---
 

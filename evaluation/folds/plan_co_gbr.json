@@ -226,5 +226,22 @@
  ],
  "namespacing_note": "renamed off NNNC_WF_* so this plan cannot inherit another arm's models.",
  "model_source_note": "weights = user_data/strategies/saved_data/NNNC_GBR_f00 (by model key)",
- "co_note": "032 candidate-only training; control fs_gbr_gr; thresholds picked after training"
+ "co_note": "032 candidate-only training; control fs_gbr_gr; thresholds picked after training",
+ "thresholds": {
+  "f00": 0.5516779157334566,
+  "f01": 0.5430364783421159,
+  "f02": 0.5419016685384512,
+  "f03": 0.5486372454643248,
+  "f04": 0.5442166254520416,
+  "f05": 0.5398997664451599,
+  "f06": 0.5467304268360138,
+  "f07": 0.5392272908687591,
+  "f08": 0.5428055651187896,
+  "f09": 0.5432890103340149,
+  "f10": 0.5449989359855651,
+  "f11": 0.5417351520538329,
+  "f12": 0.5444590201854705,
+  "f13": 0.5502064301013947,
+  "f14": 0.5508052143573761
+ }
 }

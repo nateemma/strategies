@@ -1,0 +1,15 @@
+f00: threshold=0.5517  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=440092
+f01: threshold=0.5430  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=517852
+f02: threshold=0.5419  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=595612
+f03: threshold=0.5486  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=768161
+f04: threshold=0.5442  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=854561
+f05: threshold=0.5399  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=940961
+f06: threshold=0.5467  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=1027361
+f07: threshold=0.5392  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=1113761
+f08: threshold=0.5428  achieved_rate=1.4736%  target_rate=1.4735%  n_scored=1200161
+f09: threshold=0.5433  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1286561
+f10: threshold=0.5450  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1372961
+f11: threshold=0.5417  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1459361
+f12: threshold=0.5445  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1545761
+f13: threshold=0.5502  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1632161
+f14: threshold=0.5508  achieved_rate=1.4735%  target_rate=1.4735%  n_scored=1718561

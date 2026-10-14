@@ -1,0 +1,55 @@
+{
+ "label": "032 S1 (pre-registered, research/candidate_training/preregistration.json)",
+ "models": {
+  "ARO": {
+   "early": {
+    "bars": 100833,
+    "label_rate": 0.5109,
+    "auc_retrained": 0.626,
+    "auc_current": 0.6177,
+    "diff": 0.0083,
+    "ci95_info_only": [
+     0.0017,
+     0.0153
+    ]
+   },
+   "late": {
+    "bars": 104239,
+    "label_rate": 0.4814,
+    "auc_retrained": 0.6063,
+    "auc_current": 0.6009,
+    "diff": 0.0055,
+    "ci95_info_only": [
+     0.001,
+     0.0103
+    ]
+   },
+   "S1_pass": true
+  },
+  "GBR": {
+   "early": {
+    "bars": 100833,
+    "label_rate": 0.5109,
+    "auc_retrained": 0.6222,
+    "auc_current": 0.591,
+    "diff": 0.0312,
+    "ci95_info_only": [
+     0.0232,
+     0.0384
+    ]
+   },
+   "late": {
+    "bars": 104239,
+    "label_rate": 0.4814,
+    "auc_retrained": 0.6145,
+    "auc_current": 0.5832,
+    "diff": 0.0313,
+    "ci95_info_only": [
+     0.0236,
+     0.0394
+    ]
+   },
+   "S1_pass": true
+  }
+ }
+}
