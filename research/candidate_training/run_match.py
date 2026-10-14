@@ -6,8 +6,8 @@ longer runs, and only a run's first bar can open a trade on a pair. This picks, 
 threshold at which the CO model's number of entry runs on the TRAINING window equals the control's
 at the control's own fold threshold. Only training data is read (pick_threshold.TrainWindow), and
 only its VALIDATION TAIL: the last (1 - TRAIN_DATA_SPLIT) of each pair's frame, which neither model
-trained on (early stopping only). Matching on the whole window failed: the control fires ~13x more
-in-sample than out of sample (ARO f00: 14,603 runs, ~9% of bars), beyond the CO model's maximum.
+trained on (early stopping only). Fold params are loaded with ft_bot_start() as backtesting does
+(run_match_rule.md, amendment 2: without it the control scored at a leaked threshold of 0).
 
   control runs: the control fold strategy as generated (its plan threshold), enter_long per pair.
   CO runs(t):   the CO fold strategy scored ONCE at prediction_threshold 0, so enter_long marks every
@@ -82,6 +82,10 @@ def _signals(plan: dict, fid: str, threshold: float | None):
 
     f = _fold(plan, fid)
     strat, cfg = P._load_fold_context(f["strategy_class"], plan["family"], plan["config"])
+    # Load the fold's .json params as backtesting does (ft_bot_start). Without it every buy param
+    # sits at its default, and since parameter objects are class-level, a value set on one
+    # strategy in this process (e.g. threshold 0) leaks into the next one loaded.
+    strat.ft_bot_start()
     if threshold is not None:
         strat.prediction_threshold.value = threshold
     data, timerange = P._load_train_data(strat, cfg, P.TrainWindow.from_fold(f))

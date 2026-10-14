@@ -36,3 +36,16 @@ any `co_*_rm` record existed.
 The matching now uses only the validation tail: the last 20% of each pair's training frame
 (`TRAIN_DATA_SPLIT` 0.8). Neither model trains on it; it is used only for early stopping. The arms,
 comparators and reading above are unchanged.
+
+## Amendment 2 (2026-10-14, before any backtest or P&L)
+
+The tail run still could not reach the target (ARO f00: control 1,848 runs, CO maximum 834). That
+was an instrument bug in `run_match.py`. `_load_fold_context` never applied the fold's `.json`
+params, because freqtrade loads them in `ft_bot_start()`. On top of that, the parameter objects are
+shared at class level, so the CO pass at threshold 0 left the control scoring at threshold 0 as
+well. Fix: call `ft_bot_start()` before scoring, as backtesting does. After the fix, the loaded
+params equal the fold `.json` except for the 2-decimal threshold rounding.
+
+The note in the first amendment, that the control fires about 13 times more in-sample, came from
+this bug and does not stand. The validation-tail restriction is kept, as the cleaner reference. The
+reading is unchanged.
