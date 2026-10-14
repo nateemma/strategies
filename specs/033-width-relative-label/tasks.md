@@ -245,7 +245,7 @@ instrument and the S1 separation recorded.
 
 ## Phase 5: User Story 3 — pre-registered judgement (P3)
 
-- [ ] T024 [P] [US3] `research/width_relative/judge.py` and tests, following 032's `judge.py`. Per model and arm:
+- [X] T024 [P] [US3] `research/width_relative/judge.py` and tests, following 032's `judge.py`. Per model and arm:
   - refusals (an uncommitted or dirty pre-registration; any `wr_*` record older than its commit);
   - S0 from `instrument.json`;
   - S1 from `separation.json` (exit-off only; an S1 fail stops only that arm);
