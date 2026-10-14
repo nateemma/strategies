@@ -91,3 +91,9 @@ each fold's generated `.json` (4 decimals) and by `pick.py --verify`.
   amendment above).
 
 All T018 checks passed.
+
+## Amendment 2 (2026-10-14, before any P&L read; the chain was training)
+
+S3 uses `research.nnnc_switches.judge.judge_one`, which reads `rule` (`paired_map`, `risk_map`) and
+`min_control_trades`. The original file omitted them. They are copied unchanged from 032's
+pre-registration (`min_control_trades` 200).

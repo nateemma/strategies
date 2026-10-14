@@ -149,6 +149,30 @@
    "before": "any chain run or P&L read",
    "change": "trade identity on (pair, open_date, close_date) instead of trades_hash; flat-stake twin keeps the exact hash; threshold check from the fold .json",
    "reason": "T018 smoke: coin-amount rounding changes profit_ratio when only the stake differs"
+  },
+  {
+   "date": "2026-10-14",
+   "before": "any P&L read (chain training)",
+   "change": "added judge_one's rule (paired_map, risk_map) and min_control_trades=200, copied unchanged from 032's pre-registration",
+   "reason": "S3 uses research.nnnc_switches.judge.judge_one, which reads these keys; they were omitted from the original file"
   }
- ]
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200
 }
