@@ -43,8 +43,9 @@ def test_floor_and_no_op_rules():
     assert A.status({"f00": _row(0.05, {"sell.sl": {"status": "equal_default"}})})[0] == "PASS"
 
 
-def test_identical_buy_and_sell_is_full_overlap():
-    """The mfe_mae_ratio case: no sell variant, so the raw SELL labels are the BUY labels."""
+def test_mfe_mae_ratio_sell_is_no_longer_the_buy_rule():
+    """Before 034 mfe_mae_ratio had no sell variant and its raw SELL labels were its BUY labels
+    (the audit recorded full overlap); the mirrored variant leaves none."""
     from Framework import TrainingSignals as T
 
     rng = np.random.default_rng(1)
@@ -55,7 +56,7 @@ def test_identical_buy_and_sell_is_full_overlap():
     p = {"horizon": 48, "min_gain": 0.02, "min_loss": 0.02}
     b = T.get_train_buy_signals(df, method=3, params=p).to_numpy() > 0.5
     s = T.get_train_sell_signals(df, method=3, params=p).to_numpy() > 0.5
-    assert b.any() and (b == s).all()
+    assert b.any() and s.any() and not (b & s).any()
 
 
 def test_spearman_handles_constant_labels():

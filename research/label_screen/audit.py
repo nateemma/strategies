@@ -169,10 +169,16 @@ def audit_one(c: C.Candidate, fid: str, control_cols: list | None) -> tuple[dict
     return row, cols
 
 
-def run_fold(fid: str) -> dict:
+def run_fold(fid: str, tags: set | None = None) -> dict:
+    """All candidates, or only `tags` (merged into the fold's existing file; CONTROL is always
+    recomputed as the column reference)."""
     OUT.mkdir(exist_ok=True)
-    out, control_cols = {}, None
+    path = OUT / f"{fid}.json"
+    out = json.loads(path.read_text()) if tags and path.is_file() else {}
+    control_cols = None
     for c in C.CANDIDATES:  # CONTROL first: its columns are the reference
+        if tags and c.tag != "CONTROL" and c.tag not in tags:
+            continue
         row, cols = audit_one(c, fid, control_cols)
         if c.tag == "CONTROL":
             control_cols = cols
@@ -181,7 +187,7 @@ def run_fold(fid: str) -> dict:
         print(fid, c.tag, json.dumps({"kept": row["kept"], "overlap": row["raw"]["overlap"],
                                       "cols": row["columns_equal_control"],
                                       "liveness": row.get("liveness")}), flush=True)
-    (OUT / f"{fid}.json").write_text(json.dumps(out, indent=1))
+    path.write_text(json.dumps(out, indent=1))
     return out
 
 
@@ -206,13 +212,14 @@ def main(argv=None) -> int:
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--fold", choices=EARLY)
     g.add_argument("--merge", action="store_true")
+    ap.add_argument("--tags", help="comma-separated tags to recompute in an existing fold file")
     a = ap.parse_args(argv)
     if a.merge:
         r = merge()
         for t, v in r["candidates"].items():
             print(t, v["status"], v["reason"])
     else:
-        run_fold(a.fold)
+        run_fold(a.fold, set(a.tags.split(",")) if a.tags else None)
     return 0
 
 

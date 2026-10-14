@@ -414,6 +414,33 @@ def labels_mfe_mae_ratio(
     return pd.Series(buy, index=df.index, dtype=float)
 
 
+def labels_mfe_mae_ratio_sell(
+    df: pd.DataFrame,
+    horizon: int = DEFAULT_HORIZON,
+    min_loss: float = 0.02,
+    min_ratio: float = 2.0,
+    min_gain: Optional[float] = None,  # Ignored for sell functions
+) -> pd.Series:
+    """
+    Mirror of ``labels_mfe_mae_ratio`` for sell labels: label 1 if the favourable DOWN move
+    (close - min future close) / close >= min_loss AND its ratio to the adverse UP move
+    (max future close - close) / close >= min_ratio.
+
+    Added 2026-10-14 (feature 034): mfe_mae_ratio had no sell variant, so the sell accessor fell
+    back to the BUY rule and its "sell" labels were a subset of the buy labels.
+    """
+    close = _safe_close(df)
+    min_future = _rolling_min_forward(close, horizon)
+    max_future = _rolling_max_forward(close, horizon)
+    down = (close - min_future) / close
+    # exact mirror of the buy side's _max_adverse_excursion (not clamped at 0, as there)
+    up = (max_future - close) / close
+    ratio = down / (up + 1e-12)
+    sell = (down >= min_loss) & (ratio >= min_ratio)
+    sell = np.where(np.isnan(down) | np.isnan(up), 0, sell.astype(int))
+    return pd.Series(sell, index=df.index, dtype=float)
+
+
 def labels_local_min_followthrough(
     df: pd.DataFrame,
     horizon: int = DEFAULT_HORIZON,
@@ -3665,6 +3692,13 @@ def get_train_sell_signals(
         }
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_quantile_future_return_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.mfe_mae_ratio:
+        # Dedicated mirror (034); before it the fallback below returned the BUY rule.
+        local = dict(params or {})
+        allowed = {"horizon", "min_loss", "min_ratio"}
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_mfe_mae_ratio_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.local_min_followthrough:
         # Use dedicated sell variant for local min followthrough

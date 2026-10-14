@@ -25,6 +25,16 @@ classes are therefore whatever the filter leaves, not a mirror of the buy rule.
 - **Alternatives**: add `labels_mfe_mae_ratio_sell` (a new label definition, out of scope; can be
   a follow-up); train mfe_mae_ratio with no SELL class (breaks the one-variable rule).
 
+- **Amendment (2026-10-14, user decision, before the pre-registration commit):** the sell side is
+  fixed instead. `labels_mfe_mae_ratio_sell` (Framework/TrainingSignals.py) mirrors the buy rule:
+  SELL = the down move within the horizon >= min_loss AND >= min_ratio x the up move, wired into
+  `get_train_sell_signals`. It is strategy-agnostic and changes only mfe_mae_ratio's sell path; the
+  lookahead oracle `NNNC_Oracle_MfeMaeRatio` (a ceiling reference, no model) no longer reproduces
+  its stored gate record. Five other labels still fall back to the buy rule on the sell side
+  (risk_adj_future, multi_horizon_vote, breakout_tb, breakout_vol, breakout_squeeze); none is in
+  this screen. The mirror copies the buy side exactly, including its unclamped adverse excursion
+  (see the 034 report).
+
 ## R2. Declared label parameters
 
 Every candidate receives the control's base parameters (horizon 48, min_gain 0.02, min_loss 0.02,
