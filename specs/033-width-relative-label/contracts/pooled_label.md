@@ -1,0 +1,48 @@
+# Contract C1: pooled width-relative relabel (Framework, strategy-agnostic)
+
+## `TrainingSignals.path_outcome(df, target, stop, horizon) -> (np.ndarray, np.ndarray)`
+
+- **Input:** a frame with a `close` column; `target > 0`, `stop < 0`, `horizon >= 1`.
+- **Output:** `outcome` (float, NaN past the end of the frame) and `bars_to_exit` (int, −1 when
+  NaN).
+- **Close-based, matching `labels_gbb_path`:** a bar has `outcome == target` if and only if
+  `labels_gbb_path`, with its rule gates disabled and the same target, stop and horizon, labels it
+  1. Except where the horizon runs past the end of the frame: `path_outcome` gives NaN there, while
+  `labels_gbb_path` gives 0.
+- **Pure:** no I/O, and it does not modify its inputs.
+
+## `PooledLabel.relabel(frames, labels, spec) -> (labels_out, report)`
+
+- **Input:**
+  - `frames`: the raw per-pair frames, as buffered by `maybe_train`;
+  - `labels`: the per-pair labels in the format `prepare_training_data` receives;
+  - `spec`: a PooledLabelSpec.
+- **Effects:**
+  - writes `%wr_valid` (1.0 or NaN) into each frame;
+  - returns new label arrays: eligible valid bars become BUY or HOLD, every other bar keeps its
+    label.
+- **Buckets:** computed once, over the pooled eligible valid bars of ALL frames passed.
+- **Determinism:** the same inputs give the same output. The ranking key is
+  `(outcome desc, tie-break, pair index, row)`.
+- **Errors:**
+  - `ValueError` on a bad spec, or when no eligible valid bars exist;
+  - `KeyError` when a declared column is missing.
+- **Absent spec:** the caller does not call it, so behaviour is byte-identical.
+
+## TrainingEngine hook
+
+In `_train_keyed`:
+- when `getattr(self, "POOLED_LABEL", None)` is not None, `relabel` runs on the buffered frames and
+  labels before `train_model`;
+- `self._pooled_label_report` is set and written as `width_relative.json` beside the weights (as
+  032's `row_filter.json`);
+- with no spec declared, no code path changes.
+
+**Tests (Framework/tests/test_pooled_label.py):**
+- `path_outcome` against `labels_gbb_path` on a scripted and a real frame;
+- hand-computed buckets and labels on a scripted 2-pair frame;
+- every bucket is about 50% after the split, including ties at the target;
+- NaN outcomes give `%wr_valid` NaN and are excluded by the row filter;
+- the spec-absent build is byte-identical to the 032 fixture;
+- the model key changes only for classes declaring the spec;
+- `ValueError` and `KeyError` paths.

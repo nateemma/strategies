@@ -63,8 +63,8 @@ directly.
 
 A researcher declares, on a new model class, a width-relative label. Each rule-eligible training
 bar gets a forward outcome. The outcome is compared with what bars of similar band width achieved
-in the same fold's training window. The bar is positive if it did better than its width bucket's
-expectation. Without the declaration, labelling is unchanged.
+in the same fold's training window. The bar is positive if it did better than half of the bars in
+its width bucket. Without the declaration, labelling is unchanged.
 
 **Why this priority**: Nothing can be trained until the label exists, and it must leave every
 existing model, weight file and recorded result untouched.
@@ -74,7 +74,7 @@ existing model, weight file and recorded result untouched.
   identical to the build captured before the change, and every existing model key and strategy
   fingerprint is unchanged.
 - With it declared, on a scripted frame with known outcomes and widths, every bar's label equals
-  the hand-computed "outcome above its bucket's expectation".
+  the hand-computed "in the top half of its bucket's outcomes" (with the declared tie-break).
 
 **Acceptance Scenarios**:
 
@@ -82,16 +82,17 @@ existing model, weight file and recorded result untouched.
    **Then** they are identical to the pre-change capture. All existing model keys and fingerprints
    are unchanged.
 2. **Given** the label declared, **When** labels are built for one fold, **Then** the bucket
-   boundaries and expectations are computed from that fold's training window only, pooled across
+   boundaries and rankings are computed from that fold's training window only, pooled across
    all its pairs. No test-window bar contributes.
 3. **Given** the label declared, **When** labels are built, **Then** a bar is positive exactly
-   when its forward outcome exceeds its bucket's expectation by more than the declared margin.
-   Otherwise it is negative. No bar is labelled SELL.
+   when its forward outcome ranks in the top declared share (default half) of its bucket. Ties are
+   broken by speed: a target hit in fewer bars ranks higher, a stop hit in more bars ranks higher,
+   then by position. Otherwise the bar is negative. No bar is labelled SELL.
 4. **Given** the label declared, **When** labels are built, **Then** the positive rate in every
    width bucket is between 40% and 60%. The rank correlation of the label with band width on
    eligible bars is within ±0.05.
 5. **Given** the label declared, **When** the model key is computed, **Then** it differs from
-   every existing key and changes with each label setting (outcome, bucket count, margin).
+   every existing key and changes with each label setting (outcome, bucket count, share).
 6. **Given** a bar whose forward outcome cannot be computed (the horizon runs past the end of the
    data), **When** labels are built, **Then** it is excluded from training, never labelled
    negative.
@@ -162,13 +163,14 @@ verdicts.
 
 ### Edge Cases
 
-- **Sparse width buckets.** A bucket with too few eligible training bars to estimate its
-  expectation reliably (fewer than 500 bars) is merged with its neighbour, and this is reported.
+- **Sparse width buckets.** A bucket with too few eligible training bars to rank reliably (fewer than 500 bars) is merged with its neighbour, and this is reported.
   A fold where this happens is not dropped.
 - **Pairs that enter mid-span.** A pair's bars count only where it has data. Buckets are pooled
   over whatever pairs are present in the fold's training window.
-- **Ties at the expectation.** An outcome exactly equal to the bucket expectation (plus margin) is
-  negative.
+- **Ties at the cut.** The outcome is capped at the +2% target, so many bars tie. Ties are broken
+  deterministically by speed to exit, then by position (US1 scenario 3). Plan research R3 shows why
+  a "beats the bucket mean" rule would keep the label width-correlated: the hit rate rises with
+  width, from 0.45 to 0.59 across deciles.
 - **Overlapping outcomes.** Consecutive eligible bars on one pair have overlapping forward windows.
   Their outcomes are correlated. This is accepted, as for every forward label today, and is not
   treated as independent evidence in any stage.
@@ -195,13 +197,13 @@ verdicts.
   gbb_path trade from that bar: the +2% target or the −5% stop, whichever the path reaches first,
   else the close return at 48 bars (Clarification Q1). The target, stop and horizon are the label
   parameters of the controls.
-- **FR-003**: The width reference MUST be the mean outcome of the bar's band-width quantile bucket.
-  It uses 10 equal-count buckets, computed per fold from that fold's training window only, pooled
+- **FR-003**: The width reference MUST be the bar's band-width quantile bucket: its outcomes
+  ranked with the declared tie-break. It uses 10 equal-count buckets, computed per fold from that fold's training window only, pooled
   across pairs, over rule-eligible bars.
-- **FR-004**: A bar MUST be labelled positive if and only if its outcome exceeds its bucket's
-  expectation by more than the declared margin (default 0). Otherwise it is negative. There is no
-  SELL label.
-- **FR-005**: The outcome measure, bucket count, margin and eligibility rule MUST be declared by
+- **FR-004**: A bar MUST be labelled positive if and only if it ranks in the top declared share
+  (default 0.5) of its bucket, by outcome, then the speed tie-break, then position. Otherwise it is
+  negative. There is no SELL label. (Refined at planning from "mean plus margin": plan research R3.)
+- **FR-005**: The outcome measure, bucket count, share and eligibility rule MUST be declared by
   the strategy (the NNNC side), not written into the shared code, so the shared code stays
   strategy-agnostic. Pooling across pairs MUST be applied where the training window's pairs are
   assembled, not inside a per-pair label function.
@@ -245,11 +247,11 @@ verdicts.
 - **Width-relative label**: the declared label setting:
   - the outcome measure;
   - the bucket count;
-  - the margin;
+  - the share;
   - the eligibility rule;
-  - the per-fold bucket boundaries and expectations it produces.
-- **Width bucket**: a band-width quantile range on a fold's eligible training bars, with its count
-  and mean outcome.
+  - the per-fold bucket boundaries and positive shares it produces.
+- **Width bucket**: a band-width quantile range on a fold's eligible training bars, with its count,
+  median outcome and positive share.
 - **Width-relative model**: a model class with the label declared. It has its own model key and
   weights per fold.
 - **Sizer arm**: the per-fold strategy classes that take the width book's trades and set each stake
