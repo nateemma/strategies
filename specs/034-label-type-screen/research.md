@@ -32,8 +32,10 @@ classes are therefore whatever the filter leaves, not a mirror of the buy rule.
   lookahead oracle `NNNC_Oracle_MfeMaeRatio` (a ceiling reference, no model) no longer reproduces
   its stored gate record. Five other labels still fall back to the buy rule on the sell side
   (risk_adj_future, multi_horizon_vote, breakout_tb, breakout_vol, breakout_squeeze); none is in
-  this screen. The mirror copies the buy side exactly, including its unclamped adverse excursion
-  (see the 034 report).
+  this screen. Second fix (user decision, same day, before the pre-registration commit): the
+  buy side's adverse excursion is clamped at 0, and the sell mirror's too. Unclamped, a bar whose
+  price never closed below entry got a negative ratio and was not labelled, excluding the cleanest
+  winners (5-12% of would-be buys on three sampled pairs).
 
 ## R2. Declared label parameters
 

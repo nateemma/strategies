@@ -407,7 +407,10 @@ def labels_mfe_mae_ratio(
     close = _safe_close(df)
     max_future = _rolling_max_forward(close, horizon)
     mfe = (max_future - close) / close
-    mae = _max_adverse_excursion(close, horizon)
+    # Clamped at 0 (034, 2026-10-14): when price never closes below entry in the horizon the
+    # adverse excursion is negative, which made the ratio negative and excluded the cleanest
+    # winners (5-12% of would-be buys on sampled pairs).
+    mae = np.maximum(_max_adverse_excursion(close, horizon), 0.0)
     ratio = mfe / (mae + 1e-12)
     buy = (mfe >= min_gain) & (ratio >= min_ratio)
     buy = np.where(np.isnan(mfe) | np.isnan(mae), 0, buy.astype(int))
@@ -433,8 +436,8 @@ def labels_mfe_mae_ratio_sell(
     min_future = _rolling_min_forward(close, horizon)
     max_future = _rolling_max_forward(close, horizon)
     down = (close - min_future) / close
-    # exact mirror of the buy side's _max_adverse_excursion (not clamped at 0, as there)
-    up = (max_future - close) / close
+    # the adverse UP move, clamped at 0 exactly as the buy side's adverse excursion
+    up = np.maximum((max_future - close) / close, 0.0)
     ratio = down / (up + 1e-12)
     sell = (down >= min_loss) & (ratio >= min_ratio)
     sell = np.where(np.isnan(down) | np.isnan(up), 0, sell.astype(int))

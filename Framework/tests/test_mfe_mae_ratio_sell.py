@@ -47,12 +47,21 @@ def test_accessor_uses_the_sell_variant_and_no_longer_returns_the_buy_rule():
     assert (s == direct).all()
 
 
-def test_buy_side_unchanged():
+def test_buy_side_rule():
     rng = np.random.default_rng(2)
     df = _df(100 * np.exp(np.cumsum(rng.normal(0, 0.006, 1500))))
     close = df["close"].to_numpy(float)
     mfe = (T._rolling_max_forward(close, 48) - close) / close
-    mae = T._max_adverse_excursion(close, 48)
+    mae = np.maximum(T._max_adverse_excursion(close, 48), 0.0)
     want = np.where(np.isnan(mfe) | np.isnan(mae), 0,
                     ((mfe >= 0.02) & (mfe / (mae + 1e-12) >= 2.0)).astype(int))
     assert (T.labels_mfe_mae_ratio(df, horizon=48, min_gain=0.02).to_numpy() == want).all()
+
+
+def test_clean_moves_are_labelled_on_both_sides():
+    """A move that never goes against the trade is the cleanest case; before the clamp its
+    negative adverse excursion made the ratio negative and the bar unlabelled."""
+    up = _df(np.r_[100.0, 100.5, 101.0, 102.5, np.full(60, 102.5)])
+    assert T.labels_mfe_mae_ratio(up, horizon=48, min_gain=0.02).iloc[0] == 1
+    down = _df(np.r_[100.0, 99.5, 99.0, 97.5, np.full(60, 97.5)])
+    assert T.labels_mfe_mae_ratio_sell(down, horizon=48, min_loss=0.02).iloc[0] == 1
