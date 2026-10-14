@@ -1,0 +1,90 @@
+{
+ "ARO": {
+  "width_and_model": {
+   "early": {
+    "pp": 19.35,
+    "trades": 128
+   },
+   "late": {
+    "pp": 13.5,
+    "trades": 184
+   }
+  },
+  "width_and_p0.6": {
+   "early": {
+    "pp": 36.15,
+    "trades": 408
+   },
+   "late": {
+    "pp": 16.53,
+    "trades": 518
+   }
+  }
+ },
+ "GBR": {
+  "width_and_model": {
+   "early": {
+    "pp": 30.84,
+    "trades": 268
+   },
+   "late": {
+    "pp": 21.61,
+    "trades": 263
+   }
+  },
+  "width_and_p0.6": {
+   "early": {
+    "pp": 33.04,
+    "trades": 467
+   },
+   "late": {
+    "pp": 18.61,
+    "trades": 422
+   }
+  }
+ },
+ "GFM": {
+  "width_and_model": {
+   "early": {
+    "pp": 0.53,
+    "trades": 24
+   },
+   "late": {
+    "pp": 2.4,
+    "trades": 79
+   }
+  },
+  "width_and_p0.6": {
+   "early": {
+    "pp": 45.62,
+    "trades": 565
+   },
+   "late": {
+    "pp": 17.86,
+    "trades": 571
+   }
+  }
+ },
+ "MLX": {
+  "width_and_model": {
+   "early": {
+    "pp": 20.58,
+    "trades": 181
+   },
+   "late": {
+    "pp": 14.6,
+    "trades": 166
+   }
+  },
+  "width_and_p0.6": {
+   "early": {
+    "pp": 20.79,
+    "trades": 184
+   },
+   "late": {
+    "pp": 14.82,
+    "trades": 167
+   }
+  }
+ }
+}

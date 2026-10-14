@@ -1,0 +1,334 @@
+{
+ "label": "DIAGNOSTIC -- PROVISIONAL",
+ "eligible": "guard_metric < 0.3 and bb_width > 0.035",
+ "models": {
+  "ARO": {
+   "early": {
+    "eligible_bars": 100833,
+    "label_rate": 0.5109,
+    "auc_within": 0.6176744498350174,
+    "spearman_fwd": {
+     "p_buy": 0.091,
+     "depth": 0.0444,
+     "bb_width": 0.0751
+    },
+    "selected": {
+     "model": {
+      "n": 6339,
+      "fwd_pct": 2.114,
+      "hit48": 0.753
+     },
+     "depth": {
+      "n": 6339,
+      "fwd_pct": 0.788,
+      "hit48": 0.5102
+     },
+     "bb_width_posthoc": {
+      "n": 6339,
+      "fwd_pct": 2.15,
+      "hit48": 0.7
+     },
+     "random": {
+      "n": 6339,
+      "fwd_pct": 0.604,
+      "hit48": 0.5428
+     },
+     "all_eligible": {
+      "n": 100833,
+      "fwd_pct": 0.613,
+      "hit48": 0.5426
+     }
+    },
+    "overlap_model_depth": 0.0292
+   },
+   "late": {
+    "eligible_bars": 104239,
+    "label_rate": 0.4814,
+    "auc_within": 0.6008671521662959,
+    "spearman_fwd": {
+     "p_buy": 0.0562,
+     "depth": 0.0281,
+     "bb_width": 0.043
+    },
+    "selected": {
+     "model": {
+      "n": 7137,
+      "fwd_pct": 1.245,
+      "hit48": 0.7116
+     },
+     "depth": {
+      "n": 7137,
+      "fwd_pct": 0.757,
+      "hit48": 0.5298
+     },
+     "bb_width_posthoc": {
+      "n": 7137,
+      "fwd_pct": 1.259,
+      "hit48": 0.672
+     },
+     "random": {
+      "n": 7137,
+      "fwd_pct": 0.197,
+      "hit48": 0.5056
+     },
+     "all_eligible": {
+      "n": 104239,
+      "fwd_pct": 0.207,
+      "hit48": 0.507
+     }
+    },
+    "overlap_model_depth": 0.0261
+   }
+  },
+  "GBR": {
+   "early": {
+    "eligible_bars": 100833,
+    "label_rate": 0.5109,
+    "auc_within": 0.5910431219363339,
+    "spearman_fwd": {
+     "p_buy": 0.0801,
+     "depth": 0.0444,
+     "bb_width": 0.0751
+    },
+    "selected": {
+     "model": {
+      "n": 5457,
+      "fwd_pct": 2.122,
+      "hit48": 0.7546
+     },
+     "depth": {
+      "n": 5457,
+      "fwd_pct": 0.782,
+      "hit48": 0.508
+     },
+     "bb_width_posthoc": {
+      "n": 5457,
+      "fwd_pct": 2.287,
+      "hit48": 0.7097
+     },
+     "random": {
+      "n": 5457,
+      "fwd_pct": 0.608,
+      "hit48": 0.5438
+     },
+     "all_eligible": {
+      "n": 100833,
+      "fwd_pct": 0.613,
+      "hit48": 0.5426
+     }
+    },
+    "overlap_model_depth": 0.0682
+   },
+   "late": {
+    "eligible_bars": 104239,
+    "label_rate": 0.4814,
+    "auc_within": 0.583197454659051,
+    "spearman_fwd": {
+     "p_buy": 0.0558,
+     "depth": 0.0281,
+     "bb_width": 0.043
+    },
+    "selected": {
+     "model": {
+      "n": 6958,
+      "fwd_pct": 1.132,
+      "hit48": 0.7061
+     },
+     "depth": {
+      "n": 6958,
+      "fwd_pct": 0.782,
+      "hit48": 0.5295
+     },
+     "bb_width_posthoc": {
+      "n": 6958,
+      "fwd_pct": 1.276,
+      "hit48": 0.6733
+     },
+     "random": {
+      "n": 6958,
+      "fwd_pct": 0.21,
+      "hit48": 0.5086
+     },
+     "all_eligible": {
+      "n": 104239,
+      "fwd_pct": 0.207,
+      "hit48": 0.507
+     }
+    },
+    "overlap_model_depth": 0.071
+   }
+  },
+  "GFM": {
+   "early": {
+    "eligible_bars": 100833,
+    "label_rate": 0.4023,
+    "auc_within": 0.531012988744256,
+    "spearman_fwd": {
+     "p_buy": 0.012,
+     "depth": 0.0444,
+     "bb_width": 0.0751
+    },
+    "selected": {
+     "model": {
+      "n": 8935,
+      "fwd_pct": 0.686,
+      "hit48": 0.6019
+     },
+     "depth": {
+      "n": 8935,
+      "fwd_pct": 0.717,
+      "hit48": 0.5033
+     },
+     "bb_width_posthoc": {
+      "n": 8935,
+      "fwd_pct": 1.828,
+      "hit48": 0.6853
+     },
+     "random": {
+      "n": 8935,
+      "fwd_pct": 0.632,
+      "hit48": 0.5442
+     },
+     "all_eligible": {
+      "n": 100833,
+      "fwd_pct": 0.613,
+      "hit48": 0.5426
+     }
+    },
+    "overlap_model_depth": 0.0104
+   },
+   "late": {
+    "eligible_bars": 104239,
+    "label_rate": 0.3788,
+    "auc_within": 0.5393809098491922,
+    "spearman_fwd": {
+     "p_buy": 0.026,
+     "depth": 0.0281,
+     "bb_width": 0.043
+    },
+    "selected": {
+     "model": {
+      "n": 7492,
+      "fwd_pct": 0.853,
+      "hit48": 0.5868
+     },
+     "depth": {
+      "n": 7492,
+      "fwd_pct": 0.706,
+      "hit48": 0.5298
+     },
+     "bb_width_posthoc": {
+      "n": 7492,
+      "fwd_pct": 1.198,
+      "hit48": 0.6676
+     },
+     "random": {
+      "n": 7492,
+      "fwd_pct": 0.211,
+      "hit48": 0.5073
+     },
+     "all_eligible": {
+      "n": 104239,
+      "fwd_pct": 0.207,
+      "hit48": 0.507
+     }
+    },
+    "overlap_model_depth": 0.0051
+   }
+  },
+  "MLX": {
+   "early": {
+    "eligible_bars": 100833,
+    "label_rate": 0.5109,
+    "auc_within": 0.6143255596351486,
+    "spearman_fwd": {
+     "p_buy": 0.0851,
+     "depth": 0.0444,
+     "bb_width": 0.0751
+    },
+    "selected": {
+     "model": {
+      "n": 80179,
+      "fwd_pct": 0.72,
+      "hit48": 0.5864
+     },
+     "depth": {
+      "n": 80179,
+      "fwd_pct": 0.673,
+      "hit48": 0.5427
+     },
+     "bb_width_posthoc": {
+      "n": 80179,
+      "fwd_pct": 0.688,
+      "hit48": 0.5598
+     },
+     "random": {
+      "n": 80179,
+      "fwd_pct": 0.61,
+      "hit48": 0.5426
+     },
+     "all_eligible": {
+      "n": 100833,
+      "fwd_pct": 0.613,
+      "hit48": 0.5426
+     }
+    },
+    "overlap_model_depth": 0.799
+   },
+   "late": {
+    "eligible_bars": 104239,
+    "label_rate": 0.4814,
+    "auc_within": 0.6045359322205729,
+    "spearman_fwd": {
+     "p_buy": 0.0666,
+     "depth": 0.0281,
+     "bb_width": 0.043
+    },
+    "selected": {
+     "model": {
+      "n": 93110,
+      "fwd_pct": 0.254,
+      "hit48": 0.5253
+     },
+     "depth": {
+      "n": 93110,
+      "fwd_pct": 0.206,
+      "hit48": 0.5086
+     },
+     "bb_width_posthoc": {
+      "n": 93110,
+      "fwd_pct": 0.237,
+      "hit48": 0.5155
+     },
+     "random": {
+      "n": 93110,
+      "fwd_pct": 0.208,
+      "hit48": 0.5071
+     },
+     "all_eligible": {
+      "n": 104239,
+      "fwd_pct": 0.207,
+      "hit48": 0.507
+     }
+    },
+    "overlap_model_depth": 0.9008
+   }
+  }
+ },
+ "verdict": {
+  "model_beats_depth_both_halves": {
+   "ARO": true,
+   "GBR": true,
+   "GFM": false,
+   "MLX": true
+  },
+  "models": 3,
+  "model_adds_within_candidate_value": true
+ },
+ "posthoc_model_beats_bb_width_both_halves": {
+  "ARO": false,
+  "GBR": false,
+  "GFM": false,
+  "MLX": true
+ }
+}
