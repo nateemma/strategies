@@ -1,0 +1,136 @@
+{
+ "title": "032 candidate-only training: NNNC models trained only on windows whose last bar passes the gbb rule",
+ "date": "2026-10-13",
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2): NNNC needs 730 training days and data starts 2021-01-01, so no distant-era window exists. A pass is PASS (PROVISIONAL), a provisional result with a forward-confirmation route.",
+ "setting": {
+  "TRAIN_ROW_FILTER": [
+   [
+    "guard_metric",
+    "lt",
+    0.3
+   ],
+   [
+    "bb_width",
+    "gt",
+    0.035
+   ]
+  ],
+  "applied": "after windowing, train AND validation; entry requires the same predicate; held-pair add off; 24 h grace (control snapshots)",
+  "threshold": "pick_threshold.py at target_rate 0.014735 (the controls' rate) on each fold's TRAINING window, ineligible bars counted as 0 (Clarification Q1: A)"
+ },
+ "target_rate": 0.014735,
+ "books": {
+  "ARO": {
+   "arm": "co_aro",
+   "control": "wf_aro_g24",
+   "width": "w_aro",
+   "class": "NNNC_CO_ARO"
+  },
+  "GBR": {
+   "arm": "co_gbr",
+   "control": "fs_gbr_gr",
+   "width": "w_gbr",
+   "class": "NNNC_CO_GBR"
+  }
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "thirds": {
+  "t1": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04"
+  ],
+  "t2": [
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09"
+  ],
+  "t3": [
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "min_control_trades": 200,
+ "exempt_records": [],
+ "stages": {
+  "S1": "mechanism gate, read first: within-candidate AUC (bars with guard_metric < 0.3 AND bb_width > 0.035; the model's own gbb_path label) of the retrained model minus the current model's, on IDENTICAL bars and labels from the fold test windows, > 0 in BOTH halves. A bootstrap 95% CI (pair-day blocks) is reported for information only. Reference (current model, research/model_calibration/within_candidates.json): ARO 0.618 / 0.601, GBR 0.591 / 0.583 (early / late) -- recomputed on the S1 bars, which is what is compared.",
+  "S2": "early half f00-f07, read only after S1 passes: arm early pp > width book early pp AND arm early pp > control early pp (pp = sum of per-fold return_pct, real arm records).",
+  "S3": "late half f08-f14 (confirmatory), read only after S2 passes: research.nnnc_switches.judge.judge_one(arm, control) == PASS (early gain > 0 AND late gain > 0 AND paired maps to pass AND both risk verdicts map to pass) AND arm late pp > width book late pp. judge_one(arm, width book) is REPORTED, not gated."
+ },
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if S2 or S3 passes but any of its P&L margins (S2: arm-width early, arm-control early; S3: arm-width late, judge_one late_gain_pp vs control) is under 1.0 pp, that stage is INCONCLUSIVE until a paired seed-2 repeat (arm retrained and control model retrained on seed 2 over that stage's folds); it then passes only if every margin is > 0 on both seeds.",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "decision": "per model: S1, S2 and S3 all pass -> PASS (PROVISIONAL); a stage fails -> FAIL (naming the stage; later stages not_reached); any arm fold with zero trades, or a mapped verdict inconclusive, or a stage held on the small-margin rule -> INCONCLUSIVE. The word 'adopted' is not used; promotion is the user's decision in any case.",
+ "confirmation_route": "walk-forward folds after the data end 2026-09-07 once they exist, or dry-run data; only that can turn a PASS (PROVISIONAL) into a finding",
+ "reporting": [
+  "S1 AUC by half (retrained, current, difference, CI)",
+  "early/late pp arm, control, width book",
+  "thirds pp (context only)",
+  "per-fold row_filter.json: kept share, class counts (SELL must be 0)",
+  "per-fold achieved threshold rate",
+  "simulator recall/precision on the arm's entries (>= 0.95) and entry violations (must be 0)"
+ ],
+ "instrument_gates": {
+  "fidelity_min": 0.95,
+  "entry_violations": 0
+ },
+ "order": "T015 smoke (ARO f00 train only) -> ARO f01-f14 train -> pick thresholds -> co_aro backtest -> GBR train -> pick -> co_gbr backtest -> instrument checks -> S1 -> S2 -> S3"
+}
