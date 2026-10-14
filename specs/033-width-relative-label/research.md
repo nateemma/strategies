@@ -31,7 +31,9 @@ returns, per bar, `(outcome, bars_to_exit)`, close-based exactly like `labels_gb
 - the first close with return ≥ `target` gives `outcome = target`;
 - a close at or below `stop` before that gives `outcome = stop`;
 - otherwise the close return at `horizon`;
-- NaN when the horizon runs past the frame end.
+- near the frame end (fewer than `horizon` bars left): valid if the target or the stop is hit
+  within the remaining bars; NaN if neither is hit (analyze A1). The equivalence test with
+  `labels_gbb_path` is on bars with a full horizon, plus a direct test of this rule.
 
 NNNC passes its own label parameters: `MIN_BUY_GAIN_THRESHOLD` 0.02, `HORIZON` 48 (ARO and GBR),
 and `stop_frac` −0.05, `labels_gbb_path`'s default.
@@ -84,7 +86,8 @@ close-based:
 - a close at or above +`take_profit` (0.022, the sell labeller's default) before that gives
   `outcome = +take_profit`;
 - otherwise the close return at the horizon (48);
-- NaN past the frame end.
+- near the frame end, the same rule as the buy side (valid if a barrier is hit within the remaining
+  bars, else NaN).
 
 Exit-eligible bars are guard_metric > 0.3 AND bb_width > 0.035, disjoint from entry-eligible bars.
 They get their own 10 width buckets. The bottom half by outcome is SELL. The tie-break is a fall
@@ -119,6 +122,14 @@ conjunction.
 
 **Rationale:** 032's filter path is reused unchanged. The `%` prefix keeps the column out of the
 features, because `remove_debug_columns` drops `^%` columns before scaling.
+
+**Fit on the training split only (analyze U1):**
+- The bucket edges and each bucket's cut come only from the first `TRAIN_DATA_SPLIT` (0.8) of each
+  pair's frame, the rows `prepare_training_data` trains on. The cut is the ranking key at the
+  `share` quantile.
+- The validation rows (the last 20%, used for early stopping) are labelled with those fitted edges
+  and cuts, so validation labels never shape the buckets.
+- The engine passes `TRAIN_DATA_SPLIT` to `relabel` as `fit_split`.
 
 ## R5. Label classes
 
@@ -184,15 +195,18 @@ The trades-hash identity applies only to the exit-off arm: earlier exits change 
 - The arm classes redefine `prediction_threshold` as `DecimalParameter(0.0, 1.0, decimals=4,
   space="buy", load=True)`, on the new mixin only.
 - The per-fold threshold is the quantile `1 − s` of the model's effective BUY probability (argmax
-  BUY ? p_buy : 0) over the width-book candidate bars of the fold's validation tail (the last 20% of
-  each pair's training frame; `run_match.py`'s approach).
+  BUY ? p_buy : 0) over the FIRST bar of each width-book candidate run in the fold's validation tail
+  (the last 20% of each pair's training frame; `run_match.py`'s approach). A run's first bar is the
+  only bar that can open a trade on a free pair, so this targets the agree share among trades, not
+  bars (analyze A2). 032 showed run lengths differ between models. The realised trade-level agree
+  share in the test windows is reported per fold.
 - Scoring calls `ft_bot_start()` (032 amendment 2), runs one fold per process, and verifies the
   loaded threshold equals the picked one to 4 decimals.
 
 **Rationale:**
 - The validation tail is training data the weights never fit; 032's run-match showed it is the
   cleaner reference.
-- Width-book candidates are the bars the sizer actually prices.
+- Width-book candidate run starts are the bars the sizer actually prices.
 - The redefinition changes nothing for existing classes; their parameter stays the class-level
   2-decimal one.
 
@@ -225,10 +239,13 @@ The trades-hash identity applies only to the exit-off arm: earlier exits change 
 - **Per arm:** S0 for the exit-on arm is entry-rule violations 0, exit liveness, and parameters
   loaded. Its S2/S3 comparators are the exit-off arm (judge_one, late) and the width book (pp, both
   halves).
-- **S1, mechanism (exit-off arm only):**
+- **S1, mechanism (exit-off arm only; EARLY half only):**
   - the agree − disagree pp per trade gap of the width-relative model, on the IDENTICAL width-book
-    trades (simulator, as in `co_sizing.py`), must exceed the current model's in both halves (ARO
-    0.072 / 0.085, GBR 0.063 / 0.072);
+    trades of f00–f07 (simulator, as in `co_sizing.py`), must exceed the current model's early gap
+    (ARO 0.072, GBR 0.063);
+  - the late gap is not computed before S3. For the exit-off sizer, the late gap almost determines
+    the late pp (pp = Σ w × pp over those trades), so computing it earlier would read S3 early
+    (analyze I1). After S3 it is reported as context;
   - `agree` is recomputed from the signal tables' `buy_argmax` and `p_buy` at the fold threshold.
 - **S2:** early f00–f07; the exit-off arm's pp must beat the width book's AND the control's; the
   exit-on arm's pp must beat the exit-off arm's AND the width book's.
@@ -239,7 +256,10 @@ The trades-hash identity applies only to the exit-off arm: earlier exits change 
 - **Outcome:** PASS (PROVISIONAL), FAIL or INCONCLUSIVE. Confirmation: the folds after 2026-09-07,
   or dry-run.
 - **Order:** the judge refuses records older than the pre-registration commit, and later stages are
-  unread when an earlier one fails (032's `judge.py` pattern, reused).
+  not judged when an earlier one fails (032's `judge.py` pattern, reused).
+- **Comparator reads (analyze I4):** an arm's records stay readable as the comparator for the other
+  arm's reached stages. The exit-off arm is the exit-on arm's comparator in S2/S3 even if the
+  exit-off arm's own verdict stopped earlier. Its own verdict is unaffected.
 
 ## R10. Cost and running
 

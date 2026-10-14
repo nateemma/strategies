@@ -13,7 +13,7 @@
 | `exit_eligible` | tuple or None | guard_metric > 0.3 AND bb_width > 0.035 | None means a BUY-only label; must be disjoint from `eligible` (checked on the data: an overlap raises) |
 | `exit_loss`, `exit_take_profit` | float | 0.02 (`MIN_SELL_LOSS_THRESHOLD`), 0.022 | the sell-path outcome (`path_outcome(side="sell")`) |
 | `buckets` | int | 10 | ≥ 2; equal-count quantiles over eligible, valid bars pooled across pairs |
-| `share` | float | 0.5 | in (0, 1); the top share of each bucket is BUY |
+| `share` | float | 0.5 | in (0, 1); the top share of each entry bucket is BUY, the bottom share of each exit bucket is SELL |
 | `min_bucket` | int | 500 | a smaller bucket is merged into its neighbour (reported) |
 
 Absent (`None`) means no relabelling: byte-identical.
@@ -25,7 +25,7 @@ Absent (`None`) means no relabelling: byte-identical.
 
 | field | type | meaning |
 |---|---|---|
-| `outcome` | float or NaN | buy side: `target` (first hit), `stop` (stop first), the horizon close return, or NaN past the frame end; sell side: `−exit_loss` (fall first), `+exit_take_profit`, the horizon return, or NaN |
+| `outcome` | float or NaN | buy side: `target` (first hit), `stop` (stop first), or the horizon close return; sell side: `−exit_loss` (fall first), `+exit_take_profit`, or the horizon return. Near the frame end it is valid if a barrier is hit within the remaining bars, else NaN |
 | `bars_to_exit` | int or −1 | bars to the first hit, or to the stop; `horizon` for a horizon close; −1 if NaN |
 
 ## WidthBucket (per fold, in the relabel report)
@@ -35,7 +35,9 @@ Absent (`None`) means no relabelling: byte-identical.
 | `lo`, `hi` | reference-column edges (inclusive lo, exclusive hi; the last bucket is closed) |
 | `n` | eligible valid bars |
 | `side` | `buy` or `sell` |
-| `pos_share` | the BUY (buy side) or SELL (sell side) share; target 0.5 |
+| `pos_share` | the BUY (buy side) or SELL (sell side) share on the fit rows; target 0.5 |
+| `cut` | the ranking key at the `share` quantile, fitted on the training split and applied to validation rows |
+| `val_pos_share` | the labelled share among this bucket's validation rows (reported, not forced) |
 | `median_outcome` | the bucket's median outcome |
 | `merged` | true if merged because of `min_bucket` |
 
@@ -55,7 +57,8 @@ It is written once per trained fold, next to 032's `row_filter.json`.
 
 ## Label (per eligible, valid bar)
 
-The rule is BUY if the bar is in its bucket's top `share`, ranked by the key
+Bucket edges and cuts are fitted on the training split (`fit_split`) and applied to the validation
+rows. The buy-side rule is BUY if the bar is in its bucket's top `share`, ranked by the key
 `(outcome desc, tie-break, position)`. The tie-break is `bars_to_exit` ascending for target hits
 and descending for stops. Otherwise the bar is HOLD. On exit-eligible valid bars, the rule is SELL if
 the bar is in its exit-side bucket's bottom `share` (key: outcome asc, then a fall reached sooner

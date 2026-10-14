@@ -138,9 +138,11 @@ than the width book either.
 1. **Given** the trained folds, **When** the label is audited, **Then** each fold reports, per side,
    its labelled share per width bucket and the label's rank correlation with width, against the
    US1 scenario 4 bounds.
-2. **Given** the new model's per-bar scores on the test folds, **When** the width-book trades are
-   split by whether the model fires, **Then** the agree − disagree pp per trade gap is reported
-   next to the current model's (ARO 0.072 / 0.085, GBR 0.063 / 0.072) on the same trades.
+2. **Given** the new model's per-bar scores on the EARLY test folds (f00–f07), **When** the
+   width-book trades are split by whether the model fires, **Then** the agree − disagree pp per
+   trade gap is reported next to the current model's early gap (ARO 0.072, GBR 0.063) on the same
+   trades. The late-half gap is not computed here: it would largely determine the exit-off arm's
+   late pp before S2. It is reported only as context after S3 is judged.
 3. **Given** any book is read, **When** the instrument is checked, **Then**:
    - the exit-off arm reproduces the width book's trades fold by fold (same pairs, dates and
      profit ratios); any difference is reported as a wallet or stake effect;
@@ -173,8 +175,9 @@ verdicts.
    - per arm, S0 (instrument and label sanity), S1 (separation inside the width book; exit-off arm
      only), S2 (early half f00–f07, the arm's pp against its two comparators) and S3 (late half
      f08–f14, judged against both) are read in that order;
-   - a failed stage leaves that arm's later stages recorded as not reached, and their records
-     unread;
+   - a failed stage leaves that arm's later stages recorded as not reached. Its records for those
+     stages are not judged as that arm's outcome. They remain readable as the COMPARATOR for the
+     other arm's reached stages (the exit-off arm is the exit-on arm's comparator);
    - the arms are judged independently. An S1 failure stops the exit-off arm only, because the
      exit-on arm's question (do model exits add value on top of the sizer?) does not depend on it.
 3. **Given** a stage passes by less than 1 pp, **When** it is judged, **Then** it is INCONCLUSIVE
@@ -200,8 +203,9 @@ verdicts.
 - **Overlapping outcomes.** Consecutive eligible bars on one pair have overlapping forward windows.
   Their outcomes are correlated. This is accepted, as for every forward label today, and is not
   treated as independent evidence in any stage.
-- **Sizing inside the width book.** The arm takes exactly the width book's trades, so trade count and
-  timing match the width book. Only the stakes differ. The agree share is pre-registered, not tuned
+- **Sizing inside the width book.** The exit-off arm takes exactly the width book's trades, so trade
+  count and timing match the width book; only the stakes differ. (The exit-on arm shares the entry
+  rule but not necessarily the trades; see "Earlier exits change the trade set".) The agree share is pre-registered, not tuned
   on the books.
 - **Stake limits.** An agree trade's stake is above the width book's base stake (about 1.33× at a
   50% agree share). If the wallet or a liquidity cap cannot fill it, the shortfall is counted and
@@ -233,7 +237,9 @@ verdicts.
   the gbb_path trade from that bar: the +2% target or the −5% stop, whichever the path reaches
   first, else the close return at 48 bars (Clarification Q1). Per exit-eligible bar, it MUST be the
   mirror, the gbb_path_sell path: a 2% fall (NNNC's MIN_SELL_LOSS_THRESHOLD) or the 2.2% take-profit, whichever comes first, else
-  the close return at 48 bars. The targets, stops and horizon are the controls' label parameters.
+  the close return at 48 bars. The target, stop, fall threshold and horizon are the controls' label
+  parameters. The 2.2% take-profit is `labels_gbb_path_sell`'s own default, which the controls'
+  SELL label uses.
 - **FR-003**: The width reference MUST be the bar's band-width quantile bucket: its outcomes
   ranked with the declared tie-break. It uses 10 equal-count buckets, computed per fold from that fold's training window only, pooled
   across pairs, separately for entry-eligible and exit-eligible bars.
@@ -254,7 +260,9 @@ verdicts.
 - **FR-008**: The arms MUST be the sizer (Clarification Q2), in two co-primary variants: model
   exits off and model exits on (the controls' exit gate unchanged). Both use the same weights,
   thresholds and stakes. The sizer:
-  - it takes exactly the width book's trades;
+  - it uses the width book's entry rule. The exit-off variant therefore takes exactly the width
+    book's trades. The exit-on variant's entries can differ, because earlier exits free pairs
+    sooner;
   - each trade's stake is 1.0 when the model agrees at the trade's signal bar and 0.5 when it does
     not, scaled by a per-fold constant;
   - the constant is chosen so the expected mean stake equals the width book's, at the
@@ -269,14 +277,21 @@ verdicts.
   fingerprints and records are unchanged. The threshold the arm loads MUST be verified equal to the
   picked value.
 - **FR-010**: Arm classes MUST be built for ARO and GBR on all 15 folds, at 24 h grace with the
-  held-pair add off. Everything except the label, the training filter, the entry rule and the
-  threshold MUST match the 24 h controls (wf_aro_g24, fs_gbr_gr).
+  held-pair add off. Everything except the following MUST match the 24 h controls (wf_aro_g24,
+  fs_gbr_gr):
+  - the label;
+  - the training filter;
+  - the entry rule (the width book's);
+  - the threshold;
+  - the stake sizing;
+  - for the exit-on arm only, `enable_exit_signal`.
 - **FR-011**: A label audit MUST report, per fold, the positive rate per width bucket, the label's
   rank correlation with width, and the kept training rows and class counts.
 - **FR-011b**: The exit-on arm MUST report, per fold, the count of model exits, and the count of
   exit-gate-passing bars during open trades.
 - **FR-012**: The S1 measurement MUST compare the new and the current model's agree − disagree pp
-  per trade on the identical width-book trades, per model and half.
+  per trade on the identical width-book trades, per model, on the EARLY half (f00–f07) only. The
+  late-half gap MAY be reported as context only after S3 has been judged.
 - **FR-013**: All stage rules and operating points MUST be committed in one pre-registration
   before any model is trained. The stages MUST be read in order; a failed stage leaves the later
   stages recorded as not reached.
@@ -319,7 +334,8 @@ verdicts.
   within ±0.05.
 - **SC-004**: Weights exist for all 15 folds of ARO and GBR (30 trained folds).
 - **SC-005**: The S1 separation (agree − disagree pp per trade inside the width book) is reported
-  per model and half next to the current model's, on the identical trades.
+  per model on the early half next to the current model's, on the identical trades. Nothing from
+  the late half is computed before S3.
 - **SC-006**: The instrument holds for both arms:
   - the exit-off arm reproduces the width book's trades per fold, with differences reported as stake
     effects;

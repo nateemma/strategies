@@ -7,15 +7,16 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
 
 - **Input:** a frame with a `close` column and `horizon >= 1`. For `side="buy"`, `target > 0` and
   `stop < 0`; for `side="sell"`, `target < 0` and `stop > 0`. Otherwise `ValueError`.
-- **Output:** `outcome` (float, NaN past the end of the frame) and `bars_to_exit` (int, −1 when
-  NaN).
+- **Output:** `outcome` (float) and `bars_to_exit` (int, −1 when NaN). Near the frame end (fewer
+  than `horizon` bars left), the outcome is valid if a barrier is hit within the remaining bars,
+  else NaN.
 - **Close-based, matching `labels_gbb_path`:** a bar has `outcome == target` if and only if
   `labels_gbb_path`, with its rule gates disabled and the same target, stop and horizon, labels it
-  1. Except where the horizon runs past the end of the frame: `path_outcome` gives NaN there, while
-  `labels_gbb_path` gives 0.
+  1. The equivalence is asserted on bars with a full horizon. The near-end rule is tested
+  directly.
 - **Pure:** no I/O, and it does not modify its inputs.
 
-## `PooledLabel.relabel(frames, labels, spec) -> (labels_out, report)`
+## `PooledLabel.relabel(frames, labels, spec, fit_split=None) -> (labels_out, report)`
 
 - **Input:**
   - `frames`: the raw per-pair frames, as buffered by `maybe_train`;
@@ -26,9 +27,13 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
     each frame;
   - returns new label arrays: entry-eligible valid bars become BUY or HOLD, exit-eligible valid bars
     become SELL or HOLD, and every other bar keeps its label.
-- **Buckets:** computed once per side, over the pooled eligible valid bars of ALL frames passed.
+- **Buckets:** computed once per side, over the pooled eligible valid bars of the fit rows: the
+  first `fit_split` of each frame (`None` = all rows). The edges and cuts are applied unchanged to
+  the remaining (validation) rows.
 - **Determinism:** the same inputs give the same output. The ranking key is
-  `(outcome desc, tie-break, pair index, row)`.
+  `(outcome, tie-break, pair index, row)`:
+  - descending on the buy side, where the top `share` is BUY;
+  - ascending on the sell side, where the bottom `share` is SELL.
 - **Errors:**
   - `ValueError` on a bad spec, or when no eligible valid bars exist;
   - `KeyError` when a declared column is missing.
@@ -36,7 +41,7 @@ matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_
 
 ## TrainingEngine hook
 
-In `_train_keyed`:
+In `_train_keyed` (passing `fit_split = self.TRAIN_DATA_SPLIT`):
 - when `getattr(self, "POOLED_LABEL", None)` is not None, `relabel` runs on the buffered frames and
   labels before `train_model`;
 - `self._pooled_label_report` is set and written as `width_relative.json` beside the weights (as
@@ -47,6 +52,8 @@ In `_train_keyed`:
 - `path_outcome` against `labels_gbb_path` on a scripted and a real frame;
 - hand-computed buckets and labels on a scripted 2-pair frame;
 - every bucket is about 50% after the split, including ties at the target;
+- with `fit_split`, the bucket edges and cuts are unchanged when only validation rows' outcomes
+  change, and validation rows are labelled by those cuts;
 - NaN outcomes give `%wr_keep` NaN and are excluded by the row filter;
 - the sell side: `path_outcome(side="sell")` against `labels_gbb_path_sell`; SELL about 50% per
   exit bucket; entry and exit eligibility disjoint (an overlap raises);

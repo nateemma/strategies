@@ -59,12 +59,13 @@ description: "Task list for 033 width-relative label for NNNC models"
     whose `train_model` records its arguments, using the 032 test frame builder.
 - [ ] T003 [P] Write `Framework/tests/test_pooled_label.py::test_path_outcome_*` for C1 `path_outcome`. It must cover:
   - the buy side against `labels_gbb_path` with its rule gates disabled: `outcome == target`
-    exactly where that label is 1, on a scripted frame and on one real pair-month from
-    `user_data/data`;
+    exactly where that label is 1, on bars with a full horizon, on a scripted frame and on one real
+    pair-month from `user_data/data`;
   - the sell side against `labels_gbb_path_sell`, the same way, with target −0.02 and take-profit
     0.022;
   - a stop first gives `stop`; neither hit gives the horizon return;
-  - past the frame end gives NaN and `bars_to_exit` −1;
+  - near the frame end (fewer than `horizon` bars left): a barrier hit within the remaining bars
+    gives a valid outcome; no hit gives NaN and `bars_to_exit` −1;
   - a wrong sign for the side → `ValueError`;
   - the input is not mutated.
 - [ ] T004 Implement `Framework/TrainingSignals.py::path_outcome(df, target, stop, horizon, side="buy")` (C1, research R2/R2b), close-based, reusing that module's forward helpers where they fit. Generic only. T003 must pass.
@@ -88,7 +89,10 @@ changes.
   - a scripted 2-pair frame with known outcomes and widths: the buckets, BUY (top share), SELL
     (bottom share of the exit side) and HOLD, hand-computed, are equal;
   - ties at the target broken by `bars_to_exit`, then by position, deterministically;
-  - every bucket within ±1 bar of `share × n`;
+  - every bucket within ±1 bar of `share × n` on the fit rows;
+  - with `fit_split`: the edges and cuts come from the fit rows only (changing only validation
+    outcomes leaves them unchanged), and validation rows are labelled by those cuts;
+  - the sell side ranks ascending (bottom share is SELL);
   - `%wr_keep` is 1.0 on eligible valid bars and NaN elsewhere, with NaN outcomes excluded;
   - an entry/exit overlap → `ValueError`;
   - `min_bucket` merging reported;
@@ -97,7 +101,7 @@ changes.
   - the Spearman of the label with the reference is within ±0.05 on a frame where the outcome is
     width-correlated by construction (the R3 case);
   - inputs other than the `%wr_keep` column are not mutated.
-- [ ] T006 [US1] Implement `Framework/PooledLabel.py::relabel(frames, labels, spec)` per C1 and data-model. It handles both sides, uses equal-count buckets per side over the pooled eligible valid bars, and the ranking key `(outcome, tie-break, pair index, row)`. It works on the label format `maybe_train` buffers (check it in `Framework/BaseNNStrategy.py` around `get_training_labels`) and returns the same format. Generic only. T005 must pass.
+- [ ] T006 [US1] Implement `Framework/PooledLabel.py::relabel(frames, labels, spec, fit_split=None)` per C1 and data-model. It handles both sides, fits equal-count buckets and per-bucket cuts per side over the pooled eligible valid bars of the fit rows (the first `fit_split` of each frame), applies them to all rows, and uses the ranking key `(outcome, tie-break, pair index, row)`: descending for BUY, ascending for SELL. It works on the label format `maybe_train` buffers (check it in `Framework/BaseNNStrategy.py` around `get_training_labels`) and returns the same format. Generic only. T005 must pass.
 - [ ] T007 [P] [US1] Tests for the TrainingEngine hook in `Framework/tests/test_pooled_label.py::test_hook_*`:
   - with no `POOLED_LABEL`, the labels reaching `train_model` equal
     `train_keyed_labels_pre033.npz`;
@@ -105,7 +109,7 @@ changes.
   - `width_relative.json` is written beside the weights after a fresh training (stub model
     location, as 032's `row_filter.json` test);
   - the 032 row filter `(("%wr_keep","gt",0.5),)` keeps exactly the `%wr_keep` rows.
-- [ ] T008 [US1] Implement the hook in `Framework/TrainingEngine.py::_train_keyed`. Before `train_model`, when `getattr(self, "POOLED_LABEL", None)` is set, call `PooledLabel.relabel` on the buffered frames and labels and set `self._pooled_label_report`. After a fresh training, write `width_relative.json` next to `row_filter.json`. No class default. T007 and T002 must pass.
+- [ ] T008 [US1] Implement the hook in `Framework/TrainingEngine.py::_train_keyed`. Before `train_model`, when `getattr(self, "POOLED_LABEL", None)` is set, call `PooledLabel.relabel` on the buffered frames and labels with `fit_split=self.TRAIN_DATA_SPLIT`, and set `self._pooled_label_report`. After a fresh training, write `width_relative.json` next to `row_filter.json`. No class default. T007 and T002 must pass.
 - [ ] T009 [P] [US1] Tests in `research/width_relative/tests/test_mixins.py` for `WidthRelativeMixin` (C2):
   - the key of `WidthRelativeMixin + NNNC_A_Raw_Open` differs from `NNNC_A_Raw_Open`'s and from
     `NNNC_CO_ARO`'s;
@@ -176,9 +180,10 @@ instrument and the S1 separation recorded.
 - [ ] T015 [P] [US2] `research/width_relative/pick.py --model M --fold fNN --out PATH` (research R7). It:
   - loads the `_sz` fold class with `ft_bot_start()` and threshold 0;
   - keeps the validation tail (the last `1 − TRAIN_DATA_SPLIT` of each pair's training frame);
-  - takes the width-book candidate bars (`enter_long` == 1);
+  - takes the FIRST bar of each width-book candidate run (`enter_long` rising from 0 to 1 per
+    pair): the bars that can open a trade;
   - picks the 4-decimal threshold at the `1 − AGREE_SHARE` quantile of the effective BUY
-    probability (argmax BUY ? p_buy : 0);
+    probability (argmax BUY ? p_buy : 0) over those bars;
   - reports the achieved share;
   - with `--verify`, rescores at the picked threshold and asserts tags match `p > t` with 0
     mismatches.
@@ -196,8 +201,9 @@ instrument and the S1 separation recorded.
   - exit liveness (exit-on);
   - thresholds loaded to 4 decimals;
   - the stake shortfall > 5% flag;
-  - S1 (exit-off only): the new gap above the current gap in both halves (ARO 0.072 / 0.085,
-    GBR 0.063 / 0.072);
+  - S1 (exit-off only, EARLY half only): the new early gap above the current early gap (ARO 0.072,
+    GBR 0.063); the late gap is not computed before S3;
+  - comparator reads: an arm's records stay readable as the other arm's comparator;
   - S2/S3 per arm with their comparators;
   - the 1 pp small-margin rule;
   - the decision vocabulary;
@@ -224,10 +230,12 @@ instrument and the S1 separation recorded.
     (rvol > 2.0 and guard_metric > −0.1) inside open trades;
   - the stake shortfall: realised `stake_amount` from each record's result file against the
     intended stake from its tag;
-  - the per-fold thresholds and achieved agree shares.
+  - the per-fold thresholds and the achieved agree shares on the validation-tail run starts;
+  - per fold, from the arm records' tags and stakes only (no profit field): the realised
+    test-window agree share among trades and the mean stake, against the width book's 900 (FR-008).
 
   The output is `instrument.json`.
-- [ ] T022 [P] [US2] `research/width_relative/separation.py` (S1) and tests. It applies `research/candidate_training/co_sizing.py`'s method to the identical width-book trades, with agree recomputed from the WR signal tables at the fold thresholds. It reports new and current gaps per half, and the agree_0.5 pp per capital. The output is `separation.json`.
+- [ ] T022 [P] [US2] `research/width_relative/separation.py` (S1) and tests. It applies `research/candidate_training/co_sizing.py`'s method to the identical width-book trades, with agree recomputed from the WR signal tables at the fold thresholds. It reports the new and current gaps and the agree_0.5 pp per capital on the EARLY half (f00–f07) only. It refuses to compute late-half numbers unless `--after-s3` is passed and `verdicts.json` records S3 for that arm. The output is `separation.json`.
 - [ ] T023 [US2] Run T021 and T022. Commit their JSON. (Order: instrument first, then S1. No P&L of the arms is read yet.)
 
 **Checkpoint**: run the full suite, then commit T014–T023.
@@ -244,19 +252,22 @@ instrument and the S1 separation recorded.
     and `w_<m>`;
   - S3: `judge_one` against the arm's primary comparator (the control for exit-off, the exit-off
     arm for exit-on), plus late pp against `w_<m>`; `judge_one` against `w_<m>` is reported;
+  - comparator reads: the exit-off arm's records are read as the exit-on arm's comparator even when
+    the exit-off arm's own verdict stopped earlier;
   - the small-margin rule;
   - thirds as context, computed only for stages reached;
   - the decision vocabulary; the word "ADOPT" is never output.
 
   Tests with stubs: the stage order (unread pools raise); an exit-off S1 fail leaves the exit-on
-  arm judged; a small margin is INCONCLUSIVE; a refusal on a stale record.
+  arm judged, with the exit-off records readable as its comparator; a small margin is INCONCLUSIVE; a refusal on a stale record.
 - [ ] T025 [US3] Run `judge.py`. Commit `verdicts.json`.
 - [ ] T025a [US3] CONDITIONAL, only if a stage is INCONCLUSIVE on the small-margin rule: run the paired seed-2 repeat for that arm and its comparator over that stage's folds, then re-judge. Commit.
 - [ ] T026 [US3] Write `research/width_relative/report.md`. It contains:
   - the stage tables per model and arm;
   - the label audit;
   - the instrument results (including the exit liveness and stake shortfall);
-  - S1;
+  - S1 (early); after S3, the late-half gap as context (`separation.py --after-s3`);
+  - the realised agree shares and mean stakes;
   - the decisions, labelled PROVISIONAL, with a negative result recorded with full evidence;
   - the confirmation route.
 
