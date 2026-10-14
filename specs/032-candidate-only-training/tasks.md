@@ -148,7 +148,7 @@ code-level, SC-002).
 - `auc.json`;
 - fidelity ≥ 95% and 0 entry violations.
 
-- [ ] T012 [US2] `research/candidate_training/build_arms.py` (C5), modelled on `research/model_calibration/build_width_arms.py`. It writes:
+- [X] T012 [US2] `research/candidate_training/build_arms.py` (C5), modelled on `research/model_calibration/build_width_arms.py`. It writes:
   - `NNNC/NNNC_CO_ARO.py` = `CandidateTrainingMixin + NNNC_A_Raw_Open`;
   - `NNNC/NNNC_CO_GBR.py` = mixin + `NNNC_FS_GBR_GR`;
   - their `.json` copied from the base, with `strategy_name` set;
@@ -173,7 +173,7 @@ code-level, SC-002).
   - the entry gate is a method, not a hashed attribute.
 
   Any other difference stops the task until it is explained.
-- [ ] T013 [US2] `research/candidate_training/train.py --model ARO|GBR` (C5, research R7):
+- [X] T013 [US2] `research/candidate_training/train.py --model ARO|GBR` (C5, research R7):
   - for each fold it calls `run_folds.generate_fold` (snapshot params, no threshold), then
     `fold_has_model`, then `train_fold` if absent, then `fold_has_model` again;
   - it prints the fold's `row_filter.json`;
