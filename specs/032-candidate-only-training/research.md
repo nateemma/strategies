@@ -135,8 +135,9 @@ the judge's refusal rule applies. The report evaluates the stages in order and m
 "not reached" when one fails. Records for unreached stages exist but are not read.
 
 **Stage rules (per model)**:
-- **S1 mechanism**: the within-candidate AUC of the retrained model exceeds the current model's in
-  BOTH halves. It is measured on identical eligible bars and labels, from fold signal tables built
+- **S1 mechanism**: AUC(retrained) − AUC(current) > 0 within the candidates in BOTH halves. A
+  bootstrap 95% CI of each difference (resampling folds' bars by pair-day blocks) is reported for
+  information only; it is not part of the gate. It is measured on identical eligible bars and labels, from fold signal tables built
   by `research.nnnc_framework.signals` for the new fold classes.
 - **S2 early half (f00–f07)**: the arm's early pp > the width book's early pp AND > the control's
   early pp.
@@ -144,13 +145,30 @@ the judge's refusal rule applies. The report evaluates the stages in order and m
   - `judge_one(arm, control)` = PASS;
   - AND the arm's late pp > the width book's late pp;
   - `judge_one(arm, width book)` is also reported.
-- **Decision**: all three pass → ADOPTED as a candidate (promotion is the user's decision);
-  otherwise NOT ADOPTED, naming the failing stage. Zero trades on any fold → INCONCLUSIVE for that
-  model.
+- **Small margins (constitution quality gate 5)**: if S2 or S3 passes on a P&L margin under 1 pp
+  (arm minus control, or arm minus width book, over the stage's folds), that stage is INCONCLUSIVE
+  until a paired seed repeat. The repeat retrains the arm AND re-runs the control's model on seed 2
+  for the stage's folds (`run_folds --seed 2`), and the stage passes only if the margin is > 0 on
+  both seeds.
+- **Decision**:
+  - all three pass → **PASS (PROVISIONAL)**. This is a provisional result, not a finding, and not
+    an adoption. Promotion is the user's decision in any case;
+  - otherwise **FAIL**, naming the failing stage;
+  - zero trades on any fold → **INCONCLUSIVE** for that model.
 
-**Labels**: S2/S3 are PROVISIONAL (one era, 2023–26). There are no 2022-trained NNNC folds, so
-constitution II's distant era is not available. This is the same limitation as 031's NNNC books
-and is stated in the report.
+**Constitution II and gate 2 (distant era).** These need at least three windows, one temporally
+distant, before a result is recorded as a FINDING. This study cannot meet that:
+- NNNC needs 730 days of training and the data starts 2021-01-01, so the earliest test fold is
+  2023-01 and no 2022 window exists;
+- the early and late halves are one era.
+
+Therefore:
+1. the verdict is labelled PROVISIONAL and recorded as a provisional result, never as a finding;
+2. the per-third pp (f00–f04, f05–f09, f10–f14) is reported as context, not as a gate;
+3. a PASS (PROVISIONAL) names its confirmation route: the folds after 2026-09-07 (the data end)
+   once they exist, or dry-run data. Only that confirmation can turn it into a finding.
+
+A negative result (FAIL) is recorded with the same weight as a positive one.
 
 ## R9. Liveness and parity checks (constitution IV)
 
@@ -161,9 +179,11 @@ and is stated in the report.
 
   These are written by the filter to a sidecar in the model's folder (`row_filter.json`).
 - **Parity (off)**:
-  - a test builds training data for an existing NNNC class with and without the code change and
-    compares the arrays;
-  - every pinned model-key and fingerprint test passes unchanged;
-  - `wf_aro` / `w_aro` per-fold trades are not re-run (nothing they load changed), but their model
-    keys are asserted unchanged.
+  - a fixture captured BEFORE the change, from a scripted multi-pair frame with both tensor
+    methods and with and without `%pnl_weight`, must equal the post-change build with no filter;
+  - the existing model keys are captured BEFORE any Framework edit and asserted unchanged;
+  - every pinned fingerprint test passes unchanged;
+  - a backtest of an existing model never calls `prepare_training_data`, so recorded trades
+    cannot move. One spot check re-runs wf_aro_g24 f00 under a fresh tag and compares its
+    `trades_hash` with the record.
 - **Entry parity**: on the arm's records, every entry bar satisfies the predicate (0 violations).

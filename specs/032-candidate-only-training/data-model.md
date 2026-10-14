@@ -64,7 +64,7 @@ Both arms set `HELD_PAIR_ADD = None` and use 24 h grace (from the snapshot).
            "GBR": {"arm": "co_gbr", "control": "fs_gbr_gr", "width": "w_gbr", "folds": ["..."]}},
  "early": ["f00", "...", "f07"], "late": ["f08", "...", "f14"],
  "stages": {"S1": "...", "S2": "...", "S3": "..."},
- "decision": "...", "exempt_records": []}
+ "small_margin_pp": 1.0, "decision": "...", "confirmation_route": "...", "exempt_records": []}
 ```
 
 It is committed before the first training run. The judge refuses any arm record older than its
@@ -79,4 +79,8 @@ Per model:
   not_reached.
 - Also `fidelity` (simulator recall and precision on the arm's entries), `entry_violations` (must
   be 0) and `liveness` (per-fold RowFilterReport).
-- `decision` is one of ADOPTED, NOT ADOPTED or INCONCLUSIVE, with the stopping stage.
+- `decision` is one of PASS (PROVISIONAL), FAIL or INCONCLUSIVE, with the stopping stage. A
+  stage that passes by under 1 pp is INCONCLUSIVE until the paired seed repeat (research R8).
+- `thirds` holds pp per third (f00–f04, f05–f09, f10–f14) for the arm, control and width book.
+  It is context only.
+- `confirmation_route` is set on PASS (PROVISIONAL): the post-2026-09-07 folds or dry-run data.

@@ -47,4 +47,4 @@
 | `build_arms.py` | writes `NNNC/NNNC_CO_<M>.py` and `.json`, and `plan_co_<m>.json` from the control plan (same folds, snapshot and config; new classes and tags; `model_dir` = the fold class) | — |
 | `train.py --model ARO` | trains the folds that lack a model, one at a time, then prints each RowFilterReport | runs if another freqtrade backtest or training process is running |
 | `auc.py` | S1 from signal tables (`signals.py` on the new plans) | — |
-| `judge.py` | evaluates S1→S2→S3 per model and writes `verdicts.json` and the fidelity and entry-violation checks | refuses (exit 2) if the pre-registration is uncommitted or dirty, or if any arm record predates its commit |
+| `judge.py [--seed-repeat 2]` | evaluates S1→S2→S3 per model (the small-margin rule; thirds as context) and writes `verdicts.json` with PASS (PROVISIONAL), FAIL or INCONCLUSIVE, and the fidelity and entry-violation checks. `--seed-repeat` adds the seed-2 records for a stage held on the small-margin rule. | refuses (exit 2) if the pre-registration is uncommitted or dirty, or if any arm record predates its commit |

@@ -58,6 +58,11 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   - it covers `tensor_method` 0 and 3, with and without `%pnl_weight`;
   - it uses a minimal host object that provides `seq_len`, `TRAIN_DATA_SPLIT`, `tensor_method`,
     `dataframeUtils`, `scale_dataframe` (identity) and `enhance_training_data` (pass-through).
+
+  In the same step, BEFORE any Framework edit, record the current 030 model keys of
+  `NNNC_A_Raw_Open`, `NNNC_GbbRaw_Open`, `NNNC_FS_GBR_GR`, `NNNC_ARO_f00` and `NNNC_FS_GBR_GR_f00`
+  (via `Framework.ModelKey.resolve` under `config/config_wf.json`) into
+  `Framework/tests/fixtures/model_keys_pre032.json`.
 - [ ] T005 [P] Fix `evaluation/pick_threshold.py` so `cmd_pick` / `cmd_control_rate` decide "trained?" with `run_folds.fold_has_model(fold, plan["base_strategy"], plan["config"], 1)`, not `model_exists(cls)` (research R6, C4). Add a test in `evaluation/test_pick_threshold.py` that monkeypatches `fold_has_model` and asserts it is consulted.
 
 **Checkpoint**: run the full suite, then commit T001–T005.
@@ -83,7 +88,9 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   - (e) `enhance_training_data` changing the row count with a filter → `ValueError`;
   - (f) `get_training_class_weights` on the kept labels with no SELL returns weight 0.0 for SELL
     and finite weights for the others;
-  - (g) `_row_filter_report` has the data-model fields and correct counts.
+  - (g) `_row_filter_report` has the data-model fields and correct counts;
+  - (h) the first `seq_len-1` rows (zero-padded windows) are kept or dropped only by their own
+    last bar's eligibility, and a kept padded window equals the unfiltered one.
 - [ ] T007 [US1] Implement the filter in `Framework/TrainingEngine.py::prepare_training_data` (research R1):
   - read `getattr(self, "TRAIN_ROW_FILTER", None)`, with NO class default added;
   - per pair, build train and validation masks from the raw frame `dataframe[i]`, sliced
@@ -97,8 +104,8 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   key's location when a report exists. T006 and T004 must pass.
 - [ ] T008 [P] [US1] Tests in `Framework/tests/test_row_filter.py` for C3. Resolve keys via `Framework.ModelKey.resolve` (never instantiate):
   - `CandidateTrainingMixin + NNNC_A_Raw_Open` has a different model key from `NNNC_A_Raw_Open`;
-  - `NNNC_A_Raw_Open`, `NNNC_GbbRaw_Open` and `NNNC_FS_GBR_GR` keep their current keys, recorded
-    in the test from the current code before T009 lands;
+  - every class in `Framework/tests/fixtures/model_keys_pre032.json` (captured in T004, before
+    T007) still resolves to its recorded key;
   - the mixin's `get_entry_conditions` returns parent mask AND predicate on a stub frame, with
     `_st_tags` recomputed;
   - `HELD_PAIR_ADD` is None.
@@ -119,7 +126,11 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   Tests in `evaluation/test_pick_threshold.py`: with `keep=None` the result is identical to
   today; with `keep` the ineligible bars are 0.0; at a fixed rate the threshold rises when bars
   are zeroed.
-- [ ] T011 [US1] Run the full suite, check pytest's exit code, then commit T006–T010.
+- [ ] T011 [US1] Run the full suite, check pytest's exit code, then commit T006–T010. Then run the SC-001 spot check:
+  - re-run `wf_aro_g24` f00 under a fresh tag (`wf_aro_g24_p032`, via a copied plan with only
+    `run_id` and `arm_tag` changed), one chain;
+  - its `trades_hash` must equal `regime/arms/wf_aro_g24_f00_F00.json`'s;
+  - record it in `specs/032-candidate-only-training/verification.md` and commit.
 
 **Checkpoint**: the switch exists, is off by default, and is proven identical when off (SC-001
 code-level, SC-002).
@@ -151,8 +162,16 @@ code-level, SC-002).
     - `thresholds` removed.
 
   Run it. Check with `run_folds --dry-run` that there are 15 unique classes and model dirs per
-  plan. Check with `evaluation.fingerprint` that each arm's fingerprint differs from its control
-  only by the mixin's attributes (`HELD_PAIR_ADD`, `TRAIN_ROW_FILTER`).
+  plan. Fingerprint check, expected result declared here: each arm's `evaluation.fingerprint`
+  sha must EQUAL the `framework_sha` recorded in its control's arm records
+  (`regime/arms/wf_aro_g24_f00_F00.json`, `fs_gbr_gr_f00_F00.json`), resolved with the arm's own
+  `.json`. The reasons:
+  - the controls were recorded with the add off, and the mixin sets it off;
+  - `TRAIN_ROW_FILTER` is not a fingerprint member, because it acts before the model and is
+    covered by the model key;
+  - the entry gate is a method, not a hashed attribute.
+
+  Any other difference stops the task until it is explained.
 - [ ] T013 [US2] `research/candidate_training/train.py --model ARO|GBR` (C5, research R7):
   - for each fold it calls `run_folds.generate_fold` (snapshot params, no threshold), then
     `fold_has_model`, then `train_fold` if absent, then `fold_has_model` again;
@@ -164,7 +183,14 @@ code-level, SC-002).
   Unit-test the process check and the resume skip in `research/candidate_training/tests/test_train.py` with monkeypatched `ps` and fold functions.
 - [ ] T014 [US2] Pre-registration: `research/candidate_training/preregistration.json` and `.md`, per data-model.md and research R8:
   - books, control and width tags, folds, early and late halves, `target_rate` 0.014735;
-  - the S1/S2/S3 rules verbatim, the decision rule, and `zero trades` → INCONCLUSIVE;
+  - the S1/S2/S3 rules verbatim (S1 as AUC difference > 0 in both halves, with the CI for
+    information only);
+  - the small-margin rule: a stage passing by under 1 pp is INCONCLUSIVE until a paired seed-2
+    repeat (T021a) passes;
+  - the decision rule: PASS (PROVISIONAL), FAIL or INCONCLUSIVE, never "adopted"; `zero trades` →
+    INCONCLUSIVE;
+  - the confirmation route for a PASS (the folds after 2026-09-07, or dry-run data);
+  - the statement that no outcome is recorded as a finding (constitution II, gate 2);
   - the labels and an empty `exempt_records`.
 
   Commit it alone (named files) BEFORE any `NNNC_CO_*` training. Record the commit hash in the
@@ -215,17 +241,29 @@ code-level, SC-002).
   - S3 from `research.nnnc_switches.judge.judge_one(arm, control)`, plus late pp against the
     width book, plus `judge_one(arm, width)` reported;
   - `fidelity`, `entry_violations` and `liveness` from `instrument.json`;
-  - then the decision.
+  - `thirds` (pp per f00–f04, f05–f09, f10–f14, context only);
+  - the small-margin check;
+  - then the decision: PASS (PROVISIONAL), FAIL or INCONCLUSIVE, with `confirmation_route` on a
+    pass.
 
   Tests in `research/candidate_training/tests/test_judge.py`: a refusal on a stale record; stage
   order (an S1 fail makes S2/S3 `not_reached` without reading pools, asserted by a pool stub that
-  raises); a zero-trade fold → INCONCLUSIVE.
+  raises); a zero-trade fold → INCONCLUSIVE; a 0.5 pp margin → INCONCLUSIVE pending repeat; the
+  word "ADOPTED" never appears in the output.
 - [ ] T021 [US3] Run `judge.py`. Commit `verdicts.json`.
+- [ ] T021a [US3] CONDITIONAL, only if T021 marks a stage INCONCLUSIVE on the small-margin rule. Paired seed-2 repeat over that stage's folds:
+  - `run_folds --seed 2` for the arm (train → pick → evaluate, one chain);
+  - the same for the control (its seed-2 model);
+  - re-run `judge.py --seed-repeat 2` so the stage passes only if the margin is > 0 on both seeds.
+
+  Commit the repeat records and the updated `verdicts.json`.
 - [ ] T022 [US3] Write `research/candidate_training/report.md`:
   - the stage table per model and the decision;
   - liveness, fidelity and entry violations;
   - the PROVISIONAL label;
-  - a negative result recorded with full evidence.
+  - a negative result recorded with full evidence;
+  - wording: "PASS (PROVISIONAL)" is a provisional result, not a finding. Name its
+    forward-confirmation route.
 
   Add a §7 pointer in `research/model_calibration/findings.md`. Commit.
 
@@ -246,7 +284,8 @@ code-level, SC-002).
 - **T008's key capture before T009.**
 - **Pre-registration before training:** T014 is committed before T015, and T015 must pass before
   T016.
-- **One chain:** T016's chain exits before T017 starts.
+- **One chain:** T011's spot check, T016 and T017 run one after another, never together. T021a
+  runs only if it is triggered, and after T021.
 - **Order of reading:**
   - T018 (entries only) and T019 (S1) come before T020/T021 read any P&L;
   - T020's code can be written in parallel with T016/T017 (no results read).

@@ -64,16 +64,22 @@ bar satisfies the predicate. Without it, training is unchanged.
 **Why this priority**: Nothing can be trained or measured until the switch exists. It must leave
 every existing model, weight file and recorded result untouched.
 
-**Independent Test**: With no filter declared, every existing model key, strategy fingerprint and
-reference trade record is unchanged, and a training-data build is identical row for row. With the
+**Independent Test**: With no filter declared:
+- a training-data build of a scripted multi-pair frame is identical, array for array, to the
+  build captured before the change;
+- every existing model key and strategy fingerprint is unchanged;
+- one reference fold re-run reproduces its recorded trades. With the
 filter declared, a scripted training-data build keeps exactly the windows whose last bar is
 eligible, each with its original, unbroken window and its own label.
 
 **Acceptance Scenarios**:
 
-1. **Given** no filter declared, **When** the training data is built for any existing NNNC class,
-   **Then** the tensors, labels, weights and class weights are identical to today's, and every
-   existing model key and strategy fingerprint is unchanged.
+1. **Given** no filter declared, **When** the training data is built from a scripted multi-pair
+   frame (both window methods, with and without per-sample weights), **Then** the tensors, labels,
+   weights and class weights are identical to the build captured before the change. Every
+   existing model key and strategy fingerprint is unchanged. A backtest never calls the training
+   path for a model that already exists, so recorded trades cannot change. One reference fold
+   (wf_aro_g24 f00) is re-run as a spot check.
 2. **Given** a filter declared, **When** the training data is built, **Then** the kept samples are
    exactly the windows whose last bar satisfies the predicate. Each kept window is the same
    contiguous window it was before filtering; no window joins bars that were not adjacent.
@@ -130,7 +136,7 @@ The researcher commits a pre-registration with every stage rule BEFORE training 
 the early stages pass, the late half of the walk-forward arms is judged against the model control
 and the width book.
 
-**Why this priority**: Only the confirmatory stage can decide adoption. It is read last, and
+**Why this priority**: Only the confirmatory stage can decide the verdict. It is read last, and
 only if the earlier stages pass.
 
 **Independent Test**: The committed pre-registration, the arm records (15 folds per model), and
@@ -189,7 +195,9 @@ the verdicts with paired and risk results.
   training window only, at the same overall entry rate as its control, with bars that fail the predicate counted as scoring 0 (Clarification Q1).
 - **FR-009**: Candidate-only arm classes MUST be built for ARO and GBR on all 15 folds, at 24 h
   grace with the held-pair add off. Everything except the training filter, the entry predicate
-  and the threshold MUST match the 24 h controls (wf_aro_g24, fs_gbr_gr).
+  and the threshold MUST match the 24 h controls (wf_aro_g24, fs_gbr_gr). Each arm subclasses its
+  control's own base class: `NNNC_A_Raw_Open` for ARO, where 24 h grace comes from the params
+  snapshot, and `NNNC_FS_GBR_GR` (the 24 h subclass) for GBR.
 - **FR-010**: A within-candidate measurement MUST report AUC on rule-eligible bars per model and
   half, for the retrained and the current model on identical bars and labels.
 - **FR-011**: The simulator MUST be checked for fidelity on each retrained model's own backtested
@@ -217,9 +225,10 @@ the verdicts with paired and risk results.
 
 ### Measurable Outcomes
 
-- **SC-001**: With no filter declared, the reference arms (arm D wf_aro, the four 24 h controls and
-  the four width books) reproduce their recorded per-fold trades 15/15, and all existing model keys
-  and fingerprints are unchanged.
+- **SC-001**: With no filter declared:
+  - the scripted training-data build is identical to the pre-change capture in 100% of cases;
+  - all existing model keys and fingerprints pinned in tests are unchanged;
+  - the reference fold wf_aro_g24 f00, re-run, reproduces its recorded trades exactly.
 - **SC-002**: On a scripted training-data build, 100% of kept samples equal the corresponding
   unfiltered window and label, and 0 kept samples have an ineligible last bar.
 - **SC-003**: Candidate-only weights exist for all 15 folds of ARO and GBR (30 trained folds).
@@ -228,7 +237,10 @@ the verdicts with paired and risk results.
 - **SC-005**: The simulator reproduces each retrained model's backtested entries at least 95% (pair
   and candle), and 0 entries violate the eligibility predicate.
 - **SC-006**: Each stage's outcome (pass, fail, or not reached) is recorded against its committed
-  rule. The run ends with a verdict per model, including the stage that stopped it.
+  rule. The run ends with a verdict per model: PASS (PROVISIONAL), FAIL or INCONCLUSIVE,
+  including the stage that stopped it. A PASS is recorded as a provisional result, not a finding,
+  because there is no distant-era window (constitution II). It names its forward-confirmation
+  route.
 
 ## Assumptions
 

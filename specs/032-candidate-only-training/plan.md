@@ -64,8 +64,8 @@ forward passes and 15 backtests per model.
 | Principle / constraint | Status | How |
 |---|---|---|
 | I. Deployment regime | PASS | Uses the 2023–26 walk-forward, the current regime. The late half is confirmatory. |
-| II. Persistence across distant eras | PARTIAL (declared) | Early and late halves act as two windows. There are no 2022-trained NNNC folds, so the verdict is labelled PROVISIONAL (one era), as for 031's NNNC books (research R8). |
-| III. Learnability ≠ edge | PASS | S1 (AUC) is only a mechanism gate. Adoption needs P&L stages S2/S3 against the control and the width book. |
+| II. Persistence across distant eras | PASS by restriction | No distant era is possible: 730-day training plus data from 2021-01 means the first test is 2023-01. So no outcome is recorded as a FINDING. A pass is "PASS (PROVISIONAL)", a provisional result with a named forward-confirmation route (the post-2026-09-07 folds or dry-run). Per-third pp is reported as context (research R8). |
+| III. Learnability ≠ edge | PASS | S1 (AUC) is only a mechanism gate. A pass needs P&L stages S2/S3 against the control and the width book. |
 | IV. Parameters live | PASS | RowFilterReport per fold (kept share, SELL = 0), 0 entry violations, and simulator fidelity of at least 95% (R9). |
 | V. Realistic execution | PASS | The same backtest config, liquidity cap and fees as the controls. |
 | VI. Diagnose before tuning | PASS | Follows the diagnostic chain in `research/model_calibration/findings.md`. One change. |
@@ -76,10 +76,10 @@ forward passes and 15 backtests per model.
 | Params merge from parent | PASS | No params dict is redefined. The arm `.json` files are copied from the control snapshots. |
 | No pair-specific code | PASS | — |
 | Staging and commits | PASS | Named files only, committed to master. |
-| Quality gates 1–7 | PASS / declared | Pinned timeranges (the fold plan), liquidity on, liveness, trade counts reported. Gate 5 (paired repeats for deltas under 1 pp) applies if a stage passes by less than 1 pp. Gate 7 is not applicable (features unchanged). |
+| Quality gates 1–7 | PASS / declared | Pinned timeranges (the fold plan), liquidity on, liveness, trade counts reported. Gate 2: see II. Gate 5: a stage passing by less than 1 pp is INCONCLUSIVE until a paired seed-2 repeat (research R8, task T021a). Gate 7 is not applicable (features unchanged). |
 
-**Post-design re-check**: no violations. Principle II is declared PARTIAL with the same provisional
-label used since 031.
+**Post-design re-check**: no violations. Principle II and gate 2 are satisfied by never recording
+the outcome as a finding (PASS (PROVISIONAL) at most, with a forward-confirmation route).
 
 ## Project Structure
 
@@ -94,6 +94,7 @@ specs/032-candidate-only-training/
 ├── quickstart.md
 ├── contracts/row_filter.md
 ├── checklists/requirements.md
+├── verification.md   # SC-001 spot check (T011)
 └── tasks.md            # /speckit-tasks
 ```
 
@@ -127,5 +128,6 @@ threshold tool is changed in place.
 
 ## Complexity Tracking
 
-No constitution violations to justify. Principle II is declared PARTIAL (research R8), as in prior
-NNNC features.
+No constitution violations to justify. Principle II and gate 2 are handled by restriction
+(research R8): the result can be at most a provisional result, never a finding, until it is
+confirmed forward.
