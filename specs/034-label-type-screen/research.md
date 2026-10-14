@@ -72,6 +72,14 @@ adverse-excursion caps (0.04, as GFM) where a labeler has one.**
   `WidthSizerMixin` attributes are ignored, so **the entry-source class and its sizer twin resolve
   to the same model key per fold** and are trained once. A test asserts this, plus that the
   control's key is unchanged.
+- **Amendment (implementation, before any training): the entry family is pinned.** Feature 029
+  derives a model's entry family from its label: outcome-only labels (forward_mae, triple_barrier,
+  mfe_mae_ratio, future_expectancy, quantile_future, local_min_followthrough) have NO family, so
+  their entries would be untagged, and breakout_gbb is momentum, which turns the held-pair add
+  off. Each would be a second variable against the control (resolved family reversion, add on).
+  The generated classes declare `MODEL_ENTRY_FAMILY = "reversion"`; a test asserts family,
+  held-pair add and family exits equal the control's (entry-source classes) or the width book's
+  (sizer twins, where the width book itself turns the add off).
 - Tags: `FMAE`, `TB`, `MMR`, `FEXP`, `QF`, `LMF`, `BOG`. gbb_fwdmae reuses GFM (`NNNC_GFM_fNN`);
   its sizer twin is `NNNC_LS_GFM_SZ` on `NNNC_GbbFwdMae_Open`.
 - **Alternatives**: one class with a runtime label switch (hides the label from the class name and

@@ -40,6 +40,10 @@ PLANS = {"ARO": "wf_aro_b030", "GBR": "sw_gbr_ctl_b030", "GFM": "sw_gfm_ctl_b030
 CO_PLANS = {"CO_ARO": "co_aro", "CO_GBR": "co_gbr"}
 #: 033: width-relative sizer arms (research/width_relative); the exit-off plan (same predictions).
 WR_PLANS = {"WR_ARO": "wr_aro_sz", "WR_GBR": "wr_gbr_sz"}
+#: 034: label-screen candidates (research/label_screen; the training `es` plans).
+from research.label_screen.candidates import table_plans as _ls_table_plans  # noqa: E402
+
+LS_PLANS = _ls_table_plans()
 KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
         "bb_width"]
 PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
@@ -86,14 +90,18 @@ def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", default=",".join(PLANS))
+    ap.add_argument("--folds", help="comma-separated fold ids (default all); 034 screens f00-f07")
     a = ap.parse_args(argv)
+    only = set(a.folds.split(",")) if a.folds else None
     OUT.mkdir(exist_ok=True)
     meta_path = OUT / "meta.json"
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     for m in a.models.split(","):
         plan = json.loads((STRAT / "evaluation/folds" /
-                           f"plan_{(PLANS | CO_PLANS | WR_PLANS)[m]}.json").read_text())
+                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS)[m]}.json").read_text())
         for f in plan["folds"]:
+            if only and f["fold_id"] not in only:
+                continue
             dest = OUT / f"{m}_{f['fold_id']}.parquet"
             if dest.exists():
                 continue
