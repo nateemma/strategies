@@ -202,6 +202,13 @@ width book) and, on a pass, the second model's repeat verdict.
 
 **Stages**
 
+- **FR-008a (S0a, label audit before training)**: Before the pre-registration is committed, each
+  candidate's labels (no model) are computed on every early fold's training window: BUY / SELL /
+  HOLD shares after the peak filter and conflict resolution, raw BUY–SELL overlap, whether each
+  declared parameter changes the labels, and whether the feature columns equal the control's. A
+  candidate whose kept BUY share is under 1% of training rows in any early fold is INCONCLUSIVE and
+  is not trained. (Planning found mfe_mae_ratio has no sell variant, so its raw SELL labels equal
+  its BUY labels; this audit puts its trainability on record.)
 - **FR-009 (S0, label and instrument)**: Per candidate and fold, record the BUY and SELL positive
   rates, class balance of kept training rows, and Spearman(label, bb_width) on rule-eligible bars.
   Verify the label parameters actually reached the labeler (a declared parameter that changes
@@ -212,7 +219,9 @@ width book) and, on a pass, the second model's repeat verdict.
   fold on the first bar of each width-book candidate run in the validation tail), and its
   within-candidate AUC against each trade's realised outcome. Report the control's figures beside
   each.
-- **FR-011 (survivors)**: A candidate survives S1 only if its early gap exceeds the control's;
+- **FR-011 (survivors)**: A candidate survives S1 only if its early gap exceeds both the control's
+  pre-registered gap and the control's gap at the same agree share (the control scored with the
+  same picker), with at most 2 of 8 folds degenerate;
   survivors are the top 3 by gap among those. The rule is applied mechanically and its output is
   committed before any survivor backtest.
 - **FR-012 (S2, early backtest)**: Each survivor is backtested in two roles, each against the
