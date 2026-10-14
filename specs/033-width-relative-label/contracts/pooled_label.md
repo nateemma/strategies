@@ -1,8 +1,12 @@
 # Contract C1: pooled width-relative relabel (Framework, strategy-agnostic)
 
-## `TrainingSignals.path_outcome(df, target, stop, horizon) -> (np.ndarray, np.ndarray)`
+## `TrainingSignals.path_outcome(df, target, stop, horizon, side="buy") -> (np.ndarray, np.ndarray)`
 
-- **Input:** a frame with a `close` column; `target > 0`, `stop < 0`, `horizon >= 1`.
+The `side="sell"` mirror uses `target = −exit_loss` (a fall) and `stop = +exit_take_profit`. It
+matches `labels_gbb_path_sell` in the same way the buy side matches `labels_gbb_path`.
+
+- **Input:** a frame with a `close` column and `horizon >= 1`. For `side="buy"`, `target > 0` and
+  `stop < 0`; for `side="sell"`, `target < 0` and `stop > 0`. Otherwise `ValueError`.
 - **Output:** `outcome` (float, NaN past the end of the frame) and `bars_to_exit` (int, −1 when
   NaN).
 - **Close-based, matching `labels_gbb_path`:** a bar has `outcome == target` if and only if
@@ -18,10 +22,11 @@
   - `labels`: the per-pair labels in the format `prepare_training_data` receives;
   - `spec`: a PooledLabelSpec.
 - **Effects:**
-  - writes `%wr_valid` (1.0 or NaN) into each frame;
-  - returns new label arrays: eligible valid bars become BUY or HOLD, every other bar keeps its
-    label.
-- **Buckets:** computed once, over the pooled eligible valid bars of ALL frames passed.
+  - writes `%wr_keep` (1.0 for an entry- or exit-eligible bar with a valid outcome, else NaN) into
+    each frame;
+  - returns new label arrays: entry-eligible valid bars become BUY or HOLD, exit-eligible valid bars
+    become SELL or HOLD, and every other bar keeps its label.
+- **Buckets:** computed once per side, over the pooled eligible valid bars of ALL frames passed.
 - **Determinism:** the same inputs give the same output. The ranking key is
   `(outcome desc, tie-break, pair index, row)`.
 - **Errors:**
@@ -42,7 +47,9 @@ In `_train_keyed`:
 - `path_outcome` against `labels_gbb_path` on a scripted and a real frame;
 - hand-computed buckets and labels on a scripted 2-pair frame;
 - every bucket is about 50% after the split, including ties at the target;
-- NaN outcomes give `%wr_valid` NaN and are excluded by the row filter;
+- NaN outcomes give `%wr_keep` NaN and are excluded by the row filter;
+- the sell side: `path_outcome(side="sell")` against `labels_gbb_path_sell`; SELL about 50% per
+  exit bucket; entry and exit eligibility disjoint (an overlap raises);
 - the spec-absent build is byte-identical to the 032 fixture;
 - the model key changes only for classes declaring the spec;
 - `ValueError` and `KeyError` paths.

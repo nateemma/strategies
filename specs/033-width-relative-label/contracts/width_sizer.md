@@ -3,7 +3,8 @@
 ## `NNNC/_width_relative.py` — `WidthRelativeMixin`
 
 - `POOLED_LABEL`: the NNNC spec (data-model).
-- `TRAIN_ROW_FILTER` = the gbb rule plus `("%wr_valid", "gt", 0.5)`.
+- `TRAIN_ROW_FILTER = (("%wr_keep", "gt", 0.5),)`: entry- or exit-eligible bars with a valid
+  outcome.
 - `MODEL_KEY_ATTRIBUTES = ("TRAIN_ROW_FILTER", "POOLED_LABEL")`.
 - `HELD_PAIR_ADD = None`.
 - It does NOT change entries. The width book does that.
@@ -26,17 +27,25 @@
 - **Exits:** untouched. Both control snapshots set `enable_exit_signal: false`, and no exit path reads
   the model's predictions, so exits do not depend on the model.
 
+## The exit-on variant
+
+The same classes and weights, with `enable_exit_signal: True` in the generated `.json`; the exit
+gate is unchanged (rvol > 2.0, guard_metric > −0.1). The instrument counts `model_exit ` tags per
+fold, and the exit-gate-passing bars inside open trades. A fold with gate-passing bars and zero
+model exits fails liveness.
+
 ## Generated classes
 
 `research/width_relative/build_arms.py` writes:
 - `NNNC/NNNC_WR_ARO.py` and `NNNC/NNNC_WR_GBR.py`, with their `.json` files copied from the
   controls' snapshots;
-- `evaluation/folds/plan_wr_aro.json` and `plan_wr_gbr.json`. The model dirs are new; `WIDTH_CUTS`
-  come from `width_twin.json`.
+- the plans for both variants: `plan_wr_<m>_sz.json` (exits off) and `plan_wr_<m>_szx.json` (exits
+  on). They share the model key, so the weights are trained once;
+- the model dirs are new, and `WIDTH_CUTS` come from `width_twin.json`.
 
 ## Checks
 
-- **Flat-stake twin:** with `STAKE_WEIGHTS = (1.0, 1.0)` and the width-relative weights loaded, the
+- **Flat-stake twin (exit-off arm):** with `STAKE_WEIGHTS = (1.0, 1.0)` and the width-relative weights loaded, the
   arm's `trades_hash` on one fold equals the `w_<m>` record's. Entries, exits and the stake path are
   then proven identical to the width book apart from the weights. This is a spot check on f00 per
   model, before the arm runs.

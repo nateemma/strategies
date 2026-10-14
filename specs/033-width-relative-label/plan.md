@@ -12,9 +12,15 @@ band width:
   half labelled BUY;
 - training on eligible rows only (032's filter).
 
+The label also covers exits. Exit-eligible bars (the gbb_path_sell rule) are ranked by the
+sell-path outcome within their own width buckets, and the bottom half is SELL. So one three-class
+model is trained on entry- plus exit-eligible rows.
+
 The model is then used as a capital-neutral stake sizer on the width book: 1.33× when it agrees,
-0.67× when it does not. That arm is judged in pre-registered stages against the width book and the
-24 h controls.
+0.67× when it does not. There are two co-primary arms:
+- model exits off, judged against the width book and the 24 h controls;
+- model exits on (the controls' exit gate unchanged), judged against the exit-off arm and the
+  width book.
 
 **Technical approach:**
 - A generic pooled-relabel hook in `TrainingEngine._train_keyed` (`Framework/PooledLabel.py`),
@@ -53,7 +59,7 @@ The model is then used as a capital-neutral stake sizer on the width book: 1.33�
 **Performance Goals**:
 - ARO training about 12 min per fold, GBR about 1–2 min per fold, so about 3.5 h in total;
 - 30 single-fold picks;
-- 2 × 15 backtests of about 13 s each.
+- 4 × 15 backtests of about 13 s each.
 
 **Constraints**:
 - one chain at a time, with picks one fold per process;
@@ -62,8 +68,8 @@ The model is then used as a capital-neutral stake sizer on the width book: 1.33�
 - the live bot untouched;
 - no default promoted.
 
-**Scale/Scope**: ARO and GBR × 15 folds. GFM/MLX, the filter arm and the entry-source arm are out of
-scope.
+**Scale/Scope**: ARO and GBR × 15 folds, with 2 arms per model on one set of weights. GFM/MLX, the
+filter arm and the entry-source arm are out of scope.
 
 ## Constitution Check
 
@@ -78,14 +84,14 @@ scope.
 | V. Realistic execution | PASS | The same config, fees and liquidity cap. The larger stakes go through BaseStrategy's fillable cap, and any shortfall is reported. |
 | VI. Diagnose before tuning | PASS | R3's per-decile hit rates set the median-split design before any build. |
 | VII. Validate cheaply | PASS | S1 (simulator, identical trades) gates the P&L read. The f00 smoke trains one fold first. |
-| VIII. One parameter space | PASS | Only the label changes. The 50% share and the 1.0 : 0.5 weights are fixed in advance, not tuned. |
+| VIII. One parameter space | PASS | Only the label changes. The exit-on arm adds one existing switch (`enable_exit_signal`); the exit gate is unchanged. The 50% share and the 1.0 : 0.5 weights are fixed in advance, not tuned. |
 | IX. Orthogonality | PASS (design goal) | The label is built to be uncorrelated with width (S0 measures it). |
 | XI. No leakage | PASS | Buckets come from training-window frames only. Thresholds come from the validation tail. Scalers are unchanged (features unchanged). |
 | Framework strategy-agnostic | PASS | `PooledLabel` and `path_outcome` are generic, and the NNNC values are on the mixin. |
 | Params merge / no pair code | PASS | No params dict is redefined. The arm `.json` files are copied from the control snapshots. |
 | Quality gates | PASS / declared | Pinned fold plan, liveness evidence, trade counts. Gate 5: margins under 1 pp → paired seed-2 repeat. |
 
-**Post-design re-check:** no violations. One spec refinement is needed and is applied with this
+**Post-design re-check (after the exit-side clarification):** no violations. One spec refinement is needed and is applied with this
 plan: FR-003/FR-004 change from "mean plus margin" to "the bucket's median split with a speed
 tie-break" (R3).
 
@@ -110,7 +116,7 @@ Framework/
 ├── TrainingEngine.py              # _train_keyed: POOLED_LABEL hook; width_relative.json sidecar
 └── tests/test_pooled_label.py     # NEW
 NNNC/
-├── _width_relative.py             # NEW: WidthRelativeMixin (label spec, filter + %wr_valid, key)
+├── _width_relative.py             # NEW: WidthRelativeMixin (label spec incl. exit side, %wr_keep filter, key)
 ├── _width_sizer.py                # NEW: WidthSizerMixin (tag, stake weights, 4-dp threshold)
 ├── NNNC_WR_ARO.py / .json         # generated
 └── NNNC_WR_GBR.py / .json

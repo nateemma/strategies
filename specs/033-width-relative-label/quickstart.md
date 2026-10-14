@@ -19,9 +19,9 @@ Expect:
 
 Train ARO f00 alone (`research/width_relative/train.py --model ARO --fold f00`), then read
 `width_relative.json` beside the weights. Expect:
-- 10 buckets, each with a positive share in [0.40, 0.60];
-- |Spearman(label, bb_width)| ≤ 0.05;
-- SELL = 0 in `row_filter.json`;
+- 10 buckets per side, each with a labelled share in [0.40, 0.60];
+- |Spearman(label, bb_width)| ≤ 0.05 on each side;
+- BUY and SELL each about 25% of kept rows in `row_filter.json` (labelled shares about 50% per side);
 - the existing `NNNC_ARO_f00` weights unchanged (sha).
 
 ## 3. Sizer instrument on f00 (contract C2 checks)
@@ -35,7 +35,7 @@ Expect:
 
 1. Training chain, one fold per process: ARO, then GBR.
 2. Threshold picks, one fold per process.
-3. Plans, then `evaluation.run_folds`, one chain.
+3. Plans for both arms (`_sz` exits off, `_szx` exits on), then `evaluation.run_folds`, one chain.
 4. `research/nnnc_framework/signals --models WR_ARO,WR_GBR`.
 5. Instrument (S0), the separation screen (S1), the judge (S2/S3).
 

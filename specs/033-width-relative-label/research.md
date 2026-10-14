@@ -76,10 +76,45 @@ are updated to say "the bucket's median outcome, with ties broken by speed to ta
 - More buckets with the mean: does not remove the cap problem.
 - Uncapped first-touch close return: changes Q1's outcome.
 
+## R2b. The exit side (Clarification 2026-10-14, after planning)
+
+**Decision:** `path_outcome` takes a `side`. For `"sell"` it mirrors `labels_gbb_path_sell`,
+close-based:
+- the first close at or below a −`min_loss` fall (NNNC 0.02) gives `outcome = −min_loss`;
+- a close at or above +`take_profit` (0.022, the sell labeller's default) before that gives
+  `outcome = +take_profit`;
+- otherwise the close return at the horizon (48);
+- NaN past the frame end.
+
+Exit-eligible bars are guard_metric > 0.3 AND bb_width > 0.035, disjoint from entry-eligible bars.
+They get their own 10 width buckets. The bottom half by outcome is SELL. The tie-break is a fall
+reached sooner ranking lower, then a take-profit reached later ranking higher, then position.
+
+A unit test checks that `outcome == −min_loss` exactly when `labels_gbb_path_sell` (rule gates off)
+labels the bar 1.
+
+**Prior evidence on model exits (memory):**
+
+| setting | effect of model exits |
+|---|---|
+| NNMT, open gate | +10.4 pp |
+| breakout model | `model_exit` 416 times at +1.79% mean |
+| NNNC, tight gate | +0.03 pp |
+| NNNC, exit gate also opened (COCONUT) | −5.15 pp |
+| NNNC_MLX | runs with exits on |
+
+The gate study's note says loosened gates require a re-test. Hence an exit-on arm, co-primary.
+
+**Exit gate:** unchanged from the controls: rvol > `exit_rvol_threshold` 2.0 AND guard_metric >
+`exit_guard_threshold` −0.1. It is active because `entry_enable_guards` is True. MLX already trades
+on it.
+
 ## R4. Bars without a valid outcome
 
-**Decision:** the relabel step writes `%wr_valid` (1.0, or NaN when the outcome is NaN) into each
-raw frame. The arm mixin's `TRAIN_ROW_FILTER` is the gbb rule plus `("%wr_valid", "gt", 0.5)`.
+**Decision:** the relabel step writes `%wr_keep` into each raw frame: 1.0 for an entry- or
+exit-eligible bar with a valid outcome, NaN otherwise. The arm mixin's `TRAIN_ROW_FILTER` is
+`(("%wr_keep", "gt", 0.5),)`. That one column carries the union, because 032's filter spec is a
+conjunction.
 032's filter reads the raw frame and fails NaN, so these bars are excluded, not labelled HOLD.
 
 **Rationale:** 032's filter path is reused unchanged. The `%` prefix keeps the column out of the
@@ -87,9 +122,12 @@ features, because `remove_debug_columns` drops `^%` columns before scaling.
 
 ## R5. Label classes
 
-**Decision:** bars that rank in the top share → BUY; all other eligible, valid bars → HOLD. SELL is
-never produced. Bars outside the rule keep whatever class they had, because the row filter removes
-them from training anyway. Labels keep the existing one-hot / class format that
+**Decision:**
+- entry-eligible valid bars in the top share → BUY; the rest → HOLD;
+- exit-eligible valid bars in the bottom share → SELL; the rest → HOLD;
+- all other bars keep their class, because the row filter removes them anyway.
+
+The class weights then come from about 25% BUY, 25% SELL and 50% HOLD over the kept rows. Labels keep the existing one-hot / class format that
 `prepare_training_data` receives.
 
 The relabel report (`width_relative.json`, written beside the weights like 032's `row_filter.json`)
@@ -129,6 +167,17 @@ up to 12,000. The instrument reads each trade's realised stake from the result f
 per fold, the trades whose stake is below the intended one. More than 5% flags the fold (spec edge
 case).
 
+## R6b. The exit-on variant
+
+**Decision:** the same class with `enable_exit_signal: True` in its `.json`. Everything else
+(weights, thresholds, stakes, exit gate) is identical.
+- The `model_exit ` tag (it has a trailing space, a known artefact) is counted per fold.
+- Exit-gate-passing bars during open trades are counted from the trade windows. A fold with such
+  bars but zero model exits is a liveness failure.
+- It is judged against the exit-off arm (`judge_one`) and the width book (pp).
+
+The trades-hash identity applies only to the exit-off arm: earlier exits change pair availability.
+
 ## R7. Threshold and agree share (Clarification Q3: B)
 
 **Decision:**
@@ -153,7 +202,7 @@ case).
 
 **Decision:**
 - `POOLED_LABEL` joins `MODEL_KEY_ATTRIBUTES` on the width-relative mixin, alongside 032's
-  `TRAIN_ROW_FILTER`, which now includes `%wr_valid`.
+  `TRAIN_ROW_FILTER`, which is now `%wr_keep`.
 - `WIDTH_CUTS`, the sizer weights and `s` go in `MODEL_KEY_IGNORED`: they do not shape the weights.
 - The model-key audit test classifies every new name.
 - Existing keys are pinned by the 032 fixture (`model_keys_pre032.json`). The 033 build captures a
@@ -162,9 +211,10 @@ case).
 ## R9. Evaluation stages (pre-registered before training)
 
 - **S0, instrument and label:**
-  - per fold, every bucket's positive share is in [0.40, 0.60];
+  - per fold and side, every bucket's labelled share is in [0.40, 0.60], and |Spearman| ≤ 0.05 per
+    side;
   - |Spearman(label, bb_width)| ≤ 0.05 on eligible valid bars;
-  - kept rows > 0 and SELL = 0;
+  - kept rows > 0, BUY > 0 and SELL > 0;
   - simulator fidelity ≥ 0.95 on the sizer arm's recorded entries; entries equal the width book's
     (same pairs and candles);
   - thresholds load to 4 decimals;
@@ -172,14 +222,19 @@ case).
   - the sizer arm's per-fold `trades_hash` (pair, dates, profit ratio; not stake or tag) equals
     `w_<m>`'s. A fold that differs had a trade blocked or changed by the wallet; it is reported and
     flagged, not hidden.
-- **S1, mechanism:**
+- **Per arm:** S0 for the exit-on arm is entry-rule violations 0, exit liveness, and parameters
+  loaded. Its S2/S3 comparators are the exit-off arm (judge_one, late) and the width book (pp, both
+  halves).
+- **S1, mechanism (exit-off arm only):**
   - the agree − disagree pp per trade gap of the width-relative model, on the IDENTICAL width-book
     trades (simulator, as in `co_sizing.py`), must exceed the current model's in both halves (ARO
     0.072 / 0.085, GBR 0.063 / 0.072);
   - `agree` is recomputed from the signal tables' `buy_argmax` and `p_buy` at the fold threshold.
-- **S2:** early f00–f07; the sizer arm's pp must beat the width book's AND the control's.
-- **S3:** late f08–f14; `judge_one(arm, control)` must PASS AND late pp must beat the width book's;
-  `judge_one(arm, width)` is reported.
+- **S2:** early f00–f07; the exit-off arm's pp must beat the width book's AND the control's; the
+  exit-on arm's pp must beat the exit-off arm's AND the width book's.
+- **S3:** late f08–f14. The exit-off arm needs `judge_one(arm, control)` PASS AND late pp above the
+  width book's. The exit-on arm needs `judge_one(exit-on, exit-off)` PASS AND late pp above the width
+  book's. `judge_one(arm, width)` is reported for both.
 - **Small margin:** a stage passing by < 1 pp is INCONCLUSIVE until a paired seed-2 repeat.
 - **Outcome:** PASS (PROVISIONAL), FAIL or INCONCLUSIVE. Confirmation: the folds after 2026-09-07,
   or dry-run.

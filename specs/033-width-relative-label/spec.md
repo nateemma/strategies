@@ -56,6 +56,14 @@ directly.
   so the arm deploys the same average capital as the width book.
 - Q: Threshold precision? → A: 4 decimals, on the new arm classes only. Existing classes and
   records are untouched.
+- Q (raised after planning: earlier studies found model exits helped at open gates, +10.4 pp on
+  NNMT; on NNNC they were +0.03 pp at the tight gate and −5.15 pp with the exit gate also opened)
+  → A: The label covers exits by mirroring the BUY side. Exit-eligible bars (the gbb_path_sell
+  rule) are ranked within their own width buckets by the sell-path outcome, and the worst half is
+  SELL. One three-class model, trained on entry- plus exit-eligible rows, serves both arms.
+- Q: How is the exit-on variant judged? → A: Co-primary. The sizer with model exits off and the
+  sizer with model exits on each go through the pre-registered stages and get their own verdict.
+  The exit-on arm is judged against the exit-off arm and the width book.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -63,8 +71,9 @@ directly.
 
 A researcher declares, on a new model class, a width-relative label. Each rule-eligible training
 bar gets a forward outcome. The outcome is compared with what bars of similar band width achieved
-in the same fold's training window. The bar is positive if it did better than half of the bars in
-its width bucket. Without the declaration, labelling is unchanged.
+in the same fold's training window. An entry-eligible bar is BUY if it did better than half of the
+entry bars in its width bucket. An exit-eligible bar is SELL if holding through it did worse than
+half of the exit bars in its width bucket. Without the declaration, labelling is unchanged.
 
 **Why this priority**: Nothing can be trained until the label exists, and it must leave every
 existing model, weight file and recorded result untouched.
@@ -87,17 +96,25 @@ existing model, weight file and recorded result untouched.
 3. **Given** the label declared, **When** labels are built, **Then** a bar is positive exactly
    when its forward outcome ranks in the top declared share (default half) of its bucket. Ties are
    broken by speed: a target hit in fewer bars ranks higher, a stop hit in more bars ranks higher,
-   then by position. Otherwise the bar is negative. No bar is labelled SELL.
-4. **Given** the label declared, **When** labels are built, **Then** the positive rate in every
-   width bucket is between 40% and 60%. The rank correlation of the label with band width on
-   eligible bars is within ±0.05.
+   then by position. Otherwise the bar is HOLD.
+3b. **Given** the label declared, **When** labels are built, **Then** an exit-eligible bar
+   (guard_metric > 0.3 AND bb_width > 0.035, the gbb_path_sell rule) is SELL exactly when its
+   sell-path outcome ranks in the bottom declared share (default half) of its exit-side width
+   bucket. Ties are broken by speed: a fall reached in fewer bars ranks lower, a take-profit reached
+   in more bars ranks higher, then by position. Otherwise the bar is HOLD. Entry- and exit-eligible
+   bars are disjoint, so no bar can be both BUY and SELL.
+4. **Given** the label declared, **When** labels are built, **Then**, on each side (BUY among
+   entry-eligible bars, SELL among exit-eligible bars), the labelled share in every width bucket is
+   between 40% and 60%. The rank correlation of each side's label with band width on its eligible
+   bars is within ±0.05.
 5. **Given** the label declared, **When** the model key is computed, **Then** it differs from
    every existing key and changes with each label setting (outcome, bucket count, share).
 6. **Given** a bar whose forward outcome cannot be computed (the horizon runs past the end of the
    data), **When** labels are built, **Then** it is excluded from training, never labelled
    negative.
-7. **Given** the label declared, **When** training runs, **Then** it trains on rule-eligible rows
-   only (the 032 training row filter), with the validation split filtered the same way.
+7. **Given** the label declared, **When** training runs, **Then** it trains on entry- or
+   exit-eligible rows with a valid outcome only (the 032 training row filter, extended to the
+   union), with the validation split filtered the same way.
 
 ---
 
@@ -118,15 +135,18 @@ than the width book either.
 
 **Acceptance Scenarios**:
 
-1. **Given** the trained folds, **When** the label is audited, **Then** each fold reports its
-   positive rate per width bucket and the label's rank correlation with width, against the
+1. **Given** the trained folds, **When** the label is audited, **Then** each fold reports, per side,
+   its labelled share per width bucket and the label's rank correlation with width, against the
    US1 scenario 4 bounds.
 2. **Given** the new model's per-bar scores on the test folds, **When** the width-book trades are
    split by whether the model fires, **Then** the agree − disagree pp per trade gap is reported
    next to the current model's (ARO 0.072 / 0.085, GBR 0.063 / 0.072) on the same trades.
 3. **Given** any book is read, **When** the instrument is checked, **Then**:
-   - the simulator reproduces at least 95% of the arm's recorded entries;
-   - 0 entries violate the arm's entry rule;
+   - the exit-off arm reproduces the width book's trades fold by fold (same pairs, dates and
+     profit ratios); any difference is reported as a wallet or stake effect;
+   - 0 entries in either arm violate the width book's entry rule;
+   - the exit-on arm records model exits in every fold where its exit gate passes (liveness), with
+     the count per fold reported;
    - every fold's saved parameters are verified as loaded.
 
 ---
@@ -134,8 +154,10 @@ than the width book either.
 ### User Story 3 - Pre-registered walk-forward judgement (Priority: P3)
 
 The researcher commits a pre-registration of every stage rule and operating point BEFORE any model
-is trained. The primary arm's walk-forward records are then judged, early half first, late half
-confirmatory, against the width book and the model control.
+is trained. Each of the two co-primary arms' walk-forward records is then judged, early half
+first, late half confirmatory:
+- the exit-off sizer against the width book and the model control;
+- the exit-on sizer against the exit-off sizer and the width book.
 
 **Why this priority**: Only the confirmatory stage decides the verdict, and it is read only if the
 earlier stages pass.
@@ -148,14 +170,18 @@ verdicts.
 1. **Given** a committed pre-registration, **When** the judge runs, **Then** it refuses if any arm
    record predates the commit or the pre-registration has uncommitted changes.
 2. **Given** the stages, **When** they are read, **Then**:
-   - S0 (instrument and label sanity), S1 (separation inside the width book), S2 (early half
-     f00–f07, the sizer arm's pp against the width book and the control) and S3 (late half
+   - per arm, S0 (instrument and label sanity), S1 (separation inside the width book; exit-off arm
+     only), S2 (early half f00–f07, the arm's pp against its two comparators) and S3 (late half
      f08–f14, judged against both) are read in that order;
-   - a failed stage leaves the later stages recorded as not reached, and their records unread.
+   - a failed stage leaves that arm's later stages recorded as not reached, and their records
+     unread;
+   - the arms are judged independently. An S1 failure stops the exit-off arm only, because the
+     exit-on arm's question (do model exits add value on top of the sizer?) does not depend on it.
 3. **Given** a stage passes by less than 1 pp, **When** it is judged, **Then** it is INCONCLUSIVE
    until a paired seed-2 repeat.
 4. **Given** the run ends, **When** the report is written, **Then**:
-   - each model gets PASS (PROVISIONAL), FAIL or INCONCLUSIVE, naming the stage that stopped it;
+   - each model and arm gets PASS (PROVISIONAL), FAIL or INCONCLUSIVE, naming the stage that stopped
+     it;
    - a pass names its forward-confirmation route: folds after 2026-09-07, or dry-run;
    - a negative result is recorded with full evidence.
 
@@ -185,6 +211,16 @@ verdicts.
   uses the pre-registered share, not the realised one. Any capital difference against the width
   book is therefore reported, not hidden.
 - **Held-pair add.** The held-pair add is off in the arms and in all comparators, as in 032.
+- **Exit gate.** Model exits pass through the controls' existing exit gate (rvol > 2.0 AND
+  guard_metric > −0.1, active because entry guards are enabled), unchanged. That is the gate NNNC_MLX
+  already trades with exits on. Tuning or opening it is out of scope (one parameter space at a time;
+  opening it made exits worse in the COCONUT test).
+- **Earlier exits change the trade set.** In the exit-on arm, an earlier exit frees the pair sooner,
+  so its entries can differ from the width book's. Its instrument checks are entry-rule violations
+  and exit liveness, not trade identity.
+- **Sparse SELL opportunities.** The exit gate's rvol > 2.0 passes few bars, so model exits may fire
+  rarely. The count per fold is reported. A fold with exit-gate-passing bars but zero model exits
+  is flagged as a liveness failure.
 
 ## Requirements *(mandatory)*
 
@@ -193,26 +229,31 @@ verdicts.
 - **FR-001**: The shared labelling path MUST accept an optional, strategy-declared width-relative
   label. When none is declared, training labels, data, model keys, fingerprints and every recorded
   result MUST be unchanged.
-- **FR-002**: The label's forward outcome per eligible bar MUST be the realised return of the
-  gbb_path trade from that bar: the +2% target or the −5% stop, whichever the path reaches first,
-  else the close return at 48 bars (Clarification Q1). The target, stop and horizon are the label
-  parameters of the controls.
+- **FR-002**: The label's forward outcome per entry-eligible bar MUST be the realised return of
+  the gbb_path trade from that bar: the +2% target or the −5% stop, whichever the path reaches
+  first, else the close return at 48 bars (Clarification Q1). Per exit-eligible bar, it MUST be the
+  mirror, the gbb_path_sell path: a 2% fall (NNNC's MIN_SELL_LOSS_THRESHOLD) or the 2.2% take-profit, whichever comes first, else
+  the close return at 48 bars. The targets, stops and horizon are the controls' label parameters.
 - **FR-003**: The width reference MUST be the bar's band-width quantile bucket: its outcomes
   ranked with the declared tie-break. It uses 10 equal-count buckets, computed per fold from that fold's training window only, pooled
-  across pairs, over rule-eligible bars.
-- **FR-004**: A bar MUST be labelled positive if and only if it ranks in the top declared share
-  (default 0.5) of its bucket, by outcome, then the speed tie-break, then position. Otherwise it is
-  negative. There is no SELL label. (Refined at planning from "mean plus margin": plan research R3.)
+  across pairs, separately for entry-eligible and exit-eligible bars.
+- **FR-004**: An entry-eligible bar MUST be labelled BUY if and only if it ranks in the top declared
+  share (default 0.5) of its bucket, by outcome, then the speed tie-break, then position. An
+  exit-eligible bar MUST be labelled SELL if and only if it ranks in the bottom declared share
+  (default 0.5) of its exit-side bucket. Every other kept bar is HOLD. (Refined at planning from
+  "mean plus margin": plan research R3.)
 - **FR-005**: The outcome measure, bucket count, share and eligibility rule MUST be declared by
   the strategy (the NNNC side), not written into the shared code, so the shared code stays
   strategy-agnostic. Pooling across pairs MUST be applied where the training window's pairs are
   assembled, not inside a per-pair label function.
-- **FR-006**: Training MUST use the 032 training row filter (rule-eligible rows only), with the
-  validation split filtered the same way.
+- **FR-006**: Training MUST use the 032 training row filter, keeping entry- or exit-eligible rows
+  with a valid outcome, with the validation split filtered the same way.
 - **FR-007**: Declaring the label MUST change the model key of that class only, and the key MUST
   reflect each label setting. Existing classes' model keys MUST be unchanged. The model-key audit
   MUST classify every new setting.
-- **FR-008**: The primary arm MUST be the sizer (Clarification Q2):
+- **FR-008**: The arms MUST be the sizer (Clarification Q2), in two co-primary variants: model
+  exits off and model exits on (the controls' exit gate unchanged). Both use the same weights,
+  thresholds and stakes. The sizer:
   - it takes exactly the width book's trades;
   - each trade's stake is 1.0 when the model agrees at the trade's signal bar and 0.5 when it does
     not, scaled by a per-fold constant;
@@ -232,13 +273,16 @@ verdicts.
   threshold MUST match the 24 h controls (wf_aro_g24, fs_gbr_gr).
 - **FR-011**: A label audit MUST report, per fold, the positive rate per width bucket, the label's
   rank correlation with width, and the kept training rows and class counts.
+- **FR-011b**: The exit-on arm MUST report, per fold, the count of model exits, and the count of
+  exit-gate-passing bars during open trades.
 - **FR-012**: The S1 measurement MUST compare the new and the current model's agree − disagree pp
   per trade on the identical width-book trades, per model and half.
 - **FR-013**: All stage rules and operating points MUST be committed in one pre-registration
   before any model is trained. The stages MUST be read in order; a failed stage leaves the later
   stages recorded as not reached.
-- **FR-014**: The walk-forward arms MUST be judged with the existing judge against the model control
-  and against the width book. The judge MUST refuse records that predate the pre-registration.
+- **FR-014**: The walk-forward arms MUST be judged with the existing judge:
+  - the exit-off arm against the model control and the width book;
+  - the exit-on arm against the exit-off arm and the width book. The judge MUST refuse records that predate the pre-registration.
 - **FR-015**: Training and threshold picking MUST run one fold per process, one chain at a time.
 - **FR-016**: Promoting any model or arm to a default MUST NOT be part of this feature.
 
@@ -254,8 +298,9 @@ verdicts.
   median outcome and positive share.
 - **Width-relative model**: a model class with the label declared. It has its own model key and
   weights per fold.
-- **Sizer arm**: the per-fold strategy classes that take the width book's trades and set each stake
-  from the model's agreement, with the pre-registered agree share and capital normalisation.
+- **Sizer arm**: the per-fold strategy classes that take the width book's entries and set each stake
+  from the model's agreement, with the pre-registered agree share and capital normalisation. There
+  are two variants: model exits off, and model exits on.
 - **Stage rule**: the pre-registered pass condition for one stage (S0–S3).
 - **Width book**: the existing model-free baseline (w_aro, w_gbr) that every arm must beat.
 
@@ -269,21 +314,27 @@ verdicts.
   - all model keys and fingerprints pinned in tests are unchanged.
 - **SC-002**: On a scripted frame with known outcomes and widths, 100% of labels equal the
   hand-computed value, and no bucket uses a test-window bar.
-- **SC-003**: On every trained fold, the positive rate in every width bucket is between 40% and
-  60%, and the label's rank correlation with width on eligible bars is within ±0.05.
+- **SC-003**: On every trained fold, for each side, the labelled share in every width bucket is
+  between 40% and 60%, and the label's rank correlation with width on that side's eligible bars is
+  within ±0.05.
 - **SC-004**: Weights exist for all 15 folds of ARO and GBR (30 trained folds).
 - **SC-005**: The S1 separation (agree − disagree pp per trade inside the width book) is reported
   per model and half next to the current model's, on the identical trades.
-- **SC-006**: The simulator reproduces at least 95% of each arm's recorded entries, 0 entries
-  violate the arm's entry rule, and every fold's saved parameters are verified as loaded.
+- **SC-006**: The instrument holds for both arms:
+  - the exit-off arm reproduces the width book's trades per fold, with differences reported as stake
+    effects;
+  - 0 entries in either arm violate the entry rule;
+  - the exit-on arm shows model exits in every fold with gate-passing bars;
+  - every fold's saved parameters are verified as loaded.
 - **SC-007**: Each stage's outcome (pass, fail or not reached) is recorded against its committed
-  rule. The run ends with a verdict per model: PASS (PROVISIONAL), FAIL or INCONCLUSIVE, naming the
+  rule. The run ends with a verdict per model and arm: PASS (PROVISIONAL), FAIL or INCONCLUSIVE, naming the
   stage that stopped it. A PASS is a provisional result, not a finding (constitution II: one era),
   and names its forward-confirmation route.
 
 ## Assumptions
 
-- The eligibility rule is the gbb rule as in 032: guard_metric < 0.3 AND bb_width > 0.035.
+- The entry-eligibility rule is the gbb rule as in 032: guard_metric < 0.3 AND bb_width > 0.035.
+  The exit-eligibility rule is the gbb_path_sell rule: guard_metric > 0.3 AND bb_width > 0.035.
 - Features, architecture, seed, training spans and grace are unchanged from the controls, so no
   scaler regeneration is needed. The scaler-leak rule (constitution XI) applies as for the controls.
 - The width book's own definition and cut are unchanged; it is the baseline, not a variable.
