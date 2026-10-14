@@ -55,8 +55,9 @@ def backtest_adds(rec: dict) -> list[dict]:
     return out
 
 
-def run(arm: str, model: str, control: str, folds: list[str]) -> dict:
-    scr = json.loads((HERE / f"adds_{model}.json").read_text())
+def run(arm: str, model: str, control: str, folds: list[str], adds_cond: str = "all") -> dict:
+    scr = json.loads((HERE / (f"adds_{model}.json" if adds_cond == "all"
+                              else f"adds_{model}_{adds_cond}.json")).read_text())
     screen = {}
     for a in scr["adds"]:
         screen.setdefault(a["fold"], set()).add((a["pair"], pd.Timestamp(a["add_date"])))
@@ -105,9 +106,10 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default="ARO")
     ap.add_argument("--control", default="wf_aro_g24")
     ap.add_argument("--folds", default="f00,f01,f02,f03,f04,f05,f06,f07")
+    ap.add_argument("--cond", default="all")
     a = ap.parse_args(argv)
-    out = run(a.arm, a.model, a.control, a.folds.split(","))
-    (HERE / "fidelity.json").write_text(json.dumps(out, indent=1, default=str))
+    out = run(a.arm, a.model, a.control, a.folds.split(","), a.cond)
+    (HERE / ("fidelity.json" if a.cond == "all" else f"fidelity_{a.cond}.json")).write_text(json.dumps(out, indent=1, default=str))
     print(json.dumps({k: v for k, v in out.items() if k != "per_fold"}, indent=1, default=str))
     for f, r in out["per_fold"].items():
         print(f"{f}: bt {r['backtest_adds']:3d} scr {r['screen_adds']:3d} match {r['matched']:3d} "

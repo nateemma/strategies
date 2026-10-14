@@ -169,7 +169,7 @@ def simulate(model: E.Model, fold: str, mask, params, policy: str, cond: str | N
     return out
 
 
-def dump_adds(m: str, grace: float, halves=("early",)) -> Path:
+def dump_adds(m: str, grace: float, halves=("early",), cond: str = "all") -> Path:
     """031 T019: the DCA:all:1h adds (fold, pair, add date, trade open date, add stake) at
     `grace`, for `research.held_pair.fidelity`."""
     model = E.Model(m)
@@ -179,7 +179,7 @@ def dump_adds(m: str, grace: float, halves=("early",)) -> Path:
         if F.half_of(f) not in halves:
             continue
         mask = model.tables[f]["enter_long"].to_numpy() == 1
-        sim = simulate(model, f, mask, params, "DCA", "all", 1.0)
+        sim = simulate(model, f, mask, params, "DCA", cond, 1.0)
         base = simulate(model, f, mask, params, "NONE", None, 0.0)
         delta[f] = round(float(sim["pp"].sum() - base["pp"].sum()), 4)
         for t in sim.itertuples():
@@ -189,8 +189,8 @@ def dump_adds(m: str, grace: float, halves=("early",)) -> Path:
             rows.append({"fold": f, "pair": t.pair, "add_date": str(dates[t.add_e]),
                          "open_date": str(dates[t.e]), "add_stake": float(t.add_stake),
                          "exit_idx_eq_add": bool(t.x == t.add_e)})
-    out = HERE / f"adds_{m}.json"
-    out.write_text(json.dumps({"model": m, "grace": grace, "policy": "DCA:all:1h",
+    out = HERE / (f"adds_{m}.json" if cond == "all" else f"adds_{m}_{cond}.json")
+    out.write_text(json.dumps({"model": m, "grace": grace, "policy": f"DCA:{cond}:1h",
                                "halves": list(halves), "fold_delta_pp": delta, "adds": rows},
                               indent=1))
     print(f"{m}: {len(rows)} screen adds -> {out.name}")
@@ -200,7 +200,7 @@ def dump_adds(m: str, grace: float, halves=("early",)) -> Path:
 def main(argv=None) -> int:
     args = list(argv or sys.argv[1:])
     if args[:1] == ["--dump-adds"]:
-        dump_adds(args[1], float(args[2]))
+        dump_adds(args[1], float(args[2]), cond=args[3] if len(args) > 3 else "all")
         return 0
     models = (args or ["ARO,GBR,GFM,MLX"])[0].split(",")
     out_path = HERE / f"screen_nnnc{D.SUFFIX}{'_both' if len(HALVES) == 2 else ''}.json"

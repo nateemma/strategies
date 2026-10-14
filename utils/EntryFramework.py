@@ -535,7 +535,7 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
 
     #: AddDecision refusal reasons, in check order (data-model.md).
     HP_REASONS = ("not_long", "open_order", "max_adds", "row_misaligned", "no_signal",
-                  "too_young", "in_profit", "not_in_profit", "thin", "below_min")
+                  "too_young", "in_profit", "not_in_profit", "exit_due", "thin", "below_min")
 
     def _hp_count(self, key: str) -> None:
         c = self.__dict__.get("_hp_counts")
@@ -564,6 +564,15 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
         (out / f"{self.__class__.__name__}_hp_add.json").write_text(json.dumps({
             "counts": {f"hp_{k}": {"pass": int(v), "total": calls}
                        for k, v in sorted(counts.items())}}))
+
+    def _hp_exit_due(self, trade, current_time, current_rate, current_profit) -> bool:
+        """Would the held trade exit at this candle's open without the add? The strategy's own
+        custom exit, or ROI when an entry signal does not suppress it."""
+        if self.custom_exit(trade.pair, trade, current_time, current_rate, current_profit):
+            return True
+        if not getattr(self, "ignore_roi_if_entry_signal", False):
+            return bool(self.min_roi_reached(trade, current_profit, current_time))
+        return False
 
     def adjust_trade_position(self, trade, current_time, current_rate, current_profit,
                               min_stake, max_stake, current_entry_rate=None,
@@ -606,6 +615,12 @@ class EntryFrameworkMixin(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariant
             return self._hp_refuse("in_profit")
         if hp.get("in_profit_only") and not current_profit > 0:
             return self._hp_refuse("not_in_profit")
+        # The exit wins (031 follow-up fidelity diagnosis): freqtrade checks the add BEFORE this
+        # candle's exits, so an add on a candle where the held trade's own exit fires at this open
+        # would average the price, restart the clock -- and the 1 h minimum hold would then veto
+        # the discretionary exit (take-profit), keeping the trade open. Refuse the add instead.
+        if self._hp_exit_due(trade, current_time, current_rate, current_profit):
+            return self._hp_refuse("exit_due")
         quote_volume = float(last["volume"]) * float(last["close"])
         if quote_volume < self.MIN_QUOTE_VOLUME:
             return self._hp_refuse("thin")

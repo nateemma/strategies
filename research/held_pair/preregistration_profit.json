@@ -1,0 +1,317 @@
+{
+ "title": "031 follow-up: held-pair add only when the held trade is in profit (pyramiding)",
+ "date": "2026-10-13",
+ "label": "NNNC: EXPLORATORY (no unseen 2023-26 window remains for the held-pair question; no NNNC model covers 2022). SimpleTrigger: 2022 CONFIRMATORY",
+ "setting": {
+  "declared": "HELD_PAIR_ADD = {'in_profit_only': True}",
+  "resolved": {
+   "max_adds": 1,
+   "min_age_hours": 1.0,
+   "under_water_only": false,
+   "in_profit_only": true
+  },
+  "grace_hours": 24.0,
+  "code": "includes the exit-due guard (no add on a candle where the held trade's own exit fires at the open)",
+  "selected_from": "research/held_pair/screen2.py (40ca13c): the only variant positive in both halves on ARO/GBR/GFM with drawdown not raised and risk-matched gain > 0 on all four; full stake (fractional sizes cut gain with no risk-matched benefit on the in-profit variant)"
+ },
+ "books": {
+  "ARO": {
+   "kind": "NNNC",
+   "arm": "hp_aro_dca_p",
+   "class": "NNNC_HP_ARO_DCAP",
+   "control": "wf_aro_g24",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "screen_early_pp": 3.237,
+   "screen_early_adds": null,
+   "window_roles": {
+    "f00-f14": "EXPLORATORY: both halves seen (screen2 priced this variant over 15 folds; the DCA arms' late half was judged)"
+   },
+   "screen_late_pp_SEEN": 3.308,
+   "screen_adds_15_folds": 66,
+   "screen_risk_matched_pp": 9.521
+  },
+  "GBR": {
+   "kind": "NNNC",
+   "arm": "hp_gbr_dca_p",
+   "class": "NNNC_HP_GBR_DCAP",
+   "control": "fs_gbr_gr",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "screen_early_pp": 2.702,
+   "screen_early_adds": null,
+   "window_roles": {
+    "f00-f14": "EXPLORATORY: both halves seen (screen2 priced this variant over 15 folds; the DCA arms' late half was judged)"
+   },
+   "screen_late_pp_SEEN": 3.317,
+   "screen_adds_15_folds": 58,
+   "screen_risk_matched_pp": 6.019
+  },
+  "GFM": {
+   "kind": "NNNC",
+   "arm": "hp_gfm_dca_p",
+   "class": "NNNC_HP_GFM_DCAP",
+   "control": "fs_gfm_gr",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "screen_early_pp": 2.705,
+   "screen_early_adds": null,
+   "window_roles": {
+    "f00-f14": "EXPLORATORY: both halves seen (screen2 priced this variant over 15 folds; the DCA arms' late half was judged)"
+   },
+   "screen_late_pp_SEEN": 2.649,
+   "screen_adds_15_folds": 171,
+   "screen_risk_matched_pp": 11.665
+  },
+  "MLX": {
+   "kind": "NNNC",
+   "arm": "hp_mlx_dca_p",
+   "class": "NNNC_HP_MLX_DCAP",
+   "control": "fs_mlx_gr",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "screen_early_pp": 0.233,
+   "screen_early_adds": null,
+   "window_roles": {
+    "f00-f14": "EXPLORATORY: both halves seen (screen2 priced this variant over 15 folds; the DCA arms' late half was judged)"
+   },
+   "screen_late_pp_SEEN": 0.823,
+   "screen_adds_15_folds": 11,
+   "screen_risk_matched_pp": 1.055
+  },
+  "ST_REV": {
+   "kind": "SimpleTrigger",
+   "arm": "st_hp_rev_p",
+   "arm_2022": "st_e22_hp_rev_p",
+   "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCAP",
+   "control": "st_g24_rev",
+   "control_2022": "st_e22_g24_rev",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "window_roles": {
+    "e00-e02 (2022)": "CONFIRMATORY: never run with this variant (2022 was used for the add-on-any-signal verdict)",
+    "f00-f14": "EXPLORATORY"
+   }
+  },
+  "ST_MOM": {
+   "kind": "SimpleTrigger",
+   "arm": "st_hp_mom_p",
+   "arm_2022": "st_e22_hp_mom_p",
+   "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCAP",
+   "control": "st_g24_mom",
+   "control_2022": "st_e22_g24_mom",
+   "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "window_roles": {
+    "e00-e02 (2022)": "CONFIRMATORY: never run with this variant (2022 was used for the add-on-any-signal verdict)",
+    "f00-f14": "EXPLORATORY"
+   }
+  }
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "folds_2022": [
+  "e00",
+  "e01",
+  "e02"
+ ],
+ "min_control_trades": 200,
+ "min_control_trades_2022": null,
+ "exempt_records": [
+  "hp_aro_dca_p:f00",
+  "hp_aro_dca_p:f01",
+  "hp_aro_dca_p:f02",
+  "hp_aro_dca_p:f03",
+  "hp_aro_dca_p:f04",
+  "hp_aro_dca_p:f05",
+  "hp_aro_dca_p:f06",
+  "hp_aro_dca_p:f07"
+ ],
+ "rule": {
+  "gain": "sum of per-fold return_pct, arm minus its control",
+  "NNNC_ADOPT": "research.nnnc_switches.judge.judge_one PASS over f00-f14: early gain > 0 AND late gain > 0 AND paired verdict maps to pass AND both risk verdicts (Sharpe, maxDD) map to pass",
+  "SimpleTrigger_ADOPT": "research.st_grace.judge.judge_2022 PASS on e00-e02: 2022 gain > 0 AND paired maps to pass AND both risk verdicts map to pass (no minimum control trades, st_grace convention)",
+  "INCONCLUSIVE": "zero adds in the judged window (override on both rules), OR control < min_control_trades (2023-26), OR a mapped verdict is inconclusive, OR the arm changed trades in 0 folds",
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "gate_5": "an ADOPTED gain under 1 pp needs one fold re-run under a fresh tag reproducing the identical trade set",
+  "promotion": "none: verdicts are per book; HELD_PAIR_ADD stays default-off whatever they are; enabling it for NNNC is the user's decision"
+ },
+ "reporting": [
+  "per book: screen early prediction, arm early/late (or 2022) gain, leverage control side by side",
+  "max drawdown and exposure (time-weighted average and peak committed stake), arm vs control",
+  "adds per fold and hp_counters",
+  "crowd-out split: same entries / control entries forgone (pair-held) / new entries",
+  "a gain <= its leverage control is stated as 'explained by extra capital' even if ADOPTED"
+ ],
+ "fidelity": {
+  "arm": "hp_aro_dca_p",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07"
+  ],
+  "precision": 1.0,
+  "recall": 1.0,
+  "row_misaligned": 0,
+  "arm_early_gain_pp": 3.189,
+  "screen_early_gain_pp": 3.2368,
+  "verdict": "PASS",
+  "file": "research/held_pair/fidelity_profit.json",
+  "note": "first run (before the exit-due guard): precision 86.8% FAIL -- all 7 unmatched adds fell on the candle where the held trade's take-profit fired; the add, checked before the exits, restarted the clock and the 1 h minimum hold vetoed the exit. Fixed; rerun 47/47."
+ },
+ "switch_off_verification": "specs/031-held-pair-dca/verification.md: 7 reference arms x 15 folds byte-identical",
+ "chain": [
+  "hp_aro_dca_p f08-f14",
+  "hp_gbr_dca_p f00-f14",
+  "hp_gfm_dca_p f00-f14",
+  "hp_mlx_dca_p f00-f14",
+  "st_e22_hp_rev_p e00-e02",
+  "st_e22_hp_mom_p e00-e02",
+  "st_hp_rev_p f00-f14",
+  "st_hp_mom_p f00-f14"
+ ],
+ "regime_check": "research/held_pair/regime_check.json (fc243e7): volreg does not separate add P&L (0/4 all-adds, 1/4 in-profit adds; rule 3/4) -> no regime gate"
+}

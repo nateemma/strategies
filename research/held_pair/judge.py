@@ -104,9 +104,15 @@ def judge_book(pr: dict, key: str, b: dict) -> dict:
     return res
 
 
-def main() -> int:
-    pr = json.loads(PREREG.read_text())
-    bad = refusals(pr)
+def main(argv=None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--prereg", default=str(PREREG))
+    a = ap.parse_args(argv)
+    prereg = Path(a.prereg).resolve()
+    pr = json.loads(prereg.read_text())
+    bad = refusals(pr, prereg)
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
@@ -122,7 +128,8 @@ def main() -> int:
         line += (f", adds {sum(v or 0 for v in r['n_adds'].values())}, leverage "
                  f"{r['exposure']['leverage']['leverage_pp']:+.2f}")
         print(line)
-    (HERE / "verdicts.json").write_text(json.dumps(out, indent=1, default=str))
+    name = "verdicts.json" if prereg == PREREG else f"verdicts_{prereg.stem.split('_', 1)[-1]}.json"
+    (HERE / name).write_text(json.dumps(out, indent=1, default=str))
     return 0
 
 

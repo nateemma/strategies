@@ -166,5 +166,181 @@
    "e01",
    "e02"
   ]
+ },
+ "ARO:profit": {
+  "book": "ARO",
+  "variant": "profit",
+  "arm": "hp_aro_dca_p",
+  "class": "NNNC_HP_ARO_DCAP",
+  "control": "wf_aro_g24",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "GBR:profit": {
+  "book": "GBR",
+  "variant": "profit",
+  "arm": "hp_gbr_dca_p",
+  "class": "NNNC_HP_GBR_DCAP",
+  "control": "fs_gbr_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "GFM:profit": {
+  "book": "GFM",
+  "variant": "profit",
+  "arm": "hp_gfm_dca_p",
+  "class": "NNNC_HP_GFM_DCAP",
+  "control": "fs_gfm_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "MLX:profit": {
+  "book": "MLX",
+  "variant": "profit",
+  "arm": "hp_mlx_dca_p",
+  "class": "NNNC_HP_MLX_DCAP",
+  "control": "fs_mlx_gr",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_REV:profit": {
+  "book": "ST_REV",
+  "variant": "profit",
+  "arm": "st_hp_rev_p",
+  "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCAP",
+  "control": "st_g24_rev",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_MOM:profit": {
+  "book": "ST_MOM",
+  "variant": "profit",
+  "arm": "st_hp_mom_p",
+  "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCAP",
+  "control": "st_g24_mom",
+  "window": "2023-26",
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07",
+   "f08",
+   "f09",
+   "f10",
+   "f11",
+   "f12",
+   "f13",
+   "f14"
+  ]
+ },
+ "ST_REV_2022:profit": {
+  "book": "ST_REV_2022",
+  "variant": "profit",
+  "arm": "st_e22_hp_rev_p",
+  "class": "SimpleTrigger_RevOnlyVolreg2_P2_G24_DCAP",
+  "control": "st_e22_g24_rev",
+  "window": "2022",
+  "folds": [
+   "e00",
+   "e01",
+   "e02"
+  ]
+ },
+ "ST_MOM_2022:profit": {
+  "book": "ST_MOM_2022",
+  "variant": "profit",
+  "arm": "st_e22_hp_mom_p",
+  "class": "SimpleTrigger_BreakoutGbb_MomExit_G24_DCAP",
+  "control": "st_e22_g24_mom",
+  "window": "2022",
+  "folds": [
+   "e00",
+   "e01",
+   "e02"
+  ]
  }
 }

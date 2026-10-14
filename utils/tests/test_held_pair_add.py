@@ -117,6 +117,7 @@ def _strat(cls=On, frame=None, stake=900.0):
         get_trade_stake_amount=lambda pair, mot, update=False: stake)
     s.dp = types.SimpleNamespace(
         get_analyzed_dataframe=lambda pair, timeframe: (frame, None))
+    s.custom_exit = lambda *a, **k: None  # no exit due on the add candle unless a test says so
     return s
 
 
@@ -156,6 +157,7 @@ def test_stake_is_capped_by_liquidity_and_wallet():
     ("too_young", {"date_last_filled_utc": NOW - timedelta(minutes=45)}, {}, {}, None),
     ("too_young", {"date_last_filled_utc": NOW}, {}, {}, {"min_age_hours": 0}),
     ("in_profit", {}, {}, {"profit": 0.01}, {"under_water_only": True}),
+    ("not_in_profit", {}, {}, {"profit": -0.01}, {"in_profit_only": True}),
     ("thin", {}, {"volume": 50.0}, {}, None),
     ("below_min", {}, {}, {"min_stake": 2000.0}, None),
 ])
@@ -346,3 +348,24 @@ def test_add_fraction_scales_the_proposed_stake_before_the_caps():
     assert _call(s) == (450.0, "hp_add")
     s = _strat(cls, _frame(NOW - BAR, volume=300.0))  # fillable 300 < 450
     assert _call(s) == (300.0, "hp_add")
+
+
+def test_no_add_on_a_candle_where_the_held_trade_exits():
+    """031 follow-up fidelity: an add before the exit check would average the price, restart the
+    clock and let the 1 h minimum hold veto the take-profit. The exit wins."""
+    s = _strat(frame=_frame(NOW - BAR, volume=1e9))
+    s.custom_exit = lambda *a, **k: "take_profit"
+    assert _call(s) is None
+    assert s._hp_counts == {"refused_exit_due": 1}
+
+
+def test_roi_due_refuses_only_when_entry_signals_do_not_suppress_roi():
+    s = _strat(frame=_frame(NOW - BAR, volume=1e9))
+    s.min_roi_reached = lambda trade, profit, now: True
+    s.ignore_roi_if_entry_signal = True  # the add candle has an entry signal: ROI is suppressed
+    assert _call(s) == (900.0, "hp_add")
+    s = _strat(frame=_frame(NOW - BAR, volume=1e9))
+    s.min_roi_reached = lambda trade, profit, now: True
+    s.ignore_roi_if_entry_signal = False
+    assert _call(s) is None
+    assert s._hp_counts == {"refused_exit_due": 1}

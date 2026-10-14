@@ -61,18 +61,24 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 
 class {name}({base}):
-    HELD_PAIR_ADD = {{}}
+    HELD_PAIR_ADD = {decl}
 '''
 
 
-def build(book: str) -> dict:
+#: variant -> (HELD_PAIR_ADD declaration, class suffix, tag suffix)
+VARIANTS = {"dca": ({}, "", ""), "profit": ({"in_profit_only": True}, "P", "_p")}
+
+
+def build(book: str, variant: str = "dca") -> dict:
     tag, name, ctl, group, window = BOOKS[book]
+    decl, csuf, tsuf = VARIANTS[variant]
+    name, tag = name + csuf, tag + tsuf
     plan = json.loads((FOLDS / f"plan_{ctl}.json").read_text())
     base = plan["base_strategy"]
     imp = (f"from {base} import {base}" if group == "NNNC"
            else f"from SimpleTrigger.{base} import {base}")
     py = STRAT / group / f"{name}.py"
-    py.write_text(CLASS_TMPL.format(base=base, control=ctl, imp=imp, name=name))
+    py.write_text(CLASS_TMPL.format(base=base, control=ctl, imp=imp, name=name, decl=repr(decl)))
     bj_path = STRAT / group / f"{base}.json"
     if bj_path.is_file():
         bj = json.loads(bj_path.read_text())
@@ -88,9 +94,10 @@ def build(book: str) -> dict:
             f["strategy_class"] = f"{name}_{f['fold_id']}"
         f["arm_tag"] = f"{tag}_{f['fold_id']}"
         f["status"] = "planned"
-    new["held_pair_note"] = f"031: {name} = {base} + HELD_PAIR_ADD {{}}; control {ctl}"
+    new["held_pair_note"] = f"031: {name} = {base} + HELD_PAIR_ADD {decl!r}; control {ctl}"
     (FOLDS / f"plan_{tag}.json").write_text(json.dumps(new, indent=1) + "\n")
-    return {"book": book, "arm": tag, "class": name, "control": ctl, "window": window,
+    return {"book": book, "variant": variant, "arm": tag, "class": name, "control": ctl,
+            "window": window,
             "folds": [f["fold_id"] for f in new["folds"]]}
 
 
@@ -106,13 +113,15 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=list(BOOKS))
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--variant", default="dca", choices=list(VARIANTS))
     a = ap.parse_args(argv)
-    built = [build(b) for b in a.only]
+    built = [build(b, a.variant) for b in a.only]
     if a.smoke:
         smoke()
     arms_path = HERE / "arms.json"
     arms = json.loads(arms_path.read_text()) if arms_path.is_file() else {}
-    arms.update({b["book"]: b for b in built})
+    arms.update({(b["book"] if b["variant"] == "dca" else f"{b['book']}:{b['variant']}"): b
+                 for b in built})
     arms_path.write_text(json.dumps(arms, indent=1) + "\n")
     for b in built:
         print(f"{b['book']:12s} {b['arm']:15s} {b['class']:45s} control {b['control']}")
