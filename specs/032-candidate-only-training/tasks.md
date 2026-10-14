@@ -38,20 +38,20 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `research/candidate_training/__init__.py` and `research/candidate_training/tests/__init__.py` (empty package), and add `research/candidate_training/tests` to the suite command in quickstart §1 and in the tasks conventions.
+- [X] T001 Create `research/candidate_training/__init__.py` and `research/candidate_training/tests/__init__.py` (empty package), and add `research/candidate_training/tests` to the suite command in quickstart §1 and in the tasks conventions.
 
 ---
 
 ## Phase 2: Foundational (blocking)
 
-- [ ] T002 [P] Write `Framework/tests/test_row_filter.py::test_mask_*` for contract C1. It must cover:
+- [X] T002 [P] Write `Framework/tests/test_row_filter.py::test_mask_*` for contract C1. It must cover:
   - AND of conditions, each op (`lt`/`le`/`gt`/`ge`);
   - NaN → False;
   - a missing column → `KeyError`;
   - an empty spec, a bad op or a bad shape → `ValueError`;
   - the input frame is not mutated.
-- [ ] T003 Implement `Framework/RowFilter.py::row_filter_mask(df, spec)` per C1. Generic only: no NNNC names or values. T002 must pass.
-- [ ] T004 [P] Capture the switch-off parity fixture BEFORE touching `Framework/TrainingEngine.py`:
+- [X] T003 Implement `Framework/RowFilter.py::row_filter_mask(df, spec)` per C1. Generic only: no NNNC names or values. T002 must pass.
+- [X] T004 [P] Capture the switch-off parity fixture BEFORE touching `Framework/TrainingEngine.py`:
   - `Framework/tests/fixtures/prepare_training_data_pre032.npz` is built by a deterministic
     synthetic frame builder in `Framework/tests/test_row_filter.py`: 2 pairs, 120 rows, columns
     including `guard_metric`, `bb_width`, features and `%pnl_weight`;
@@ -63,7 +63,7 @@ data-model.md, contracts/row_filter.md C1–C5, quickstart.md)
   `NNNC_A_Raw_Open`, `NNNC_GbbRaw_Open`, `NNNC_FS_GBR_GR`, `NNNC_ARO_f00` and `NNNC_FS_GBR_GR_f00`
   (via `Framework.ModelKey.resolve` under `config/config_wf.json`) into
   `Framework/tests/fixtures/model_keys_pre032.json`.
-- [ ] T005 [P] Fix `evaluation/pick_threshold.py` so `cmd_pick` / `cmd_control_rate` decide "trained?" with `run_folds.fold_has_model(fold, plan["base_strategy"], plan["config"], 1)`, not `model_exists(cls)` (research R6, C4). Add a test in `evaluation/test_pick_threshold.py` that monkeypatches `fold_has_model` and asserts it is consulted.
+- [X] T005 [P] Fix `evaluation/pick_threshold.py` so `cmd_pick` / `cmd_control_rate` decide "trained?" with `run_folds.fold_has_model(fold, plan["base_strategy"], plan["config"], 1)`, not `model_exists(cls)` (research R6, C4). Add a test in `evaluation/test_pick_threshold.py` that monkeypatches `fold_has_model` and asserts it is consulted.
 
 **Checkpoint**: run the full suite, then commit T001–T005.
 

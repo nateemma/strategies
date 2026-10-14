@@ -7,7 +7,8 @@ All commands run from `user_data/strategies` unless noted. Load the environment 
 
 ```sh
 ../../.venv/bin/python -m pytest Framework/tests utils/tests SimpleTrigger/tests \
-  research/exit_coupling/tests research/held_pair/tests evaluation -q -p no:cacheprovider
+  research/exit_coupling/tests research/held_pair/tests research/candidate_training/tests \
+  evaluation -q -p no:cacheprovider
 ```
 
 Expected: everything passes, including:

@@ -142,3 +142,27 @@ def test_threshold_for_rate_rejects_empty_input():
 
 def test_rate_for_threshold_zero_bars_is_zero_not_an_error():
     assert rate_for_threshold(np.empty(0), 0.5) == 0.0
+
+
+# ---------------------------------------------------------------------------
+# 032 R6: "is this fold trained?" follows the 030 model key, not saved_data/<class>/
+# ---------------------------------------------------------------------------
+
+
+def test_cmd_pick_consults_fold_has_model(monkeypatch):
+    import pick_threshold as PT
+
+    calls = []
+
+    def fake(fold, base, config, seed):
+        calls.append((fold["fold_id"], base, config, seed))
+        return False
+
+    monkeypatch.setattr(PT.run_folds, "fold_has_model", fake)
+    monkeypatch.setattr(PT.run_folds, "model_exists",
+                        lambda cls: pytest.fail("class-named check must not be used"))
+    plan = {"family": "NNNC", "config": "cfg.json", "base_strategy": "BASE",
+            "folds": [dict(FOLD, strategy_class="BASE_f00")]}
+    assert PT.cmd_pick(plan, None, 0.01) == {}
+    assert PT.cmd_control_rate(plan, None, 0.5) == {}
+    assert calls == [("f00", "BASE", "cfg.json", 1)] * 2

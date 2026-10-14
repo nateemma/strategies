@@ -20,7 +20,7 @@ loads OHLCV data, runs the fold strategy's OWN `populate_indicators` / `populate
 (via freqtrade's own `advise_all_indicators` / `advise_entry` -- never a reimplementation of
 feature-building) and reads the `%predict_prob_*` columns `get_predictions` already writes.
 That is a single forward pass through an already-trained model; it never trains one. A fold
-with no trained model yet (`run_folds.model_exists` returns False) is SKIPPED, not trained.
+with no trained model yet (`run_folds.fold_has_model` returns False) is SKIPPED, not trained.
 
 HOW A CHOSEN THRESHOLD REACHES THE FOLD RUN. See `run_folds.py`'s optional `thresholds` plan
 key and `generate_fold`'s `threshold` argument: the chosen value is written into the fold's
@@ -62,7 +62,7 @@ STRAT_DIR = ROOT / "user_data/strategies"
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # import run_folds regardless of cwd
 sys.path.insert(0, str(STRAT_DIR))                          # Framework/ as a top-level package
 
-from run_folds import model_exists  # noqa: E402  -- the ONLY reliable "is this fold trained" check
+import run_folds  # noqa: E402  -- fold_has_model: the "is this fold trained" check (030 model key)
 from Framework.BaseStrategy import TradingAction  # noqa: E402
 
 # Column order matches TradingAction's int values (SELL=0, HOLD=1, BUY=2): get_predictions
@@ -187,7 +187,7 @@ def _load_fold_context(cls: str, family: str, config: str):
     # which needs a real PairListManager this script never constructs (no exchange, no live
     # pairlist resolution -- out of scope for feature computation). Forcing it off is safe here
     # specifically because a) this script NEVER trains (callers only reach this point after
-    # run_folds.model_exists() is True, and the strategy's own model_exists() gate inside
+    # run_folds.fold_has_model() is True, and the strategy's own model_exists() gate inside
     # maybe_train would skip training anyway), and b) the aggregate branch's only dataframe
     # transform, add_sequential_index, is presently a documented no-op
     # (Framework/BaseNNStrategy.py: "seq_index removed as per USER request"), so disabling
@@ -223,7 +223,7 @@ def predicted_buy_probs(strat, cfg, window: TrainWindow) -> np.ndarray:
     through the strategy's own `populate_indicators` -> `populate_entry_trend` path -- the
     same calls freqtrade's own backtester makes per pair
     (freqtrade/optimize/backtesting.py:_get_ohlcv_as_lists). The fold's model must already
-    exist; this function never trains one (callers check `run_folds.model_exists` first).
+    exist; this function never trains one (callers check `run_folds.fold_has_model` first).
     """
     from freqtrade.data.converter import trim_dataframe
 
@@ -247,6 +247,12 @@ def predicted_buy_probs(strat, cfg, window: TrainWindow) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
+def _trained(plan: dict, fold: dict) -> bool:
+    """Does the fold's MODEL KEY have weights? Feature 030 stores weights at the key's location,
+    not saved_data/<class>/, so the old class-named check skipped every keyed fold (032 R6)."""
+    return run_folds.fold_has_model(fold, plan["base_strategy"], plan["config"], 1)
+
+
 def _select_folds(plan: dict, fold_id: str | None) -> list[dict]:
     folds = plan["folds"]
     if fold_id is None:
@@ -262,8 +268,8 @@ def cmd_pick(plan: dict, fold_id: str | None, target_rate: float) -> dict:
     out: dict[str, float] = {}
     for f in _select_folds(plan, fold_id):
         cls = f["strategy_class"]
-        if not model_exists(cls):
-            print(f"{f['fold_id']}: SKIP -- no trained model at saved_data/{cls}/ yet")
+        if not _trained(plan, f):
+            print(f"{f['fold_id']}: SKIP -- no trained model for {cls} (model key) yet")
             continue
         strat, cfg = _load_fold_context(cls, family, config)
         window = TrainWindow.from_fold(f)
@@ -287,8 +293,8 @@ def cmd_control_rate(plan: dict, fold_id: str | None, threshold: float | None) -
     out: dict[str, float] = {}
     for f in _select_folds(plan, fold_id):
         cls = f["strategy_class"]
-        if not model_exists(cls):
-            print(f"{f['fold_id']}: SKIP -- no trained model at saved_data/{cls}/ yet")
+        if not _trained(plan, f):
+            print(f"{f['fold_id']}: SKIP -- no trained model for {cls} (model key) yet")
             continue
         strat, cfg = _load_fold_context(cls, family, config)
         window = TrainWindow.from_fold(f)
