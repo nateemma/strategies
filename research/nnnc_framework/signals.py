@@ -44,6 +44,10 @@ WR_PLANS = {"WR_ARO": "wr_aro_sz", "WR_GBR": "wr_gbr_sz"}
 from research.label_screen.candidates import table_plans as _ls_table_plans  # noqa: E402
 
 LS_PLANS = _ls_table_plans()
+#: 035: new-input survivors (research/new_inputs; the training plans). Empty until survivors exist.
+from research.new_inputs.arms import table_plans as _ni_table_plans  # noqa: E402
+
+NI_PLANS = _ni_table_plans()
 KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
         "bb_width"]
 PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
@@ -98,7 +102,7 @@ def main(argv=None) -> int:
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     for m in a.models.split(","):
         plan = json.loads((STRAT / "evaluation/folds" /
-                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS)[m]}.json").read_text())
+                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS)[m]}.json").read_text())
         for f in plan["folds"]:
             if only and f["fold_id"] not in only:
                 continue

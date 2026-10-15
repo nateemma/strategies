@@ -8,6 +8,7 @@ threshold (the class the backtest loads) and checks every width-book entry tag e
 (p_buy > threshold) and the loaded threshold equals the stored one.
 
     PYTHONPATH=. ../../.venv/bin/python -m research.control_sizer.pick --fold f00 [--verify]
+        [--plan plan_ni_<tag>_sz.json]   # 035: another sizer plan; default plan_cs_aro.json
 """
 
 from __future__ import annotations
@@ -23,7 +24,8 @@ import numpy as np
 STRAT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(STRAT), str(STRAT / "evaluation")]
 
-PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
+FOLDS = STRAT / "evaluation" / "folds"
+PLAN = FOLDS / "plan_cs_aro.json"
 
 
 def _snapshot(plan: dict) -> dict:
@@ -45,12 +47,12 @@ def store(plan_path: Path, fid: str, threshold: float, extra: dict) -> float:
     return t
 
 
-def pick(fid: str) -> tuple[float, dict]:
+def pick(fid: str, plan_path: Path = PLAN) -> tuple[float, dict]:
     import run_folds as rf
     from research.label_screen.pick import p_buy
     from research.width_relative import pick as WP
 
-    plan = json.loads(PLAN.read_text())
+    plan = json.loads(plan_path.read_text())
     f = _fold(plan, fid)
     if not (STRAT / "NNNC" / f"{f['strategy_class']}.py").is_file():
         rf.generate_fold(f, plan["base_strategy"], plan["family"], _snapshot(plan))
@@ -66,15 +68,15 @@ def pick(fid: str) -> tuple[float, dict]:
     share = float(strat.AGREE_SHARE)
     t, achieved = WP.threshold_for_share(score, share)
     return t, {"target_share": share, "achieved_share": round(achieved, 4),
-               "run_starts": int(len(score)), "buy_argmax_share": round(float(np.mean(eff > 0)), 4)}
+               "run_starts": len(score), "buy_argmax_share": round(float(np.mean(eff > 0)), 4)}
 
 
-def verify(fid: str) -> bool:
+def verify(fid: str, plan_path: Path = PLAN) -> bool:
     import run_folds as rf
     from research.label_screen.pick import p_buy
     from research.width_relative import pick as WP
 
-    plan = json.loads(PLAN.read_text())
+    plan = json.loads(plan_path.read_text())
     t = float(plan["thresholds"][fid])
     rf.generate_fold(_fold(plan, fid), plan["base_strategy"], plan["family"], _snapshot(plan),
                      threshold=t)
@@ -87,7 +89,8 @@ def verify(fid: str) -> bool:
         agree = s["enter_tag"].fillna("").astype(str).str.endswith(":agree").to_numpy()
         n += int(enter.sum())
         bad += int(np.sum(enter & (agree != (score > t))))
-    print(f"cs_aro {fid}: verify threshold {t} loaded {loaded}: entry bars {n}, tag mismatches {bad}")
+    print(f"{plan['run_id']} {fid}: verify threshold {t} loaded {loaded}: "
+          f"entry bars {n}, tag mismatches {bad}")
     return bad == 0 and abs(loaded - t) < 1e-9
 
 
@@ -95,11 +98,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--fold", required=True, help="exactly one fold id")
     ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--plan", default=PLAN.name, help="plan file in evaluation/folds")
     a = ap.parse_args(argv)
+    plan_path = FOLDS / a.plan
     if a.verify:
-        return 0 if verify(a.fold) else 1
-    t, extra = pick(a.fold)
-    print(f"cs_aro {a.fold}: threshold {store(PLAN, a.fold, t, extra)} {json.dumps(extra)}")
+        return 0 if verify(a.fold, plan_path) else 1
+    t, extra = pick(a.fold, plan_path)
+    run_id = json.loads(plan_path.read_text())["run_id"]
+    print(f"{run_id} {a.fold}: threshold {store(plan_path, a.fold, t, extra)} {json.dumps(extra)}")
     return 0
 
 

@@ -41,61 +41,61 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the package `research/new_inputs/__init__.py` and `research/new_inputs/tests/__init__.py`, with `research/new_inputs/tests/conftest.py` holding a small synthetic fixture:
+- [X] T001 Create the package `research/new_inputs/__init__.py` and `research/new_inputs/tests/__init__.py`, with `research/new_inputs/tests/conftest.py` holding a small synthetic fixture:
   - two pairs of 15-minute OHLCV with gap-filled bars;
   - matching global klines in both ms and µs units;
   - 5-minute metrics starting mid-span.
-- [ ] T002 Add `research/new_inputs/tests` to the full-suite command in this file and in `AGENT_GUIDE.md` (the Environment / tests line).
+- [X] T002 Add `research/new_inputs/tests` to the full-suite command in this file and in `AGENT_GUIDE.md` (the Environment / tests line). *(AGENT_GUIDE already uses the generic `research/<study>/tests` form; no edit needed.)*
 
 ---
 
 ## Phase 2: Foundational (blocks all stories)
 
-- [ ] T003 [P] `research/new_inputs/inputs.py`: the declared input table (data-model "Input"; research R6), with the 17 tags, family, source, windows, norm (`z`/`c`), missing_flag (positioning only) and live_source (R11).
+- [X] T003 [P] `research/new_inputs/inputs.py`: the declared input table (data-model "Input"; research R6), with the 17 tags, family, source, windows, norm (`z`/`c`), missing_flag (positioning only) and live_source (R11).
   - Provide `columns(tag)` (`ni_<tag>` plus `_missing` when flagged), `TABLE_SHA` (a hash of the table) and `PAIRS` (the 10 `config_wf` pairs).
-- [ ] T004 [P] `research/new_inputs/sources.py`: archive parsers and alignment (R3, R4, R5).
+- [X] T004 [P] `research/new_inputs/sources.py`: archive parsers and alignment (R3, R4, R5).
   - Kline parsing with ms/µs detection by magnitude, and a header probe for premium-index files.
   - Metrics parsing.
   - `align_kline(src, dates)` aligns on the same open stamp.
   - `align_snapshots(src, dates)` is a backward as-of merge with `create_time + 5m <= date + 15m`.
   - Gap-filled Binance.US bars (volume 0) give NaN order flow.
-- [ ] T005 [P] Tests in `research/new_inputs/tests/test_sources.py` for:
+- [X] T005 [P] Tests in `research/new_inputs/tests/test_sources.py` for:
   - ms and µs files give the same dates;
   - a snapshot stamped at bar close + 1 s is not used for that bar;
   - same-stamp klines align;
   - gap bars give NaN, never 0.
-- [ ] T006 `research/new_inputs/build.py`: one builder per raw definition in R6, `z` and `c` normalisation (2880-bar trailing window, min_periods 960, clip ±5, /5), and positioning flags.
+- [X] T006 `research/new_inputs/build.py`: one builder per raw definition in R6, `z` and `c` normalisation (2880-bar trailing window, min_periods 960, clip ±5, /5), and positioning flags.
   - Market state uses `utils/RegimeState.py` `volreg`/`breadth` unchanged, excluding gap-filled pairs per bar with MIN_PAIRS 6.
   - BTC ADX via talib; BTC data from `user_data/data/binanceus/BTC_USDT-15m.feather`.
   - Writes `user_data/data/new_inputs/<PAIR>.parquet` and `build_meta.json` (builder sha, `TABLE_SHA`, manifest sha).
   - A `build_pair(pair, sources, cut=None)` entry point serves the truncation test.
-- [ ] T007 [P] Tests in `research/new_inputs/tests/test_build.py`:
+- [X] T007 [P] Tests in `research/new_inputs/tests/test_build.py`:
   - every value is in [−1, 1] or NaN;
   - flags are 1 exactly where the raw positioning is absent;
   - MS_VR equals `RegimeState.volreg` applied to the fixture frames with gap-filled bars removed, then normalised;
   - a positioning flag is 1 during the z warm-up as well as before the source starts;
   - a hand-computed OF_TBG on 4 bars.
-- [ ] T008 `research/new_inputs/causality.py` (R12):
+- [X] T008 `research/new_inputs/causality.py` (R12):
   - 200 shared cut times, 2021-03..2026-09-07;
   - at each cut, truncate every pair's sources at the cut's close, rebuild all pairs once, and require every input of every pair at the cut bar to equal the full build (atol 1e-12, NaN = NaN);
   - a planted centred OF_TBG variant must FAIL;
   - writes `research/new_inputs/causality.json`.
-- [ ] T009 [P] Tests in `research/new_inputs/tests/test_causality.py`: the harness passes every fixture input and fails the planted centred control.
-- [ ] T010 `NNNC/_new_inputs.py` `NewInputMixin` per contracts/new_input_mixin.md:
+- [X] T009 [P] Tests in `research/new_inputs/tests/test_causality.py`: the harness passes every fixture input and fails the planted centred control.
+- [X] T010 `NNNC/_new_inputs.py` `NewInputMixin` per contracts/new_input_mixin.md:
   - `NEW_INPUTS = ()`, `MODEL_KEY_ATTRIBUTES = ("NEW_INPUTS",)`;
   - `add_additional_indicators` calls `super()` first, then left-merges the declared columns from the cache on `date`;
   - refuses a missing cache or a stale `TABLE_SHA`;
   - never mutates parent lists.
-- [ ] T011 [P] Tests in `research/new_inputs/tests/test_mixin.py`:
-  - **off:** the mixin over `NNNC_A_Raw_Open` with `NEW_INPUTS = ()` has the control's model key on f00 and f14, and the same include_list and pre_normalized_columns;
+- [X] T011 [P] Tests in `research/new_inputs/tests/test_mixin.py`:
+  - **off:** the mixin over `NNNC_A_Raw_Open` with `NEW_INPUTS = ()` returns the parent's frame unchanged, with the same include_list and pre_normalized_columns; every pre-034 model key is unchanged (contract amended: a mixin class cannot share the parent's key under 030 method hashing);
   - **on:** a test subclass with one input has a different key, and `include_list` gains exactly its columns, which are also in `pre_normalized_columns`;
   - `saved_data/main_scaler.pkl`'s 6 feature names are a subset of the non-pre-normalised columns in both cases;
   - the merge keeps the row count on a frame with gaps;
   - the stale-cache refusal;
   - end-to-end causality (constitution V): for one fixture pair, the merged column at a cut equals the value from a cache built on sources truncated at that cut.
-- [ ] T012 [P] `research/control_sizer/pick.py`: optional `--plan <name>` (default `plan_cs_aro.json`, unchanged behaviour). Add a test in `research/control_sizer/tests/test_control_sizer.py` that the default path is unchanged.
-- [ ] T013 [P] `research/nnnc_framework/signals.py`: runtime `NI_<TAG>` registration, as `LS_` (034), with no change to the existing registrations. Add a test that existing model names resolve as before.
-- [ ] T013a [P] `research/new_inputs/trades.py`: `trades()` rebuilds the 412 early width-book trades (f00–f07 only) with 034's S1 instrument, and asserts the count and the control-at-share gap 0.1004 ± 0.002 before returning. Each trade carries its signal date, bb_width and the control's p_buy. Add a test in `research/new_inputs/tests/test_trades.py` that every returned trade's fold is in f00–f07.
+- [X] T012 [P] `research/control_sizer/pick.py`: optional `--plan <name>` (default `plan_cs_aro.json`, unchanged behaviour). Add a test in `research/control_sizer/tests/test_control_sizer.py` that the default path is unchanged.
+- [X] T013 [P] `research/nnnc_framework/signals.py`: runtime `NI_<TAG>` registration, as `LS_` (034), with no change to the existing registrations. Add a test that existing model names resolve as before.
+- [X] T013a [P] `research/new_inputs/trades.py`: `trades()` rebuilds the 412 early width-book trades (f00–f07 only) with 034's S1 instrument, and asserts the count and the control-at-share gap 0.1004 ± 0.002 before returning. Each trade carries its signal date, bb_width and the control's p_buy. Add a test in `research/new_inputs/tests/test_trades.py` that every returned trade's fold is in f00–f07.
 
 **Checkpoint**: tests green; byte identity when off proven (T011).
 
@@ -108,7 +108,7 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 **Independent test**: `screen.json` has a row per input; the reproduction gate passed;
 `survivors.json` is committed.
 
-- [ ] T014 [US1] `research/new_inputs/fetch.py` (contract `fetch`; research R7):
+- [X] T014 [US1] `research/new_inputs/fetch.py` (contract `fetch`; research R7):
   - data.binance.vision spot monthly and daily 15-minute klines (10 pairs + BTC), UM daily metrics 2021-12-01..2026-09-07, and UM monthly premium-index 15-minute klines, each with its `.CHECKSUM` verified;
   - Binance.US `/api/v3/klines` paged from listing at 1000 bars per page, throttled;
   - resumable, with `manifest.json`;

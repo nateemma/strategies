@@ -63,3 +63,13 @@ def test_arm_loads_the_controls_weights_and_is_the_034_sizer():
     assert arm.HELD_PAIR_ADD_RESOLVED == load_strategy_class("NNNC_W_ARO").HELD_PAIR_ADD_RESOLVED
     assert arm.WIDTH_CUTS == ref.WIDTH_CUTS
     assert plans["cs_aro"]["params_snapshot"] == plans["wf_aro_g24"]["params_snapshot"]
+
+
+def test_picker_defaults_to_the_cs_aro_plan():
+    import inspect
+
+    from research.control_sizer import pick as P
+
+    assert P.PLAN.name == "plan_cs_aro.json"
+    for f in (P.pick, P.verify):
+        assert inspect.signature(f).parameters["plan_path"].default == P.PLAN
