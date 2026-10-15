@@ -68,6 +68,9 @@ def main(argv=None) -> int:
     sfx = "" if model == "ARO" else "_gbr"
     ref_t = TR.trades(model=model)
     reference = ref_t.attrs["check"]["control_at_share_gap"]
+    if model == "GBR":  # preregistration_gbr.json: beat BOTH references (as 034's S1)
+        refs = json.loads(TR.PREREG_GBR.read_text())["s2"]["references"]
+        reference = max(reference, *refs.values())
     rows = {}
     for tag in A.survivors(model):
         thr = json.loads((FOLDS / f"plan_{A.plan_tag(tag, 'sz', model)}.json").read_text()) \

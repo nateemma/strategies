@@ -227,5 +227,65 @@
  "namespacing_note": "renamed off NNNC_WF_* so this plan cannot inherit another arm's models.",
  "model_source_note": "weights = user_data/strategies/saved_data/NNNC_GBR_f00 (by model key)",
  "width_note": "model-free width book; control fs_gbr_gr",
- "cs_note": "035 GBR extension: GBR control weights as a width-book sizer (twin of cs_aro); thresholds at the 0.5 agree share by research/control_sizer/pick.py --plan plan_cs_gbr.json"
+ "cs_note": "035 GBR extension: GBR control weights as a width-book sizer (twin of cs_aro); thresholds at the 0.5 agree share by research/control_sizer/pick.py --plan plan_cs_gbr.json",
+ "thresholds": {
+  "f00": 0.7162,
+  "f01": 0.7148,
+  "f02": 0.738,
+  "f03": 0.7505,
+  "f04": 0.7483,
+  "f05": 0.7606,
+  "f06": 0.7625,
+  "f07": 0.7605
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.4941,
+   "run_starts": 85,
+   "buy_argmax_share": 1.0
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 84,
+   "buy_argmax_share": 0.9167
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.4865,
+   "run_starts": 37,
+   "buy_argmax_share": 0.8919
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 106,
+   "buy_argmax_share": 0.9151
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.4983,
+   "run_starts": 293,
+   "buy_argmax_share": 0.9556
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 244,
+   "buy_argmax_share": 0.959
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.4979,
+   "run_starts": 233,
+   "buy_argmax_share": 0.9356
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.503,
+   "run_starts": 501,
+   "buy_argmax_share": 0.9381
+  }
+ }
 }

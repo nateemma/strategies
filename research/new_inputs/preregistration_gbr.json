@@ -1,0 +1,60 @@
+{
+ "title": "035 GBR extension: the new-input screen on GBR (NNNC_GbbRaw_Open, plain LSTM on 8 raw-price features)",
+ "date": "2026-10-15",
+ "parent": [
+  "preregistration.json (1f79efa5)",
+  "preregistration_s1b.json (9b7aa666)"
+ ],
+ "label": "PROVISIONAL -- one era. Nothing adopted.",
+ "model": "GBR",
+ "control": "fs_gbr_gr",
+ "width_book": "w_gbr",
+ "control_sizer": "cs_gbr (NNNC_CS_GBR: WidthSizerMixin p_buy + NNNC_W_GBR; keys equal fs_gbr_gr on 15 folds)",
+ "reproduce": {
+  "trades": 494,
+  "control_at_share_gap": 0.0128,
+  "tol": 0.002,
+  "note": "measured before this commit from cs_gbr's f00-f07 picks (all verified, 0 tag mismatches); no input read"
+ },
+ "s1b": {
+  "table_sha": "ee1da6f6878d9184",
+  "sample": "first bar of each run of width_twin._gates (gbb rule + control guards, NO width cut), per pair, entry bar inside the fold test window, quote volume >= 1000 (the simulator's MIN_QV)",
+  "sample_n": 4686,
+  "sample_note": "identical bars to S1b-ARO (gates and exits depend only on price columns and shared settings); only the control p_buy differs (GBR's)",
+  "outcome": "net profit ratio of a trade entered at the next bar's open and exited by the 24 h grace control's exits (paths.replay, as the width-book simulator), without occupancy, wallet or max-open limits",
+  "statistic": "partial Spearman of input with outcome given bb_width and GBR p_buy",
+  "rule": {
+   "min_coverage": 0.9,
+   "max_rho_width": 0.5,
+   "min_partial": 0.03,
+   "min_sign_folds": 6,
+   "max_survivors": 3
+  }
+ },
+ "s2": {
+  "model": "NNNC_GbbRaw_Open + one input as a pre-normalised column (raw8 scaler main_scaler_fwdmae_raw8 unchanged)",
+  "references": {
+   "own_decision": 0.063,
+   "control_at_share": 0.0128
+  },
+  "pass": "early gap > BOTH references (i.e. > 0.063) with <= 2 of 8 folds degenerate; winner = largest gap",
+  "why_both": "GBR's at-share gap (0.0128) is far below its own-decision gap (0.063, 033); requiring both, as 034's S1, keeps the bar comparable to ARO's"
+ },
+ "s3": {
+  "who": "the S2-GBR winner only",
+  "arm": "cs_gbr with only the weights changed, all 15 folds",
+  "pass": "judge_one(arm, cs_gbr) PASS AND judge_one(arm, w_gbr) PASS; fs_gbr_gr reported",
+  "small_margin_pp": 1.0,
+  "note": "cs_gbr itself has no records yet; it is picked on f08-f14 and backtested on 15 folds only if S3 is reached"
+ },
+ "disclosed": [
+  "S1b-ARO read: survivors MS_VR, MS_BV, OF_TRG; S2-ARO read: no winner (gaps 0.034-0.044 vs 0.1003)",
+  "the S1b-GBR sample and outcomes are the same bars as S1b-ARO; only the control p_buy changes",
+  "the GBR control-at-share gap (0.0128) and own-decision gap (0.063) were measured before this commit"
+ ],
+ "s2_aro_read": {
+  "MS_VR": 0.0359,
+  "MS_BV": 0.0435,
+  "OF_TRG": 0.0335
+ }
+}
