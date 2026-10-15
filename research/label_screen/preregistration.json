@@ -1,0 +1,299 @@
+{
+ "title": "034 label-type screen: ARO trained on other label types, ranked against gbb_path inside the width book, survivors backtested as a width-book sizer and as an ungated entry source",
+ "date": "2026-10-14",
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "architecture": "ARO (NNNC_A_Raw_Open: LSTM_RAW, 24 indicators, seq_len 16); control wf_aro_g24 (24 h grace); entry family pinned to reversion on every candidate",
+ "candidates": [
+  {
+   "tag": "CONTROL",
+   "method": 27,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": "wf_aro_g24",
+   "roles": [],
+   "order": null
+  },
+  {
+   "tag": "GFM",
+   "method": 28,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": "sw_gfm_ctl_b030",
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": null
+  },
+  {
+   "tag": "FMAE",
+   "method": 0,
+   "label_params": {
+    "max_drawdown": 0.04
+   },
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 1
+  },
+  {
+   "tag": "TB",
+   "method": 1,
+   "label_params": {
+    "pt": 0.02,
+    "sl": 0.05
+   },
+   "label_params_sell": {
+    "pt": 0.05,
+    "sl": 0.02
+   },
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 2
+  },
+  {
+   "tag": "MMR",
+   "method": 3,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 3
+  },
+  {
+   "tag": "FEXP",
+   "method": 12,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 4
+  },
+  {
+   "tag": "QF",
+   "method": 2,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 5
+  },
+  {
+   "tag": "LMF",
+   "method": 4,
+   "label_params": {
+    "max_drawdown": 0.04
+   },
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz",
+    "es"
+   ],
+   "order": 6
+  },
+  {
+   "tag": "BOG",
+   "method": 24,
+   "label_params": {},
+   "label_params_sell": null,
+   "reuse": null,
+   "roles": [
+    "sz"
+   ],
+   "order": 7
+  }
+ ],
+ "candidates_sha": "083eaa1c13ca3e16",
+ "base_label_params": {
+  "horizon": 48,
+  "min_gain": 0.02,
+  "min_loss": 0.02,
+  "rvol_threshold_buy": -1.0
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "stages": {
+  "S0a": {
+   "floor_kept_buy_share": 0.01,
+   "every_early_fold": true,
+   "liveness": "each declared extra that differs from its labeler default must change the raw labels on f00 (equal_default recorded)",
+   "columns": "indicator columns equal the control's"
+  },
+  "S0": {
+   "weights": "present f00-f07",
+   "keys": "distinct from the control and every other candidate (GFM = its existing keys)",
+   "thresholds": "sz thresholds for every early fold, <= 4 decimals; classes declare 4 decimals"
+  },
+  "S1": {
+   "half": "early only",
+   "agree_share": 0.5,
+   "threshold": "first bar of each width-book candidate run in the fold's validation tail",
+   "references": {
+    "pre_registered": 0.072,
+    "control_at_share": "the control scored with the same picker"
+   },
+   "pass": "gap > both references AND <= 2 of 8 folds degenerate (agree share 0 or 1)",
+   "reported": "AUC of p_buy against trade pp > 0"
+  },
+  "survivors": {
+   "max": 3,
+   "rank": "gap",
+   "tie_break": "AUC",
+   "commit": "survivors.json committed before any survivor backtest"
+  },
+  "S2": {
+   "half": "early",
+   "roles": {
+    "sz": "width-book entries, stakes 1.333 agree / 0.667 disagree",
+    "es": "control entry configuration, label changed, no trigger gate; threshold at entry rate 0.014735 on the fold training window"
+   },
+   "bog": "sizer only",
+   "instrument": {
+    "sz_trade_identity": "(pair, open_date, close_date) == w_aro, <= 2 folds differ",
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "capital_band": 0.1,
+    "es_non_model_entries": 0,
+    "thresholds_loaded_4dp": true,
+    "zero_trade_fold": "INCONCLUSIVE"
+   },
+   "pass": "early pp > w_aro AND > wf_aro_g24"
+  },
+  "S3": {
+   "who": "the S2 winner only: the passing arm with the largest minimum margin",
+   "pass": "judge_one(arm, wf_aro_g24) PASS AND late pp > w_aro",
+   "gbr_repeat": "on PASS: same label on NNNC_GbbRaw_Open, all 15 folds, vs fs_gbr_gr and w_gbr, S2+S3 rules"
+  }
+ },
+ "comparators": {
+  "ARO": {
+   "width": "w_aro",
+   "control": "wf_aro_g24"
+  },
+  "GBR": {
+   "width": "w_gbr",
+   "control": "fs_gbr_gr"
+  }
+ },
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "a stage passing by < 1 pp needs a paired seed-2 repeat: every margin > 0 on both seeds",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds or dry-run",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "exempt_records": [],
+ "s0a_outcome": {
+  "CONTROL": {
+   "status": "REFERENCE",
+   "reason": ""
+  },
+  "GFM": {
+   "status": "REFERENCE",
+   "reason": ""
+  },
+  "FMAE": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "TB": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "MMR": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "FEXP": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "QF": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "LMF": {
+   "status": "PASS",
+   "reason": ""
+  },
+  "BOG": {
+   "status": "PASS",
+   "reason": ""
+  }
+ },
+ "amendments_before_commit": [
+  "entry family pinned to reversion (029 label-driven family would untag outcome-only labels and make breakout_gbb momentum)",
+  "mfe_mae_ratio: mirrored sell variant (the sell accessor fell back to the BUY rule)",
+  "mfe_mae_ratio: adverse excursion clamped at 0 on both sides (clean winners were excluded)"
+ ],
+ "amendments": []
+}

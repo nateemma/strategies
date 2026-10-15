@@ -1,0 +1,240 @@
+{
+ "CONTROL": {
+  "kept": {
+   "buy": 0.13071585032220537,
+   "sell": 0.07146005835143561,
+   "hold": 0.797824091326359,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.1340628777619225,
+   "sell": 0.07146005835143561,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": 0.06485812072570096,
+   "sell": null
+  },
+  "columns_equal_control": true
+ },
+ "GFM": {
+  "kept": {
+   "buy": 0.09420530252765331,
+   "sell": 0.02028439508102851,
+   "hold": 0.8855103023913182,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.09448024503967352,
+   "sell": 0.02028439508102851,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.03380180404105512,
+   "sell": null
+  },
+  "columns_equal_control": true
+ },
+ "FMAE": {
+  "kept": {
+   "buy": 0.33260545522299884,
+   "sell": 0.35487125419230525,
+   "hold": 0.3125232905846959,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.35322159912018397,
+   "sell": 0.35487125419230525,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.04396585408274924,
+   "sell": 0.031001995544177104
+  },
+  "columns_equal_control": true,
+  "liveness": {
+   "buy.max_drawdown": {
+    "value": 0.04,
+    "default": 0.02,
+    "changed": 11473,
+    "status": "live"
+   },
+   "sell.max_drawdown": {
+    "value": 0.04,
+    "default": 0.02,
+    "changed": 55449,
+    "status": "live"
+   }
+  }
+ },
+ "TB": {
+  "kept": {
+   "buy": 0.2977422902484026,
+   "sell": 0.4672727520609327,
+   "hold": 0.2349849576906647,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.44258473228324985,
+   "sell": 0.4672727520609327,
+   "overlap": 0.10753887823455095,
+   "overlap_of_buy": 0.2429791865611106
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.06366894761355293,
+   "sell": 0.09063012956955128
+  },
+  "columns_equal_control": true,
+  "liveness": {
+   "buy.pt": {
+    "value": 0.02,
+    "default": 0.03,
+    "changed": 60886,
+    "status": "live"
+   },
+   "buy.sl": {
+    "value": 0.05,
+    "default": 0.02,
+    "changed": 23530,
+    "status": "live"
+   },
+   "sell.pt": {
+    "value": 0.05,
+    "default": 0.03,
+    "changed": 9296,
+    "status": "live"
+   },
+   "sell.sl": {
+    "value": 0.02,
+    "default": 0.02,
+    "changed": 0,
+    "status": "equal_default"
+   }
+  }
+ },
+ "MMR": {
+  "kept": {
+   "buy": 0.31509548003599247,
+   "sell": 0.33981985584832264,
+   "hold": 0.3450846641156849,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.3185720258491406,
+   "sell": 0.33981985584832264,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.0017603785439964544,
+   "sell": 0.025247009102840008
+  },
+  "columns_equal_control": true,
+  "liveness": {}
+ },
+ "FEXP": {
+  "kept": {
+   "buy": 0.17261845250538524,
+   "sell": 0.1801259736600529,
+   "hold": 0.6472555738345619,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.17701298819337774,
+   "sell": 0.1801259736600529,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": 0.11222972431265443,
+   "sell": 0.13680079006362303
+  },
+  "columns_equal_control": true,
+  "liveness": {}
+ },
+ "QF": {
+  "kept": {
+   "buy": 0.1792716068458413,
+   "sell": 0.2000309026294502,
+   "hold": 0.6206974905247085,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.18477954609490743,
+   "sell": 0.2000309026294502,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": 0.05103375084397614,
+   "sell": 0.1469012009963792
+  },
+  "columns_equal_control": true,
+  "liveness": {}
+ },
+ "LMF": {
+  "kept": {
+   "buy": 0.08600474446252147,
+   "sell": 0.07552057297110604,
+   "hold": 0.8384746825663725,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.0902220444816084,
+   "sell": 0.07552057297110604,
+   "overlap": 0.0,
+   "overlap_of_buy": 0.0
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.016178496743332122,
+   "sell": -0.01630764861662639
+  },
+  "columns_equal_control": true,
+  "liveness": {
+   "buy.max_drawdown": {
+    "value": 0.04,
+    "default": 0.1,
+    "changed": 2845,
+    "status": "live"
+   },
+   "sell.max_drawdown": {
+    "value": 0.04,
+    "default": 0.1,
+    "changed": 10291,
+    "status": "live"
+   }
+  }
+ },
+ "BOG": {
+  "kept": {
+   "buy": 0.08186924552139098,
+   "sell": 0.0133881097588686,
+   "hold": 0.9047426447197404,
+   "rows": 440092
+  },
+  "raw": {
+   "buy": 0.0882247348281723,
+   "sell": 0.0133881097588686,
+   "overlap": 0.0024381265735346244,
+   "overlap_of_buy": 0.027635408349859635
+  },
+  "eligible_rows": 108343,
+  "spearman_width_eligible": {
+   "buy": -0.01132674116472824,
+   "sell": -0.0046227255537567334
+  },
+  "columns_equal_control": true,
+  "liveness": {}
+ }
+}
