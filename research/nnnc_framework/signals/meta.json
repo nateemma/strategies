@@ -1054,5 +1054,149 @@
   "threshold": 0.8,
   "rows": 86410,
   "enter_long": 1772
+ },
+ "NI_MS_VR_f00": {
+  "class": "NNNC_NI_MS_VR_f00",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f01": {
+  "class": "NNNC_NI_MS_VR_f01",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f02": {
+  "class": "NNNC_NI_MS_VR_f02",
+  "threshold": 0.8,
+  "rows": 84950,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f03": {
+  "class": "NNNC_NI_MS_VR_f03",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f04": {
+  "class": "NNNC_NI_MS_VR_f04",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f05": {
+  "class": "NNNC_NI_MS_VR_f05",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_MS_VR_f06": {
+  "class": "NNNC_NI_MS_VR_f06",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 7
+ },
+ "NI_MS_VR_f07": {
+  "class": "NNNC_NI_MS_VR_f07",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 2
+ },
+ "NI_MS_BV_f00": {
+  "class": "NNNC_NI_MS_BV_f00",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_MS_BV_f01": {
+  "class": "NNNC_NI_MS_BV_f01",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_MS_BV_f02": {
+  "class": "NNNC_NI_MS_BV_f02",
+  "threshold": 0.8,
+  "rows": 84950,
+  "enter_long": 0
+ },
+ "NI_MS_BV_f03": {
+  "class": "NNNC_NI_MS_BV_f03",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_MS_BV_f04": {
+  "class": "NNNC_NI_MS_BV_f04",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_MS_BV_f05": {
+  "class": "NNNC_NI_MS_BV_f05",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 1
+ },
+ "NI_MS_BV_f06": {
+  "class": "NNNC_NI_MS_BV_f06",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 9
+ },
+ "NI_MS_BV_f07": {
+  "class": "NNNC_NI_MS_BV_f07",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 2
+ },
+ "NI_OF_TRG_f00": {
+  "class": "NNNC_NI_OF_TRG_f00",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_OF_TRG_f01": {
+  "class": "NNNC_NI_OF_TRG_f01",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_OF_TRG_f02": {
+  "class": "NNNC_NI_OF_TRG_f02",
+  "threshold": 0.8,
+  "rows": 84950,
+  "enter_long": 0
+ },
+ "NI_OF_TRG_f03": {
+  "class": "NNNC_NI_OF_TRG_f03",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_OF_TRG_f04": {
+  "class": "NNNC_NI_OF_TRG_f04",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_OF_TRG_f05": {
+  "class": "NNNC_NI_OF_TRG_f05",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 2
+ },
+ "NI_OF_TRG_f06": {
+  "class": "NNNC_NI_OF_TRG_f06",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 9
+ },
+ "NI_OF_TRG_f07": {
+  "class": "NNNC_NI_OF_TRG_f07",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 1
  }
 }
