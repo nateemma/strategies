@@ -1,17 +1,100 @@
-# Agent Guide: Building and Running freqtrade Strategies
+# Agent Guide
 
-This file is intended to orient an AI agent (or a new developer) on how to build, test, and run trading strategies in this codebase. It covers the directory layout, class hierarchy, common tasks, and the commands to run them.
+This file orients an AI agent (or a new developer) working in this repository, possibly on
+someone else's behalf. It says **where to find information first**, then the rules that keep
+results trustworthy, then reference material on layout, classes and commands.
+
+**The repository is the record.** The owner's own agent sessions keep private notes outside the
+repo, which you will not have. Everything you need should be reachable from here; if you find a
+gap, add a pointer to this file.
+
+---
+
+## Start here
+
+1. **Silent failure modes** and **Operational rules** below. Each has cost real time.
+2. **`.specify/memory/constitution.md`**: the research principles every experiment follows
+   (evaluate in the deployment regime, persistence across eras, learnability is not edge,
+   verify parameters are live, no leakage, ...). Specs check themselves against it.
+3. **Current state** below: what has been tried, what was adopted, what the comparators are.
+4. **Walk-forward folds** below, before running or judging any experiment.
+5. **`docs/EXIT_AND_BACKTEST_MECHANICS.md`**, before changing entry, exit or stop logic.
+
+---
+
+## Where to find information
+
+| Question | Look in |
+|---|---|
+| What has been tried, and what was the verdict? | `specs/NNN-*/report.md` (features 021–031); `research/<study>/report.md` or `findings.md` (studies, and features 032 onward); `regime/*.md` and `regime/VERDICT.md` (single-window studies, Sept 2026: the method is superseded, the mechanism findings still hold) |
+| Why was it designed that way? | `specs/NNN-*/spec.md`, `plan.md`, `research.md` (decisions and rejected alternatives), `tasks.md` |
+| What exactly was pre-registered for a study? | `research/<study>/preregistration.json` / `.md` (rules, cutoffs, amendments) |
+| How do entries, exits, stops and freqtrade's backtester really behave? | `docs/EXIT_AND_BACKTEST_MECHANICS.md` |
+| How should I examine a hyperparameter? | `docs/HYPERPARAMETER_STUDY.md` |
+| How are experiments run and judged? | **Walk-forward folds** below; `evaluation/README.md`; `regime/WALKFORWARD_POWER.md` |
+| How does the shared entry layer work (NNNC and SimpleTrigger)? | `utils/EntryFramework.py` docstring; `SimpleTrigger/README.txt`; `specs/029-nnnc-simpletrigger-merge/` |
+| Where are a strategy's weights? | **Model keys** below; `Framework/ModelKey.py`; `scripts/model_index.py key <Class>` |
+| Which labels exist, and which family does each imply? | `Framework/TrainingSignals.py` (`LabelMethod`); `utils/LabelFamilies.py` |
+| Which entry triggers exist? | `research/outcomes/triggers.py` (the registry) |
+| Market depth, liquidity, venues | `us_spot_market_study.md`; `regime/LIQUIDITY_STUDY.md`; `regime/EXCHANGE_VENUES.md` |
+| GAN augmentation results | `docs/GAN_SCORECARD.md`; `GANs/` |
+| Human-facing overview | `README.md` |
+
+---
+
+## Current state (2026-10-14)
+
+- **Live:** only a dry-run of the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`).
+  Never kill it (see Operational rules).
+- **NNNC defaults adopted by experiment:** stop-loss grace 24 h (was 6.5 h); the in-profit
+  held-pair add (`HELD_PAIR_ADD = {"in_profit_only": True}`, feature 031). The ATR take-profit
+  (`take_profit_atr_mult`, feature 028) exists as a default-off switch.
+- **The comparator every model change must beat: the width book.** Within the gbb trigger's
+  candidates, what the NNNC models learned is mostly a `bb_width` sort; a model-free book that
+  takes gbb entries with `bb_width` above a per-fold cut (`NNNC/_width_book.py`, arms `w_aro`,
+  `w_gbr`) matches or beats every NNNC model book (`research/model_calibration/findings.md`).
+- **Primary model:** ARO (`NNNC_A_Raw_Open`, a plain LSTM on raw inputs; control arm
+  `wf_aro_g24`). GBR (`NNNC_GbbRaw_Open`, control `fs_gbr_gr`) is the usual replication.
+- **Results are PROVISIONAL.** The data has no distant era (see Walk-forward folds), so nothing
+  has been recorded as a finding; confirmation routes are folds after 2026-09-07 or dry-run.
+
+Recent features, newest first (each `specs/NNN-*` or the named `research/` directory):
+
+| # | topic | outcome |
+|---|---|---|
+| 034 | label-type screen: ARO trained on 7 other label types, ranked inside the width book (`research/label_screen`) | in progress |
+| 033 | width-relative label (`research/width_relative`) | all arms FAIL |
+| 032 | train only on gbb-eligible rows (`research/candidate_training`) | FAIL at S2 |
+| 031 | held-pair add (position adjustment on a fresh signal) | in-profit add adopted for NNNC |
+| 030 | weights found by model key (hash of weight-shaping inputs) | done; byte-identical |
+| 029 | NNNC and SimpleTrigger merged onto one entry framework | done; byte-identical |
+| 028 | recovery-aware exits, judged on an unseen 2022 window | ATR take-profit adopted as a switch |
+| 027 | target-aware exits | stopped at the feasibility gate |
+| 026 | reversion regime gate | not adopted (fails on NNNC models) |
+| 025 | family coexistence | nothing adopted |
+| 024 | per-family exits (reversion vs momentum) | built; family exits exact |
+| 023 | SimpleTrigger: the framework with no model | built; the study vehicle for 024–028 |
+| 021–022 | label/exit coordination; per-fold guard tuning | see each `report.md` |
+
+Also: `research/nnnc_framework/report.md` and `report_r2.md` (the framework study that adopted the
+24 h grace), `research/nnnc_switches/report.md`, `research/st_grace/report.md`,
+`research/held_pair/report.md`. Features 001–020 are in `specs/`; 007 built the fold harness.
 
 ---
 
 ## Environment
 
 - **Shell**: `zsh` (macOS default). All scripts use `zsh`, not `bash`.
-- **Python**: A virtualenv at `.venv`. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands. (Not conda.)
-- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the **repo root** -- the directory containing `user_data/` (its location is machine-specific; this guide never assumes one) -- not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
+- **Python**: A virtualenv at `.venv` in the repo root. Activate with `source .venv/bin/activate`, or call `.venv/bin/python` directly. (Not conda.)
+- **Secrets**: runs need the environment from `~/.freqtrade_env`: `set -a; source ~/.freqtrade_env; set +a`. A missing variable looks like a missing config value; don't edit configs to work around it.
+- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the **repo root** -- the directory containing `user_data/` (its location is machine-specific; this guide never assumes one) -- not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting). Research modules (`research.<study>.<tool>`) are run from `user_data/strategies` with `PYTHONPATH=.` and `../../.venv/bin/python -m ...`, as their docstrings show.
 - **PYTHONPATH**: The scripts set this automatically. If running manually, export:
   ```
   export PYTHONPATH="$PWD/user_data/strategies:$PYTHONPATH"   # from the repo root
+  ```
+- **Tests**: from `user_data/strategies`:
+  ```
+  ../../.venv/bin/python -m pytest Framework/tests utils/tests SimpleTrigger/tests evaluation research/<study>/tests -q -p no:cacheprovider
   ```
 
 ---
@@ -31,18 +114,13 @@ real time in this repo.
 > - stake caps from liquidity;
 > - what the trigger families have shown.
 
-**A re-parameterised subclass trains a fresh model inside its own backtest.**
-`BaseNNStrategy.get_model_path` keys off `self.__class__.__name__`, so `class MyArm(NNNC_MLX)`
-looks for `saved_data/MyArm/`, finds nothing, and trains one — fitting the evaluation window.
-The run succeeds and reports different numbers. If your arm changes only *exit* or *entry*
-parameters and should reuse the parent's weights, pin it:
-
-```python
-def get_model_path(self) -> str:
-    return self.get_storage_location() + "NNNC_MLX/" + "NNNC_MLX.keras"
-```
-
-Verify by checking `saved_data/<YourArm>/` is still empty after the backtest.
+**Weights follow the model key, not the class name (feature 030).** A subclass that changes only
+exits, stops, guards, gates, triggers or the threshold loads its parent's weights automatically.
+A subclass that changes anything weight-shaping (label, targets, features, classifier, window,
+seed) gets a new key and has no weights: outside walk-forward it then **trains inside its own
+backtest**, fitting the evaluation window, and reports different numbers without error. Check
+with `scripts/model_index.py key <Class>` before a backtest. Walk-forward runs are strict and
+halt with `ModelMissing` instead. Details: **Model keys** below.
 
 **`<Strategy>.json` beats the class, and a *missing* json is not neutral.**
 Params load as `deep_merge_dicts(file_params, class_params)` — the file wins, the class only
@@ -55,16 +133,20 @@ fills gaps. So:
 - Give every arm its own json copied from the parent's, **unless** the parent has none
   (e.g. `NNMT_MLX`), in which case the arm should also have none — that is the matching config.
 
-**`test_strat.sh` exits 0 even when training crashed.** The only reliable check is whether the
-weights exist:
-```zsh
-ls user_data/strategies/saved_data/<CLS>/*.safetensors
-```
+**Parameter dicts on a subclass must MERGE with the parent's.** A fresh `buy_params = {...}` (or
+any dict-valued class setting) silently drops every parent key you did not repeat. This once ran
+a strategy with its stop-loss grace disabled. Build from the parent: `{**Parent.x, "k": v}`.
 
-**freqtrade `Parameter` objects are class-level singletons on `BaseStrategy`.** Loading two
-strategies in one process contaminates the second — reading NNNC then NNMT reported NNMT's
-take-profit as NNNC's. **Read configuration one strategy per process.** Values are only real
-after `ft_load_hyper_params()` (called inside `ft_bot_start()`); before that you see raw defaults.
+**`test_strat.sh` exits 0 even when training crashed.** The only reliable check is whether the
+weights exist (`scripts/model_index.py key <CLS>` prints whether they do).
+
+**freqtrade `Parameter` objects are class-level singletons.** Loading two strategies in one
+process contaminates the second — reading NNNC then NNMT reported NNMT's take-profit as NNNC's.
+**Read configuration one strategy per process** (threshold picks run one fold per process for
+the same reason). Values are only real after `ft_load_hyper_params()` (called inside
+`ft_bot_start()`, which you must call when scoring a strategy outside backtesting); before that
+you see raw defaults. `prediction_threshold` has 2 decimals on the base class, so a picked
+threshold is rounded unless the class redeclares it with 4.
 
 **`self.stoploss` and `trailing_*` do nothing for NN strategies.** `BaseNNStrategy` sets
 `use_atr_adaptive_stoploss = True`, so `--stoploss` only changes the cosmetic
@@ -82,50 +164,100 @@ and the natural reading is "the model exit never fires". It fires 11 times in 99
 `trailing_stop` is `False` framework-wide, so attributing those exits to native trailing
 mis-assigns a large share of trades. `stop_loss` is the initial/grace stop.
 
+**Trade identity is `(pair, open_date, close_date)`, not `trades_hash`.** The record's
+`trades_hash` also covers `profit_ratio`, so the same trades with a different fill (a held-pair
+add, for one) hash differently. Compare trade sets on keys.
+
+**The liquidity cap absorbs stake multipliers.** `BaseStrategy` caps a stake at what the candle
+could fill, so a sizing change can be silently undone. Measure the realised stake ratio from the
+trades, not the intended one.
+
 ---
 
-## Evaluating a change
+## Walk-forward folds — how every experiment is run and judged
 
-Do not judge a change from a bare `test_strat.sh` backtest on an ad-hoc timerange.
+Every experiment since feature 007 runs on **anchored walk-forward folds**. The mechanics of the
+harness are in `evaluation/README.md`; why 15 folds (the power measurement) is in
+`regime/WALKFORWARD_POWER.md`; the early/late convention is in `evaluation/halves.py`. This
+section collects the conventions that studies have converged on.
 
-**Pinned windows** (`regime/regimedata.py`), training range `20220101-20250831`:
+**Geometry.** Training always starts on 2021-01-01 and covers at least 730 days; each test fold
+is the next 90 days. That gives 15 folds, `f00` (test 2023-01-01 → 2023-04-01) to `f14` (test
+2026-06-14 → 2026-09-07). Each fold's model is trained on its own training window only, so
+every test fold is out-of-sample. The universe is `config/config_wf.json` (SUI/USDT dropped: it
+lists mid-history, and a pair missing from a training window silently prevents training).
 
-| window | range | status |
-|---|---|---|
-| **W1** | `20250901-20260831` | **the sole acceptance window** |
-| W2 | `20240601-20250531` | in-sample — report, never accept on |
-| W3 | `20230101-20231231` | in-sample, and low-information |
+**Plans.** `evaluation/folds/plan_<run_id>.json` holds the base strategy, a frozen params
+snapshot (`params_snapshot`, with its SHA), and per fold the generated class name, the training
+and test ranges and the `arm_tag`. An optional `thresholds: {fold_id: value}` sets
+`prediction_threshold` per fold; `evaluation/pick_threshold.py` picks it on the fold's
+**training** window at the incumbent's entry rate (0.014735 of bars), because a threshold is
+not portable between architectures or labels (`evaluation/README.md`, last section).
 
-**The harness** — `regime/run_arm.py` records one arm and refuses metrics from failed or stale
-runs. Run from the repo root:
+**Running.** `evaluation/run_folds.py --plan <plan> [--folds f00,f01] [--seed N]` generates one
+class per fold (`<Base>_fNN.py` plus its `.json`, in the family directory), trains it if its
+model key has no weights, verifies the weights exist, and evaluates the fold through
+`regime/run_arm.py --timerange`. Each fold writes an **arm record**
+`regime/arms/<arm_tag>_<FNN>.json` (return, trades hash, model key, the archive it came from);
+per-trade rows live only in the backtest archive (`user_data/backtest_results/*.zip`). Weights
+are shared through the model key: variants of a model reuse its per-fold weights.
+
+- `run_folds` is **resumable: it skips a fold whose record exists**. Move smoke-test records aside
+  (rename to `*.smoke.json`) or the real run will silently reuse them.
+- A regenerated fold class takes its threshold from the plan; a threshold that is only in an old
+  fold class is lost.
+- The first full NNNC run, training included, took about 2 hours; arms that reuse existing
+  weights only backtest and are faster. Run one chain at a time.
+
+**Judging.**
+- `evaluation/pool.py` pools every fold's trades **before** any statistic.
+- `evaluation/compare_pooled.py` gives the paired bootstrap verdict (pairs on
+  `(fold_id, pair, open_date)`); `evaluation/risk.py` gives Sharpe and max-drawdown verdicts.
+- `evaluation/halves.py` splits the folds into **early (f00–f07)** and **late (f08–f14)**. This
+  split is the persistence test: there is no distant era in this data, so an effect must show in
+  both halves, and any pass is PROVISIONAL.
+- The usual per-arm rule is `judge_one` in `research/nnnc_switches/judge.py`: PASS = early gain
+  > 0 AND late gain > 0 AND paired verdict not WORSENED AND risk verdicts not WORSENED;
+  INCONCLUSIVE if the control has under 200 trades or the arm changed no fold's trades.
+- Recent studies are **staged**: screen and choose on the early half, then read the late half
+  once, for the winner only, so it stays unread confirmation. A margin under 1 pp needs a paired
+  seed-2 repeat (`--seed 2`).
+- 028 also judged model-free arms on three **2022 folds**, a window none of them had seen
+  (`specs/028-recovery-aware-exits/`).
+
+**Pre-registration.** A study commits `research/<study>/preregistration.json` (candidates,
+parameters, cutoffs, decision rule) **before** any record it judges exists; its `judge.py`
+refuses records older than that commit. Changes after the commit are listed as amendments, and
+only before any P&L is read.
+
+**Noise floor.** Pooled over 15 folds, effects of about 3 pp/yr are resolvable; 1–2 pp effects
+are not and never will be on this much data. The harness is not licence to tune parameters.
+
+---
+
+## Single-window backtests (historical method)
+
+Before the fold harness, changes were judged on pinned windows (`regime/regimedata.py`) with
+`regime/run_arm.py`, training range `20220101-20250831`: W1 `20250901-20260831` (then the
+acceptance window), W2 `20240601-20250531` and W3 `20230101-20231231` (in-sample). The
+`regime/*.md` studies use this method. `run_arm.py` still evaluates every fold (now with
+`--timerange`), and it remains useful for a quick look at a large effect, but do not judge a
+change on it.
 
 ```zsh
 PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/run_arm.py \
   --strategy NNNC_MLX --window W1 --tag baseline
 ```
-Useful flags: `--set` / `--set-sell` (buy/sell params), `--roi`, `--threshold`, `--guards`,
-`--timerange`. Records land in `regime/arms/<tag>_<window>.json`.
 
-`regime/tail/compare.py <arm_tag> <control_tag>` gives the verdict.
-
-**Rules that make a result admissible:**
+Rules that still apply to any result:
 - Confirm `returncode == 0`. A failed or stale record is not evidence.
-- **Identical `trades_hash` to the control ⇒ INCONCLUSIVE**, not refuted — the change never
-  reached the trades.
+- **Identical trades to the control ⇒ INCONCLUSIVE**, not refuted — the change never reached
+  the trades.
 - **Zero trades ⇒ inconclusive**, never a zero return.
-- Judge on **W1 realised return** — but see the noise floor below. `compare.py`'s
-  `POWER_THRESHOLD_PP = 1.0` is a rule of thumb that was never derived, and it is roughly **7.6x too
-  lenient**. Treat its verdict as a smoke test, never as evidence.
 - **Never accept on a classifier metric.** val_mcc and P&L move independently here — it has been
   measured repeatedly (higher MCC with identical trades; +0.155 MCC for no P&L change).
-- Report every window with its **net/gross ratio**, not just its trade count (W1 29.8%, W2 18.7%,
-  W3 7.5% on NNMT — W3's four worst trades exceed its entire profit, so it cannot carry a
-  sub-threshold conclusion).
-- Where a model is involved, use two seeds via `MLX_SEED` (`train_seed` is inert for multi-task).
-  Note the gate is often tight enough that two seeds produce *identical* W1 trades — that is one
-  measurement, not two.
 
-### The noise floor — measured, and it governs everything above
+### The single-window noise floor — why the folds exist
 
 > **Method guide:** `docs/HYPERPARAMETER_STUDY.md` — how to examine a hyperparameter
 > before searching it: measure its span against this floor, separate a mechanism from its
@@ -142,76 +274,40 @@ compare.py's threshold            : 1.000pp     <- ~7.6x too lenient
 ```
 
 **A whole parameter sweep fits inside that band** (the rvol sweep spans 4.93pp), so the "best" rung
-of a sweep is a ranking of noise. Confirmed independently: full sweeps of two parameters across all
-three windows disagreed on the optimum every time, with contradictory rank correlations between
-windows (rvol W1~W2 **-0.46**, grace W1~W2 **+0.71**), none significant. **The optima are not
-trackable.**
+of a sweep is a ranking of noise. Full sweeps of two parameters across all three windows disagreed
+on the optimum every time, with contradictory rank correlations between windows (rvol W1~W2
+**-0.46**, grace W1~W2 **+0.71**), none significant. **The optima are not trackable.**
 
-Consequences for anything you are about to do:
+Consequences:
 
-- **Do not tune parameters on ~100-trade windows.** Not on W1, not on W2, not on their average.
-  Leave `entry_rvol_threshold`, the ATR band, `stoploss_grace_level` and friends at their incumbent
-  values; they have each been swept and none is resolvable. See the memory notes
-  `project-atr-band-sweep-no-lever`, `project-grace-level-sweep`,
-  `project-rvol-sweep-and-w1-regime-warning`.
-- **Before believing any delta, bootstrap it.** Pull the arm's and control's trades from the
-  backtest archive (`user_data/backtest_results/*.zip`, `strategy.<Name>.trades[].profit_abs`), pair
-  on `(pair, open_date)`, and bootstrap the sum over the symmetric difference. Worked example: a
-  +1.86pp delta that `compare.py` called IMPROVED has a 95% CI of `[-4.29, +7.93]pp`, p=0.54.
-- **Only pursue effects large enough to see.** Structural changes (a mechanism fix, a label
-  redefinition, an execution-model correction) can clear 6pp. Parameter tweaks cannot, and are
-  economically marginal even when real.
-- **A W1/W2 disagreement is not evidence of regime dependence** until you have shown the effect is
-  resolvable. Two noise draws disagreeing looks identical and is the simpler explanation.
-
-**THE HARNESS NOW EXISTS — feature 007, delivered 2026-09-09.** `evaluation/` runs pooled
-walk-forward evaluation: 15 anchored folds, every test fold genuinely out-of-sample, trades pooled
-before any statistic. Measured result — **378 pooled trades and a floor of 3.350 pp/yr against the
-single-window 7.633, a 2.28x improvement.** Usage guide: `evaluation/README.md`. Power write-up:
-`regime/WALKFORWARD_POWER.md`.
-
-```
-PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/evaluation/foldplan.py \
-  --family NNNC --base-strategy NNNC_MLX --out evaluation/folds/plan_nnnc.json
-... evaluation/run_folds.py --plan <plan> --seed 1        # ~113 min, sequential
-... evaluation/pool.py      --plan <plan> --out <pooled>
-... evaluation/power.py     --pooled <pooled>
-... evaluation/compare_pooled.py --arm <pooled_arm> --control <pooled_control>
-```
-
-**The decision rule this gives you:**
-
-- Effects of **3pp/yr or larger** can now be resolved. Use the pooled harness for them.
-- Effects of **1-2pp remain unresolvable and always will be** on 5.68 yr of data at ~100 trades/yr.
-  Nothing that returned "not resolved" in the 2026-09-08 sweeps would resolve now. The harness is
-  NOT licence to resume parameter tuning.
-- A single-window comparison is still valid for a LARGE effect, but quote the 7.633pp floor with it.
-- **Annualise before comparing floors.** A pooled CI spans ~3.7 years; the baseline spans one. The
-  first version of the power report compared them directly and declared a working instrument a
-  0.62x regression.
-
-Two traps the harness had to solve, which apply to any historical backtest here:
-
-- **A pair that lists mid-history silently prevents training.** `TrainingEngine.maybe_train` fires
-  only when `pair_count == len(whitelist)`, so a window predating any whitelist listing trains
-  NOTHING and then fails at predict. SUI/USDT lists 2023-10-25; `config/config_wf.json` excludes it.
-- **`run_arm.py` has no `--timerange`** — `--window` is required, with choices from
-  `regimedata.WINDOWS`. Do NOT add keys to that dict; `phase_c_trackability.py` iterates it. Inject
-  the window into the in-memory dict in a per-fold subprocess instead.
+- **Do not tune parameters on ~100-trade windows.** Structural changes (a mechanism fix, a label
+  redefinition, an execution-model correction) can clear the floor. Parameter tweaks cannot.
+- **Before believing any delta, bootstrap it**, paired on trade keys. A +1.86pp delta that
+  `compare.py` called IMPROVED has a 95% CI of `[-4.29, +7.93]pp`, p=0.54.
+- **A W1/W2 disagreement is not evidence of regime dependence** until the effect is resolvable.
+- **Annualise before comparing floors.** A pooled CI spans ~3.7 years; a single window one.
 
 ---
 
 ## Operational rules
 
-- **Run everything sequentially.** Two concurrent jobs put load 60 on 14 cores and finished
-  slower than serialising, and concurrent runs can cross-contaminate the arm archive.
-- **Never `pkill -9 -f freqtrade`** — that pattern matches a live `freqtrade trade` dry run.
+- **Run everything sequentially: one training or backtest chain at a time.** Two concurrent jobs
+  put load 60 on 14 cores and finished slower than serialising; parallel trainers have caused
+  out-of-memory kills and Metal faults; concurrent runs can cross-contaminate the arm archive.
+  Check `ps` before starting one.
+- **Never `pkill -9 -f freqtrade`** — that pattern matches the live `freqtrade trade` dry run.
   Use `pkill -9 -f 'freqtrade backtesting'`, or kill by PID after checking `ps`. `TaskStop` does
   not kill process trees.
 - **Only the nested `user_data/strategies` repo is ours**; the outer freqtrade checkout is
   upstream. Commit directly to `master` there.
 - **Never `git add -A` / `git add .`** — files are edited concurrently outside the agent session.
   Stage only the files your change touched, and check `git status` first.
+- **`Framework/` stays strategy-agnostic.** Strategy-specific behaviour registers at runtime
+  from the strategy; no pair-specific code anywhere.
+- **New switches default OFF and byte-identical when off**; adopting one as a default is the
+  owner's decision, not the experiment's.
+- **Never run `setup.sh -i`** to upgrade freqtrade (it wipes `.venv`); use
+  `scripts/upgrade_freqtrade.sh`.
 
 ---
 
@@ -233,7 +329,8 @@ user_data/strategies/
 │   │                      train_model, markov, GAN augmentation, maybe_train
 │   ├── TrainingSignals.py  ← Future-aware label generation
 │   └── CreateScalers.py ← Run once to generate normalization scalers
-├── utils/               ← Shared utility code
+├── utils/               ← Shared utility code, incl. EntryFramework.py (the
+│                          entry layer shared by NNNC and SimpleTrigger, feature 029)
 │   ├── DataframeUtils.py
 │   ├── DataframePopulator.py     ← Adds all technical indicators to a dataframe
 │   ├── ClassifierKeras*.py        ← Keras classifier implementations
@@ -243,7 +340,11 @@ user_data/strategies/
 │   ├── Wavelets.py
 │   ├── Forecasters.py
 │   └── ...
-├── NNNC/                ← N-ary (trinary) Classification strategies + NNNClassifier
+├── NNNC/                ← N-ary (trinary) Classification strategies + NNNClassifier;
+│                          also generated fold classes (<Base>_fNN.py/.json) and the
+│                          width-book / sizer mixins (_width_book.py, _width_sizer.py)
+├── SimpleTrigger/       ← the framework with no model (triggers only): study vehicle
+├── Basket/              ← Momentum basket (the live dry-run)
 ├── NNMT/                ← Multi-Task strategies + NNMTClassifier (TF)
 │                          + NNMTClassifierMLX (Apple Silicon)
 ├── NNPredict/           ← Regression strategies (continuous future_gain
@@ -267,10 +368,20 @@ user_data/strategies/
 ├── Debug/               ← Debug/visualisation utilities
 ├── hyperopts/           ← Custom hyperopt loss functions
 ├── config/              ← Exchange-specific config files
-├── saved_data/          ← Trained model files (keyed by strategy name)
+├── saved_data/          ← Trained model files: models/<prefix>__<hash>/ by model
+│                          key (feature 030); older ones by strategy name
 │                          + GANs/<gan_type>/ subdirs for every GAN type
 │                          (GANs_PCA/<gan_type>/ for PCA-reduced strategies)
-├── scripts/             ← Shell scripts for all workflow tasks
+├── scripts/             ← Shell scripts for all workflow tasks; model_index.py
+├── evaluation/          ← The walk-forward harness: fold plans (folds/), run_folds,
+│                          pool, compare_pooled, risk, halves, pick_threshold
+├── research/            ← One directory per study: code, tests, pre-registration,
+│                          report.md / findings.md
+├── regime/              ← run_arm.py (evaluates one arm), arms/ (arm records), and the
+│                          Sept 2026 single-window study write-ups (*.md)
+├── specs/               ← spec-kit features NNN-*: spec, plan, research, tasks, report
+├── docs/                ← Cross-cutting write-ups (mechanics, hyperparameter method, GANs)
+├── .specify/memory/constitution.md ← research principles
 ├── archived/            ← Old/abandoned strategies (reference only)
 └── reference/           ← External strategies for learning
 ```
@@ -383,6 +494,10 @@ its composed mixins:
 5. Run backtest over a long period to train and save the model
 
 ### Adding a new SimpleStrategy
+For framework studies (entries, exits, stops, guards with no model) use `SimpleTrigger/`
+instead; it shares NNNC's entry framework. `SimpleStrategies/` holds older single-indicator
+strategies.
+
 1. Create a new `.py` file in `SimpleStrategies/`
 2. Inherit from `SimpleStrategy`
 3. Override `populate_entry_trend()` and (optionally) `populate_exit_trend()`
@@ -401,6 +516,8 @@ All config files live in `user_data/strategies/config/`.
 | `config_binanceus_download.json`  | Download config (may use VolumePairlist)         |
 | `config_binanceus_train.json`     | Long-range config for training NN models        |
 | `config_binanceus_leveraged.json` | Leveraged trading config                        |
+| `config_wf.json`                  | Walk-forward folds (SUI/USDT dropped)           |
+| `config_mom_dryrun_15m.json`      | The live momentum-basket dry run                |
 
 Config files used with scripts are referenced by exchange name. The scripts resolve the path automatically.
 
@@ -745,7 +862,7 @@ These apply to all code under `user_data/strategies/`. When in doubt, match the
 surrounding file; consistency within a module beats global purity.
 
 - **Formatting / linting**: `ruff` is the source of truth (formatter + linter).
-  88-character lines. Run `ruff format` and `ruff check --fix` before declaring
+  100-character lines (the repo-root `pyproject.toml`). Run `ruff format` and `ruff check --fix` before declaring
   a change done. Don't hand-format what the formatter owns.
 - **Naming**: `snake_case` for functions and variables, `PascalCase` for
   classes, `UPPER_CASE` for module-level constants. Strategy class names are

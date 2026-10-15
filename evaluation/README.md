@@ -16,7 +16,7 @@ configuration (feature 007, FR-015).
 **Why it exists:** a single-window backtest on this data has a 95% CI half-width of **7.633pp**.
 A +1.86pp "improvement" measured that way has a CI of `[-4.29, +7.93]pp`, p=0.54 — it is noise.
 Pooling 15 anchored folds into 378 trades drops the floor to **3.350 pp/yr**, a 2.28x improvement.
-Full derivation: [`../WALKFORWARD_POWER.md`](../WALKFORWARD_POWER.md).
+Full derivation: [`../regime/WALKFORWARD_POWER.md`](../regime/WALKFORWARD_POWER.md).
 
 ---
 
@@ -66,7 +66,7 @@ Defaults — `--min-train-days 730`, `--test-days 90`, `--data-start 2021-01-01`
 $PY $WF/run_folds.py --plan evaluation/folds/plan_nnnc.json --seed 1
 ```
 
-**~113 minutes, sequential.** Generates one `NNNC_WF_f{NN}` strategy class per fold, trains it, and
+**~113 minutes, sequential.** Generates one strategy class per fold (named in the plan, e.g. `NNNC_ARO_f00`), trains it, and
 evaluates it on its own out-of-sample range. Use `--dry-run` to see what it would do, and
 `--folds f07,f08` to run a subset. A fold counts as `trained` only if its artefacts actually exist —
 a silently-untrained fold is caught here, not three hours later.
@@ -104,7 +104,7 @@ $PY $WF/compare_pooled.py --arm evaluation/pooled_arm.json \
 
 Pairs trades on `(fold_id, pair, open_date)` — the same pair and timestamp can legitimately recur
 across folds, so the two-field key used for single windows would collide. Delegates to
-`regime.tail.compare.bootstrap_delta`, the *same* statistic as single-window arms, not a second
+`evaluation.bootstrap.bootstrap_delta`, the *same* statistic as single-window arms, not a second
 implementation.
 
 Output is a delta in pp/yr, a 95% CI, a p-value, and one of:
@@ -152,10 +152,11 @@ These are load-bearing. Both cost real debugging time.
   it — a **documented deviation** from the production 11-pair universe. Keeping SUI would force the
   first test fold to 2023-10-25 (11 folds / 2.87 yr / ~284 trades); dropping it gives 15 folds /
   3.68 yr. Measured cost on the W1 control: SUI is 8 of 99 trades and 4.0% of P&L.
-- **`run_arm.py` has no `--timerange`.** `--window` is required and its choices come from
-  `regime.regimedata.WINDOWS`. Do **not** add fold keys to that dict on disk — `phase_c_trackability.py`
-  iterates it. `run_folds.py` injects the window into the in-memory dict inside a per-fold
-  subprocess; `regimedata.py` and `run_arm.py` on disk are never modified.
+- **Fold ranges go to `run_arm.py --timerange`.** It used to accept only `--window` (choices from
+  `regime.regimedata.WINDOWS`), and `run_folds.py` monkeypatched that dict per fold. Do **not** add
+  fold keys to `WINDOWS` on disk — `phase_c_trackability.py` iterates it.
+- **`run_folds.py` skips a fold whose arm record exists** (resumable). Rename smoke-test records
+  aside (`*.smoke.json`) before the real run.
 - **Params are frozen at plan time.** `NNNC/NNNC_MLX.json` is untracked working state the user edits
   live; re-reading it per fold would make folds incomparable.
 
@@ -163,26 +164,21 @@ These are load-bearing. Both cost real debugging time.
 
 ## Scope and coupling
 
-The harness is general-purpose in intent but currently lives inside the `regime/` study directory and
-is coupled to it in two places:
+The harness lives in `evaluation/` and owns its statistics (`bootstrap.py`, used by
+`compare_pooled.py` and by `regime/tail/compare.py`). One coupling remains: `run_folds.py`
+evaluates each fold through `regime/run_arm.py --timerange`, which writes the arm record to
+`regime/arms/<arm_tag>_<FNN>.json`. Nothing is hardcoded to NNNC (`--family`,
+`--base-strategy`).
 
-- `compare_pooled.py` and `power.py` import `regime.tail.compare` (deliberate reuse — one statistic,
-  not two).
-- `run_folds.py` drives `regime/run_arm.py` and monkeypatches `regime.regimedata.WINDOWS`.
-
-`--family` / `--base-strategy` are already parameters, so nothing is hardcoded to NNNC. Promoting
-`wf/` to a top-level shared location would mean lifting `tail/compare.py`'s statistics out too, and
-giving `run_arm.py` a real `--timerange` so the monkeypatch can go.
-
-**That promotion is a planned task**, blocked until the label-free study closes — see
-[`../../docs/WALKFORWARD_TODO.md`](../../docs/WALKFORWARD_TODO.md) item 1 for the ordered work and
-the reason for the gate.
+Conventions built on top of the harness since feature 007 (early/late halves, per-fold
+thresholds, staged pre-registered studies, `judge_one`) are summarised in the AGENT_GUIDE's
+"Walk-forward folds" section.
 
 ## See also
 
-- [`../WALKFORWARD_POWER.md`](../WALKFORWARD_POWER.md) — why 15 folds and 378 trades; the power measurement
-- [`../../specs/007-pooled-walkforward-harness/`](../../specs/007-pooled-walkforward-harness/) — spec, plan, tasks, and `quickstart.md` (end-to-end validation scenarios)
-- [`../../AGENT_GUIDE.md`](../../AGENT_GUIDE.md) — the resolvability rules this harness exists to serve
+- [`../regime/WALKFORWARD_POWER.md`](../regime/WALKFORWARD_POWER.md) — why 15 folds and 378 trades; the power measurement
+- [`../specs/007-pooled-walkforward-harness/`](../specs/007-pooled-walkforward-harness/) — spec, plan, tasks, and `quickstart.md` (end-to-end validation scenarios)
+- [`../AGENT_GUIDE.md`](../AGENT_GUIDE.md) — the resolvability rules, and the fold conventions studies use
 
 ## Exception to FR-015: the `thresholds` plan key
 
