@@ -33,6 +33,8 @@ class NewInputMixin:
     NEW_INPUTS_SHA = None
     NEW_INPUT_COLUMNS = ()
     MODEL_KEY_ATTRIBUTES = ("NEW_INPUTS", "NEW_INPUTS_SHA")
+    # derived from NEW_INPUTS, and already in the key through include_list
+    MODEL_KEY_IGNORED = ("NEW_INPUT_COLUMNS",)
 
     _new_input_cache = None
 
