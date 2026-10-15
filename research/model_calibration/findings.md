@@ -218,3 +218,16 @@ Pre-registered.
 - **Context:** the control at share is the best width-book ranker measured so far.
 - **Next (offered):** the current-model sizer arm (`NNNC_LS_CONTROL_SZ`; its thresholds are
   already picked).
+
+## 10. The current model as a sizer, backtested (`research/control_sizer/report.md`)
+
+Pre-registered (not blind on the late half: §5's simulator split had been read).
+- **The arm:** `cs_aro` takes the width book's own trades and gives the current ARO 1.333× when
+  p_buy is above the fold's 0.5-share threshold, 0.667× otherwise.
+- **The result: PASS (PROVISIONAL).**
+  - 59.95 pp over 15 folds, against the width book's 51.44 on the same 930 trades: paired
+    IMPROVED, p 0.0007, early +4.85 and late +3.66.
+  - Against the control's 49.97: +5.42 early and +4.57 late, paired UNCHANGED.
+  - Risk is UNCHANGED against both, and capital is at or below the width book's.
+- **Context:** the first measured model value over the width book. Liquidity and wallet limits
+  absorb part of the stake ratio (about 1.6 realised vs 2.0 intended).
