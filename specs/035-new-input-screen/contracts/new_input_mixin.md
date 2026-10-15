@@ -26,4 +26,6 @@ class NewInputMixin:
 - the survivor key differs from the control's;
 - the main scaler's 6 columns are unchanged;
 - a merge on a frame with gaps keeps the row count;
-- a stale-cache refusal.
+- a stale-cache refusal;
+- end-to-end causality (constitution V): the merged column at a cut equals the value from a
+  cache built on sources truncated at that cut.

@@ -72,11 +72,12 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 - [ ] T007 [P] Tests in `research/new_inputs/tests/test_build.py`:
   - every value is in [−1, 1] or NaN;
   - flags are 1 exactly where the raw positioning is absent;
-  - MS_VR equals `RegimeState.volreg`, normalised, on the fixture;
+  - MS_VR equals `RegimeState.volreg` applied to the fixture frames with gap-filled bars removed, then normalised;
+  - a positioning flag is 1 during the z warm-up as well as before the source starts;
   - a hand-computed OF_TBG on 4 bars.
 - [ ] T008 `research/new_inputs/causality.py` (R12):
-  - per input and pair, 200 evenly spaced cut bars after warm-up;
-  - rebuild from source truncated at the cut's close, and require equality with the full build at the cut (atol 1e-12, NaN = NaN);
+  - 200 shared cut times, 2021-03..2026-09-07;
+  - at each cut, truncate every pair's sources at the cut's close, rebuild all pairs once, and require every input of every pair at the cut bar to equal the full build (atol 1e-12, NaN = NaN);
   - a planted centred OF_TBG variant must FAIL;
   - writes `research/new_inputs/causality.json`.
 - [ ] T009 [P] Tests in `research/new_inputs/tests/test_causality.py`: the harness passes every fixture input and fails the planted centred control.
@@ -90,9 +91,11 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
   - **on:** a test subclass with one input has a different key, and `include_list` gains exactly its columns, which are also in `pre_normalized_columns`;
   - `saved_data/main_scaler.pkl`'s 6 feature names are a subset of the non-pre-normalised columns in both cases;
   - the merge keeps the row count on a frame with gaps;
-  - the stale-cache refusal.
+  - the stale-cache refusal;
+  - end-to-end causality (constitution V): for one fixture pair, the merged column at a cut equals the value from a cache built on sources truncated at that cut.
 - [ ] T012 [P] `research/control_sizer/pick.py`: optional `--plan <name>` (default `plan_cs_aro.json`, unchanged behaviour). Add a test in `research/control_sizer/tests/test_control_sizer.py` that the default path is unchanged.
 - [ ] T013 [P] `research/nnnc_framework/signals.py`: runtime `NI_<TAG>` registration, as `LS_` (034), with no change to the existing registrations. Add a test that existing model names resolve as before.
+- [ ] T013a [P] `research/new_inputs/trades.py`: `trades()` rebuilds the 412 early width-book trades (f00–f07 only) with 034's S1 instrument, and asserts the count and the control-at-share gap 0.1004 ± 0.002 before returning. Each trade carries its signal date, bb_width and the control's p_buy. Add a test in `research/new_inputs/tests/test_trades.py` that every returned trade's fold is in f00–f07.
 
 **Checkpoint**: tests green; byte identity when off proven (T011).
 
@@ -115,28 +118,27 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 - [ ] T015 [US1] Run `fetch` for every source; record the counts and any coverage gaps in `research/new_inputs/fetch_log.md`.
 - [ ] T016 [US1] Run `build`, then `causality`. Every input must PASS and the planted control must FAIL. An input that fails is fixed, or declared INCONCLUSIVE in the pre-registration with its reason, before T018.
 - [ ] T017 [US1] `research/new_inputs/coverage.py` and its run:
-  - per input, pair and fold bar coverage, and coverage on the 412 early trades (via the S1 trade set, T019's `trades()`);
+  - per input, pair and fold bar coverage, and coverage on the 412 early trades (`research.new_inputs.trades.trades()`, T013a);
   - the R11 live-feasibility record;
   - writes `coverage.json` (S0).
 - [ ] T018 [US1] Pre-registration `research/new_inputs/preregistration.json` / `.md`:
   - input table and `TABLE_SHA`, alignment rules (R3), missing rules (R5) and normalisation (R6);
-  - S1 statistics and cutoffs (coverage ≥ 0.90, |ρ_bb_width| ≤ 0.5, |partial| ≥ 0.10, sign ≥ 6/8, top 3 by |partial|);
-  - S2 rule (gap > 0.1004 with ≤ 2 of 8 folds degenerate; winner = largest gap);
+  - S1 statistics and cutoffs (coverage ≥ 0.90, below which the input is INCONCLUSIVE; |ρ_bb_width| ≤ 0.5; |partial| ≥ 0.10; sign ≥ 6/8; top 3 by |partial|);
+  - S2 rule (gap > 0.1004 with ≤ 2 of 8 folds degenerate; winner = largest gap; margins recorded; S2 selects, S3 decides);
   - S3 rule (judge_one vs `cs_aro` AND `w_aro`, with `wf_aro_g24` reported; small margin under 1 pp needs seed 2), plus the rule maps copied from `research/control_sizer/preregistration.json`;
   - fold sets, the causality and coverage outcomes, the R1 scaler exposure note, and the multiple-testing note (R13);
   - the 035 amendment (FR-013).
 
   **Commit it before T020.**
 - [ ] T019 [US1] `research/new_inputs/screen.py` (FR-008, FR-009; research R8):
-  - `trades()` rebuilds the 412 early width-book trades with 034's instrument and asserts the count and the control-at-share gap 0.1004 ± 0.002 before reading any input;
-  - per trade it attaches bb_width, the control's p_buy and every `ni_*` value at the signal bar;
+  - it takes the trades from `research.new_inputs.trades.trades()` (T013a) and attaches every `ni_*` value at the signal bar;
   - pooled and per-fold partial Spearman (rank residuals on [1, rank bb_width, rank p_buy]), Spearman with bb_width and with p_buy, sign_folds, coverage, and split gap;
   - refuses unless the pre-registration is committed and clean;
   - writes `screen.json`.
 
-  Add a test in `research/new_inputs/tests/test_screen.py`: partial Spearman matches a hand-computed case, and is 0 for an input equal to bb_width.
+  Add a test in `research/new_inputs/tests/test_screen.py`: partial Spearman matches a hand-computed case, and is 0 for an input equal to bb_width. The screen must refuse a trade set containing any fold outside f00–f07 (FR-011).
 - [ ] T020 [US1] Run `screen`.
-- [ ] T021 [US1] `research/new_inputs/survivors.py` (FR-010): mechanical rule with a reason per input. Add a test in `research/new_inputs/tests/test_survivors.py` covering coverage, orthogonality, magnitude, sign and top-3 ranking. Run it and commit `causality.json`, `coverage.json`, `screen.json` and `survivors.json`.
+- [ ] T021 [US1] `research/new_inputs/survivors.py` (FR-010): mechanical rule with a reason per input, and low coverage giving INCONCLUSIVE. Add a test in `research/new_inputs/tests/test_survivors.py` covering coverage (INCONCLUSIVE), orthogonality, magnitude, sign and top-3 ranking. Run it and commit `causality.json`, `coverage.json`, `screen.json` and `survivors.json`.
 
 **Checkpoint**: US1 answers "does any new input rank width-book trades beyond width and the model?" with no training.
 
@@ -190,14 +192,14 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 ## Dependencies
 
-- Setup → Foundational (T003–T013) → US1 (T014–T021) → US2 (T022–T026) → US3 (T027–T030) → Polish.
+- Setup → Foundational (T003–T013a) → US1 (T014–T021) → US2 (T022–T026) → US3 (T027–T030) → Polish.
 - **T018 (the pre-registration commit) precedes T020** (the first S1 read).
 - T021's commit precedes T022.
 - US2 runs only with survivors, and US3 only with an S2 winner. Otherwise their tasks are marked N/A with the reason.
 
 ## Parallel opportunities
 
-- **Foundational code and tests** touch separate files: T003, T004, T005, T007, T009, T011, T012 and T013.
+- **Foundational code and tests** touch separate files: T003, T004, T005, T007, T009, T011, T012, T013 and T013a.
 - **Never in parallel:** training, picks and backtests (one chain), and downloads while a chain runs.
 
 ## Implementation strategy

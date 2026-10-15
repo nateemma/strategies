@@ -55,7 +55,8 @@ api.binance.us.
 **Performance Goals**:
 - downloads about 30–45 min once (about 17,400 metrics files, about 800 kline files, and about
   2,000 Binance.US REST pages);
-- build and truncation test in minutes;
+- build in minutes; the truncation test is 200 shared-cut all-pair rebuilds (R12), estimated at
+  up to about an hour;
 - S1 in seconds;
 - S2 at most 3 × 8 ARO folds (about 3 min each), plus tables and 24 picks;
 - S3 7 folds of training, 15 picks and 15 backtests;
@@ -77,7 +78,7 @@ promoted.
 | II. Distant eras | PASS by restriction | No distant era with these sources for NNNC: at most PASS (PROVISIONAL), with a forward route. |
 | III. Learnability ≠ edge | PASS | S1 is scored on realised trade pp. The verdict needs S3 backtest P&L against the current sizer. |
 | IV. Parameters live | PASS | Mixin byte-identity test when off; the survivor key must differ; S2 checks the new column is present and non-constant in the training frame. |
-| V. Lookahead / realism | PASS | An end-to-end truncation test per input (R12), conservative 5-minute alignment (R3), and the same execution config and liquidity cap at S3. |
+| V. Lookahead / realism | PASS | A truncation test of every input at 200 shared cuts (R12), plus an end-to-end check through the strategy merge (T011), conservative 5-minute alignment (R3), and the same execution config and liquidity cap at S3. |
 | VI. Diagnose before tuning | PASS | Coverage and orthogonality are recorded before any training. Nothing is tuned. |
 | VII. Validate cheaply | PASS | S1 needs no training and gates S2; S2 gates S3. |
 | VIII. One parameter space | PASS | One input per survivor model; everything else equals the control (R1, R2). |

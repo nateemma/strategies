@@ -73,7 +73,7 @@ seen.
 ### Session 2026-10-15
 
 - Q: Which input families enter the S1 screen? → A: All four: order flow, perp positioning,
-  market state and basis (about 15 inputs, FR-002).
+  market state and basis (17 inputs, FR-002).
 - Q: What role does live availability play? → A: It is recorded only. Each input's live source
   (or its absence) is recorded and reported, and a winner without one is flagged. It does not
   stop an input at S1 or S2.
@@ -173,7 +173,7 @@ liquidity limits shows return, and the late half is read only here.
   aggregated so the last sub-bar used closes at t's close.
 - **Market-state inputs pool several pairs.** Each pair's value at t uses only bars at or before
   t, and a pair with a filled bar is excluded from that bar's pool.
-- **Multiple testing:** with about 15 inputs scored, roughly one may pass a 2-standard-error
+- **Multiple testing:** with 17 inputs scored, roughly one may pass a 2-standard-error
   cutoff by chance. S1 only filters; the S2 training test is the real check.
 - **Downloaded archives are untrusted:** stored in their own directory, parsed as data, never
   executed, and never committed.
@@ -193,14 +193,17 @@ liquidity limits shows return, and the late half is read only here.
   are read.
 - **FR-002**: The candidate inputs are fixed in the pre-registration, from the families confirmed
   in Clarifications. Their window lengths are declared once and never tuned on screen results.
-  - **Order flow:** taker-buy share, trade-count ratio to its trailing median, average trade size
-    ratio to its trailing median, and global ÷ US volume ratio.
-  - **Positioning:** open-interest change, open-interest change combined with price change (the
+  - **Order flow (6):** from Binance global, taker-buy share, trade-count ratio to its trailing
+    median, and average trade size ratio to its trailing median; from Binance.US, taker-buy share
+    and trade-count ratio; and the global ÷ US volume ratio.
+  - **Positioning (4):** open-interest change, open-interest change combined with price change (the
     flush proxy), the top-trader long/short ratio change, and the taker long/short volume ratio.
-  - **Market state:** cross-pair median volatility ratio (026's instrument), breadth (the share of
-    pairs below their lower band), BTC 24 h volatility, BTC ADX, and the pair's 24 h return
-    relative to the basket.
-  - **Basis:** the premium index level and its change.
+  - **Market state (5):** cross-pair median volatility ratio (026's volreg), breadth (026's: the
+    share of pairs with close above their 768-bar EMA), BTC 24 h volatility, BTC ADX, and the
+    pair's 24 h return relative to the basket.
+  - **Basis (2):** the premium index level and its change.
+
+  That makes 17 inputs, defined exactly in research R6.
 - **FR-003**: Funding as a feature, any entry gate, label changes, architecture changes, new pairs
   and paid data are out of scope.
 
@@ -232,7 +235,8 @@ liquidity limits shows return, and the late half is read only here.
   - the number of folds whose sign matches the pooled sign;
   - the split gap: agree − disagree pp after splitting at the input's median within each fold.
 - **FR-010**: An input survives S1 only if all of these hold:
-  - coverage ≥ 90% of the trades;
+  - coverage ≥ 90% of the trades (an input below this is INCONCLUSIVE, not FAIL: it was not
+    tested);
   - |Spearman with bb_width| ≤ 0.5 (orthogonality, constitution IX);
   - |pooled partial correlation| ≥ 0.10 (about 2 standard errors at 412 trades);
   - the same sign in at least 6 of 8 folds.
@@ -262,7 +266,8 @@ liquidity limits shows return, and the late half is read only here.
 - **FR-015**: S2 MUST score each survivor with the control sizer's S1 instrument: the threshold
   at the 0.5 agree share on the validation tail, and agree on buy probability alone. An input
   passes only if its early gap exceeds 0.100, with at most 2 of 8 folds degenerate. The S2 winner
-  is the passer with the largest gap.
+  is the passer with the largest gap. Each passer's margin over 0.100 is recorded. S2 selects and
+  S3 decides: a small S2 margin is not evidence by itself, because retraining moves the gap.
 - **FR-016**: Training MUST run as one sequential, resumable chain, refusing to start while
   another trainer or backtest chain runs.
 

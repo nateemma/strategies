@@ -10,7 +10,7 @@
 | raw | callable name | a builder function in `build.py`; trailing windows only |
 | windows | dict[str, int] | declared once; never tuned |
 | norm | enum | `z` (trailing 2880, min_periods 960, clip ±5, /5) or `c` (2s − 1) |
-| missing_flag | bool | True for positioning only (clarification Q3) |
+| missing_flag | bool | True for positioning only (clarification Q3); the flag is 1 when the value is undefined (raw absent OR in warm-up) |
 | live_source | str | the R11 record; informational only |
 
 Column names in the cache and the model: `ni_<tag lower>` (for example `ni_of_tbg`), and

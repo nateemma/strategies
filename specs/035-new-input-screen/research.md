@@ -85,8 +85,9 @@ declared in the pre-registration.
 
 - **Absent source rows** (pair not on the source, day missing, pre-history) give NaN in the raw
   series. After normalisation NaN becomes the neutral 0 (the framework's own fill: `FeatureNormalizer.py:359-361`).
-- **Positioning inputs** also carry `<name>_missing` (1 where the raw source value is absent), per
-  clarification Q3. Positioning is absent before 2021-12-01.
+- **Positioning inputs** also carry `<name>_missing`, per clarification Q3. The flag is 1 wherever
+  the normalised value is undefined: the raw source value is absent (before 2021-12-01, or a
+  missing day) OR it falls in the z-score warm-up (fewer than 960 trailing values).
 - **Binance.US-native order flow** on gap-filled bars (volume 0) is NaN, never a computed 0
   share. A 0 traded volume makes the share undefined, not 0.
 - **S1 coverage** counts a trade as covered only if its raw value is present (not filled). An
@@ -123,8 +124,9 @@ the bar's close.
 - **Market-state pool:** the 10 `config_wf` pairs from `user_data/data/binanceus`. A pair with a
   gap-filled bar at t is excluded from that bar's cross-sectional statistic. The statistic needs at
   least 6 pairs (026's MIN_PAIRS).
-- **026 reuse:** MS_VR and MS_BR use `utils/RegimeState.py`'s functions unchanged, so they equal
-  026's instruments.
+- **026 reuse:** MS_VR and MS_BR apply `utils/RegimeState.py`'s `volreg`/`breadth` functions,
+  unchanged, to frames from which gap-filled bars have been removed. They are 026's definitions on
+  cleaned data, so they are not numerically equal to 026's gate series.
 
 ## R7. Data acquisition
 
@@ -201,10 +203,12 @@ Reuse 034's S1 path: `research/label_screen/separation.py`, `research/nnnc_frame
 
 ## R12. Truncation test (FR-005)
 
-- **Per input and pair:** 200 cut bars, spread evenly over the pair's covered span after the
-  2880-bar warm-up. Rebuild the pair's inputs from source data truncated at each cut's close, and
-  require the value at the cut to equal the full-history value (atol 1e-12, NaN = NaN).
-- **Market-state inputs:** every pair's source data is truncated at the cut.
+- **Shared cuts:** 200 cut times, spread evenly over 2021-03 (after the 2880-bar warm-up)
+  to 2026-09-07. At each cut, every source of every pair is truncated at the cut's close and all
+  pairs' inputs are rebuilt once (market state needs every pair). The value of every input, for
+  every pair, at the cut bar must equal the full-history value (atol 1e-12, NaN = NaN). Pairs not
+  yet listed at a cut are checked as NaN = NaN.
+- **Cost:** 200 all-pair rebuilds, each truncated to the cut, so earlier cuts are cheaper.
 - **Planted control:** a centred-window variant of OF_TBG must fail.
 - **Tests:** a unit test runs the harness on synthetic data. The full run writes
   `research/new_inputs/causality.json`.
@@ -215,4 +219,5 @@ Reuse 034's S1 path: `research/label_screen/separation.py`, `research/nnnc_frame
 - 17 inputs at about 2 standard errors: roughly 0.8 expected false S1 passes, so S1 is a filter.
 - S2 training (at most 3 × 8 ARO folds, about 3 min each) is the test that matters.
 - S3 is about 7 folds of training plus 15 picks and 15 backtests.
-- The downloads (about 30–45 min) are the largest fixed cost.
+- The downloads (about 30–45 min) and the truncation test (200 all-pair rebuilds, R12) are the
+  largest fixed costs.
