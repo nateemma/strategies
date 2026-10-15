@@ -1,4 +1,8 @@
-"""035: names of the survivor arms (research R9), shared by build_arms, train, signals and judge."""
+"""035: names of the survivor arms (research R9), shared by build_arms, train, signals and judge.
+
+`model` is "ARO" (the screen's base, names unchanged) or "GBR" (the raw-feature plain LSTM,
+NNNC_GbbRaw_Open; the GBR extension, preregistration_gbr.json): GBR names carry a `GBR_` part.
+"""
 
 from __future__ import annotations
 
@@ -7,20 +11,34 @@ from pathlib import Path
 
 
 HERE = Path(__file__).resolve().parent
+MODELS = ("ARO", "GBR")
 
 
-def class_name(tag: str) -> str:
-    return f"NNNC_NI_{tag}"
+def _part(model: str) -> str:
+    if model not in MODELS:
+        raise ValueError(f"model {model!r} not in {MODELS}")
+    return "" if model == "ARO" else "GBR_"
 
 
-def plan_tag(tag: str, role: str = "entry") -> str:
-    """`ni_po_oi` (training / tables) or `ni_po_oi_sz` (the sizer arm)."""
-    return f"ni_{tag.lower()}" + ("_sz" if role == "sz" else "")
+def class_name(tag: str, model: str = "ARO") -> str:
+    return f"NNNC_NI_{_part(model)}{tag}"
 
 
-def survivors() -> list[str]:
-    """S1b's survivors when S1b has run (it replaces S1 as the gate to S2), else S1's."""
-    for name in ("survivors_s1b.json", "survivors.json"):
+def plan_tag(tag: str, role: str = "entry", model: str = "ARO") -> str:
+    """`ni_po_oi` / `ni_gbr_po_oi` (training, tables) or `..._sz` (the sizer arm)."""
+    return f"ni_{_part(model).lower()}{tag.lower()}" + ("_sz" if role == "sz" else "")
+
+
+def table_name(tag: str, model: str = "ARO") -> str:
+    return f"NI_{_part(model)}{tag}"
+
+
+def survivors(model: str = "ARO") -> list[str]:
+    """ARO: S1b's survivors when S1b has run (it replaces S1 as the gate to S2), else S1's.
+    GBR: S1b-GBR's survivors."""
+    names = ("survivors_s1b.json", "survivors.json") if model == "ARO" \
+        else ("survivors_s1b_gbr.json",)
+    for name in names:
         p = HERE / name
         if p.is_file():
             return list(json.loads(p.read_text()).get("survivors", []))
@@ -28,5 +46,5 @@ def survivors() -> list[str]:
 
 
 def table_plans() -> dict:
-    """Signal-table registration for research/nnnc_framework/signals.py: NI_<TAG> -> plan tag."""
-    return {f"NI_{t}": plan_tag(t) for t in survivors()}
+    """Signal-table registration for research/nnnc_framework/signals.py: NI_[GBR_]<TAG> -> plan."""
+    return {table_name(t, m): plan_tag(t, model=m) for m in MODELS for t in survivors(m)}

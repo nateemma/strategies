@@ -38,6 +38,8 @@ from research.new_inputs import screen as SC  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 PREREG = HERE / "preregistration_s1b.json"
+PREREGS = {"ARO": PREREG, "GBR": HERE / "preregistration_gbr.json"}
+SUFFIX = {"ARO": "", "GBR": "_gbr"}
 EARLY = tuple(f"f{i:02d}" for i in range(8))
 
 
@@ -46,14 +48,14 @@ def run_starts(mask: np.ndarray) -> np.ndarray:
     return m & ~np.r_[False, m[:-1]]
 
 
-def sample(folds=EARLY) -> pd.DataFrame:
+def sample(folds=EARLY, model: str = "ARO") -> pd.DataFrame:
     """Candidate run starts with their replayed outcome, bb_width and control p_buy."""
     from research.exit_coupling import feasibility as F
     from research.exit_coupling import paths as P
     from research.model_calibration.width_twin import _gates
     from research.nnnc_framework import entries as E
 
-    base = E.Model("ARO")
+    base = E.Model(model)
     base.params = dataclasses.replace(base.params, stoploss_grace_hours=24.0)
     rows = []
     for fold in folds:
@@ -113,19 +115,26 @@ def score(s: pd.DataFrame, col: str) -> dict:
 
 
 def main(argv=None) -> int:
+    import argparse
+
     from research.new_inputs import survivors as SV
 
-    if not SC._committed_and_clean(PREREG):
-        print(f"REFUSED: {PREREG.relative_to(STRAT)} is uncommitted or dirty")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", choices=sorted(PREREGS), default="ARO")
+    model = ap.parse_args(argv).model
+    prereg = PREREGS[model]
+    if not SC._committed_and_clean(prereg):
+        print(f"REFUSED: {prereg.relative_to(STRAT)} is uncommitted or dirty")
         return 2
-    pr = json.loads(PREREG.read_text())
+    pr = json.loads(prereg.read_text())
+    pr = pr.get("s1b", pr)  # the GBR pre-registration nests its S1b block
     if pr["table_sha"] != I.TABLE_SHA:
         print(f"REFUSED: pre-registered table {pr['table_sha']} != current {I.TABLE_SHA}")
         return 2
-    s = sample()
+    s = sample(model=model)
     print("sample:", len(s), "run starts;", s.groupby("fold").size().to_dict(), flush=True)
     s = SC.attach(s)
-    out = {"label": "035 S1b (pre-registered; early half only, no training)",
+    out = {"label": f"035 S1b {model} (pre-registered; early half only, no training)",
            "sample": {"n": len(s), "per_fold": s.groupby("fold").size().to_dict(),
                       "outcome_mean": round(float(s["outcome"].mean()), 5)},
            "inputs": {}}
@@ -134,10 +143,10 @@ def main(argv=None) -> int:
         out["inputs"][inp.tag] = r
         print(inp.tag, json.dumps({k: (round(v, 4) if isinstance(v, float) else v)
                                    for k, v in r.items() if k != "per_fold"}), flush=True)
-    (HERE / "screen_s1b.json").write_text(json.dumps(out, indent=1, default=str))
+    (HERE / f"screen_s1b{SUFFIX[model]}.json").write_text(json.dumps(out, indent=1, default=str))
     res = SV.select(out, pr["rule"])
-    res["label"] = "035 survivors (S1b)"
-    (HERE / "survivors_s1b.json").write_text(json.dumps(res, indent=1))
+    res["label"] = f"035 survivors (S1b, {model})"
+    (HERE / f"survivors_s1b{SUFFIX[model]}.json").write_text(json.dumps(res, indent=1))
     print("S1b survivors:", res["survivors"])
     return 0
 

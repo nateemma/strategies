@@ -29,6 +29,25 @@ EXPECTED_TRADES = 412
 EXPECTED_GAP, GAP_TOL = 0.1004, 0.002
 TWIN = STRAT / "research" / "model_calibration" / "width_twin.json"
 CONTROL_SHARE = STRAT / "research" / "label_screen" / "thresholds_control_share.json"
+#: GBR extension: the control sizer's 0.5-share thresholds (plan_cs_gbr.json) and the reproduction
+#: values recorded in preregistration_gbr.json before any GBR input score.
+CS_GBR_PLAN = STRAT / "evaluation" / "folds" / "plan_cs_gbr.json"
+PREREG_GBR = Path(__file__).resolve().parent / "preregistration_gbr.json"
+
+
+def _share_thresholds(model: str) -> dict:
+    if model == "ARO":
+        return {f: v["threshold"] for f, v in json.loads(CONTROL_SHARE.read_text()).items()}
+    return dict(json.loads(CS_GBR_PLAN.read_text()).get("thresholds", {}))
+
+
+def expected(model: str) -> tuple[int, float] | None:
+    if model == "ARO":
+        return EXPECTED_TRADES, EXPECTED_GAP
+    if PREREG_GBR.is_file():
+        r = json.loads(PREREG_GBR.read_text())["reproduce"]
+        return r["trades"], r["control_at_share_gap"]
+    return None
 
 
 def gap(pp, agree) -> float:
@@ -36,16 +55,16 @@ def gap(pp, agree) -> float:
     return float(pp[agree].mean() - pp[~agree].mean())
 
 
-def simulate(table_of=None) -> pd.DataFrame:
+def simulate(table_of=None, model: str = "ARO") -> pd.DataFrame:
     """The early trades; `table_of(fold)` may return another model's table to read p_buy from."""
     from research.model_calibration.width_sizing import _signal_rows
     from research.model_calibration.width_twin import _gates
     from research.nnnc_framework import entries as E
 
-    share = json.loads(CONTROL_SHARE.read_text())
-    base = E.Model("ARO")
+    share = _share_thresholds(model)
+    base = E.Model(model)
     base.params = dataclasses.replace(base.params, stoploss_grace_hours=24.0)
-    folds, cuts = sorted(base.folds), json.loads(TWIN.read_text())["models"]["ARO"]["cuts"]
+    folds, cuts = sorted(base.folds), json.loads(TWIN.read_text())["models"][model]["cuts"]
     rows = []
     for i, f in enumerate(folds):
         if f not in EARLY:
@@ -66,7 +85,7 @@ def simulate(table_of=None) -> pd.DataFrame:
         r = pd.DataFrame({"fold": f, "pair": d["pair"].to_numpy(), "signal_date": sr["date"],
                           "pp": d["pp"].to_numpy(float), "bb_width": bw,
                           "p_ctl": sr["p_buy"].to_numpy(float)})
-        r["agree_ctl_share"] = r["p_ctl"] > float(share[f]["threshold"])
+        r["agree_ctl_share"] = r["p_ctl"] > float(share[f]) if f in share else np.nan
         if table_of is not None:
             tc = table_of(f)
             r["p_model"] = _signal_rows(tc, d)["p_buy"].to_numpy(float)
@@ -74,19 +93,24 @@ def simulate(table_of=None) -> pd.DataFrame:
     return pd.concat(rows, ignore_index=True)
 
 
-def check(t: pd.DataFrame) -> dict:
+def check(t: pd.DataFrame, exp: tuple[int, float] | None = (EXPECTED_TRADES, EXPECTED_GAP)) -> dict:
+    """Early folds only; and, when `exp` is given, the trade count and control-at-share gap must
+    reproduce. `exp=None` only measures (the GBR values recorded before its pre-registration)."""
     late = sorted(set(t["fold"]) - set(EARLY))
     if late:
         raise RuntimeError(f"035 reads the early half only; got folds {late}")
-    g = gap(t["pp"], t["agree_ctl_share"])
-    if len(t) != EXPECTED_TRADES or abs(g - EXPECTED_GAP) > GAP_TOL:
+    g = gap(t["pp"], t["agree_ctl_share"].astype(bool))
+    if exp is not None and (len(t) != exp[0] or abs(g - exp[1]) > GAP_TOL):
         raise RuntimeError(f"instrument does not reproduce: {len(t)} trades (expect "
-                           f"{EXPECTED_TRADES}), control-at-share gap {g:.4f} (expect "
-                           f"{EXPECTED_GAP} +- {GAP_TOL})")
+                           f"{exp[0]}), control-at-share gap {g:.4f} (expect "
+                           f"{exp[1]} +- {GAP_TOL})")
     return {"trades": len(t), "control_at_share_gap": round(g, 4)}
 
 
-def trades(table_of=None) -> pd.DataFrame:
-    t = simulate(table_of)
-    t.attrs["check"] = check(t)
+def trades(table_of=None, model: str = "ARO", measure_only: bool = False) -> pd.DataFrame:
+    t = simulate(table_of, model)
+    exp = None if measure_only else expected(model)
+    if exp is None and not measure_only:
+        raise RuntimeError(f"{model}: no recorded reproduction values (preregistration_gbr.json)")
+    t.attrs["check"] = check(t, exp)
     return t

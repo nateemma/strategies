@@ -57,31 +57,38 @@ def judge(rows: dict, reference: float) -> dict:
     return {"winner": win}
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    import argparse
+
     from research.new_inputs import trades as TR
 
-    ref_t = TR.trades()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", choices=A.MODELS, default="ARO")
+    model = ap.parse_args(argv).model
+    sfx = "" if model == "ARO" else "_gbr"
+    ref_t = TR.trades(model=model)
     reference = ref_t.attrs["check"]["control_at_share_gap"]
     rows = {}
-    for tag in A.survivors():
-        thr = json.loads((FOLDS / f"plan_{A.plan_tag(tag, 'sz')}.json").read_text()) \
+    for tag in A.survivors(model):
+        thr = json.loads((FOLDS / f"plan_{A.plan_tag(tag, 'sz', model)}.json").read_text()) \
             .get("thresholds", {})
-        missing = [f for f in EARLY if f not in thr or not (SIG / f"NI_{tag}_{f}.parquet").is_file()]
+        tn = A.table_name(tag, model)
+        missing = [f for f in EARLY if f not in thr or not (SIG / f"{tn}_{f}.parquet").is_file()]
         if missing:
             rows[tag] = {"status": "INCONCLUSIVE", "reason": f"tables/thresholds missing {missing}",
                          "gap": None, "degenerate_folds": []}
             continue
-        t = TR.trades(lambda f, tag=tag: pd.read_parquet(SIG / f"NI_{tag}_{f}.parquet"))
+        t = TR.trades(lambda f, tn=tn: pd.read_parquet(SIG / f"{tn}_{f}.parquet"), model=model)
         t["agree"] = [p > float(thr[f]) for p, f in zip(t["p_model"], t["fold"], strict=True)]
         r = gap_stats(t["pp"], t["agree"]) | {"degenerate_folds": degenerate(t, "agree")}
         r["per_fold"] = {f: gap_stats(g["pp"], g["agree"]) for f, g in t.groupby("fold")}
         rows[tag] = r
         print(tag, json.dumps({k: v for k, v in r.items() if k != "per_fold"}), flush=True)
     j = judge(rows, reference)
-    out = {"label": "035 S2 (pre-registered; early half only)", "reference_gap": reference,
+    out = {"label": f"035 S2 {model} (pre-registered; early half only)", "reference_gap": reference,
            "inputs": rows, "s2_winner": j["winner"]}
-    (HERE / "separation.json").write_text(json.dumps(out, indent=1, default=str))
-    vp = HERE / "verdicts.json"
+    (HERE / f"separation{sfx}.json").write_text(json.dumps(out, indent=1, default=str))
+    vp = HERE / f"verdicts{sfx}.json"
     v = json.loads(vp.read_text()) if vp.is_file() else {}
     v["s2_winner"] = {"tag": j["winner"]} if j["winner"] else None
     vp.write_text(json.dumps(v, indent=1))

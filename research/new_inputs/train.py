@@ -31,16 +31,19 @@ def refusals(tag: str, folds: set[str], survivors: list, verdicts: dict | None) 
     return out
 
 
-def run(tag: str, folds: set[str] | None, seed: int = 1, *, driver=None) -> list[dict]:
+def run(tag: str, folds: set[str] | None, seed: int = 1, *, driver=None,
+        model: str = "ARO") -> list[dict]:
     folds = set(folds) if folds else set(EARLY)
     vp = HERE / "verdicts.json"
-    bad = refusals(tag, folds, A.survivors(), json.loads(vp.read_text()) if vp.is_file() else None)
+    vp = vp if model == "ARO" else HERE / "verdicts_gbr.json"
+    bad = refusals(tag, folds, A.survivors(model),
+                   json.loads(vp.read_text()) if vp.is_file() else None)
     if bad:
         raise SystemExit("REFUSED:\n  " + "\n  ".join(bad))
     if driver is None:
         from research.candidate_training import train as driver
-    key = f"NI_{tag}"
-    driver.PLANS[key] = A.plan_tag(tag)  # runtime registration only
+    key = A.table_name(tag, model)
+    driver.PLANS[key] = A.plan_tag(tag, model=model)  # runtime registration only
     if "research.new_inputs.train " not in driver.BUSY:
         driver.BUSY = (*tuple(driver.BUSY), "research.new_inputs.train ")
     return driver.run(key, folds, seed)
@@ -51,8 +54,9 @@ def main() -> int:
     ap.add_argument("--tag", required=True)
     ap.add_argument("--folds", help="comma-separated fold ids; default f00-f07")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--model", choices=A.MODELS, default="ARO")
     a = ap.parse_args()
-    run(a.tag, set(a.folds.split(",")) if a.folds else None, a.seed)
+    run(a.tag, set(a.folds.split(",")) if a.folds else None, a.seed, model=a.model)
     return 0
 
 
