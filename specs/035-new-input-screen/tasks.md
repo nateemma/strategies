@@ -130,15 +130,15 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
   - the 035 amendment (FR-013).
 
   **Commit it before T020.**
-- [ ] T019 [US1] `research/new_inputs/screen.py` (FR-008, FR-009; research R8):
+- [X] T019 [US1] `research/new_inputs/screen.py` (FR-008, FR-009; research R8):
   - it takes the trades from `research.new_inputs.trades.trades()` (T013a) and attaches every `ni_*` value at the signal bar;
   - pooled and per-fold partial Spearman (rank residuals on [1, rank bb_width, rank p_buy]), Spearman with bb_width and with p_buy, sign_folds, coverage, and split gap;
   - refuses unless the pre-registration is committed and clean;
   - writes `screen.json`.
 
   Add a test in `research/new_inputs/tests/test_screen.py`: partial Spearman matches a hand-computed case, and is 0 for an input equal to bb_width. The screen must refuse a trade set containing any fold outside f00–f07 (FR-011).
-- [ ] T020 [US1] Run `screen`.
-- [ ] T021 [US1] `research/new_inputs/survivors.py` (FR-010): mechanical rule with a reason per input, and low coverage giving INCONCLUSIVE. Add a test in `research/new_inputs/tests/test_survivors.py` covering coverage (INCONCLUSIVE), orthogonality, magnitude, sign and top-3 ranking. Run it and commit `causality.json`, `coverage.json`, `screen.json` and `survivors.json`.
+- [X] T020 [US1] Run `screen`.
+- [X] T021 [US1] `research/new_inputs/survivors.py` (FR-010): mechanical rule with a reason per input, and low coverage giving INCONCLUSIVE. Add a test in `research/new_inputs/tests/test_survivors.py` covering coverage (INCONCLUSIVE), orthogonality, magnitude, sign and top-3 ranking. Run it and commit `causality.json`, `coverage.json`, `screen.json` and `survivors.json`.
 
 **Checkpoint**: US1 answers "does any new input rank width-book trades beyond width and the model?" with no training.
 
@@ -150,7 +150,7 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 **Independent test**: `separation.json` has a gap per survivor and the S2 winner (or none).
 
-- [ ] T022 [US2] `research/new_inputs/build_arms.py`:
+- [X] T022 [US2] `research/new_inputs/build_arms.py`: — **N/A: no S1 survivors (survivors.json empty); not run.**
   - per survivor, generate `NNNC/NNNC_NI_<TAG>.py`/`.json` (`NewInputMixin` + `NNNC_A_Raw_Open`, `NEW_INPUTS`, new include_list and pre_normalized_columns lists; `.json` copied from the control with strategy_name changed) and `NNNC_NI_<TAG>_SZ` (the `NNNC_CS_ARO` bases + mixin);
   - plans `evaluation/folds/plan_ni_<tag>.json` and `plan_ni_<tag>_sz.json`, copied from `plan_cs_aro.json` with class, arm-tag and run-id changes and thresholds removed.
 
@@ -159,10 +159,10 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
   - the params snapshot equals the control's;
   - `HELD_PAIR_ADD_RESOLVED` equals the width book's for `_SZ`;
   - existing model keys are unchanged (034's fixture `research/label_screen/tests/fixtures/model_keys_pre034.json`).
-- [ ] T023 [US2] `research/new_inputs/train.py`: the 032 driver with a runtime registration of `NI_<TAG>` (as `research/label_screen/train.py`). It refuses late folds unless `verdicts.json` names the tag as the S2 winner.
-- [ ] T024 [US2] Smoke run: train the first survivor on f00 only. Confirm the training frame contains its column(s), non-constant, the new key directory exists, and the control's key directory is untouched. Then run the chain: every survivor on f00–f07.
-- [ ] T025 [US2] Signal tables `NI_<TAG>` f00–f07, then sizer picks and `--verify` per fold (`research.control_sizer.pick --plan plan_ni_<tag>_sz`), one fold per process.
-- [ ] T026 [US2] `research/new_inputs/separation.py` (FR-015): 034's S1 scoring on the `NI_<TAG>` tables with the stored thresholds, the gap per survivor against 0.1004 with ≤ 2 of 8 degenerate folds, and the winner = the largest passing gap. Add a test for the winner rule. Run it, write `separation.json`, and commit.
+- [X] T023 [US2] `research/new_inputs/train.py`: the 032 driver with a runtime registration of `NI_<TAG>` (as `research/label_screen/train.py`). It refuses late folds unless `verdicts.json` names the tag as the S2 winner. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T024 [US2] Smoke run: train the first survivor on f00 only. Confirm the training frame contains its column(s), non-constant, the new key directory exists, and the control's key directory is untouched. Then run the chain: every survivor on f00–f07. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T025 [US2] Signal tables `NI_<TAG>` f00–f07, then sizer picks and `--verify` per fold (`research.control_sizer.pick --plan plan_ni_<tag>_sz`), one fold per process. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T026 [US2] `research/new_inputs/separation.py` (FR-015): 034's S1 scoring on the `NI_<TAG>` tables with the stored thresholds, the gap per survivor against 0.1004 with ≤ 2 of 8 degenerate folds, and the winner = the largest passing gap. Add a test for the winner rule. Run it, write `separation.json`, and commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
 
 ---
 
@@ -170,23 +170,23 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 **Goal**: a judge_one verdict for the winner against `cs_aro` and `w_aro`.
 
-- [ ] T027 [US3] If there is an S2 winner:
+- [X] T027 [US3] If there is an S2 winner: — **N/A: no S1 survivors (survivors.json empty); not run.**
   - `train --tag T --folds f08,...,f14`, its tables, and picks plus verify on f08–f14;
   - `run_folds` for `plan_ni_<tag>_sz` on all 15 folds from the repo root.
-- [ ] T028 [US3] `research/new_inputs/instrument.py` (FR-019): the control-sizer instrument reading the `NI_<TAG>` tables. Run it.
-- [ ] T029 [US3] `research/new_inputs/judge.py` (FR-018, FR-020, FR-021): staged verdicts for every input; for the winner, judge_one vs `cs_aro` and `w_aro` (both must pass), `wf_aro_g24` reported, and the small-margin rule. It refuses an uncommitted pre-registration or stale `ni_*` records.
+- [X] T028 [US3] `research/new_inputs/instrument.py` (FR-019): the control-sizer instrument reading the `NI_<TAG>` tables. Run it. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T029 [US3] `research/new_inputs/judge.py` (FR-018, FR-020, FR-021): staged verdicts for every input; for the winner, judge_one vs `cs_aro` and `w_aro` (both must pass), `wf_aro_g24` reported, and the small-margin rule. It refuses an uncommitted pre-registration or stale `ni_*` records. — **N/A: no S1 survivors (survivors.json empty); not run.**
 
   Add a test in `research/new_inputs/tests/test_judge.py` for stage order, the two-comparator rule, small margin and refusal. Run it and write `verdicts.json`.
-- [ ] T030 [US3] If any margin is under 1 pp: the seed-2 repeat (winner at seed 2; ARO seed-2 weights for `cs_aro` on 15 folds, then picks and backtests), then `judge` again. Commit.
+- [X] T030 [US3] If any margin is under 1 pp: the seed-2 repeat (winner at seed 2; ARO seed-2 weights for `cs_aro` on 15 folds, then picks and backtests), then `judge` again. Commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
 
 ---
 
 ## Phase 6: Polish
 
-- [ ] T031 SC-003: re-run `wf_aro_g24` f00 and f07 with `HELD_PAIR_ADD = None` declared, as in 034's T028, into scratch tags. The trade hashes must equal the records. Delete the scratch classes afterwards and record the result.
-- [ ] T032 Write `research/new_inputs/report.md`: decision table per input (S0, S1, S2, S3), coverage and live feasibility, the scaler exposure note (R1), the multiple-testing note, harness lessons and provenance. Add a pointer section in `research/model_calibration/findings.md`.
-- [ ] T033 Memory: `project_035_new_input_screen.md`, its MEMORY.md "Current state" line, and the features hub line (`index_features.md`).
-- [ ] T034 Full suite (exit code checked), mark every task [X], final commit.
+- [X] T031 SC-003: re-run `wf_aro_g24` f00 and f07 with `HELD_PAIR_ADD = None` declared, as in 034's T028, into scratch tags. The trade hashes must equal the records. Delete the scratch classes afterwards and record the result.
+- [X] T032 Write `research/new_inputs/report.md`: decision table per input (S0, S1, S2, S3), coverage and live feasibility, the scaler exposure note (R1), the multiple-testing note, harness lessons and provenance. Add a pointer section in `research/model_calibration/findings.md`.
+- [X] T033 Memory: `project_035_new_input_screen.md`, its MEMORY.md "Current state" line, and the features hub line (`index_features.md`).
+- [X] T034 Full suite (exit code checked), mark every task [X], final commit.
 
 ---
 

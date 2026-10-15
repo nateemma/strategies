@@ -1,0 +1,81 @@
+{
+ "label": "035 survivors (FR-010)",
+ "rule": {
+  "min_coverage": 0.9,
+  "max_rho_width": 0.5,
+  "min_partial": 0.1,
+  "min_sign_folds": 6,
+  "max_survivors": 3
+ },
+ "survivors": [],
+ "inputs": {
+  "OF_TBG": {
+   "status": "FAIL",
+   "reason": "|partial| 0.046 < 0.1; sign in 3 folds < 6"
+  },
+  "OF_TRG": {
+   "status": "FAIL",
+   "reason": "|partial| 0.072 < 0.1; sign in 3 folds < 6"
+  },
+  "OF_SZG": {
+   "status": "FAIL",
+   "reason": "|partial| 0.054 < 0.1; sign in 4 folds < 6"
+  },
+  "OF_GUS": {
+   "status": "FAIL",
+   "reason": "sign in 4 folds < 6"
+  },
+  "OF_TBU": {
+   "status": "FAIL",
+   "reason": "|partial| 0.047 < 0.1; sign in 5 folds < 6"
+  },
+  "OF_TRU": {
+   "status": "FAIL",
+   "reason": "sign in 5 folds < 6"
+  },
+  "PO_OI": {
+   "status": "FAIL",
+   "reason": "|partial| 0.048 < 0.1; sign in 4 folds < 6"
+  },
+  "PO_FL": {
+   "status": "FAIL",
+   "reason": "|partial| 0.064 < 0.1"
+  },
+  "PO_TT": {
+   "status": "FAIL",
+   "reason": "|partial| 0.048 < 0.1"
+  },
+  "PO_TK": {
+   "status": "FAIL",
+   "reason": "|partial| 0.084 < 0.1; sign in 5 folds < 6"
+  },
+  "MS_VR": {
+   "status": "FAIL",
+   "reason": "|partial| 0.067 < 0.1; sign in 4 folds < 6"
+  },
+  "MS_BR": {
+   "status": "FAIL",
+   "reason": "|partial| 0.007 < 0.1; sign in 4 folds < 6"
+  },
+  "MS_BV": {
+   "status": "FAIL",
+   "reason": "|partial| 0.096 < 0.1"
+  },
+  "MS_BA": {
+   "status": "FAIL",
+   "reason": "|partial| 0.046 < 0.1; sign in 5 folds < 6"
+  },
+  "MS_RR": {
+   "status": "FAIL",
+   "reason": "|partial| 0.077 < 0.1; sign in 5 folds < 6"
+  },
+  "BA_LV": {
+   "status": "FAIL",
+   "reason": "|partial| 0.024 < 0.1; sign in 3 folds < 6"
+  },
+  "BA_CH": {
+   "status": "FAIL",
+   "reason": "|partial| 0.001 < 0.1; sign in 4 folds < 6"
+  }
+ }
+}

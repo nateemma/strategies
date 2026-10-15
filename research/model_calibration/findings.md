@@ -231,3 +231,19 @@ Pre-registered (not blind on the late half: §5's simulator split had been read)
   - Risk is UNCHANGED against both, and capital is at or below the width book's.
 - **Context:** the first measured model value over the width book. Liquidity and wallet limits
   absorb part of the stake ratio (about 1.6 realised vs 2.0 intended).
+
+## 11. New-input screen (feature 035 → `research/new_inputs/report.md`)
+
+Pre-registered.
+- **The screen:** 17 inputs the model had never seen, in four families: order flow (Binance global
+  and Binance.US), perp positioning, market state, and spot–perp basis. Each was scored by partial
+  Spearman with trade pp on the 412 early width-book trades, given bb_width and the control's
+  p_buy.
+- **The result: no survivors; all FAIL at S1.**
+  - Two inputs reached |partial| ≥ 0.10 but not sign stability: Binance.US trade count +0.159
+    (5/8 folds) and global/US volume −0.142 (4/8).
+  - BTC volatility held its sign (6/8) but reached only 0.096.
+  - No training or backtest was run.
+- **Context:** this is consistent with no stable incremental information on this trade set, though
+  the per-fold standard error near 0.14 makes the 8-fold sign test strict. Follow-ups offered: a
+  larger-sample S1 and an exploratory OF_TRU arm.
