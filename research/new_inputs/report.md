@@ -1,5 +1,9 @@
 # 035 new-input screen: report
 
+**Update 2026-10-15:** the follow-up (S1b, S2, GBR extension) is below the S1 sections. In
+short: 3 inputs passed the larger-sample screen on both models, and none improved either model's
+sizer ranking when trained in (S2).
+
 **Sources:**
 - Pre-registered in `preregistration.json` / `.md` (commit 1f79efa5), before any S1 score. Four
   amendments were made before that commit and are listed in it.
@@ -103,6 +107,67 @@ no late-half data was read.**
    something one step further from traded P&L.
 3. **The control-sizer follow-ups stand** as the open lead: the GBR repeat, restoring the intended
    stake ratio, and forward confirmation.
+
+## Follow-up: S1b, S2 and the GBR extension (2026-10-15)
+
+Each stage was pre-registered before it ran:
+- `preregistration_s1b.json` (9b7aa666);
+- `preregistration_gbr.json` (454aa33a);
+- run-time notes in `s1b_outcome.md`.
+
+### S1b: the screen on every early gbb candidate run start
+
+- **Sample:** 4,686 tradeable run starts.
+- **Survivors** (|partial| ≥ 0.03, sign ≥ 6/8):
+  - MS_VR +0.099 (6/8);
+  - MS_BV +0.093 (7/8);
+  - OF_TRG −0.062 (6/8).
+- **Power:** the pre-commit note counted 17,825 bars before the pre-registered quote-volume filter,
+  so the stated power was optimistic. The pooled standard error is 0.015, which puts the cutoff at
+  about 2 SE. The survivors sit at 4–7 SE.
+- **S1b-GBR** (the same bars and outcomes, controlling for GBR's p_buy) gives the same three:
+  MS_VR +0.101 (6/8), MS_BV +0.097 (7/8), OF_TRG −0.074 (6/8).
+
+### S2: each survivor trained into the model on its own (f00–f07); no winner on either model
+
+| input | ARO gap | ARO bar | GBR gap | GBR bar |
+|---|---|---|---|---|
+| MS_BV | 0.044 | 0.1003 | 0.031 | 0.063 |
+| MS_VR | 0.036 | 0.1003 | 0.020 | 0.063 |
+| OF_TRG | 0.034 | 0.1003 | 0.019 | 0.063 |
+
+- **The bars:** ARO's bar is its control-at-share gap. GBR's bar is the larger of its own-decision
+  gap (0.063, as in 033) and its control-at-share gap (0.0128).
+- **Not reached:** S3 did not run, and no late-half data was read.
+- **Instrument checks:** no fold was degenerate, and every pick was verified with 0 tag
+  mismatches.
+- **GBR's control sizer:** `NNNC_CS_GBR` is new. It uses GBR's own weights on the GBR width book
+  and gives a 0.0128 control-at-share gap on 494 early trades.
+
+**Interpretation (descriptive):**
+- Within each model, all three single-input retrains land in a narrow band: 0.034–0.044 on ARO and
+  0.019–0.031 on GBR.
+- On ARO the band is far *below* the control (0.100). On GBR it is *above* the control-at-share
+  (0.013) but below its own-decision gap (0.063).
+- Because the move is about the same whatever the input, retrain variance (a new training run of
+  the same architecture) probably dominates the input effect. There is no no-input retrain on this
+  pipeline to measure it.
+
+**Incidents:**
+- **Shared checkpoint file:** MS_BV f07 (ARO) first failed when a concurrent `NNNC_GbbRaw_Open`
+  training run outside this chain overwrote the classifier's shared temporary checkpoint
+  (`/tmp/<classifier>/checkpoint.weights.h5`, `Predictors/KerasBasePredictor.py:558`). The fold
+  was retrained after that run finished.
+- **No other training is affected,** since all other folds completed before or after the overlap.
+
+### Fix-oriented follow-ups (not run)
+
+1. **A null retrain:** ARO and GBR retrained on f00–f07 with no new input, on the same pipeline and
+   seed, scored with the same instrument. This measures how much of the S2 movement is retrain
+   variance. If a null retrain also lands near 0.04 (ARO), the S2 bar should be the null retrain's
+   gap, not the original control's.
+2. **A per-process checkpoint path** in `Predictors/KerasBasePredictor.py`, so that two concurrent
+   trainings of one classifier type cannot corrupt each other.
 
 ## Provenance
 

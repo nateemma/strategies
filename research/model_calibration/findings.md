@@ -247,3 +247,9 @@ Pre-registered.
 - **Context:** this is consistent with no stable incremental information on this trade set, though
   the per-fold standard error near 0.14 makes the 8-fold sign test strict. Follow-ups offered: a
   larger-sample S1 and an exploratory OF_TRU arm.
+- **Follow-up (S1b, S2, GBR):** on 4,686 candidate run starts, MS_VR, MS_BV and OF_TRG pass the
+  screen for both ARO and GBR. Trained into the model one at a time, none beats the bar:
+  - ARO gaps are 0.034–0.044 against 0.100;
+  - GBR gaps are 0.019–0.031 against 0.063.
+
+  Retrain variance probably dominates. A null retrain is offered as the next diagnostic.
