@@ -252,4 +252,5 @@ Pre-registered.
   - ARO gaps are 0.034–0.044 against 0.100;
   - GBR gaps are 0.019–0.031 against 0.063.
 
-  Retrain variance probably dominates. A null retrain is offered as the next diagnostic.
+  A no-input retrain reproduces both controls bit for bit (training is deterministic per seed),
+  so these are input effects: every input hurts ARO and helps GBR only slightly.

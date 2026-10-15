@@ -2,7 +2,8 @@
 
 **Update 2026-10-15:** the follow-up (S1b, S2, GBR extension) is below the S1 sections. In
 short: 3 inputs passed the larger-sample screen on both models, and none improved either model's
-sizer ranking when trained in (S2).
+sizer ranking when trained in (S2). A null retrain reproduced both controls bit for bit, so these are
+input effects: the inputs hurt ARO and help GBR only slightly.
 
 **Sources:**
 - Pre-registered in `preregistration.json` / `.md` (commit 1f79efa5), before any S1 score. Four
@@ -144,14 +145,21 @@ Each stage was pre-registered before it ran:
 - **GBR's control sizer:** `NNNC_CS_GBR` is new. It uses GBR's own weights on the GBR width book
   and gives a 0.0128 control-at-share gap on 494 early trades.
 
-**Interpretation (descriptive):**
-- Within each model, all three single-input retrains land in a narrow band: 0.034–0.044 on ARO and
-  0.019–0.031 on GBR.
-- On ARO the band is far *below* the control (0.100). On GBR it is *above* the control-at-share
-  (0.013) but below its own-decision gap (0.063).
-- Because the move is about the same whatever the input, retrain variance (a new training run of
-  the same architecture) probably dominates the input effect. There is no no-input retrain on this
-  pipeline to measure it.
+**Interpretation, after the null retrain** (`preregistration_null.json`, `separation_null*.json`):
+- **The null reproduces the controls exactly.** The no-input retrain (the same pipeline with
+  `NEW_INPUTS = ()`, seed 1, f00–f07) gives:
+  - ARO 0.1003, the control-at-share gap, with the same 208 agreeing trades;
+  - GBR 0.0128, also exactly its control-at-share gap.
+- **Training is deterministic for a given seed.** The null weights are bit-identical to the
+  controls' on f00 and f07, on both models.
+- **The S2 differences are therefore the inputs' own effects,** not retrain variance:
+  - **on ARO every input hurts** the ranking: 0.100 → 0.034–0.044;
+  - **on GBR every input helps a little** over the null (0.013 → 0.019–0.031), but stays far below
+    the pre-registered 0.063 bar.
+- **The pre-registered null rule says the S2 FAILs stand on both models.** No input moves both
+  models in the same direction, so none is flagged for a seed-2 repeat.
+- **Correction:** an earlier version of this section attributed the S2 band to retrain variance.
+  The null shows that was wrong.
 
 **Incidents:**
 - **Shared checkpoint file:** MS_BV f07 (ARO) first failed when a concurrent `NNNC_GbbRaw_Open`
@@ -162,10 +170,8 @@ Each stage was pre-registered before it ran:
 
 ### Fix-oriented follow-ups (not run)
 
-1. **A null retrain:** ARO and GBR retrained on f00–f07 with no new input, on the same pipeline and
-   seed, scored with the same instrument. This measures how much of the S2 movement is retrain
-   variance. If a null retrain also lands near 0.04 (ARO), the S2 bar should be the null retrain's
-   gap, not the original control's.
+1. **Done (null retrain):** see the interpretation above. Training is deterministic, so variance
+   can only be measured across seeds, as the existing seed-2 rule does.
 2. **A per-process checkpoint path** in `Predictors/KerasBasePredictor.py`, so that two concurrent
    trainings of one classifier type cannot corrupt each other.
 
