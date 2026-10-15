@@ -97,7 +97,7 @@ def sample(folds=EARLY) -> pd.DataFrame:
 def score(s: pd.DataFrame, col: str) -> dict:
     ok = s[col].notna().to_numpy()
     d = s[ok]
-    out = {"n": int(len(s)), "covered": int(ok.sum()), "coverage": round(float(ok.mean()), 4)}
+    out = {"n": len(s), "covered": int(ok.sum()), "coverage": round(float(ok.mean()), 4)}
     if len(d) < 100:
         return out | {"partial": None, "per_fold": {}, "sign_folds": 0}
     out["rho_width"] = SC._sp(d[col], d["bb_width"])
@@ -126,7 +126,7 @@ def main(argv=None) -> int:
     print("sample:", len(s), "run starts;", s.groupby("fold").size().to_dict(), flush=True)
     s = SC.attach(s)
     out = {"label": "035 S1b (pre-registered; early half only, no training)",
-           "sample": {"n": int(len(s)), "per_fold": s.groupby("fold").size().to_dict(),
+           "sample": {"n": len(s), "per_fold": s.groupby("fold").size().to_dict(),
                       "outcome_mean": round(float(s["outcome"].mean()), 5)},
            "inputs": {}}
     for inp in I.TABLE:
