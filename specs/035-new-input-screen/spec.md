@@ -65,7 +65,8 @@ seen.
 - the liquidity cap absorbs stake multipliers: a 2.0 ratio realised about 1.6;
 - the fold runner runs from the repo root, and skips folds that already have a record;
 - the control's records predate the held-pair add default (they are add-off);
-- per-fold scalers are mandatory (constitution XI).
+- per-fold scalers are mandatory (constitution XI). Planning resolved this for new inputs by
+  giving them no fitted artefact (FR-013).
 
 ## Clarifications
 
@@ -130,8 +131,9 @@ next to the control's 0.100.
 **Acceptance Scenarios**:
 
 1. **Given** a survivor, **When** it is trained, **Then** its weights live under their own model
-   key on f00–f07, its scalers are fitted per fold on that fold's training span only, and no
-   existing key, scaler, weight file or record changes.
+   key on f00–f07, its new input has no fitted artefact (causal, pre-normalised) while the
+   original columns use the control's scaler unchanged, and no existing key, scaler, weight file
+   or record changes.
 2. **Given** trained survivors, **When** S2 is judged, **Then** an input passes only if its early
    gap beats the control-at-share 0.100. The single best passer goes to S3.
 3. **Given** no S2 pass, **Then** nothing is backtested.
@@ -246,9 +248,14 @@ liquidity limits shows return, and the late half is read only here.
   An input whose training span lacks source data (positioning before 2021-12-01) enters as its
   declared neutral value plus a missing-flag column. The pair counts as one input, and training
   rows stay identical to the control's.
-- **FR-013**: Feature scalers for a survivor's input set MUST be fitted per fold on that fold's
-  training span only (constitution XI). Existing scalers MUST NOT be read for, or overwritten by,
-  the new input sets.
+- **FR-013** *(amended in planning, research R1)*: New inputs MUST carry no fitted artefact. Each
+  is normalised by a causal trailing transform, proven by the truncation test (FR-005), and enters
+  the model as a pre-normalised column. The control's existing columns MUST use the control's own
+  scaler, unchanged and not overwritten, so the survivor differs from the control in that one input
+  alone (constitution VIII). The control's shared scaler is a pre-existing constitution XI exposure
+  that applies identically to both. It is recorded in the report, and fixing it is out of scope.
+  The original wording required per-fold scalers for the survivor. That would have been a second
+  variable against the control.
 - **FR-014**: Each survivor's weights MUST live under their own model key. Every existing model
   key, fingerprint, scaler, weight file and per-fold trades hash MUST be unchanged, and existing
   classes behave byte-identically.
