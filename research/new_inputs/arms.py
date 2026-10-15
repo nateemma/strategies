@@ -19,8 +19,12 @@ def plan_tag(tag: str, role: str = "entry") -> str:
 
 
 def survivors() -> list[str]:
-    p = HERE / "survivors.json"
-    return list(json.loads(p.read_text()).get("survivors", [])) if p.is_file() else []
+    """S1b's survivors when S1b has run (it replaces S1 as the gate to S2), else S1's."""
+    for name in ("survivors_s1b.json", "survivors.json"):
+        p = HERE / name
+        if p.is_file():
+            return list(json.loads(p.read_text()).get("survivors", []))
+    return []
 
 
 def table_plans() -> dict:
