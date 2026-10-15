@@ -54,7 +54,7 @@ from {base} import {base}
 
 
 class {name}(NewInputMixin, {base}):
-    NEW_INPUTS = ({tag!r},)
+    NEW_INPUTS = {inputs!r}
     NEW_INPUTS_SHA = {sha!r}
     NEW_INPUT_COLUMNS = {cols!r}
     include_list = list({base}.include_list) + list(NEW_INPUT_COLUMNS)
@@ -62,9 +62,13 @@ class {name}(NewInputMixin, {base}):
 '''
 
 
+NULL = "NULL"   # the no-input retrain: the survivor pipeline with nothing added (preregistration_null)
+
+
 def _write_class(name: str, base: str, tag: str, doc: str, base_json: str) -> None:
-    cols = tuple(I.columns(tag))
-    (NNNC / f"{name}.py").write_text(TMPL.format(doc=doc, base=base, name=name, tag=tag,
+    cols = () if tag == NULL else tuple(I.columns(tag))
+    inputs = () if tag == NULL else (tag,)
+    (NNNC / f"{name}.py").write_text(TMPL.format(doc=doc, base=base, name=name, inputs=inputs,
                                                  sha=I.TABLE_SHA, cols=cols))
     bj = json.loads((NNNC / f"{base_json}.json").read_text())
     bj["strategy_name"] = name

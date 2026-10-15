@@ -64,15 +64,19 @@ def main(argv=None) -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", choices=A.MODELS, default="ARO")
-    model = ap.parse_args(argv).model
+    ap.add_argument("--tags", help="score these tags instead of the survivors (e.g. NULL); "
+                                   "writes separation_<tags>[_gbr].json, no verdict")
+    a = ap.parse_args(argv)
+    model = a.model
     sfx = "" if model == "ARO" else "_gbr"
+    tags = a.tags.split(",") if a.tags else None
     ref_t = TR.trades(model=model)
     reference = ref_t.attrs["check"]["control_at_share_gap"]
     if model == "GBR":  # preregistration_gbr.json: beat BOTH references (as 034's S1)
         refs = json.loads(TR.PREREG_GBR.read_text())["s2"]["references"]
         reference = max(reference, *refs.values())
     rows = {}
-    for tag in A.survivors(model):
+    for tag in tags or A.survivors(model):
         thr = json.loads((FOLDS / f"plan_{A.plan_tag(tag, 'sz', model)}.json").read_text()) \
             .get("thresholds", {})
         tn = A.table_name(tag, model)
@@ -90,6 +94,11 @@ def main(argv=None) -> int:
     j = judge(rows, reference)
     out = {"label": f"035 S2 {model} (pre-registered; early half only)", "reference_gap": reference,
            "inputs": rows, "s2_winner": j["winner"]}
+    if tags:
+        name = "_".join(t.lower() for t in tags)
+        (HERE / f"separation_{name}{sfx}.json").write_text(json.dumps(out, indent=1, default=str))
+        print("reference", reference, {t: rows[t].get("gap") for t in rows})
+        return 0
     (HERE / f"separation{sfx}.json").write_text(json.dumps(out, indent=1, default=str))
     vp = HERE / f"verdicts{sfx}.json"
     v = json.loads(vp.read_text()) if vp.is_file() else {}

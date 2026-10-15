@@ -85,3 +85,16 @@ def test_s2_winner_rule():
     assert rows["B"]["S2_pass"] is False and rows["D"]["S2_pass"] is False
     assert rows["C"]["margin"] == round(0.11 - 0.1004, 4)
     assert SEP.judge({"D": {"gap": 0.09, "degenerate_folds": []}}, 0.1004)["winner"] is None
+
+
+def test_null_arm_is_the_control_pipeline_with_nothing_added():
+    from evaluation.fingerprint import load_strategy_class
+    from research.new_inputs import train as TRN
+
+    for null, ctl in (("NNNC_NI_NULL", "NNNC_A_Raw_Open"), ("NNNC_NI_GBR_NULL", "NNNC_GbbRaw_Open")):
+        if not (STRAT / "NNNC" / f"{null}.py").is_file():
+            continue
+        a, b = load_strategy_class(null), load_strategy_class(ctl)
+        assert a.NEW_INPUTS == () and a.include_list == b.include_list
+        assert a.pre_normalized_columns == b.pre_normalized_columns
+    assert TRN.refusals("NULL", {"f00"}, [], None) == []

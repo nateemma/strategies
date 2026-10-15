@@ -23,7 +23,7 @@ EARLY = tuple(f"f{i:02d}" for i in range(8))
 
 def refusals(tag: str, folds: set[str], survivors: list, verdicts: dict | None) -> list[str]:
     out = []
-    if tag not in survivors:
+    if tag not in survivors and tag != "NULL":  # NULL: the no-input retrain (preregistration_null)
         out.append(f"{tag} is not a survivor ({survivors})")
     late = sorted(f for f in folds if f not in EARLY)
     if late and (verdicts or {}).get("s2_winner", {}).get("tag") != tag:

@@ -46,5 +46,11 @@ def survivors(model: str = "ARO") -> list[str]:
 
 
 def table_plans() -> dict:
-    """Signal-table registration for research/nnnc_framework/signals.py: NI_[GBR_]<TAG> -> plan."""
-    return {table_name(t, m): plan_tag(t, model=m) for m in MODELS for t in survivors(m)}
+    """Signal-table registration for research/nnnc_framework/signals.py: NI_[GBR_]<TAG> -> plan.
+    Includes the no-input retrain (NULL) once its plan exists."""
+    folds = HERE.parents[1] / "evaluation" / "folds"
+    out = {table_name(t, m): plan_tag(t, model=m) for m in MODELS for t in survivors(m)}
+    for m in MODELS:
+        if (folds / f"plan_{plan_tag('NULL', model=m)}.json").is_file():
+            out[table_name("NULL", m)] = plan_tag("NULL", model=m)
+    return out

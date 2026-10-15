@@ -1,0 +1,44 @@
+{
+ "title": "035 null retrain: the S2 pipeline with no new input, ARO and GBR, f00-f07",
+ "date": "2026-10-15",
+ "parents": [
+  "preregistration.json",
+  "preregistration_s1b.json",
+  "preregistration_gbr.json"
+ ],
+ "label": "DIAGNOSTIC -- no adoption, no promotion; one seed",
+ "arms": {
+  "ARO": "NNNC_NI_NULL (NewInputMixin, NEW_INPUTS=() + NNNC_A_Raw_Open)",
+  "GBR": "NNNC_NI_GBR_NULL (NewInputMixin, NEW_INPUTS=() + NNNC_GbbRaw_Open)"
+ },
+ "identity": "include_list, pre_normalized_columns, scaler, label, classifier, seed (1), training plans equal the controls'; own model key so it trains fresh",
+ "instrument": "as S2: 0.5-share sizer thresholds picked on the validation tail (control_sizer.pick), gap on the early width-book trades (ARO 412, GBR 494)",
+ "references": {
+  "ARO": {
+   "control_at_share": 0.1003,
+   "s2_gaps": {
+    "MS_VR": 0.0359,
+    "MS_BV": 0.0435,
+    "OF_TRG": 0.0335
+   }
+  },
+  "GBR": {
+   "own_decision": 0.063,
+   "control_at_share": 0.0128,
+   "s2_gaps": {
+    "MS_VR": 0.0202,
+    "MS_BV": 0.0313,
+    "OF_TRG": 0.0185
+   }
+  }
+ },
+ "interpretation": {
+  "reproduces": "|null gap - control-at-share gap| <= 0.02 on a model: retraining reproduces the control there; that model's S2 FAILs stand as input effects",
+  "does_not_reproduce": "|null gap - control-at-share gap| > 0.02: the control's gap is not reproducible by a retrain on this pipeline; that model's S2 comparison is re-read against the null",
+  "re_read": "an input whose S2 gap exceeds its model's null gap by > 0.02 on BOTH models is flagged for a seed-2 repeat (no pass, no adoption); otherwise the inputs add nothing over a retrain",
+  "also": "0.02 is a declared allowance, not a measured noise level; the null itself is one seed"
+ },
+ "disclosed": [
+  "S2 gaps on both models were read before this file (listed in references)"
+ ]
+}
