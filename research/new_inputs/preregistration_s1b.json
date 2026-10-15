@@ -1,0 +1,108 @@
+{
+ "title": "035 S1b: the S1 screen on every early gbb candidate run start (follow-up 1 of report.md)",
+ "date": "2026-10-15",
+ "parent": "research/new_inputs/preregistration.json (commit 1f79efa5)",
+ "label": "PROVISIONAL -- one era. S1b replaces S1 as the gate to S2; S2 and S3 rules are the parent's, unchanged.",
+ "table_sha": "ee1da6f6878d9184",
+ "sample": {
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07"
+  ],
+  "bars": "first bar of each run of width_twin._gates (gbb rule + control guards, NO width cut), per pair, entry bar inside the fold test window, quote volume >= 1000 (the simulator's MIN_QV)",
+  "expected_n": 17825,
+  "note": "run starts counted before this commit (no outcome or input read): 17,825 over f00-f07, 1,344-3,142 per fold"
+ },
+ "outcome": "net profit ratio of a trade entered at the next bar's open and exited by the 24 h grace control's exits (paths.replay, as the width-book simulator), without occupancy, wallet or max-open limits",
+ "statistic": "partial Spearman of input with outcome given bb_width and control p_buy (screen.partial_spearman), pooled and per fold",
+ "rule": {
+  "min_coverage": 0.9,
+  "max_rho_width": 0.5,
+  "min_partial": 0.03,
+  "min_sign_folds": 6,
+  "max_survivors": 3
+ },
+ "rule_why": "pooled SE ~ 1/sqrt(17825) = 0.0075, so 0.03 is ~4 SE; per-fold SE ~0.018-0.027, so sign stability in >= 6/8 folds is now a powered test (it was not at ~50 trades per fold)",
+ "then": "survivors go to the parent's S2 unchanged (one input added to ARO, gap > 0.1004 on the 412 width-book trades, <= 2 degenerate folds) and S3 unchanged",
+ "disclosed": [
+  "S1 on the 412 width-book trades was read before this file: no survivors; near misses OF_TRU +0.159 (5/8), OF_GUS -0.142 (4/8), MS_BV +0.096 (6/8). The width-book trades' signal bars are a subset of the S1b sample's candidate bars.",
+  "the rule applies to all 17 inputs identically; no input is singled out",
+  "the outcome is per-bar and ignores occupancy, so it is one step further from traded P&L than S1; S2 and S3 remain the tests of traded value"
+ ],
+ "s1_read": {
+  "OF_TBG": {
+   "partial": -0.046199820186085545,
+   "sign_folds": 3
+  },
+  "OF_TRG": {
+   "partial": 0.07161603184106588,
+   "sign_folds": 3
+  },
+  "OF_SZG": {
+   "partial": -0.05408645025573027,
+   "sign_folds": 4
+  },
+  "OF_GUS": {
+   "partial": -0.14157269431144162,
+   "sign_folds": 4
+  },
+  "OF_TBU": {
+   "partial": 0.04732857334433886,
+   "sign_folds": 5
+  },
+  "OF_TRU": {
+   "partial": 0.1592432643317525,
+   "sign_folds": 5
+  },
+  "PO_OI": {
+   "partial": 0.04846386281343462,
+   "sign_folds": 4
+  },
+  "PO_FL": {
+   "partial": -0.06379253786434155,
+   "sign_folds": 6
+  },
+  "PO_TT": {
+   "partial": 0.04758536999234576,
+   "sign_folds": 6
+  },
+  "PO_TK": {
+   "partial": -0.08382750517510831,
+   "sign_folds": 5
+  },
+  "MS_VR": {
+   "partial": 0.06735070389647846,
+   "sign_folds": 4
+  },
+  "MS_BR": {
+   "partial": 0.0066230905298510015,
+   "sign_folds": 4
+  },
+  "MS_BV": {
+   "partial": 0.09561834756467705,
+   "sign_folds": 6
+  },
+  "MS_BA": {
+   "partial": -0.04627907465741875,
+   "sign_folds": 5
+  },
+  "MS_RR": {
+   "partial": -0.07734889349833537,
+   "sign_folds": 5
+  },
+  "BA_LV": {
+   "partial": 0.024093539007842668,
+   "sign_folds": 3
+  },
+  "BA_CH": {
+   "partial": 0.0008328591153686763,
+   "sign_folds": 4
+  }
+ }
+}

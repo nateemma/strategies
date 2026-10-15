@@ -351,6 +351,7 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "research/width_relative/separation.py",           # 033 S1: sets grace hours for the simulator.
     "research/label_screen/separation.py",             # 034 S1: sets grace hours for the simulator.
     "research/new_inputs/trades.py",                   # 035 S1: sets grace hours for the simulator.
+    "research/new_inputs/screen_s1b.py",               # 035 S1b: sets grace hours for the replay.
     "research/held_pair/regime_check.py",      # 031 follow-up: sets the grace hours on the study's
                                                  # ExitParams for the replay; computes nothing.
     "research/held_pair/screen2.py",           # 031 follow-up: sets the grace hours on the study's
