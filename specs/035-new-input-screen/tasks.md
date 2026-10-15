@@ -150,7 +150,7 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 **Independent test**: `separation.json` has a gap per survivor and the S2 winner (or none).
 
-- [X] T022 [US2] `research/new_inputs/build_arms.py`: — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T022 [US2] `research/new_inputs/build_arms.py`: — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
   - per survivor, generate `NNNC/NNNC_NI_<TAG>.py`/`.json` (`NewInputMixin` + `NNNC_A_Raw_Open`, `NEW_INPUTS`, new include_list and pre_normalized_columns lists; `.json` copied from the control with strategy_name changed) and `NNNC_NI_<TAG>_SZ` (the `NNNC_CS_ARO` bases + mixin);
   - plans `evaluation/folds/plan_ni_<tag>.json` and `plan_ni_<tag>_sz.json`, copied from `plan_cs_aro.json` with class, arm-tag and run-id changes and thresholds removed.
 
@@ -159,10 +159,10 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
   - the params snapshot equals the control's;
   - `HELD_PAIR_ADD_RESOLVED` equals the width book's for `_SZ`;
   - existing model keys are unchanged (034's fixture `research/label_screen/tests/fixtures/model_keys_pre034.json`).
-- [X] T023 [US2] `research/new_inputs/train.py`: the 032 driver with a runtime registration of `NI_<TAG>` (as `research/label_screen/train.py`). It refuses late folds unless `verdicts.json` names the tag as the S2 winner. — **N/A: no S1 survivors (survivors.json empty); not run.**
-- [X] T024 [US2] Smoke run: train the first survivor on f00 only. Confirm the training frame contains its column(s), non-constant, the new key directory exists, and the control's key directory is untouched. Then run the chain: every survivor on f00–f07. — **N/A: no S1 survivors (survivors.json empty); not run.**
-- [X] T025 [US2] Signal tables `NI_<TAG>` f00–f07, then sizer picks and `--verify` per fold (`research.control_sizer.pick --plan plan_ni_<tag>_sz`), one fold per process. — **N/A: no S1 survivors (survivors.json empty); not run.**
-- [X] T026 [US2] `research/new_inputs/separation.py` (FR-015): 034's S1 scoring on the `NI_<TAG>` tables with the stored thresholds, the gap per survivor against 0.1004 with ≤ 2 of 8 degenerate folds, and the winner = the largest passing gap. Add a test for the winner rule. Run it, write `separation.json`, and commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T023 [US2] `research/new_inputs/train.py`: the 032 driver with a runtime registration of `NI_<TAG>` (as `research/label_screen/train.py`). It refuses late folds unless `verdicts.json` names the tag as the S2 winner. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
+- [X] T024 [US2] Smoke run: train the first survivor on f00 only. Confirm the training frame contains its column(s), non-constant, the new key directory exists, and the control's key directory is untouched. Then run the chain: every survivor on f00–f07. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
+- [X] T025 [US2] Signal tables `NI_<TAG>` f00–f07, then sizer picks and `--verify` per fold (`research.control_sizer.pick --plan plan_ni_<tag>_sz`), one fold per process. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
+- [X] T026 [US2] `research/new_inputs/separation.py` (FR-015): 034's S1 scoring on the `NI_<TAG>` tables with the stored thresholds, the gap per survivor against 0.1004 with ≤ 2 of 8 degenerate folds, and the winner = the largest passing gap. Add a test for the winner rule. Run it, write `separation.json`, and commit. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
 
 ---
 
@@ -170,14 +170,14 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
 
 **Goal**: a judge_one verdict for the winner against `cs_aro` and `w_aro`.
 
-- [X] T027 [US3] If there is an S2 winner: — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T027 [US3] If there is an S2 winner: — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
   - `train --tag T --folds f08,...,f14`, its tables, and picks plus verify on f08–f14;
   - `run_folds` for `plan_ni_<tag>_sz` on all 15 folds from the repo root.
-- [X] T028 [US3] `research/new_inputs/instrument.py` (FR-019): the control-sizer instrument reading the `NI_<TAG>` tables. Run it. — **N/A: no S1 survivors (survivors.json empty); not run.**
-- [X] T029 [US3] `research/new_inputs/judge.py` (FR-018, FR-020, FR-021): staged verdicts for every input; for the winner, judge_one vs `cs_aro` and `w_aro` (both must pass), `wf_aro_g24` reported, and the small-margin rule. It refuses an uncommitted pre-registration or stale `ni_*` records. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T028 [US3] `research/new_inputs/instrument.py` (FR-019): the control-sizer instrument reading the `NI_<TAG>` tables. Run it. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
+- [X] T029 [US3] `research/new_inputs/judge.py` (FR-018, FR-020, FR-021): staged verdicts for every input; for the winner, judge_one vs `cs_aro` and `w_aro` (both must pass), `wf_aro_g24` reported, and the small-margin rule. It refuses an uncommitted pre-registration or stale `ni_*` records. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
 
   Add a test in `research/new_inputs/tests/test_judge.py` for stage order, the two-comparator rule, small margin and refusal. Run it and write `verdicts.json`.
-- [X] T030 [US3] If any margin is under 1 pp: the seed-2 repeat (winner at seed 2; ARO seed-2 weights for `cs_aro` on 15 folds, then picks and backtests), then `judge` again. Commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T030 [US3] If any margin is under 1 pp: the seed-2 repeat (winner at seed 2; ARO seed-2 weights for `cs_aro` on 15 folds, then picks and backtests), then `judge` again. Commit. — S1: no survivors. **Follow-up S1b (survivors MS_VR, MS_BV, OF_TRG) ran S2 on ARO and GBR: no winner; S3 not reached** (report.md, follow-up section).
 
 ---
 
