@@ -109,12 +109,43 @@ def _empty_k() -> pd.DataFrame:
         {"open_time": "datetime64[ns, UTC]"})
 
 
+CARRY_BARS = 96   # a pair's last real-bar value is carried at most 24 h onto later bars
+
+
+def _carried(b: dict, per_pair) -> pd.DataFrame:
+    """Each pair's `per_pair(close)` on its REAL bars only (gap-filled bars removed), then carried
+    forward onto the union of every venue bar for at most CARRY_BARS (causal; a pair delisted for
+    longer drops out of the pool)."""
+    union = pd.DatetimeIndex(sorted(set().union(*[set(f["date"]) for f in b["ohlcv"].values()
+                                                  if len(f)])))
+    cols = {}
+    for p, f in b["ohlcv"].items():
+        real = f.loc[f["volume"].to_numpy() > 0]
+        if not len(real):
+            continue
+        v = per_pair(RS._close(real))
+        cols[p] = v.reindex(union.union(v.index)).ffill(limit=CARRY_BARS).reindex(union)
+    return pd.DataFrame(cols, index=union)
+
+
+def _vol(c: pd.Series) -> pd.Series:
+    return np.log(c).diff().rolling(96, min_periods=96).std()
+
+
 def _market(b: dict) -> dict:
-    """Cross-pair series on the union of dates (026 functions on gap-free frames)."""
-    clean = {p: f.loc[f["volume"].to_numpy() > 0, ["date", "close"]] for p, f in b["ohlcv"].items()}
-    out = {"volreg": RS.volreg(clean, min_pairs=I.MIN_PAIRS),
-           "breadth": RS.breadth(clean, min_pairs=I.MIN_PAIRS)}
-    r96 = RS._wide(clean, lambda s: _log_ret(s, 96))
+    """Cross-pair series on the union of venue dates (research R6).
+
+    MS_BR is 026's breadth on the venue frames as they are (a gap-filled bar repeats the previous
+    close, so it says nothing false about close vs EMA). MS_VR and MS_RR use returns on each
+    pair's real bars only, carried forward (`_carried`), so gap fills add no fake zero returns
+    and the pool keeps >= MIN_PAIRS pairs; volreg's 30-day base median needs Z_MIN values.
+    """
+    m = RS._cross(_carried(b, _vol), "median", I.MIN_PAIRS)
+    out = {"volreg": m / m.rolling(RS.TRAIL_BARS, min_periods=I.Z_MIN).median(),
+           "breadth": RS.breadth({p: f[["date", "close"]] for p, f in b["ohlcv"].items()},
+                                 min_pairs=I.MIN_PAIRS)}
+    r96 = _carried(b, lambda c: _log_ret(c, 96))
+    out["r96"] = r96
     out["ret_median"] = RS._cross(r96, "median", I.MIN_PAIRS)
     btc = b["btc"]
     bc = pd.Series(btc["close"].to_numpy(float), index=pd.DatetimeIndex(btc["date"]))
@@ -135,7 +166,7 @@ def build_pair(b: dict, pair: str, mk: dict) -> pd.DataFrame:
     oi_chg = np.log(f["m"]["sum_open_interest"] / f["m"]["sum_open_interest"].shift(16))
     tt = np.log(f["m"]["sum_toptrader_long_short_ratio"])
     lv = f["p"].rolling(4, min_periods=4).mean()
-    own_r96 = pd.Series(np.log(close / close.shift(96)).to_numpy(), index=dates)
+    own_r96 = mk["r96"][pair].reindex(dates) if pair in mk["r96"] else pd.Series(np.nan, index=dates)
     raw = {
         "OF_TBG": taker_share(f["g"]),
         "OF_TRG": trade_count_ratio(f["g"]),

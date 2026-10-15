@@ -1,0 +1,84 @@
+{
+ "label": "035 S0 causality (truncation, shared cuts)",
+ "table_sha": "ee1da6f6878d9184",
+ "code_sha": "09a12a3a523962a5",
+ "cuts": 200,
+ "pair_cut_checks": 1749,
+ "inputs": {
+  "OF_TBG": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "OF_TRG": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "OF_SZG": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "OF_GUS": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "OF_TBU": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "OF_TRU": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "PO_OI": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "PO_FL": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "PO_TT": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "PO_TK": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "MS_VR": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "MS_BR": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "MS_BV": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "MS_BA": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "MS_RR": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "BA_LV": {
+   "pass": true,
+   "mismatches": 0
+  },
+  "BA_CH": {
+   "pass": true,
+   "mismatches": 0
+  }
+ },
+ "pass": true,
+ "planted_control": {
+  "cuts": 10,
+  "fails": true,
+  "mismatches": 135
+ },
+ "mismatch_sample": []
+}

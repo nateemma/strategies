@@ -1,0 +1,420 @@
+{
+ "title": "035 new-input screen: 17 inputs the model has never seen, screened on the early width-book trades, survivors trained into ARO one at a time, the winner backtested as the control sizer",
+ "date": "2026-10-15",
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is a FINDING. A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "table_sha": "ee1da6f6878d9184",
+ "build": {
+  "table_sha": "ee1da6f6878d9184",
+  "code_sha": "09a12a3a523962a5",
+  "manifest_sha": "487ae0b543a2aeae",
+  "pairs": [
+   "ZEC/USDT",
+   "XRP/USDT",
+   "SOL/USDT",
+   "LINK/USDT",
+   "NEAR/USDT",
+   "AAVE/USDT",
+   "AVAX/USDT",
+   "LTC/USDT",
+   "BCH/USDT",
+   "DOT/USDT"
+  ],
+  "built_at": "2026-10-15T15:51:18.084179+00:00"
+ },
+ "inputs": [
+  {
+   "tag": "OF_TBG",
+   "family": "order_flow",
+   "source": "global_spot",
+   "raw": "taker_share",
+   "norm": "c",
+   "windows": {
+    "sum": 4
+   },
+   "missing_flag": false,
+   "live_source": "none: api.binance.com 451 from here; archive lags a day"
+  },
+  {
+   "tag": "OF_TRG",
+   "family": "order_flow",
+   "source": "global_spot",
+   "raw": "trade_count_ratio",
+   "norm": "z",
+   "windows": {
+    "sum": 4,
+    "median": 96
+   },
+   "missing_flag": false,
+   "live_source": "none: api.binance.com 451 from here"
+  },
+  {
+   "tag": "OF_SZG",
+   "family": "order_flow",
+   "source": "global_spot",
+   "raw": "trade_size_ratio",
+   "norm": "z",
+   "windows": {
+    "sum": 4,
+    "median": 96
+   },
+   "missing_flag": false,
+   "live_source": "none: api.binance.com 451 from here"
+  },
+  {
+   "tag": "OF_GUS",
+   "family": "order_flow",
+   "source": "global_spot+us_spot",
+   "raw": "global_us_volume",
+   "norm": "z",
+   "windows": {
+    "sum": 4
+   },
+   "missing_flag": false,
+   "live_source": "partial: US leg live via Binance.US REST; global leg none"
+  },
+  {
+   "tag": "OF_TBU",
+   "family": "order_flow",
+   "source": "us_spot",
+   "raw": "taker_share",
+   "norm": "c",
+   "windows": {
+    "sum": 4
+   },
+   "missing_flag": false,
+   "live_source": "yes: Binance.US /api/v3/klines"
+  },
+  {
+   "tag": "OF_TRU",
+   "family": "order_flow",
+   "source": "us_spot",
+   "raw": "trade_count_ratio",
+   "norm": "z",
+   "windows": {
+    "sum": 4,
+    "median": 96
+   },
+   "missing_flag": false,
+   "live_source": "yes: Binance.US /api/v3/klines"
+  },
+  {
+   "tag": "PO_OI",
+   "family": "positioning",
+   "source": "um_metrics",
+   "raw": "oi_change",
+   "norm": "z",
+   "windows": {
+    "lag": 16
+   },
+   "missing_flag": true,
+   "live_source": "none on Binance from here; nearest OKX (another venue)"
+  },
+  {
+   "tag": "PO_FL",
+   "family": "positioning",
+   "source": "um_metrics",
+   "raw": "flush",
+   "norm": "z",
+   "windows": {
+    "lag": 16
+   },
+   "missing_flag": true,
+   "live_source": "none on Binance from here; nearest OKX (another venue)"
+  },
+  {
+   "tag": "PO_TT",
+   "family": "positioning",
+   "source": "um_metrics",
+   "raw": "toptrader_change",
+   "norm": "z",
+   "windows": {
+    "lag": 16
+   },
+   "missing_flag": true,
+   "live_source": "none on Binance from here; nearest OKX (another venue)"
+  },
+  {
+   "tag": "PO_TK",
+   "family": "positioning",
+   "source": "um_metrics",
+   "raw": "taker_ls",
+   "norm": "z",
+   "windows": {
+    "snapshots": 12
+   },
+   "missing_flag": true,
+   "live_source": "none on Binance from here; nearest OKX (another venue)"
+  },
+  {
+   "tag": "MS_VR",
+   "family": "market_state",
+   "source": "binanceus_ohlcv",
+   "raw": "volreg",
+   "norm": "z",
+   "windows": {
+    "vol": 96,
+    "trail": 2880
+   },
+   "missing_flag": false,
+   "live_source": "yes: venue's own candles"
+  },
+  {
+   "tag": "MS_BR",
+   "family": "market_state",
+   "source": "binanceus_ohlcv",
+   "raw": "breadth",
+   "norm": "c",
+   "windows": {
+    "ema": 768
+   },
+   "missing_flag": false,
+   "live_source": "yes: venue's own candles"
+  },
+  {
+   "tag": "MS_BV",
+   "family": "market_state",
+   "source": "binanceus_ohlcv",
+   "raw": "btc_vol",
+   "norm": "z",
+   "windows": {
+    "vol": 96
+   },
+   "missing_flag": false,
+   "live_source": "yes: venue's own candles"
+  },
+  {
+   "tag": "MS_BA",
+   "family": "market_state",
+   "source": "binanceus_ohlcv",
+   "raw": "btc_adx",
+   "norm": "c",
+   "windows": {
+    "adx": 14
+   },
+   "missing_flag": false,
+   "live_source": "yes: venue's own candles"
+  },
+  {
+   "tag": "MS_RR",
+   "family": "market_state",
+   "source": "binanceus_ohlcv",
+   "raw": "rel_return",
+   "norm": "z",
+   "windows": {
+    "ret": 96
+   },
+   "missing_flag": false,
+   "live_source": "yes: venue's own candles"
+  },
+  {
+   "tag": "BA_LV",
+   "family": "basis",
+   "source": "um_premium",
+   "raw": "premium_level",
+   "norm": "z",
+   "windows": {
+    "mean": 4
+   },
+   "missing_flag": false,
+   "live_source": "none on Binance from here; OKX mark/index nearest"
+  },
+  {
+   "tag": "BA_CH",
+   "family": "basis",
+   "source": "um_premium",
+   "raw": "premium_change",
+   "norm": "z",
+   "windows": {
+    "mean": 4,
+    "lag": 16
+   },
+   "missing_flag": false,
+   "live_source": "none on Binance from here; OKX mark/index nearest"
+  }
+ ],
+ "normalisation": {
+  "z": {
+   "window": 2880,
+   "min_periods": 960,
+   "clip": 5.0,
+   "scale": "/clip"
+  },
+  "c": "2s-1"
+ },
+ "alignment": {
+  "klines": "same open stamp = same bar",
+  "snapshots": {
+   "delay_min": 5,
+   "stale_min": 60
+  },
+  "us_absent_row": "zero trades",
+  "gap_filled_bar": "undefined for venue-native order flow"
+ },
+ "market_state": {
+  "min_pairs": 6,
+  "carry_bars": 96,
+  "breadth": "026 RegimeState.breadth on venue frames",
+  "volreg": "real-bar 96 vol carried <=96 bars, cross median / rolling 2880 median (min 960)"
+ },
+ "missing": "NaN -> framework fills 0; positioning _missing flag = value undefined (raw absent or warm-up)",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "stages": {
+  "S0": {
+   "causality": {
+    "cuts": 200,
+    "pair_cut_checks": 1749,
+    "pass": true,
+    "planted_control_fails": true,
+    "code_sha": "09a12a3a523962a5"
+   },
+   "coverage_early_trades": {
+    "OF_TBG": 1.0,
+    "OF_TRG": 1.0,
+    "OF_SZG": 1.0,
+    "OF_GUS": 1.0,
+    "OF_TBU": 1.0,
+    "OF_TRU": 0.9587,
+    "PO_OI": 1.0,
+    "PO_FL": 1.0,
+    "PO_TT": 1.0,
+    "PO_TK": 1.0,
+    "MS_VR": 1.0,
+    "MS_BR": 1.0,
+    "MS_BV": 1.0,
+    "MS_BA": 1.0,
+    "MS_RR": 1.0,
+    "BA_LV": 1.0,
+    "BA_CH": 1.0
+   },
+   "live_feasibility": {
+    "OF_TBG": "none: api.binance.com 451 from here; archive lags a day",
+    "OF_TRG": "none: api.binance.com 451 from here",
+    "OF_SZG": "none: api.binance.com 451 from here",
+    "OF_GUS": "partial: US leg live via Binance.US REST; global leg none",
+    "OF_TBU": "yes: Binance.US /api/v3/klines",
+    "OF_TRU": "yes: Binance.US /api/v3/klines",
+    "PO_OI": "none on Binance from here; nearest OKX (another venue)",
+    "PO_FL": "none on Binance from here; nearest OKX (another venue)",
+    "PO_TT": "none on Binance from here; nearest OKX (another venue)",
+    "PO_TK": "none on Binance from here; nearest OKX (another venue)",
+    "MS_VR": "yes: venue's own candles",
+    "MS_BR": "yes: venue's own candles",
+    "MS_BV": "yes: venue's own candles",
+    "MS_BA": "yes: venue's own candles",
+    "MS_RR": "yes: venue's own candles",
+    "BA_LV": "none on Binance from here; OKX mark/index nearest",
+    "BA_CH": "none on Binance from here; OKX mark/index nearest"
+   }
+  },
+  "S1": {
+   "half": "early only",
+   "trades": 412,
+   "reproduce": {
+    "trades": 412,
+    "control_at_share_gap": 0.1004,
+    "tol": 0.002
+   },
+   "statistic": "partial Spearman of input with trade pp given bb_width and control p_buy (rank residuals on [1, rank bb_width, rank p_buy]); pooled and per fold",
+   "rule": {
+    "min_coverage": 0.9,
+    "max_rho_width": 0.5,
+    "min_partial": 0.1,
+    "min_sign_folds": 6,
+    "max_survivors": 3
+   },
+   "below_coverage": "INCONCLUSIVE"
+  },
+  "S2": {
+   "half": "early",
+   "model": "NNNC_A_Raw_Open + one input as pre-normalised column(s); control scaler unchanged",
+   "instrument": "control sizer S1: 0.5-share threshold on validation tail, agree on p_buy",
+   "pass": "gap > 0.1004 with <= 2 of 8 folds degenerate",
+   "winner": "largest passing gap",
+   "note": "S2 selects, S3 decides; margins recorded"
+  },
+  "S3": {
+   "who": "the S2 winner only (first late-half read)",
+   "arm": "control sizer with only the weights changed, all 15 folds",
+   "pass": "judge_one(arm, cs_aro) PASS AND judge_one(arm, w_aro) PASS",
+   "reported": "wf_aro_g24",
+   "small_margin_pp": 1.0,
+   "small_margin_rule": "a half gain < 1 pp needs a paired seed-2 repeat: every margin > 0 on both seeds"
+  }
+ },
+ "comparators": {
+  "sizer": "cs_aro",
+  "width": "w_aro",
+  "control": "wf_aro_g24"
+ },
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds or dry-run",
+ "s0_inconclusive": {},
+ "disclosed": [
+  "control shared main scaler (fit range unrecorded): pre-existing constitution XI exposure, identical for control and survivors",
+  "17 inputs at ~2 SE: ~0.8 chance S1 passes expected",
+  "the 412 trades, their pp and the control split were read in 033/034 and the control sizer; no input's relation to them has been read"
+ ],
+ "amendments_before_commit": [
+  "FR-013: new inputs carry no fitted artefact; control scaler unchanged",
+  "mixin contract: a mixin class cannot share its parent's key under 030 method hashing; default-off = classes without the mixin unchanged",
+  "market state: gap-removed pooling left <6 real pairs on 22-54% of bars (MS_VR never defined); MS_BR = 026 breadth on venue frames, MS_VR/MS_RR real-bar values carried <=24 h, base median min_periods 960",
+  "snapshot staleness limit 60 min"
+ ]
+}

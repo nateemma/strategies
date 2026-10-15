@@ -115,13 +115,13 @@ contracts/screen_cli.md, contracts/new_input_mixin.md, quickstart.md.
   - refuses while a chain runs.
 
   Add a test in `research/new_inputs/tests/test_fetch.py`, offline with a fake opener: checksum mismatch → one refetch → coverage gap; already-verified files are skipped.
-- [ ] T015 [US1] Run `fetch` for every source; record the counts and any coverage gaps in `research/new_inputs/fetch_log.md`.
-- [ ] T016 [US1] Run `build`, then `causality`. Every input must PASS and the planted control must FAIL. An input that fails is fixed, or declared INCONCLUSIVE in the pre-registration with its reason, before T018.
-- [ ] T017 [US1] `research/new_inputs/coverage.py` and its run:
+- [X] T015 [US1] Run `fetch` for every source; record the counts and any coverage gaps in `research/new_inputs/fetch_log.md`.
+- [X] T016 [US1] Run `build`, then `causality`. Every input must PASS and the planted control must FAIL. An input that fails is fixed, or declared INCONCLUSIVE in the pre-registration with its reason, before T018.
+- [X] T017 [US1] `research/new_inputs/coverage.py` and its run:
   - per input, pair and fold bar coverage, and coverage on the 412 early trades (`research.new_inputs.trades.trades()`, T013a);
   - the R11 live-feasibility record;
   - writes `coverage.json` (S0).
-- [ ] T018 [US1] Pre-registration `research/new_inputs/preregistration.json` / `.md`:
+- [X] T018 [US1] Pre-registration `research/new_inputs/preregistration.json` / `.md`:
   - input table and `TABLE_SHA`, alignment rules (R3), missing rules (R5) and normalisation (R6);
   - S1 statistics and cutoffs (coverage ≥ 0.90, below which the input is INCONCLUSIVE; |ρ_bb_width| ≤ 0.5; |partial| ≥ 0.10; sign ≥ 6/8; top 3 by |partial|);
   - S2 rule (gap > 0.1004 with ≤ 2 of 8 folds degenerate; winner = largest gap; margins recorded; S2 selects, S3 decides);

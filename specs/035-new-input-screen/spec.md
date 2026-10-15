@@ -172,7 +172,8 @@ liquidity limits shows return, and the late half is read only here.
   for signal bar t may use only source bars that closed at or before t's close. 5-minute data is
   aggregated so the last sub-bar used closes at t's close.
 - **Market-state inputs pool several pairs.** Each pair's value at t uses only bars at or before
-  t, and a pair with a filled bar is excluded from that bar's pool.
+  t. Return-based pooled inputs use each pair's real bars only, with its last real value carried
+  at most 24 h (research R6), so gap-filled bars add no fake zero returns.
 - **Multiple testing:** with 17 inputs scored, roughly one may pass a 2-standard-error
   cutoff by chance. S1 only filters; the S2 training test is the real check.
 - **Downloaded archives are untrusted:** stored in their own directory, parsed as data, never

@@ -124,9 +124,19 @@ the bar's close.
 - **Market-state pool:** the 10 `config_wf` pairs from `user_data/data/binanceus`. A pair with a
   gap-filled bar at t is excluded from that bar's cross-sectional statistic. The statistic needs at
   least 6 pairs (026's MIN_PAIRS).
-- **026 reuse:** MS_VR and MS_BR apply `utils/RegimeState.py`'s `volreg`/`breadth` functions,
-  unchanged, to frames from which gap-filled bars have been removed. They are 026's definitions on
-  cleaned data, so they are not numerically equal to 026's gate series.
+- **026 reuse (amended at the first build, before the pre-registration commit):**
+  - **The problem:** removing gap-filled bars left fewer than 6 real pairs on 22–54% of bars. With
+    026's `volreg` base median needing all 2880 values, MS_VR was never defined, and MS_BR and
+    MS_RR covered only 55–68% of bars.
+  - **MS_BR** is 026's `breadth` on the venue frames as they are. A gap-filled bar repeats the
+    previous close, so it says nothing false about close versus the EMA.
+  - **MS_VR** is each pair's 96-bar log-return std on its real bars only, carried forward at most
+    96 bars onto later bars. Then the cross-pair median over at least 6 pairs, divided by its
+    trailing 2880-bar median (min_periods 960).
+  - **MS_RR** is the pair's 96-real-bar log return minus the cross-pair median of the same,
+    carried the same way.
+  - **Coverage after the fix:** 83–100% of bars per pair. It is lowest for pairs whose history
+    starts before 6 pairs were listed.
 
 ## R7. Data acquisition
 

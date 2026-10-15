@@ -39,13 +39,27 @@ def test_positioning_flags_mark_undefined_values_including_warmup(built, synth):
     assert df.loc[after, "ni_po_oi_missing"].head(10).eq(1).all()
 
 
-def test_market_state_is_the_026_function_on_cleaned_frames(built, synth):
-    clean = {p: f.loc[f["volume"] > 0, ["date", "close"]] for p, f in synth["ohlcv"].items()}
-    ref = B.z(RS.volreg(clean, min_pairs=I.MIN_PAIRS).reindex(pd.DatetimeIndex(
-        synth["ohlcv"]["P0/USDT"]["date"])))
+def test_market_state_definitions(built, synth):
+    """MS_VR: real-bar vol carried <= 24 h, cross median, / its 30-day median (min 960); MS_BR:
+    026 breadth on the venue frames unchanged."""
+    idx = pd.DatetimeIndex(sorted(set().union(*[set(f["date"]) for f in synth["ohlcv"].values()])))
+    cols = {}
+    for p, f in synth["ohlcv"].items():
+        real = f[f["volume"] > 0]
+        v = np.log(pd.Series(real["close"].to_numpy(), index=pd.DatetimeIndex(real["date"])))
+        v = v.diff().rolling(96, min_periods=96).std()
+        cols[p] = v.reindex(idx).ffill(limit=96)
+    w = pd.DataFrame(cols)
+    m = w.median(axis=1).where(w.notna().sum(axis=1) >= I.MIN_PAIRS)
+    vr = m / m.rolling(2880, min_periods=960).median()
+    dates = pd.DatetimeIndex(synth["ohlcv"]["P0/USDT"]["date"])
     got = built["P0/USDT"]["ni_ms_vr"].to_numpy(float)
-    assert np.allclose(got, ref.to_numpy(float), equal_nan=True)
-    assert np.isfinite(got).sum() > 30  # volreg warm-up 2976 + z warm-up 960 of 4000 bars
+    assert np.allclose(got, B.z(vr.reindex(dates)).to_numpy(float), equal_nan=True)
+    assert np.isfinite(got).sum() > 1000
+    br = RS.breadth({p: f[["date", "close"]] for p, f in synth["ohlcv"].items()},
+                    min_pairs=I.MIN_PAIRS).reindex(dates)
+    assert np.allclose(built["P0/USDT"]["ni_ms_br"].to_numpy(float), B.c(br).to_numpy(float),
+                       equal_nan=True)
 
 
 def test_taker_share_by_hand():
