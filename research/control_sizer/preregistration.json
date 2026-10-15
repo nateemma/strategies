@@ -1,0 +1,86 @@
+{
+ "title": "Control sizer: the current ARO weights as a capital-neutral stake sizer on the width book, backtested on all 15 folds",
+ "date": "2026-10-15",
+ "label": "PROVISIONAL -- one era (2023-26), and the late half is NOT blind (see seen_before). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "arm": "cs_aro",
+ "arm_class": "NNNC_CS_ARO (= 034 NNNC_LS_CONTROL_SZ: WidthSizerMixin + WidthBookMixin + NNNC_A_Raw_Open, AGREE_RULE p_buy, AGREE_SHARE 0.5, STAKE_WEIGHTS (1.0, 0.5) -> 1.333x agree / 0.667x disagree, HELD_PAIR_ADD off as the width book); the control's own weights (model keys equal wf_aro_g24's on all 15 folds)",
+ "thresholds": "per fold, research/control_sizer/pick.py: first bar of each width-book run in the fold's validation tail (training data), (1 - 0.5) quantile of p_buy, 4 decimals; verify every fold (tag mismatches 0, loaded == stored)",
+ "comparators": {
+  "width": "w_aro",
+  "control": "wf_aro_g24"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": {
+  "per_half": "trade set == w_aro on (pair, open_date, close_date) in all but <= 2 folds; 0 entry violations; 0 tag mismatches; thresholds loaded at 4 dp; mean capital ratio vs w_aro within +-10%; no zero-trade fold",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "pass": "judge_one(cs_aro, w_aro) PASS AND judge_one(cs_aro, wf_aro_g24) PASS (each: early gain > 0, late gain > 0, paired and risk not WORSENED, rule maps below)",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any of the four half gains is < 1 pp, a PASS is INCONCLUSIVE until a seed-2 repeat (ARO control retrained at seed 2 on 15 folds, re-picked; cs_aro and wf_aro_g24 at seed 2; width book seedless): every margin > 0 on both seeds",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds or dry-run",
+ "seen_before": [
+  "findings.md section 5 (simulator, EXPLORATORY): ARO's own-decision split of width-book trades, early agree 0.146/73 vs disagree 0.074/339, LATE agree 0.096/118 vs disagree 0.011/401; agree 1.0/0.5 pp per capital early 39.4 / late 21.9 vs unsized 35.7 / 15.6",
+  "034 S1 (simulator, early only): the control at the 0.5 share, gap 0.1004 (agree 0.1364/208 vs disagree 0.036/204)",
+  "backtest P&L of w_aro and wf_aro_g24 on all 15 folds (comparators)",
+  "no backtest of any capital-neutral sizer on the control's weights has been run"
+ ],
+ "question": "does the control's within-book ranking, which the simulator shows in both halves, survive real execution (wallet, liquidity cap, max_open_trades, capital-neutral stakes) as return above the width book and the control?"
+}
