@@ -1,0 +1,247 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26). No outcome is recorded as a FINDING (constitution II / gate 2). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "candidates": {
+  "GFM": {
+   "tag": "GFM",
+   "S0a": {
+    "status": "REFERENCE",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 211,
+     "pp_per_trade": 0.0938
+    },
+    "disagree": {
+     "n": 201,
+     "pp_per_trade": 0.0792
+    },
+    "gap": 0.0146,
+    "auc": 0.5156906350382999,
+    "degenerate_folds": [],
+    "agree_share": 0.5121,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap 0.0146 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "FMAE": {
+   "tag": "FMAE",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 197,
+     "pp_per_trade": 0.0733
+    },
+    "disagree": {
+     "n": 215,
+     "pp_per_trade": 0.099
+    },
+    "gap": -0.0257,
+    "auc": 0.4097356066221893,
+    "degenerate_folds": [],
+    "agree_share": 0.4782,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap -0.0257 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "TB": {
+   "tag": "TB",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 226,
+     "pp_per_trade": 0.0788
+    },
+    "disagree": {
+     "n": 186,
+     "pp_per_trade": 0.0963
+    },
+    "gap": -0.0175,
+    "auc": 0.41784037558685444,
+    "degenerate_folds": [],
+    "agree_share": 0.5485,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap -0.0175 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "MMR": {
+   "tag": "MMR",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 223,
+     "pp_per_trade": 0.0944
+    },
+    "disagree": {
+     "n": 189,
+     "pp_per_trade": 0.0776
+    },
+    "gap": 0.0168,
+    "auc": 0.4627625401531999,
+    "degenerate_folds": [],
+    "agree_share": 0.5413,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap 0.0168 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "FEXP": {
+   "tag": "FEXP",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 227,
+     "pp_per_trade": 0.0784
+    },
+    "disagree": {
+     "n": 185,
+     "pp_per_trade": 0.0968
+    },
+    "gap": -0.0184,
+    "auc": 0.47338769458858415,
+    "degenerate_folds": [],
+    "agree_share": 0.551,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap -0.0184 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "QF": {
+   "tag": "QF",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 223,
+     "pp_per_trade": 0.0797
+    },
+    "disagree": {
+     "n": 189,
+     "pp_per_trade": 0.0949
+    },
+    "gap": -0.0152,
+    "auc": 0.4465530022238695,
+    "degenerate_folds": [],
+    "agree_share": 0.5413,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap -0.0152 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "LMF": {
+   "tag": "LMF",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 214,
+     "pp_per_trade": 0.0998
+    },
+    "disagree": {
+     "n": 198,
+     "pp_per_trade": 0.0725
+    },
+    "gap": 0.0273,
+    "auc": 0.4742772424017791,
+    "degenerate_folds": [],
+    "agree_share": 0.5194,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap 0.0273 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  },
+  "BOG": {
+   "tag": "BOG",
+   "S0a": {
+    "status": "PASS",
+    "reason": ""
+   },
+   "S0": {
+    "pass": true
+   },
+   "S1": {
+    "trades": 412,
+    "agree": {
+     "n": 163,
+     "pp_per_trade": 0.1137
+    },
+    "disagree": {
+     "n": 249,
+     "pp_per_trade": 0.069
+    },
+    "gap": 0.0447,
+    "auc": 0.4940449715838893,
+    "degenerate_folds": [],
+    "agree_share": 0.3956,
+    "S1_pass": false
+   },
+   "survivor": "not_reached",
+   "decision": "FAIL",
+   "stopped_at": "S1",
+   "reason": "early gap 0.0447 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004}"
+  }
+ },
+ "arms": {},
+ "s2_winner": null
+}

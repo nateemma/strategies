@@ -71,11 +71,11 @@ reproduces 0.072; `survivors.json` follows the rule.
 - [X] T013 [US1] Write `research/label_screen/judge.py` (FR-012–FR-014, FR-018): staged verdicts per candidate (S0a → S0 → S1 → survivor) and per arm (S2 early pp vs `w_aro` and `wf_aro_g24`; small margin < 1 pp → `--seed-repeat 2`; S3 for the winner with `judge_one` vs control and late pp vs width; GBR repeat). A failed stage leaves later stages `not_reached` and reads no later records. Refuses a dirty/uncommitted pre-registration or any `ls_*` record older than its commit (exempt names allowed). Tests in `research/label_screen/tests/test_judge.py` following `research/width_relative/tests/test_judge.py` (stage order, refusal, seed-2 both ways, two roles, BOG sizer-only, winner selection by largest minimum margin).
 - [X] T014 [US1] Write and COMMIT `research/label_screen/preregistration.json` and `.md` (data-model Preregistration): candidates with params (from `candidates.py`, hashed), S0a floor 0.01, agree share 0.5, references, survivor rule, comparators, entry rate 0.014735, stakes, bands, small-margin 1 pp, seed 2, judge_one settings and min_control_trades 200 copied from 032, confirmation route, the S0a outcome (which candidates are trainable). No `NNNC_LS_*` training before this commit.
 - [X] T015 [US1] f00 smoke (research R5): `train --tag FMAE --folds f00`; signal table `LS_FMAE_f00`; `pick --tag FMAE --fold f00 --role sz` then `--verify`. Confirm the weights land at a new key and no existing weights change. Any fix is an amendment to the pre-registration before T016. If any `ls_*` arm record was written, set it aside by name (`*.smoke.json`) and list it in `exempt_records`.
-- [ ] T016 [US1] Training chain: every S0a-PASS trained candidate in pre-registered order on f00–f07, one sequential chain (≈ 11 h). Resumable; on a low-memory kill, report and wait for the user before restarting.
-- [ ] T017 [US1] Signal tables for every trained candidate on f00–f07 (`research.nnnc_framework.signals --models LS_<TAG>`), confirm GFM and ARO tables exist for f00–f07, then sz picks per candidate and fold and the control-at-share picks (one fold per process); write the sizer thresholds into `plan_ls_<tag>_sz.json` only (entry-source thresholds come from T021); run `--verify` per fold.
-- [ ] T018 [US1] Run `instrument` (S0) and write `research/label_screen/instrument.json`.
-- [ ] T019 [US1] Run `separation` (S1) and write `separation.json`. SC-002: the control's gap must reproduce 0.072 within ±0.002; if it does not, stop and diagnose the instrument before reading any candidate.
-- [ ] T020 [US1] Run `survivors`; commit `instrument.json`, `separation.json`, `survivors.json`.
+- [X] T016 [US1] Training chain: every S0a-PASS trained candidate in pre-registered order on f00–f07, one sequential chain (≈ 11 h). Resumable; on a low-memory kill, report and wait for the user before restarting.
+- [X] T017 [US1] Signal tables for every trained candidate on f00–f07 (`research.nnnc_framework.signals --models LS_<TAG>`), confirm GFM and ARO tables exist for f00–f07, then sz picks per candidate and fold and the control-at-share picks (one fold per process); write the sizer thresholds into `plan_ls_<tag>_sz.json` only (entry-source thresholds come from T021); run `--verify` per fold.
+- [X] T018 [US1] Run `instrument` (S0) and write `research/label_screen/instrument.json`.
+- [X] T019 [US1] Run `separation` (S1) and write `separation.json`. SC-002: the control's gap must reproduce 0.072 within ±0.002; if it does not, stop and diagnose the instrument before reading any candidate.
+- [X] T020 [US1] Run `survivors`; commit `instrument.json`, `separation.json`, `survivors.json`.
 
 **Checkpoint**: US1 complete — the label-type table exists even if nothing survives.
 
@@ -88,11 +88,11 @@ reproduces 0.072; `survivors.json` follows the rule.
 **Independent Test**: early-half pooled pp for every survivor arm, width book and control, with
 staged verdicts.
 
-- [ ] T021 [US2] Entry-rate picks (`--role es`) per survivor per early fold, one fold per process; write into `plan_ls_<tag>_es.json`; verify 4-dp load and the achieved rate within ±5% of 0.014735.
-- [ ] T022 [US2] Backtests: `evaluation.run_folds --plan plan_ls_<tag>_<role> --folds f00,f01,f02,f03,f04,f05,f06,f07` per survivor arm, one chain.
-- [ ] T023 [US2] Run `instrument` again for the S2 checks (trade identity, capital, tags, rate) and `judge`; write `verdicts.json`.
-- [ ] T024 [US2] If any S2 margin is under 1 pp: seed-2 repeat — `train --tag <T> --seed 2` on f00–f07, picks, backtests into `_s2` tags. First check for ARO control seed-2 records on f00–f07; none existed at planning, so train and run `wf_aro_g24` at seed 2 on those folds (≈ 1.6 h; the width book is seedless). Then `judge --seed-repeat 2`.
-- [ ] T025 [US2] Commit the S2 records summary, `verdicts.json` and plans.
+- [X] T021 [US2] Entry-rate picks (`--role es`) per survivor per early fold, one fold per process; write into `plan_ls_<tag>_es.json`; verify 4-dp load and the achieved rate within ±5% of 0.014735. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T022 [US2] Backtests: `evaluation.run_folds --plan plan_ls_<tag>_<role> --folds f00,f01,f02,f03,f04,f05,f06,f07` per survivor arm, one chain. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T023 [US2] Run `instrument` again for the S2 checks (trade identity, capital, tags, rate) and `judge`; write `verdicts.json`. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T024 [US2] If any S2 margin is under 1 pp: seed-2 repeat — `train --tag <T> --seed 2` on f00–f07, picks, backtests into `_s2` tags. First check for ARO control seed-2 records on f00–f07; none existed at planning, so train and run `wf_aro_g24` at seed 2 on those folds (≈ 1.6 h; the width book is seedless). Then `judge --seed-repeat 2`. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T025 [US2] Commit the S2 records summary, `verdicts.json` and plans. — **N/A: no S1 survivors (survivors.json empty); not run.**
 
 ---
 
@@ -100,17 +100,17 @@ staged verdicts.
 
 **Goal**: late-half verdict for the single best S2 arm, and the GBR repeat on a pass.
 
-- [ ] T026 [US3] If an S2 winner exists: `train --tag <T> --folds f08,...,f14`, its tables and picks for its role, backtests on f08–f14, `judge` (S3: `judge_one` vs `wf_aro_g24`, late pp vs `w_aro`, small-margin and seed-2 rules). Commit.
-- [ ] T027 [US3] On an S3 PASS: `build_arms --model GBR` for the winning label, train all 15 folds, picks, backtests against `fs_gbr_gr` and `w_gbr`, `judge` (GBR repeat). Commit.
+- [X] T026 [US3] If an S2 winner exists: `train --tag <T> --folds f08,...,f14`, its tables and picks for its role, backtests on f08–f14, `judge` (S3: `judge_one` vs `wf_aro_g24`, late pp vs `w_aro`, small-margin and seed-2 rules). Commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
+- [X] T027 [US3] On an S3 PASS: `build_arms --model GBR` for the winning label, train all 15 folds, picks, backtests against `fs_gbr_gr` and `w_gbr`, `judge` (GBR repeat). Commit. — **N/A: no S1 survivors (survivors.json empty); not run.**
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T028 SC-003 byte identity: re-run `wf_aro_g24` on f00 and f07 into scratch arm tags and compare trades hashes with the recorded records; record the result in the report.
-- [ ] T029 Write `research/label_screen/report.md` (decision table per candidate and arm, S0a/S0/S1 tables, S2/S3, harness lessons, provenance) and a pointer section in `research/model_calibration/findings.md`.
-- [ ] T030 Memory: `project_034_label_screen.md` and its MEMORY.md "Current state" line; update the labels hub if a label-level finding results.
-- [ ] T031 Full suite (exit code checked), mark every task [X], final commit.
+- [X] T028 SC-003 byte identity: re-run `wf_aro_g24` on f00 and f07 into scratch arm tags and compare trades hashes with the recorded records; record the result in the report.
+- [X] T029 Write `research/label_screen/report.md` (decision table per candidate and arm, S0a/S0/S1 tables, S2/S3, harness lessons, provenance) and a pointer section in `research/model_calibration/findings.md`.
+- [X] T030 Memory: `project_034_label_screen.md` and its MEMORY.md "Current state" line; update the labels hub if a label-level finding results.
+- [X] T031 Full suite (exit code checked), mark every task [X], final commit.
 
 ---
 

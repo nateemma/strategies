@@ -202,3 +202,19 @@ Pre-registered.
 - **Context, not judged:** the exit-off sizers' early pp, read as a comparator, sit above the width
   book and the controls.
 - **Next (offered):** a sizer arm with the current models' weights.
+
+## 9. Label-type screen (feature 034 → `research/label_screen/report.md`)
+
+Pre-registered.
+- **The screen:** ARO was trained on seven other label types (forward_mae, triple_barrier,
+  mfe_mae_ratio, future_expectancy, quantile_future, local_min_followthrough, breakout_gbb), and
+  GFM's existing gbb_fwdmae weights were added. Each was scored as a ranker of the same 412
+  width-book trades, early half only.
+- **The result: all eight FAIL at S1.**
+  - The gaps run from −0.026 to +0.045. The control's own decisions give 0.072, and the control as
+    a 0.5-share sizer gives 0.100.
+  - Every candidate's AUC is 0.41–0.52, against the control's 0.583.
+  - No backtest was run, and the late half is still unread.
+- **Context:** the control at share is the best width-book ranker measured so far.
+- **Next (offered):** the current-model sizer arm (`NNNC_LS_CONTROL_SZ`; its thresholds are
+  already picked).

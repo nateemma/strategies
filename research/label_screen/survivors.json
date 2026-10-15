@@ -1,0 +1,42 @@
+{
+ "label": "034 survivors (FR-011)",
+ "references": {
+  "pre_registered": 0.072,
+  "control_at_share": 0.1004
+ },
+ "survivors": [],
+ "candidates": {
+  "GFM": {
+   "survives": false,
+   "reason": "S1 gap 0.0146 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "FMAE": {
+   "survives": false,
+   "reason": "S1 gap -0.0257 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "TB": {
+   "survives": false,
+   "reason": "S1 gap -0.0175 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "MMR": {
+   "survives": false,
+   "reason": "S1 gap 0.0168 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "FEXP": {
+   "survives": false,
+   "reason": "S1 gap -0.0184 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "QF": {
+   "survives": false,
+   "reason": "S1 gap -0.0152 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "LMF": {
+   "survives": false,
+   "reason": "S1 gap 0.0273 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  },
+  "BOG": {
+   "survives": false,
+   "reason": "S1 gap 0.0447 not above both references {'pre_registered': 0.072, 'control_at_share': 0.1004} (degenerate [])"
+  }
+ }
+}

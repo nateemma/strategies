@@ -225,5 +225,65 @@
   }
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
- "ls_note": "034 label screen: GFM (LabelMethod 28) as width-book sizer; control wf_aro_g24; thresholds picked after training (research/label_screen/pick.py)"
+ "ls_note": "034 label screen: GFM (LabelMethod 28) as width-book sizer; control wf_aro_g24; thresholds picked after training (research/label_screen/pick.py)",
+ "thresholds": {
+  "f00": 0.6491,
+  "f01": 0.6568,
+  "f02": 0.6609,
+  "f03": 0.6904,
+  "f04": 0.7164,
+  "f05": 0.7177,
+  "f06": 0.7226,
+  "f07": 0.7218
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.4839,
+   "run_starts": 93,
+   "buy_argmax_share": 0.9892
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5155,
+   "run_starts": 97,
+   "buy_argmax_share": 0.9897
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 66,
+   "buy_argmax_share": 1.0
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.5056,
+   "run_starts": 89,
+   "buy_argmax_share": 1.0
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.5021,
+   "run_starts": 237,
+   "buy_argmax_share": 0.9916
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.5145,
+   "run_starts": 173,
+   "buy_argmax_share": 0.9942
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.5039,
+   "run_starts": 254,
+   "buy_argmax_share": 0.9921
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.4982,
+   "run_starts": 273,
+   "buy_argmax_share": 0.9817
+  }
+ }
 }
