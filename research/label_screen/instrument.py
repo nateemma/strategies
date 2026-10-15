@@ -9,7 +9,7 @@ read: trade records are read for pair, dates, enter_tag and stake_amount only.
   --stage s2  per survivor arm on f00-f07 (033's checks, research/width_relative/instrument.py):
               sz: trade set == the width book's (`w_aro`) on (pair, open_date, close_date), at
                   most 2 folds differing; 0 entries outside the width-book rule; 0 tag
-                  mismatches; capital vs the width book within +-10%; realised agree share and
+                  mismatches (agree = p_buy > threshold, AGREE_RULE "p_buy"); capital vs the width book within +-10%; realised agree share and
                   stake ratio; wallet shortfalls (reported);
               es: every entry's signal bar has the model's own decision (BUY argmax AND p_buy >
                   threshold) -- no trigger gate; threshold loaded at 4 dp; trades vs the control.
@@ -191,7 +191,7 @@ def stage_s2() -> dict:
                 if role == "sz":
                     w_trades = _trades(arm_record(fw["arm_tag"], fid.upper())) or []
                     a |= W.entry_and_tag_checks(trades, table, float(cuts[f["train_timerange"]]),
-                                                float(thr[fid]), F.bars_for)
+                                                float(thr[fid]), F.bars_for, agree_rule="p_buy")
                     a |= {"stakes": W.stake_checks(trades, w_trades)}
                     keys, wk = W.trade_keys(trades), W.trade_keys(w_trades)
                     a |= {"trades_equal_width_book": keys == wk,

@@ -109,6 +109,17 @@ def test_sizer_keeps_entries_and_tags_agreement():
                                    "reversion:model:disagree"]
 
 
+def test_sizer_p_buy_rule_ignores_the_argmax():
+    s = _sizer()
+    s.AGREE_RULE = "p_buy"
+    s.prediction_threshold = type("T", (), {"value": 0.3})()
+    df = pd.DataFrame({"m": [1, 1, 1, 0], "predict_buy": [0, 1, 0, 0],
+                       "%predict_prob_buy": [0.4, 0.2, np.nan, 0.9]})
+    s.get_entry_conditions(df)
+    assert s._st_tags.tolist() == ["reversion:model:agree", "reversion:model:disagree",
+                                   "reversion:model:disagree", ""]
+
+
 def test_sizer_stakes_are_capital_neutral_and_capped():
     s = _sizer()
     kw = dict(pair="X/USDT", current_time=None, current_rate=1.0, min_stake=10.0, leverage=1.0,
@@ -145,5 +156,6 @@ def test_sizer_names_leave_the_model_key_alone():
 
     wr = _wr("NNNC_A_Raw_Open")
     sz = type("SZ", (WidthSizerMixin, wr), {})
-    sz2 = type("SZ2", (WidthSizerMixin, wr), {"AGREE_SHARE": 0.3, "STAKE_WEIGHTS": (1.0, 0.2)})
+    sz2 = type("SZ2", (WidthSizerMixin, wr), {"AGREE_SHARE": 0.3, "STAKE_WEIGHTS": (1.0, 0.2),
+                                               "AGREE_RULE": "p_buy"})
     assert _key(sz) == _key(wr) == _key(sz2)

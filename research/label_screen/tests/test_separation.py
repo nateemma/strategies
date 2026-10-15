@@ -42,3 +42,8 @@ def test_early_half_only():
     assert S.EARLY == tuple(f"f{i:02d}" for i in range(8))
     assert "late" not in inspect.signature(S.main).parameters
     assert "after" not in inspect.getsource(S.main)
+
+
+def test_agree_ignores_the_buy_argmax():
+    t = pd.DataFrame({"buy_argmax": [False, True, False], "p_buy": [0.4, 0.2, np.nan]})
+    assert S.agree_of(t, 0.3).tolist() == [True, False, False]

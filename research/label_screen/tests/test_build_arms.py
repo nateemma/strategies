@@ -80,6 +80,11 @@ def test_thresholds_load_at_four_decimals():
             assert _cls(name).prediction_threshold.decimals == 4, name
 
 
+def test_sizers_agree_on_p_buy():
+    for c in C.CANDIDATES:
+        assert _cls(f"{C.class_name(c)}_SZ").AGREE_RULE == "p_buy", c.tag
+
+
 def test_labels_and_feature_lists():
     from Framework import TrainingSignals as T
 
@@ -139,7 +144,8 @@ def test_plans_copy_the_control():
     for c in LS:
         for role in ("es", "sz"):
             p = _plan(C.plan_tag(c, role))
-            assert "thresholds" not in p
+            # the control's thresholds are not copied; only pick.py writes them, with a pick record
+            assert set(p.get("thresholds", {})) == set(p.get("threshold_picks", {}))
             assert p["params_snapshot"] == ctl["params_snapshot"]
             assert [f["train_timerange"] for f in p["folds"]] == \
                 [f["train_timerange"] for f in ctl["folds"]]

@@ -2,8 +2,8 @@
 
   --role sz  the sizer's agree threshold: 033's picker (research/width_relative/pick.py) on the
              candidate's `plan_ls_<tag>_sz.json` -- first bar of each width-book candidate run in
-             the fold's validation tail, the (1 - AGREE_SHARE) quantile of the effective BUY
-             probability, 4 decimals, fold class loaded with ft_bot_start(). `--tag CONTROL`
+             the fold's validation tail, the (1 - AGREE_SHARE) quantile of p_buy
+             (AGREE_RULE "p_buy": no BUY-argmax condition; amendment 2026-10-14), 4 decimals, fold class loaded with ft_bot_start(). `--tag CONTROL`
              scores the control the same way (the S1 reference) and writes only to
              thresholds_control_share.json, never to a control plan.
   --role es  the entry-source threshold: evaluation/pick_threshold.py's rate pick on the fold's
@@ -12,7 +12,7 @@
 
 The sizer fold class is generated (no threshold) when missing, as run_folds would.
 `--verify` re-loads the fold class with the stored threshold: for sz, every width-book entry tag
-must equal (effective p_buy > threshold) and the loaded threshold must equal the stored one.
+must equal (p_buy > threshold) and the loaded threshold must equal the stored one.
 
     PYTHONPATH=. ../../.venv/bin/python -m research.label_screen.pick --tag FMAE --fold f00 --role sz [--verify]
 """
@@ -78,21 +78,29 @@ def _ensure_fold_class(plan: dict, fid: str, seed: int = 1) -> None:
                      threshold=(plan.get("thresholds") or {}).get(fid), seed=seed)
 
 
+def p_buy(probs: np.ndarray) -> np.ndarray:
+    """The sizer's agree score (AGREE_RULE "p_buy"): p_buy, NaN rows -> 0."""
+    return np.nan_to_num(np.asarray(probs, dtype=float)[:, 2], nan=0.0)
+
+
 def pick_sz(tag: str, fid: str) -> tuple[float, dict]:
     from research.width_relative import pick as WP
 
     plan = json.loads(plan_path(tag, "sz").read_text())
     _ensure_fold_class(plan, fid)
     frames, strat = WP._frames(plan, fid, 0.0)
-    effs = []
+    pb, effs = [], []
     for s in frames.values():
         rs = WP.run_starts(s["enter_long"].fillna(0).to_numpy() == 1)
-        effs.append(WP.effective(s[list(WP.PROB)].to_numpy())[rs])
+        probs = s[list(WP.PROB)].to_numpy()
+        pb.append(p_buy(probs)[rs])
+        effs.append(WP.effective(probs)[rs])
+    score = np.concatenate(pb) if pb else np.empty(0)
     eff = np.concatenate(effs) if effs else np.empty(0)
     share = float(strat.AGREE_SHARE)
-    t, achieved = WP.threshold_for_share(eff, share)
+    t, achieved = WP.threshold_for_share(score, share)
     return t, {"target_share": share, "achieved_share": round(achieved, 4),
-               "run_starts": int(len(eff)), "buy_argmax_share": round(float(np.mean(eff > 0)), 4)}
+               "run_starts": int(len(score)), "buy_argmax_share": round(float(np.mean(eff > 0)), 4)}
 
 
 def verify_sz(tag: str, fid: str) -> bool:
@@ -113,10 +121,10 @@ def verify_sz(tag: str, fid: str) -> bool:
     bad = n = 0
     for s in frames.values():
         enter = s["enter_long"].fillna(0).to_numpy() == 1
-        eff = WP.effective(s[list(WP.PROB)].to_numpy())
+        score = p_buy(s[list(WP.PROB)].to_numpy())
         agree = s["enter_tag"].fillna("").astype(str).str.endswith(":agree").to_numpy()
         n += int(enter.sum())
-        bad += int(np.sum(enter & (agree != (eff > t))))
+        bad += int(np.sum(enter & (agree != (score > t))))
     print(f"{tag} {fid}: verify sz threshold {t} loaded {loaded}: entry bars {n}, tag mismatches {bad}")
     return bad == 0 and abs(loaded - t) < 1e-9
 

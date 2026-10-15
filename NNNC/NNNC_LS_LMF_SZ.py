@@ -15,6 +15,7 @@ from NNNC_LS_LMF import NNNC_LS_LMF
 
 
 class NNNC_LS_LMF_SZ(WidthSizerMixin, WidthBookMixin, NNNC_LS_LMF):
+    AGREE_RULE = "p_buy"
     WIDTH_CUTS = {
         '20210101-20230101': 0.12333389858998543,
         '20210101-20230401': 0.12333389858998543,

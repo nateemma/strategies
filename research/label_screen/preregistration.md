@@ -40,7 +40,8 @@ tuned.
    each other's; sizer thresholds for every early fold at 4 decimals; classes declare 4 decimals.
 3. **S1, separation (early half f00–f07 only; no backtest).** On the identical width-book trades
    (033's simulator), agree − disagree pp per trade at a 0.5 agree share (threshold on the first
-   bar of each width-book run in the validation tail). PASS = gap above BOTH the pre-registered
+   bar of each width-book run in the validation tail; agree = p_buy > threshold, no BUY-argmax
+   condition — amendment 1). PASS = gap above BOTH the pre-registered
    control gap 0.072 AND the control's own gap at the same 0.5 share, with at most 2 of 8 folds
    degenerate (agree share 0 or 1). AUC of p_buy against pp > 0 is reported.
 4. **Survivors.** The S1 passes, top 3 by gap, ties by AUC. `survivors.json` is committed before
@@ -93,3 +94,14 @@ Every declared extra that differs from its labeler's default changed the f00 lab
   accessor fell back to the BUY rule;
 - mfe_mae_ratio: the adverse excursion is clamped at 0 on both sides (unclamped, the cleanest
   winners were excluded). MMR was re-audited on all 8 folds after both fixes.
+
+## Amendments after the commit (before any training chain, S1 table or arm record)
+
+1. **2026-10-14, at the T015 smoke (FMAE f00): agree = p_buy > threshold, no BUY-argmax
+   condition**, for the sizer (`WidthSizerMixin.AGREE_RULE = "p_buy"` on every 034 sizer class,
+   CONTROL_SZ included), the S1 split (candidates and the control at share) and the S2 tag check.
+   Why: on f00 rule-eligible bars BUY was the argmax on 8.8% for FMAE (control 98.7%, GFM 98.2%),
+   median p_buy 0.33, so the 0.5 agree share was unreachable (threshold 0.0, achieved share
+   0.0215): every balanced three-class label would have been S1-degenerate by construction. The
+   pre-registered 0.072 reference (the control's own entry decisions) and the es role's entry rule
+   (BUY argmax AND p_buy > threshold, as the control) are unchanged. No P&L had been read.

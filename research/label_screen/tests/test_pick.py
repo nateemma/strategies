@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
 from research.label_screen import pick as P
@@ -46,3 +47,8 @@ def test_roles():
 def test_one_fold_per_process():
     with pytest.raises(SystemExit):
         P.main(["--tag", "FMAE", "--fold", "f00,f01", "--role", "sz"])
+
+
+def test_sz_score_is_p_buy_without_the_argmax():
+    probs = np.array([[0.5, 0.2, 0.3], [0.1, 0.2, 0.7], [np.nan, np.nan, np.nan]])
+    assert P.p_buy(probs).tolist() == [0.3, 0.7, 0.0]

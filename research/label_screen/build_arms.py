@@ -81,6 +81,7 @@ from {label} import {label}
 
 
 class {name}(WidthSizerMixin, WidthBookMixin, {label}):
+    AGREE_RULE = "p_buy"
     WIDTH_CUTS = {cuts}
 '''
 

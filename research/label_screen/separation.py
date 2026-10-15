@@ -7,10 +7,12 @@ control's tables with the 24 h grace, so every model re-weights the IDENTICAL tr
 trade's signal bar (entry bar - 1):
 
   control (pre-registered)  agree = its own entry decision (enter_long of its table);
-  control at share          agree = BUY argmax AND p_buy > its 0.5-share threshold
-                            (thresholds_control_share.json);
-  candidate                 agree = BUY argmax AND p_buy > its sz threshold (plan_ls_<tag>_sz);
+  control at share          agree = p_buy > its 0.5-share threshold (thresholds_control_share.json);
+  candidate                 agree = p_buy > its sz threshold (plan_ls_<tag>_sz);
                             tables LS_<TAG>_fNN (GFM: the existing GFM_fNN).
+
+No BUY-argmax condition on the at-share rows (AGREE_RULE "p_buy", amendment 2026-10-14): balanced
+three-class labels rarely make BUY the argmax, so the decision rule cannot reach the 0.5 share.
 
 Per model: agree / disagree n and pp per trade, the gap, AUC of p_buy against pp > 0, and the
 folds where the agree share is 0 or 1 (degenerate). S1 per candidate (FR-011): gap above BOTH the
@@ -80,7 +82,7 @@ def s1_pass(gap: float | None, refs: dict, n_degenerate: int) -> bool:
 
 
 def agree_of(t: pd.DataFrame, threshold: float) -> np.ndarray:
-    return t["buy_argmax"].to_numpy(bool) & (t["p_buy"].to_numpy(float) > threshold)
+    return np.nan_to_num(t["p_buy"].to_numpy(float), nan=0.0) > threshold
 
 
 def _table(tag: str, fid: str) -> pd.DataFrame | None:

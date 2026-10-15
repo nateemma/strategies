@@ -183,7 +183,8 @@
     "control_at_share": "the control scored with the same picker"
    },
    "pass": "gap > both references AND <= 2 of 8 folds degenerate (agree share 0 or 1)",
-   "reported": "AUC of p_buy against trade pp > 0"
+   "reported": "AUC of p_buy against trade pp > 0",
+   "agree_rule": "p_buy > the fold's sz threshold, no BUY-argmax condition (candidates and control_at_share alike; the pre_registered 0.072 reference is the control's own entry decisions)"
   },
   "survivors": {
    "max": 3,
@@ -194,7 +195,7 @@
   "S2": {
    "half": "early",
    "roles": {
-    "sz": "width-book entries, stakes 1.333 agree / 0.667 disagree",
+    "sz": "width-book entries, stakes 1.333 agree / 0.667 disagree; agree = p_buy > the fold's sz threshold (AGREE_RULE p_buy)",
     "es": "control entry configuration, label changed, no trigger gate; threshold at entry rate 0.014735 on the fold training window"
    },
    "bog": "sizer only",
@@ -295,5 +296,13 @@
   "mfe_mae_ratio: mirrored sell variant (the sell accessor fell back to the BUY rule)",
   "mfe_mae_ratio: adverse excursion clamped at 0 on both sides (clean winners were excluded)"
  ],
- "amendments": []
+ "amendments": [
+  {
+   "date": "2026-10-14",
+   "stage": "T015 smoke (FMAE f00), before any training chain, S1 table or arm record",
+   "change": "sizer and S1 agree rule: p_buy > threshold, without the BUY-argmax condition (WidthSizerMixin.AGREE_RULE = 'p_buy' on every 034 sizer class, CONTROL_SZ included; picker, separation and S2 tag check follow)",
+   "why": "FMAE f00: BUY was the argmax on 8.8% of rule-eligible bars (control 98.7%, GFM 98.2%); median p_buy 0.33. The 0.5 agree share was unreachable (threshold 0.0, achieved share 0.0215), so every balanced three-class label would be S1-degenerate by construction, not by ranking.",
+   "unchanged": "es role keeps the framework entry rule (BUY argmax AND p_buy > threshold), as the control; no P&L read"
+  }
+ ]
 }

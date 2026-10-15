@@ -13,6 +13,10 @@ so the expected mean stake equals the width book's at the pre-registered agree s
 
 prediction_threshold is redefined with 4 decimals on this mixin only: the base parameter rounds
 picked thresholds to 2 (032 finding). Existing classes are unaffected.
+
+AGREE_RULE "p_buy" (034) tags agree on p_buy > prediction_threshold alone, without the BUY-argmax
+condition: for balanced three-class labels BUY rarely wins the argmax, so the decision rule cannot
+reach the agree share. The default "decision" is the rule above.
 """
 
 import numpy as np
@@ -24,14 +28,19 @@ class WidthSizerMixin:
                                             load=True, optimize=False)
     AGREE_SHARE = 0.5
     STAKE_WEIGHTS = (1.0, 0.5)
-    MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS")
+    AGREE_RULE = "decision"
+    MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS", "AGREE_RULE")
 
     def get_entry_conditions(self, dataframe):
         mask = super().get_entry_conditions(dataframe)  # the width book; predictions written
         tags = self._st_tags
         if mask is None or tags is None:
             raise ValueError(f"{type(self).__name__}: the sizer needs the width book's tagged mask")
-        agree = dataframe["predict_buy"].to_numpy() > 0.5
+        if self.AGREE_RULE == "p_buy":
+            p = np.nan_to_num(dataframe["%predict_prob_buy"].to_numpy(float), nan=0.0)
+            agree = p > float(self.prediction_threshold.value)
+        else:
+            agree = dataframe["predict_buy"].to_numpy() > 0.5
         m = np.asarray(mask, dtype=bool)
         tags = tags.copy()
         tags[m & agree] = [f"{t}:agree" for t in tags[m & agree]]

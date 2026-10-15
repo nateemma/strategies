@@ -108,7 +108,7 @@ def _table_index(t: pd.DataFrame) -> pd.DataFrame:
     return t.assign(date=d).set_index(["pair", "date"]).sort_index()
 
 
-def entry_and_tag_checks(trades, table, cut, threshold, bars_for) -> dict:
+def entry_and_tag_checks(trades, table, cut, threshold, bars_for, agree_rule="decision") -> dict:
     viol = mism = 0
     for t in trades:
         _, dates = bars_for(t["pair"])
@@ -120,7 +120,7 @@ def entry_and_tag_checks(trades, table, cut, threshold, bars_for) -> dict:
         r = table.loc[key]
         ok = (r["guard_metric"] < 0.3) and (r["bb_width"] > 0.035) and (r["bb_width"] >= cut)
         viol += not ok
-        agree = bool(r["buy_argmax"]) and float(r["p_buy"]) > threshold
+        agree = (agree_rule == "p_buy" or bool(r["buy_argmax"])) and float(r["p_buy"]) > threshold
         mism += agree != str(t.get("enter_tag") or "").endswith(":agree")
     return {"entry_violations": int(viol), "tag_mismatches": int(mism)}
 
