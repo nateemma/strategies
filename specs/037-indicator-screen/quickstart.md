@@ -38,5 +38,5 @@ M=research.indicator_screen
     - It should answer SC-004 (a)–(e).
     - A rerun of steps 6–10 should reproduce it byte for byte (SC-007).
 
-**Plot.** `freqtrade plot-dataframe -s AllIndicators -c user_data/strategies/config/config_wf.json
--p SOL/USDT --timerange 20250101-20250201 --indicators2 "raw_buy:CCI cci:CCI"`
+**Plot.** `freqtrade plot-dataframe -s AllIndicators --strategy-path user_data/strategies/SimpleStrategies --no-trades -c user_data/strategies/config/config_wf.json
+-p SOL/USDT --timerange 20250101-20250201 --indicators2 raw_buy:CCI CCI:cci`

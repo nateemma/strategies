@@ -1,0 +1,3222 @@
+{
+ "test": "037 truncation test (research R12): full harvest vs prefix harvest at each cut",
+ "slices": {
+  "checked": [
+   "SOL@2021-10-01",
+   "SOL@2023-10-01",
+   "SOL@2025-07-01",
+   "LTC@2021-10-01",
+   "LTC@2023-10-01",
+   "LTC@2025-07-01",
+   "AAVE@2021-10-01",
+   "AAVE@2023-10-01",
+   "AAVE@2025-07-01"
+  ],
+  "skipped": []
+ },
+ "cuts": 16,
+ "warmup": 200,
+ "rtol": 1e-09,
+ "n_columns": 632,
+ "n_fail": 4,
+ "fails": [
+  "Ehlers_Ichimoku:chikou_span",
+  "STOCHRSI:stochrsi",
+  "raw_buy:STOCHRSI",
+  "raw_sell:STOCHRSI"
+ ],
+ "columns": {
+  "base:dow_sin": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:dow_cos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:doy_sin": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:doy_cos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:mod_sin": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:mod_cos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:close_safe": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:log_volume": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:rvol": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:close_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:gain": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_lowerband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_middleband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_upperband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_width": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:atr_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:atr_pct": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:atr_pct_roll": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:rsi_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:fisher_wr": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:mfi_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:guard_metric": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:guard_metric_pos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:guard_metric_neg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macd": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdsignal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdhist": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:gain_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:log_volume_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macd_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdhist_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdsignal_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ema_fast_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macd_pos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macd_neg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:fastd_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:fastk_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:fast_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:adx": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:adx_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:aroonosc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:aroonosc_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_position": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:obv_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ad_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:vwap_ratio": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:vwap_pos": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:vwap_neg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:plus_di_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:minus_di_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:di_diff_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:sar_ratio": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:sar_trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:rsi_sma": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:spread_ma": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:cci": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:cci_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:trend_mode": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:dymi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:dymi_period": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:dymi_scaled": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ss_close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:fisher_ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:cg_ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ema200": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:roc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:rsi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:candle_imbalance": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:market_regime": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:market_state": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "AO:aosc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:AO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:AO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "APO:apo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:APO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:APO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Aroon:aroonosc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Aroon:aroonup": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Aroon:aroondown": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Aroon": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Aroon": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_lowerband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_middleband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_upperband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:BBBreakout:tm1": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:BBBreakout:tm1": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:BBBreakout:tm0": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:BBBreakout:tm0": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_lowerband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_middleband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_upperband": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:BBRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:BBRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BOP:bop": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:BOP": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:BOP": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "CCI:cci": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:CCI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:CCI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "CMF:cmf": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:CMF": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:CMF": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "CMO:cmo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:CMO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:CMO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "COPP:copp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:COPP": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:COPP": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Combo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Combo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCBreakout:dc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCBreakout:dc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:DCBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:DCBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCRevert:dc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCRevert:dc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:DCRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:DCRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DYMI:dymi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DYMI:dymi_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:DYMI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:DYMI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EFI:efi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EMACross:ema_short": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EMACross:ema_long": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EMV:emv": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EMV": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EMV": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EWO:ewo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EWO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EWO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ht_sine": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ht_leadsine": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EhlersBase:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:EhlersBase:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EhlersBase:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:EhlersBase:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_BB:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_BB:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_BB:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_BB:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_mid": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_DC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_DC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_DC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_DC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dymi_fisher": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dymi_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_DYMI:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_DYMI:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_DYMI:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_DYMI:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_dsp_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_rsi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_rsi_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_stoch": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_stoch_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_mfi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_mfi_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_cci": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_cci_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_macd": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_macd_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_roc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_roc_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_composite": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:fisher_composite_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Fisher:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Fisher:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Fisher:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Fisher:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:senkou_span_a": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:senkou_span_b": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:tenkan_sen": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:kijun_sen": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:chikou_span": {
+   "verdict": "FAIL",
+   "first_mismatch": {
+    "slice": "SOL@2021-10-01",
+    "cut_bar": 250,
+    "bar": 225,
+    "bars_before_cut": 25,
+    "date": "2021-09-22 22:15:00+00:00",
+    "full": 147.2288055419922,
+    "truncated": NaN
+   },
+   "comparisons": 1
+  },
+  "Ehlers_Ichimoku:cloud_top": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cloud_bottom": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:chikou_bullish": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Ichimoku:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Ichimoku:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Ichimoku:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Ichimoku:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:close_norm_fisher": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:close_norm_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Indicator:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_Indicator:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Indicator:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_Indicator:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_mid": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_KC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_KC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_KC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_KC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_atr": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_cycle_buy": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_cycle_sell": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_trend_buy": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_trend_sell": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_LW:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_LW:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_LW:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_LW:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:roc_fisher": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:roc_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_ROC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_ROC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_ROC:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_ROC:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dymi_fisher": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dymi_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_ind_DYMI:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ehlers_ind_DYMI:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_ind_DYMI:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ehlers_ind_DYMI:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "FVE:fve": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:FVE": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:FVE": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_fast": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ebsw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg_norm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:dcperiod": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:dpo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ss": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:dsp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ebsw_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg_trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_slow": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cg_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ebsw_turn_up": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ebsw_turn_down": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_slope": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:trend_alive": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ht_trend_start": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:htdcp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:htdcp_smooth": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:itrend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:regime_score": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:cycle_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:trend_entry_trigger": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:HTDCP:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:HTDCP:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:HTDCP:cycle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:HTDCP:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTSINE:sine": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTSINE:lead_sine": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:HTSINE": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:HTSINE": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:HTTREND": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:HTTREND": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:senkou_span_a": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:senkou_span_b": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:tenkan_sen": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:kijun_sen": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:Ichimoku": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:Ichimoku": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCBreakout:kc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCBreakout:kc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:KCBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:KCBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_upper": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_middle": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_lower": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:KCRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:KCRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KST:kst": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:KST": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:KST": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:atr": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:buy_level": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:sell_level": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:level_pct_diff": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:LWBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:LWBreakout": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:atr": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:buy_level": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:sell_level": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:LWRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:LWRevert": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macd": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macdsignal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macdhist": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:MACDhist": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:MACDhist": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macd": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macdsignal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macdhist": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:MACDsignal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:MACDsignal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MFI:mfi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:MFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:MFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MI:mi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:MI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:MI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PPO:ppo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:PPO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:PPO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:ema200": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:candle_imbalance": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:psar": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:trend": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:PSAR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:PSAR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PVO:pvo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:PVO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:PVO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PZO:pzo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:PZO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:PZO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:ROC": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:ROC": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "RVOL:rvol": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:RVOL": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:RVOL": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SAR:sar": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:SAR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:SAR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SMACross:sma_short": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SMACross:sma_long": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:SMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:SMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "STC:stc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:STC": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:STC": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "STOCHRSI:stochrsi": {
+   "verdict": "FAIL",
+   "first_mismatch": {
+    "slice": "SOL@2021-10-01",
+    "cut_bar": 250,
+    "bar": 200,
+    "bars_before_cut": 50,
+    "date": "2021-09-22 16:00:00+00:00",
+    "full": 0.733645498752594,
+    "truncated": 0.7944597601890564
+   },
+   "comparisons": 1
+  },
+  "raw_buy:STOCHRSI": {
+   "verdict": "FAIL",
+   "first_mismatch": {
+    "slice": "LTC@2021-10-01",
+    "cut_bar": 699,
+    "bar": 372,
+    "bars_before_cut": 327,
+    "date": "2021-09-24 11:00:00+00:00",
+    "full": 0.0,
+    "truncated": 1.0
+   },
+   "comparisons": 50
+  },
+  "raw_sell:STOCHRSI": {
+   "verdict": "FAIL",
+   "first_mismatch": {
+    "slice": "SOL@2021-10-01",
+    "cut_bar": 250,
+    "bar": 201,
+    "bars_before_cut": 49,
+    "date": "2021-09-22 16:15:00+00:00",
+    "full": 0.0,
+    "truncated": 1.0
+   },
+   "comparisons": 1
+  },
+  "TEMACross:tema_short": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TEMACross:tema_long": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:TEMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:TEMACross": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TRIX:trix": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:TRIX": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:TRIX": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TSI:tsi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TSI:signal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:TSI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:TSI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "UO:uo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:UO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:UO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VBM:vbm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VBM:vbm_zscore": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:VBM": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:VBM": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VFI:vfi": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:VFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:VFI": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VORTEX:VIp": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VORTEX:VIm": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VORTEX:vortex": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:VORTEX": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:VORTEX": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "VZO:vzo": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:VZO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:VZO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WFRACTAL:wfractal": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:WFRACTAL": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:WFRACTAL": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WILLR:wobv": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:WILLR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:WILLR": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WOBV:wobv_raw": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WOBV:wobv": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:WOBV": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:WOBV": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WTO:wt1": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "WTO:wt2": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:WTO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:WTO": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "ZScore:rolling_mean": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "ZScore:rolling_std": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "ZScore:zscore": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_buy:ZScore": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw_sell:ZScore": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:gbb_candidate": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  }
+ }
+}

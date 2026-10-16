@@ -1,0 +1,4534 @@
+{
+ "code_sha": "8705aee631a28e93",
+ "classes": [
+  {
+   "class": "AO",
+   "module": "AO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "APO",
+   "module": "APO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "Aroon",
+   "module": "Aroon",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "BBBreakout",
+   "module": "BBBreakout",
+   "base": "SimpleStrategy",
+   "override": "force_trend_mode"
+  },
+  {
+   "class": "BBRevert",
+   "module": "BBRevert",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "BOP",
+   "module": "BOP",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "CCI",
+   "module": "CCI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "CMF",
+   "module": "CMF",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "CMO",
+   "module": "CMO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "COPP",
+   "module": "COPP",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "Combo",
+   "module": "Combo",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "DCBreakout",
+   "module": "DCBreakout",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "DCRevert",
+   "module": "DCRevert",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "DYMI",
+   "module": "DYMI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "EFI",
+   "module": "EFI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "EMACross",
+   "module": "EMACross",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "EMV",
+   "module": "EMV",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "EWO",
+   "module": "EWO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "EhlersBase",
+   "module": "EhlersBase",
+   "base": "SimpleStrategy",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_BB",
+   "module": "Ehlers_BB",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_DC",
+   "module": "Ehlers_DC",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_DYMI",
+   "module": "Ehlers_DYMI",
+   "base": "Ehlers_Indicator",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_Fisher",
+   "module": "Ehlers_Fisher",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_Ichimoku",
+   "module": "Ehlers_Ichimoku",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_Indicator",
+   "module": "Ehlers_Indicator",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_KC",
+   "module": "Ehlers_KC",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_LW",
+   "module": "Ehlers_LW",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_ROC",
+   "module": "Ehlers_ROC",
+   "base": "Ehlers_Indicator",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "Ehlers_ind_DYMI",
+   "module": "Ehlers_ind_DYMI",
+   "base": "Ehlers_Indicator",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "FVE",
+   "module": "FVE",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "HTDCP",
+   "module": "HTDCP",
+   "base": "EhlersBase",
+   "override": "ehlers_triggers"
+  },
+  {
+   "class": "HTSINE",
+   "module": "HTSINE",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "HTTREND",
+   "module": "HTTREND",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "Ichimoku",
+   "module": "Ichimoku",
+   "base": "SimpleStrategy",
+   "override": "ichimoku_switches"
+  },
+  {
+   "class": "KCBreakout",
+   "module": "KCBreakout",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "KCRevert",
+   "module": "KCRevert",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "KST",
+   "module": "KST",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "LWBreakout",
+   "module": "LWBreakout",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "LWRevert",
+   "module": "LWRevert",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "MACDhist",
+   "module": "MACDhist",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "MACDsignal",
+   "module": "MACDsignal",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "MFI",
+   "module": "MFI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "MI",
+   "module": "MI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "PPO",
+   "module": "PPO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "PSAR",
+   "module": "PSAR",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "PVO",
+   "module": "PVO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "PZO",
+   "module": "PZO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "ROC",
+   "module": "ROC",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "RVOL",
+   "module": "RVOL",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "SAR",
+   "module": "SAR",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "SMACross",
+   "module": "SMACross",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "STC",
+   "module": "STC",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "STOCHRSI",
+   "module": "STOCHRSI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "TEMACross",
+   "module": "TEMACross",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "TRIX",
+   "module": "TRIX",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "TSI",
+   "module": "TSI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "UO",
+   "module": "UO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "VBM",
+   "module": "VBM",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "VFI",
+   "module": "VFI",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "VORTEX",
+   "module": "VORTEX",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "VZO",
+   "module": "VZO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "WFRACTAL",
+   "module": "WFRACTAL",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "WILLR",
+   "module": "WILLR",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "WOBV",
+   "module": "WOBV",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "WTO",
+   "module": "WTO",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "ZLEMACross",
+   "module": "ZLEMACross",
+   "base": "SimpleStrategy",
+   "override": null
+  },
+  {
+   "class": "ZScore",
+   "module": "ZScore",
+   "base": "SimpleStrategy",
+   "override": null
+  }
+ ],
+ "excluded": [
+  {
+   "class": "AllIndicators",
+   "reason": "harvest_wrapper"
+  },
+  {
+   "class": "BreakoutBbOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "BreakoutGbbOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "BreakoutOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "BreakoutVolOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "GbbGuardGridOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "GbbGuardedOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "GbbOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "GbbRobustOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "GeometryOpen",
+   "reason": "trigger_arm"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "AAVE/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "AVAX/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "BCH/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "BTC/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "DOT/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "LINK/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "LTC/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "NEAR/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "SOL/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "XRP/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  },
+  {
+   "class": "ZLEMACross",
+   "reason": "signal_error",
+   "pair": "ZEC/USDT",
+   "detail": "ValueError('periods must be an integer')"
+  }
+ ],
+ "excluded_columns": {
+  "AAVE/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "AVAX/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "BCH/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "BTC/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead",
+   "raw_sell:TSI": "constant"
+  },
+  "DOT/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "LINK/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "LTC/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "raw_buy:PZO": "constant",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead",
+   "raw_sell:TSI": "constant"
+  },
+  "NEAR/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "SOL/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead",
+   "raw_sell:TSI": "constant"
+  },
+  "XRP/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "raw_buy:MACDsignal": "constant",
+   "raw_sell:MACDsignal": "constant",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  },
+  "ZEC/USDT": {
+   "raw_buy:Combo": "constant",
+   "raw_buy:DYMI": "constant",
+   "raw_sell:DYMI": "constant",
+   "Ehlers_DC:trend_entry_trigger": "constant",
+   "raw_buy:Ehlers_DC:trend": "constant",
+   "raw_sell:Ehlers_DC:cycle": "constant",
+   "Ehlers_Ichimoku:chikou_span": "lookahead",
+   "STOCHRSI:stochrsi": "lookahead",
+   "raw_buy:STOCHRSI": "lookahead",
+   "raw_sell:STOCHRSI": "lookahead"
+  }
+ },
+ "aliases": {
+  "EhlersBase:trendmode": "base:trend_mode",
+  "Ehlers_BB:trendmode": "base:trend_mode",
+  "Ehlers_DC:trendmode": "base:trend_mode",
+  "Ehlers_DYMI:trendmode": "base:trend_mode",
+  "Ehlers_Fisher:trendmode": "base:trend_mode",
+  "Ehlers_Ichimoku:trendmode": "base:trend_mode",
+  "Ehlers_Indicator:trendmode": "base:trend_mode",
+  "Ehlers_KC:trendmode": "base:trend_mode",
+  "Ehlers_LW:trendmode": "base:trend_mode",
+  "Ehlers_ROC:trendmode": "base:trend_mode",
+  "Ehlers_ind_DYMI:trendmode": "base:trend_mode",
+  "HTDCP:trendmode": "base:trend_mode",
+  "HTTREND:httrend": "base:trend_mode",
+  "aro:adx_scaled": "base:adx_scaled",
+  "aro:aroonosc_scaled": "base:aroonosc_scaled",
+  "aro:atr_norm": "base:atr_norm",
+  "aro:bb_position": "base:bb_position",
+  "aro:bb_width": "base:bb_width",
+  "aro:cci_scaled": "base:cci_scaled",
+  "aro:di_diff_scaled": "base:di_diff_scaled",
+  "aro:ema_fast_norm": "base:ema_fast_norm",
+  "aro:fast_diff": "base:fast_diff",
+  "aro:fastk_scaled": "base:fastk_scaled",
+  "aro:fisher_ss": "base:fisher_ss",
+  "aro:cg_ss": "base:cg_ss",
+  "aro:gain_norm": "base:gain_norm",
+  "aro:guard_metric_pos": "base:guard_metric_pos",
+  "aro:guard_metric_neg": "base:guard_metric_neg",
+  "aro:macd_pos": "base:macd_pos",
+  "aro:macd_neg": "base:macd_neg",
+  "aro:macdhist_norm": "base:macdhist_norm",
+  "aro:mfi_scaled": "base:mfi_scaled",
+  "aro:rsi_scaled": "base:rsi_scaled",
+  "aro:sar_ratio": "base:sar_ratio",
+  "aro:spread_ma": "base:spread_ma",
+  "aro:vwap_pos": "base:vwap_pos",
+  "aro:vwap_neg": "base:vwap_neg"
+ },
+ "columns": [
+  {
+   "name": "AO:aosc",
+   "source": "AO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "APO:apo",
+   "source": "APO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Aroon:aroondown",
+   "source": "Aroon",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Aroon:aroonosc",
+   "source": "Aroon",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Aroon:aroonup",
+   "source": "Aroon",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBBreakout:bb_lowerband",
+   "source": "BBBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBBreakout:bb_middleband",
+   "source": "BBBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBBreakout:bb_upperband",
+   "source": "BBBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBRevert:bb_lowerband",
+   "source": "BBRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBRevert:bb_middleband",
+   "source": "BBRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BBRevert:bb_upperband",
+   "source": "BBRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "BOP:bop",
+   "source": "BOP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "CCI:cci",
+   "source": "CCI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "CMF:cmf",
+   "source": "CMF",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "CMO:cmo",
+   "source": "CMO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "COPP:copp",
+   "source": "COPP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DCBreakout:dc_lower",
+   "source": "DCBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DCBreakout:dc_upper",
+   "source": "DCBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DCRevert:dc_lower",
+   "source": "DCRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DCRevert:dc_upper",
+   "source": "DCRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DYMI:dymi",
+   "source": "DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "DYMI:dymi_fast",
+   "source": "DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EFI:efi",
+   "source": "EFI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EMACross:ema_long",
+   "source": "EMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EMACross:ema_short",
+   "source": "EMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EMV:emv",
+   "source": "EMV",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EWO:ewo",
+   "source": "EWO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg_norm",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg_slope",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg_trend_alive",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg_turn_down",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cg_turn_up",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:cycle_entry_trigger",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:dcperiod",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:dpo",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:dsp",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ebsw",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ebsw_slope",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ebsw_turn_down",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ebsw_turn_up",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ema_fast",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ema_slope",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ema_slow",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ht_leadsine",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ht_sine",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ht_trend_start",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:regime_score",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:ss",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:trend_alive",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "EhlersBase:trend_entry_trigger",
+   "source": "EhlersBase",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg_norm",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg_slope",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg_trend_alive",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg_turn_down",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cg_turn_up",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:cycle_entry_trigger",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:dcperiod",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:dpo",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:dsp",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ebsw",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ebsw_slope",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ebsw_turn_down",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ebsw_turn_up",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ema_fast",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ema_slope",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ema_slow",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ht_trend_start",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:regime_score",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:ss",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:trend_alive",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_BB:trend_entry_trigger",
+   "source": "Ehlers_BB",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg_norm",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg_slope",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg_trend_alive",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg_turn_down",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cg_turn_up",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:cycle_entry_trigger",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dc_lower",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dc_mid",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dc_upper",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dcperiod",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dpo",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:dsp",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ebsw",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ebsw_slope",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ebsw_turn_down",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ebsw_turn_up",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ema_fast",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ema_slope",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ema_slow",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ht_trend_start",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:regime_score",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:ss",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DC:trend_alive",
+   "source": "Ehlers_DC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg_norm",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg_slope",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg_trend_alive",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg_turn_down",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cg_turn_up",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:cycle_entry_trigger",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:dcperiod",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:dpo",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:dsp",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:dymi_fisher",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:dymi_slope",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ebsw",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ebsw_slope",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ebsw_turn_down",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ebsw_turn_up",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_fast",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_slope",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_slow",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ht_trend_start",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:regime_score",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:ss",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:trend_alive",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_DYMI:trend_entry_trigger",
+   "source": "Ehlers_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg_norm",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg_slope",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg_trend_alive",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg_turn_down",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cg_turn_up",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:cycle_entry_trigger",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:dcperiod",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:dpo",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:dsp",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ebsw",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ebsw_slope",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ebsw_turn_down",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ebsw_turn_up",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_fast",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_slope",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_slow",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_cci",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_cci_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_composite",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_composite_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_dsp",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_dsp_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_macd",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_macd_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_mfi",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_mfi_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_roc",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_roc_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_rsi",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_rsi_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_stoch",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:fisher_stoch_diff",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ht_trend_start",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:regime_score",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:ss",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:trend_alive",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Fisher:trend_entry_trigger",
+   "source": "Ehlers_Fisher",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg_norm",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg_slope",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg_trend_alive",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg_turn_down",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cg_turn_up",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:chikou_bullish",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cloud_bottom",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cloud_top",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cycle_entry_trigger",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:dcperiod",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:dpo",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:dsp",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ebsw",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ebsw_slope",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ebsw_turn_down",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ebsw_turn_up",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_fast",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_slope",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_slow",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ht_trend_start",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:kijun_sen",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:regime_score",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:senkou_span_a",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:senkou_span_b",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ss",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:tenkan_sen",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:trend_alive",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Ichimoku:trend_entry_trigger",
+   "source": "Ehlers_Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg_norm",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg_slope",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg_trend_alive",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg_turn_down",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cg_turn_up",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:close_norm_fisher",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:close_norm_slope",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:cycle_entry_trigger",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:dcperiod",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:dpo",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:dsp",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ebsw",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ebsw_slope",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ebsw_turn_down",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ebsw_turn_up",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_fast",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_slope",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_slow",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ht_trend_start",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:regime_score",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:ss",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:trend_alive",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_Indicator:trend_entry_trigger",
+   "source": "Ehlers_Indicator",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg_norm",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg_slope",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg_trend_alive",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg_turn_down",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cg_turn_up",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:cycle_entry_trigger",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:dcperiod",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:dpo",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:dsp",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ebsw",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ebsw_slope",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ebsw_turn_down",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ebsw_turn_up",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ema_fast",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ema_slope",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ema_slow",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ht_trend_start",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:kc_lower",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:kc_mid",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:kc_upper",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:regime_score",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:ss",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:trend_alive",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_KC:trend_entry_trigger",
+   "source": "Ehlers_KC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg_norm",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg_slope",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg_trend_alive",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg_turn_down",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cg_turn_up",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:cycle_entry_trigger",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:dcperiod",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:dpo",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:dsp",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ebsw",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ebsw_slope",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ebsw_turn_down",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ebsw_turn_up",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ema_fast",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ema_slope",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ema_slow",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ht_trend_start",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:lw_atr",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:lw_cycle_buy",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:lw_cycle_sell",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:lw_trend_buy",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:lw_trend_sell",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:regime_score",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:ss",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:trend_alive",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_LW:trend_entry_trigger",
+   "source": "Ehlers_LW",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg_norm",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg_slope",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg_trend_alive",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg_turn_down",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cg_turn_up",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:cycle_entry_trigger",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:dcperiod",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:dpo",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:dsp",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ebsw",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ebsw_slope",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ebsw_turn_down",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ebsw_turn_up",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ema_fast",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ema_slope",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ema_slow",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ht_trend_start",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:regime_score",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:roc_fisher",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:roc_slope",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:ss",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:trend_alive",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ROC:trend_entry_trigger",
+   "source": "Ehlers_ROC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg_norm",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg_slope",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg_trend_alive",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg_turn_down",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cg_turn_up",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:cycle_entry_trigger",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dcperiod",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dpo",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dsp",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dymi_fisher",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dymi_slope",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ebsw",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ebsw_slope",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ebsw_turn_down",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ebsw_turn_up",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_fast",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_slope",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_slow",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ht_trend_start",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:regime_score",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ss",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:trend_alive",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:trend_entry_trigger",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "FVE:fve",
+   "source": "FVE",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg_norm",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg_slope",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg_trend_alive",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg_turn_down",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cg_turn_up",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:cycle_entry_trigger",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:dcperiod",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:dpo",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:dsp",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ebsw",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ebsw_slope",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ebsw_turn_down",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ebsw_turn_up",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ema_fast",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ema_slope",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ema_slow",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ht_trend_start",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:htdcp",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:htdcp_smooth",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:itrend",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:regime_score",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:ss",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:trend_alive",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTDCP:trend_entry_trigger",
+   "source": "HTDCP",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTSINE:lead_sine",
+   "source": "HTSINE",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "HTSINE:sine",
+   "source": "HTSINE",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ichimoku:kijun_sen",
+   "source": "Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ichimoku:senkou_span_a",
+   "source": "Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ichimoku:senkou_span_b",
+   "source": "Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "Ichimoku:tenkan_sen",
+   "source": "Ichimoku",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KCBreakout:kc_lower",
+   "source": "KCBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KCBreakout:kc_upper",
+   "source": "KCBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KCRevert:kc_lower",
+   "source": "KCRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KCRevert:kc_middle",
+   "source": "KCRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KCRevert:kc_upper",
+   "source": "KCRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "KST:kst",
+   "source": "KST",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWBreakout:atr",
+   "source": "LWBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWBreakout:buy_level",
+   "source": "LWBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWBreakout:level_pct_diff",
+   "source": "LWBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWBreakout:sell_level",
+   "source": "LWBreakout",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWRevert:atr",
+   "source": "LWRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWRevert:buy_level",
+   "source": "LWRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "LWRevert:sell_level",
+   "source": "LWRevert",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDhist:macd",
+   "source": "MACDhist",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDhist:macdhist",
+   "source": "MACDhist",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDhist:macdsignal",
+   "source": "MACDhist",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDsignal:macd",
+   "source": "MACDsignal",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDsignal:macdhist",
+   "source": "MACDsignal",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MACDsignal:macdsignal",
+   "source": "MACDsignal",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MFI:mfi",
+   "source": "MFI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "MI:mi",
+   "source": "MI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PPO:ppo",
+   "source": "PPO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PSAR:candle_imbalance",
+   "source": "PSAR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PSAR:ema200",
+   "source": "PSAR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PSAR:psar",
+   "source": "PSAR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PSAR:trend",
+   "source": "PSAR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PVO:pvo",
+   "source": "PVO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "PZO:pzo",
+   "source": "PZO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "RVOL:rvol",
+   "source": "RVOL",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "SAR:sar",
+   "source": "SAR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "SMACross:sma_long",
+   "source": "SMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "SMACross:sma_short",
+   "source": "SMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "STC:stc",
+   "source": "STC",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "TEMACross:tema_long",
+   "source": "TEMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "TEMACross:tema_short",
+   "source": "TEMACross",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "TRIX:trix",
+   "source": "TRIX",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "TSI:signal",
+   "source": "TSI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "TSI:tsi",
+   "source": "TSI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "UO:uo",
+   "source": "UO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VBM:vbm",
+   "source": "VBM",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VBM:vbm_zscore",
+   "source": "VBM",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VFI:vfi",
+   "source": "VFI",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VORTEX:VIm",
+   "source": "VORTEX",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VORTEX:VIp",
+   "source": "VORTEX",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VORTEX:vortex",
+   "source": "VORTEX",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "VZO:vzo",
+   "source": "VZO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WFRACTAL:wfractal",
+   "source": "WFRACTAL",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WILLR:wobv",
+   "source": "WILLR",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WOBV:wobv",
+   "source": "WOBV",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WOBV:wobv_raw",
+   "source": "WOBV",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WTO:wt1",
+   "source": "WTO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "WTO:wt2",
+   "source": "WTO",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "ZScore:rolling_mean",
+   "source": "ZScore",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "ZScore:rolling_std",
+   "source": "ZScore",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "ZScore:zscore",
+   "source": "ZScore",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:ad_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:adx",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:adx_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:aroonosc",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:aroonosc_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:atr_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:atr_pct",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:atr_pct_roll",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:bb_lowerband",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:bb_middleband",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:bb_position",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:bb_upperband",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:bb_width",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:candle_imbalance",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:cci",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:cci_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:cg_ss",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:close_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:close_safe",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:di_diff_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:dow_cos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:dow_sin",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:doy_cos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:doy_sin",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:dymi",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:dymi_period",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:dymi_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:ema200",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:ema_fast",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:ema_fast_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:fast_diff",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:fastd_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:fastk_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:fisher_ss",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:fisher_wr",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:gain",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:gain_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:gbb_candidate",
+   "source": "base",
+   "kind": "candidate",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:guard_metric",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:guard_metric_neg",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:guard_metric_pos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:log_volume",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:log_volume_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macd",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macd_neg",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macd_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macd_pos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macdhist",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macdhist_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macdsignal",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:macdsignal_norm",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:market_regime",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:market_state",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:mfi_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:minus_di_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:mod_cos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:mod_sin",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:obv_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:plus_di_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:roc",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:rsi",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:rsi_scaled",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:rsi_sma",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:rvol",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:sar_ratio",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:sar_trend",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:spread_ma",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:ss_close",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:trend_mode",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:vwap_neg",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:vwap_pos",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "base:vwap_ratio",
+   "source": "base",
+   "kind": "value",
+   "causality": "PASS"
+  },
+  {
+   "name": "meta:data_ok",
+   "source": "meta",
+   "kind": "meta",
+   "causality": "UNTESTED"
+  },
+  {
+   "name": "meta:has_data",
+   "source": "meta",
+   "kind": "meta",
+   "causality": "UNTESTED"
+  },
+  {
+   "name": "raw_buy:AO",
+   "source": "AO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:APO",
+   "source": "APO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Aroon",
+   "source": "Aroon",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:BBBreakout:tm0",
+   "source": "BBBreakout",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:BBBreakout:tm1",
+   "source": "BBBreakout",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:BBRevert",
+   "source": "BBRevert",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:BOP",
+   "source": "BOP",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:CCI",
+   "source": "CCI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:CMF",
+   "source": "CMF",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:CMO",
+   "source": "CMO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:COPP",
+   "source": "COPP",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:DCBreakout",
+   "source": "DCBreakout",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:DCRevert",
+   "source": "DCRevert",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EFI",
+   "source": "EFI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EMACross",
+   "source": "EMACross",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EMV",
+   "source": "EMV",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EWO",
+   "source": "EWO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EhlersBase:cycle",
+   "source": "EhlersBase",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:EhlersBase:trend",
+   "source": "EhlersBase",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_BB:cycle",
+   "source": "Ehlers_BB",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_BB:trend",
+   "source": "Ehlers_BB",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_DC:cycle",
+   "source": "Ehlers_DC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_DYMI:cycle",
+   "source": "Ehlers_DYMI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_DYMI:trend",
+   "source": "Ehlers_DYMI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Fisher:cycle",
+   "source": "Ehlers_Fisher",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Fisher:trend",
+   "source": "Ehlers_Fisher",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Ichimoku:cycle",
+   "source": "Ehlers_Ichimoku",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Ichimoku:trend",
+   "source": "Ehlers_Ichimoku",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Indicator:cycle",
+   "source": "Ehlers_Indicator",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_Indicator:trend",
+   "source": "Ehlers_Indicator",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_KC:cycle",
+   "source": "Ehlers_KC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_KC:trend",
+   "source": "Ehlers_KC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_LW:cycle",
+   "source": "Ehlers_LW",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_LW:trend",
+   "source": "Ehlers_LW",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_ROC:cycle",
+   "source": "Ehlers_ROC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_ROC:trend",
+   "source": "Ehlers_ROC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_ind_DYMI:cycle",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ehlers_ind_DYMI:trend",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:FVE",
+   "source": "FVE",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:HTDCP:cycle",
+   "source": "HTDCP",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:HTDCP:trend",
+   "source": "HTDCP",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:HTSINE",
+   "source": "HTSINE",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:HTTREND",
+   "source": "HTTREND",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:Ichimoku",
+   "source": "Ichimoku",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:KCBreakout",
+   "source": "KCBreakout",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:KCRevert",
+   "source": "KCRevert",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:KST",
+   "source": "KST",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:LWBreakout",
+   "source": "LWBreakout",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:LWRevert",
+   "source": "LWRevert",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:MACDhist",
+   "source": "MACDhist",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:MACDsignal",
+   "source": "MACDsignal",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:MFI",
+   "source": "MFI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:MI",
+   "source": "MI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:PPO",
+   "source": "PPO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:PSAR",
+   "source": "PSAR",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:PVO",
+   "source": "PVO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:PZO",
+   "source": "PZO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:ROC",
+   "source": "ROC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:RVOL",
+   "source": "RVOL",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:SAR",
+   "source": "SAR",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:SMACross",
+   "source": "SMACross",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:STC",
+   "source": "STC",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:TEMACross",
+   "source": "TEMACross",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:TRIX",
+   "source": "TRIX",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:TSI",
+   "source": "TSI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:UO",
+   "source": "UO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:VBM",
+   "source": "VBM",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:VFI",
+   "source": "VFI",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:VORTEX",
+   "source": "VORTEX",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:VZO",
+   "source": "VZO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:WFRACTAL",
+   "source": "WFRACTAL",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:WILLR",
+   "source": "WILLR",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:WOBV",
+   "source": "WOBV",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:WTO",
+   "source": "WTO",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_buy:ZScore",
+   "source": "ZScore",
+   "kind": "raw_buy",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:AO",
+   "source": "AO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:APO",
+   "source": "APO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Aroon",
+   "source": "Aroon",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:BBBreakout:tm0",
+   "source": "BBBreakout",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:BBBreakout:tm1",
+   "source": "BBBreakout",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:BBRevert",
+   "source": "BBRevert",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:BOP",
+   "source": "BOP",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:CCI",
+   "source": "CCI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:CMF",
+   "source": "CMF",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:CMO",
+   "source": "CMO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:COPP",
+   "source": "COPP",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Combo",
+   "source": "Combo",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:DCBreakout",
+   "source": "DCBreakout",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:DCRevert",
+   "source": "DCRevert",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EFI",
+   "source": "EFI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EMACross",
+   "source": "EMACross",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EMV",
+   "source": "EMV",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EWO",
+   "source": "EWO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EhlersBase:cycle",
+   "source": "EhlersBase",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:EhlersBase:trend",
+   "source": "EhlersBase",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_BB:cycle",
+   "source": "Ehlers_BB",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_BB:trend",
+   "source": "Ehlers_BB",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_DC:trend",
+   "source": "Ehlers_DC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_DYMI:cycle",
+   "source": "Ehlers_DYMI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_DYMI:trend",
+   "source": "Ehlers_DYMI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Fisher:cycle",
+   "source": "Ehlers_Fisher",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Fisher:trend",
+   "source": "Ehlers_Fisher",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Ichimoku:cycle",
+   "source": "Ehlers_Ichimoku",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Ichimoku:trend",
+   "source": "Ehlers_Ichimoku",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Indicator:cycle",
+   "source": "Ehlers_Indicator",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_Indicator:trend",
+   "source": "Ehlers_Indicator",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_KC:cycle",
+   "source": "Ehlers_KC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_KC:trend",
+   "source": "Ehlers_KC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_LW:cycle",
+   "source": "Ehlers_LW",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_LW:trend",
+   "source": "Ehlers_LW",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_ROC:cycle",
+   "source": "Ehlers_ROC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_ROC:trend",
+   "source": "Ehlers_ROC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_ind_DYMI:cycle",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ehlers_ind_DYMI:trend",
+   "source": "Ehlers_ind_DYMI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:FVE",
+   "source": "FVE",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:HTDCP:cycle",
+   "source": "HTDCP",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:HTDCP:trend",
+   "source": "HTDCP",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:HTSINE",
+   "source": "HTSINE",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:HTTREND",
+   "source": "HTTREND",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:Ichimoku",
+   "source": "Ichimoku",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:KCBreakout",
+   "source": "KCBreakout",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:KCRevert",
+   "source": "KCRevert",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:KST",
+   "source": "KST",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:LWBreakout",
+   "source": "LWBreakout",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:LWRevert",
+   "source": "LWRevert",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:MACDhist",
+   "source": "MACDhist",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:MACDsignal",
+   "source": "MACDsignal",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:MFI",
+   "source": "MFI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:MI",
+   "source": "MI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:PPO",
+   "source": "PPO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:PSAR",
+   "source": "PSAR",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:PVO",
+   "source": "PVO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:PZO",
+   "source": "PZO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:ROC",
+   "source": "ROC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:RVOL",
+   "source": "RVOL",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:SAR",
+   "source": "SAR",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:SMACross",
+   "source": "SMACross",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:STC",
+   "source": "STC",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:TEMACross",
+   "source": "TEMACross",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:TRIX",
+   "source": "TRIX",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:TSI",
+   "source": "TSI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:UO",
+   "source": "UO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:VBM",
+   "source": "VBM",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:VFI",
+   "source": "VFI",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:VORTEX",
+   "source": "VORTEX",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:VZO",
+   "source": "VZO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:WFRACTAL",
+   "source": "WFRACTAL",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:WILLR",
+   "source": "WILLR",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:WOBV",
+   "source": "WOBV",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:WTO",
+   "source": "WTO",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  },
+  {
+   "name": "raw_sell:ZScore",
+   "source": "ZScore",
+   "kind": "raw_sell",
+   "causality": "PASS"
+  }
+ ],
+ "pairs": [
+  "AAVE/USDT",
+  "AVAX/USDT",
+  "BCH/USDT",
+  "BTC/USDT",
+  "DOT/USDT",
+  "LINK/USDT",
+  "LTC/USDT",
+  "NEAR/USDT",
+  "SOL/USDT",
+  "XRP/USDT",
+  "ZEC/USDT"
+ ],
+ "range": {
+  "start": "2021-01-01",
+  "end": "2026-09-07",
+  "warmup_bars": 1000
+ },
+ "timing": {
+  "pair": "SOL/USDT",
+  "total_s": 27.1,
+  "estimate_11_frames_min": 5.0,
+  "per_class_s": {
+   "base": 2.22,
+   "AO": 0.04,
+   "APO": 0.03,
+   "Aroon": 0.03,
+   "BBBreakout": 0.04,
+   "BBRevert": 0.04,
+   "BOP": 0.03,
+   "CCI": 0.03,
+   "CMF": 0.03,
+   "CMO": 0.03,
+   "COPP": 0.03,
+   "Combo": 0.03,
+   "DCBreakout": 0.03,
+   "DCRevert": 0.03,
+   "DYMI": 0.06,
+   "EFI": 0.03,
+   "EMACross": 0.03,
+   "EMV": 0.03,
+   "EWO": 0.03,
+   "EhlersBase": 1.09,
+   "Ehlers_BB": 1.08,
+   "Ehlers_DC": 1.07,
+   "Ehlers_DYMI": 1.84,
+   "Ehlers_Fisher": 3.5,
+   "Ehlers_Ichimoku": 1.11,
+   "Ehlers_Indicator": 1.36,
+   "Ehlers_KC": 1.05,
+   "Ehlers_LW": 1.07,
+   "Ehlers_ROC": 1.38,
+   "Ehlers_ind_DYMI": 1.37,
+   "FVE": 0.68,
+   "HTDCP": 1.08,
+   "HTSINE": 0.06,
+   "HTTREND": 0.06,
+   "Ichimoku": 0.05,
+   "KCBreakout": 0.05,
+   "KCRevert": 0.04,
+   "KST": 0.03,
+   "LWBreakout": 0.04,
+   "LWRevert": 0.04,
+   "MACDhist": 0.03,
+   "MACDsignal": 0.03,
+   "MFI": 0.03,
+   "MI": 0.03,
+   "PPO": 0.03,
+   "PSAR": 0.17,
+   "PVO": 0.03,
+   "PZO": 0.06,
+   "ROC": 0.03,
+   "RVOL": 0.03,
+   "SAR": 0.03,
+   "SMACross": 0.03,
+   "STC": 0.04,
+   "STOCHRSI": 0.03,
+   "TEMACross": 0.04,
+   "TRIX": 0.03,
+   "TSI": 0.03,
+   "UO": 0.03,
+   "VBM": 0.04,
+   "VFI": 1.09,
+   "VORTEX": 0.04,
+   "VZO": 0.06,
+   "WFRACTAL": 0.39,
+   "WILLR": 0.03,
+   "WOBV": 0.03,
+   "WTO": 0.03,
+   "ZScore": 0.03,
+   "aro": 2.1,
+   "gbb": 1.26
+  }
+ }
+}

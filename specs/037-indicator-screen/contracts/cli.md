@@ -65,5 +65,5 @@ class (the cost gate, R13).
 
 ## AllIndicators (strategy)
 
-`freqtrade plot-dataframe -s AllIndicators -c user_data/strategies/config/config_wf.json -p SOL/USDT
---indicators2 "<cols>"`. It never enters or exits.
+`freqtrade plot-dataframe -s AllIndicators --strategy-path user_data/strategies/SimpleStrategies --no-trades -c user_data/strategies/config/config_wf.json -p SOL/USDT
+--indicators2 <col> [<col> ...]`. It never enters or exits.
