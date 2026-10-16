@@ -81,3 +81,29 @@ p_buy is above the fold's 0.5-share threshold, 0.667× otherwise.
 - **Chain:** picks and verifies 05:27–05:40, backtests 05:41–05:44 on 2026-10-15. The first two
   launches of the backtest step failed before any record was written (working directory, then
   PYTHONPATH); `run_folds` must be run from the repo root with `PYTHONPATH=user_data/strategies`.
+
+## Forward confirmation (2026-10-16; `preregistration_forward.json`, eca572e8)
+
+Fold f14 frozen: its weights (trained to 2026-06-13), width cut and sizer threshold 0.7477, evaluated
+on 2026-09-07..2026-10-12. No weight, cut, threshold or decision had seen these 35 days.
+All three arms resolve to f14's model key (8a08f28dd178c6db).
+
+| arm | trades | wallet % |
+|---|---|---|
+| `cs_aro` (sizer) | 49 | **−0.12** |
+| `w_aro` (width book) | 49 | +0.30 |
+| control `wf_aro_g24` (current defaults, held-pair add on) | 46 | +1.71 |
+
+**Read: INCONSISTENT** (pre-registered sign check: cs_aro − w_aro ≤ 0).
+- Same 49 trades in both books (identity on pair, open, close); only stakes differ.
+- Paired difference −41.3 USDT (−0.41 pp of the 10,000 wallet); bootstrap 90% interval −96.5..+12.8,
+  so it includes zero. One 35-day window has no power to confirm or reject the 15-fold +8.5 pp.
+- **The operating point drifted.** Only 20% of trades were above the threshold, not ~50%
+  (realised stake ratio 3.1 between the two groups at these stakes). The 10 agreeing trades averaged
+  −1.03% against +0.90% for the 39 others (gap −1.93 pp; in-sample about +10 pp).
+- Most of the loss is ZEC (12 trades, −32.6 of −41.3): the model backed ZEC trades that lost.
+- The control trades a mostly different set (9 of 46 overlap the width book) and made the most.
+
+Nothing is adopted or promoted. The 15-fold PASS (PROVISIONAL) stands as recorded, with this blind
+window against it. A frozen June model drifts by October (agree share 0.20), so any live
+confirmation should use weights and a threshold refreshed on recent data.
