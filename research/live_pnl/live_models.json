@@ -1,0 +1,15 @@
+[
+ {
+  "run_id": "live1",
+  "strategy_class": "NNNC_LIVE_live1",
+  "bot_class": "NNNC_LIVE_live1_REC",
+  "model_key": "1cb71608d8ba4ef1",
+  "train_timerange": "20210101-20261016",
+  "threshold": 0.7783407204151153,
+  "target_rate": 0.014735,
+  "params_sha": "10d203e2ad2ee9da",
+  "status": "picked",
+  "started": null,
+  "retired": null
+ }
+]

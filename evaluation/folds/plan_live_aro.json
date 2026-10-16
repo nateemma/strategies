@@ -1,0 +1,35 @@
+{
+ "run_id": "live_aro",
+ "family": "NNNC",
+ "base_strategy": "NNNC_A_Raw_Open",
+ "anchored": true,
+ "min_train_days": 730,
+ "test_days": 90,
+ "data_start": "2021-01-01",
+ "data_end": "20261016",
+ "config": "user_data/strategies/config/config_wf.json",
+ "params_snapshot": "user_data/strategies/evaluation/folds/params_20261013-g24_NNNC_A_Raw_Open.json",
+ "params_sha": "10d203e2ad2ee9da",
+ "validated": true,
+ "validation_errors": [],
+ "folds": [
+  {
+   "fold_id": "live1",
+   "train_start": "2021-01-01",
+   "train_end": "2026-10-15",
+   "test_start": "2026-10-16",
+   "test_end": "2027-01-14",
+   "train_timerange": "20210101-20261016",
+   "test_timerange": "20261016-20270114",
+   "test_days": 90,
+   "strategy_class": "NNNC_LIVE_live1",
+   "model_dir": "user_data/strategies/saved_data/NNNC_LIVE_live1",
+   "arm_tag": "live_aro_live1",
+   "status": "planned"
+  }
+ ],
+ "live_note": "036 live model (research/live_pnl/live_fold.py): one fold trained to the cut; threshold picked on the training window at target rate 0.014735; tested live as a dry-run.",
+ "thresholds": {
+  "live1": 0.7783407204151153
+ }
+}

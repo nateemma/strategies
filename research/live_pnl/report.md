@@ -28,3 +28,19 @@ Spec: `specs/036-realistic-nnnc-pnl/`. **Label: PROVISIONAL.**
   anything new. The recorder's backtest pass-through and key neutrality are tested directly
   (`test_recorder.py`).
 - **Launcher:** `live_nnnc.sh --check` correctly refuses before a live model exists.
+
+## Live model live1 (T010–T011, 2026-10-16)
+
+- **Data:** 15m candles for the 10 pairs were downloaded at 08:40; the last candle is 2026-10-16
+  15:15 UTC on every pair.
+- **Training:** `live_fold --cut 20261016 --run-id live1` trained `NNNC_LIVE_live1` on
+  20210101-20261016 (seed 1). Validation MCC is 0.632.
+- **Threshold:** 0.7783, picked on the training window at target rate 0.014735 (achieved 1.4736%
+  over 1,837,601 bars). It is inside the controls' range (0.734–0.783).
+- **Model key:** `1cb71608d8ba4ef1` under `config_live_nnnc.json`, and the `_REC` class resolves
+  to the same key. `scripts/model_index.py key` reports a different, absent key because it uses
+  the default `config.json`, whose whitelist includes SUI. The bot and the launcher use the live
+  config.
+- **FR-002, the current defaults:** `HELD_PAIR_ADD = {'in_profit_only': True}`;
+  `stoploss_grace_hours` 24.0 (class and fold json); grace level −0.27.
+- **Launcher check:** `live_nnnc.sh --check` passes.
