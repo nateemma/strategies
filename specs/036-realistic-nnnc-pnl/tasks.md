@@ -223,7 +223,7 @@ is unchanged.
     otherwise per_pair, with the re-statement EXTRAPOLATED);
   - the tier rule;
   - the coverage floor (pairs under 80% depth coverage excluded).
-- [ ] T022 [US2] Implement `research/live_pnl/cost_model.py --fit`, which refuses while the gate is
+- [X] T022 [US2] Implement `research/live_pnl/cost_model.py --fit`, which refuses while the gate is
   closed or T021 is uncommitted. It fits per R5, applies the pre-registered rule, and writes
   `research/live_pnl/cost_model.json` (data-model CostModel, with its sha recorded). Add a test
   of the refusals in `tests/test_cost_model.py`.
