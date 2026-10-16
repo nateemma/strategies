@@ -1,0 +1,66 @@
+{
+ "label": "035 S2 ARO (pre-registered; early half only)",
+ "reference_gap": 0.1003,
+ "inputs": {
+  "B32": {
+   "n": 412,
+   "agree_n": 272,
+   "gap": 0.0389,
+   "agree_share": 0.6602,
+   "degenerate_folds": [],
+   "per_fold": {
+    "f00": {
+     "n": 27,
+     "agree_n": 17,
+     "gap": 0.0631,
+     "agree_share": 0.6296
+    },
+    "f01": {
+     "n": 25,
+     "agree_n": 19,
+     "gap": 0.0877,
+     "agree_share": 0.76
+    },
+    "f02": {
+     "n": 10,
+     "agree_n": 6,
+     "gap": 0.0571,
+     "agree_share": 0.6
+    },
+    "f03": {
+     "n": 16,
+     "agree_n": 13,
+     "gap": 0.4374,
+     "agree_share": 0.8125
+    },
+    "f04": {
+     "n": 128,
+     "agree_n": 92,
+     "gap": 0.0552,
+     "agree_share": 0.7188
+    },
+    "f05": {
+     "n": 60,
+     "agree_n": 35,
+     "gap": 0.0039,
+     "agree_share": 0.5833
+    },
+    "f06": {
+     "n": 46,
+     "agree_n": 24,
+     "gap": 0.0919,
+     "agree_share": 0.5217
+    },
+    "f07": {
+     "n": 100,
+     "agree_n": 66,
+     "gap": -0.0607,
+     "agree_share": 0.66
+    }
+   },
+   "S2_pass": false,
+   "margin": -0.0614
+  }
+ },
+ "s2_winner": null
+}

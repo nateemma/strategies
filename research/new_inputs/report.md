@@ -175,6 +175,38 @@ Each stage was pre-registered before it ran:
 2. **A per-process checkpoint path** in `Predictors/KerasBasePredictor.py`, so that two concurrent
    trainings of one classifier type cannot corrupt each other.
 
+## Follow-up: both32, ARO's 24 indicators + GBR's 8 raw-price features (2026-10-15)
+
+Pre-registered in `preregistration_b32.json` (dd9be8ab) before training. Arm `NNNC_NI_B32` (training)
+/ `NNNC_NI_B32_SZ` (sizer, same key). The scaler `main_scaler_both32` is an exact composite of the
+two existing fitted scalers, so the only change from ARO is the 8 added columns. Seed 1, f00-f07,
+the S2 instrument (0.5-share threshold on each fold's validation tail; 412 early width-book trades).
+
+**Result: FAIL** -- gap 0.0389 vs the 0.1003 bar (null retrain 0.1003); no degenerate fold.
+
+| fold | n | B32 agree share | B32 gap | null agree share | null gap |
+|---|---|---|---|---|---|
+| f00 | 27 | 0.63 | 0.063 | 0.48 | 0.180 |
+| f01 | 25 | 0.76 | 0.088 | 0.56 | 0.168 |
+| f02 | 10 | 0.60 | 0.057 | 0.40 | 0.187 |
+| f03 | 16 | 0.81 | 0.437 | 0.44 | 0.149 |
+| f04 | 128 | 0.72 | 0.055 | 0.64 | 0.016 |
+| f05 | 60 | 0.58 | 0.004 | 0.15 | -0.025 |
+| f06 | 46 | 0.52 | 0.092 | 0.39 | 0.127 |
+| f07 | 100 | 0.66 | -0.061 | 0.61 | 0.145 |
+| all | 412 | **0.66** | **0.039** | 0.50 | 0.100 |
+
+**Reading (descriptive, after the verdict):**
+- The pick admits 66% of trades, not ~50%: the added columns shift p_buy upward on the trades
+  relative to the validation tail the threshold is picked on.
+- At a matched within-fold median split (hindsight percentile, not a tradeable rule) the two models
+  rank the trades the same: gap 0.0665 (B32) vs 0.0645 (null); mean fold Spearman with trade pp 0.250
+  vs 0.253.
+- So raw8 adds no ranking information over ind24 on gbb_path, and through the operating point it
+  costs the sizer. This matches the 018 forward_mae result (both32 <= the better single set) and
+  is consistent with 035's inputs: nothing tried on the input side moves ARO's ranking.
+- Nothing trained beyond f07; no backtest; late half unread.
+
 ## Provenance
 
 - **Code:** `research/new_inputs/` (inputs, sources, build, causality, coverage, trades, screen,
