@@ -363,8 +363,11 @@ report blocked or shrunk entries per strategy and the combined P&L against the s
   current cap, with the paired and risk verdicts. The user can then decide whether a larger size
   is justified, and at what budget.
 - **SC-006**: With every new option off, existing arms reproduce their recorded results exactly.
-- **SC-007**: The live model's operating point (share of eligible trades above threshold) is
-  reported weekly. A drift outside 0.3–0.7 is flagged before the next retrain.
+- **SC-007**: The live model's operating point is reported weekly: the live BUY rate (the share of
+  candles with p_buy above the threshold) against the target rate 0.014735 its threshold was
+  picked for. A rate outside ×0.5–×2 of target is flagged before the next retrain. (Amended at
+  plan, research R11: the earlier 0.3–0.7 band was the sizer's 0.5-share measure, which the
+  control does not use.)
 
 ## Assumptions
 
