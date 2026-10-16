@@ -7,8 +7,8 @@ fire rate for raw signals, and on candidate bars the stratified AUC within the b
 guard_metric grid (edges from training-span candidate bars) beside the width sort.
 
 `--targets labels` runs the INSTRUMENT CHECK first (label:buy, all bars, gate halves E0 + early):
-guard_metric and bb_width must each be in the top 5 by median strength, or the screen writes
-{"instrument": "FAIL"} and exits 1. Late windows need the committed pre-registration (R15).
+guard_metric (down) and bb_width (up) must each have the expected direction and strength >= 0.15
+in every gate window (amended 2026-10-16), or the screen writes {"instrument": "FAIL"} and exits 1. Late windows need the committed pre-registration (R15).
 
 Window scores: user_data/data/indicator_screen/out/single_<targets>_<half>.feather (not committed).
 Summary: research/indicator_screen/single_<targets>.json.
@@ -105,8 +105,13 @@ def score_windows(panel, targets, windows, cols, pr) -> pd.DataFrame:
                 c["ea"] = S.quantile_edges(wg[WIDTH][tr], ngrid)
                 c["eb"] = S.quantile_edges(wg[GUARD][tr], ngrid)
                 c["a"], c["b"] = wg[WIDTH][idx], wg[GUARD][idx]
-            c["y"] = {t: targets.y(t, w)[idx] for t in targets.ids}
+            yfull = {t: targets.y(t, w) for t in targets.ids}
+            c["y"] = {t: v[idx] for t, v in yfull.items()}
             c["width_auc"] = dict(zip(targets.ids, S.auc_multi(wg[WIDTH][idx], list(c["y"].values()))))
+            if targets.market_wide:          # market-wide target x btc: column -> one row per timestamp
+                _, first = np.unique(panel.date[idx].asi8, return_index=True)
+                c["idx_d"] = idx[np.sort(first)]
+                c["y_d"] = {t: yfull[t][c["idx_d"]] for t in targets.market_wide}
             ctx[(w.id, pop)] = c
     recs = []
     for k in range(0, len(cols), CHUNK):
@@ -121,25 +126,14 @@ def score_windows(panel, targets, windows, cols, pr) -> pd.DataFrame:
                     tids = [t for t in targets.ids if col in targets.columns_for(t, [col])]
                     if not tids:
                         continue
-                    x = x_all[c["idx"]]
-                    ys = [c["y"][t] for t in tids]
-                    aucs = S.auc_multi(x, ys)
                     edges = None if sig else S.quantile_edges(x_all[c["train"]], bins)
-                    for t, y, a in zip(tids, ys, aucs):
-                        ok = np.isfinite(x) & np.isfinite(y)
-                        r = {"column": col, "target": t, "population": pop, "window": w.id,
-                             "half": w.half, "n_rows": int(ok.sum()), "n_pos": int((y[ok] > 0.5).sum()),
-                             "auc": a, "width_auc": c["width_auc"][t]}
-                        if sig:
-                            lf, rate, _ = S.lift(x, y, min_fires, max_rate)
-                            r.update(lift=lf, fire_rate=rate, mi_norm=S.mi_norm(x, y, [0.5]))
-                        else:
-                            r.update(lift=np.nan, fire_rate=np.nan, mi_norm=S.mi_norm(x, y, edges))
-                        if pop == "candidate":
-                            r["strat_auc"] = S.stratified_auc(x, y, c["a"], c["b"], c["ea"], c["eb"])
-                        else:
-                            r["strat_auc"] = np.nan
-                        recs.append(r)
+                    dedup = set(targets.market_wide) if col.startswith("btc:") else set()
+                    groups = [([t for t in tids if t not in dedup], c["idx"], c["y"], False),
+                              ([t for t in tids if t in dedup], c.get("idx_d"), c.get("y_d"), True)]
+                    for g_tids, g_idx, g_y, g_dedup in groups:
+                        if g_tids:
+                            _score_group(recs, col, sig, x_all[g_idx], g_tids, [g_y[t] for t in g_tids],
+                                         w, pop, c, edges, g_dedup, targets.kind, min_fires, max_rate)
         print(f"  scored {min(k + CHUNK, len(cols))}/{len(cols)} columns", flush=True)
     df = pd.DataFrame(recs)
     df["strength"] = (df["auc"] - 0.5).abs()
@@ -148,20 +142,50 @@ def score_windows(panel, targets, windows, cols, pr) -> pd.DataFrame:
     return df
 
 
+def _score_group(recs, col, sig, x, tids, ys, w, pop, c, edges, dedup, kind, min_fires, max_rate):
+    aucs = S.auc_multi(x, ys)
+    for t, y, a in zip(tids, ys, aucs):
+        ok = np.isfinite(x) & np.isfinite(y)
+        r = {"column": col, "target": t, "population": pop, "window": w.id,
+             "half": w.half, "n_rows": int(ok.sum()), "n_pos": int((y[ok] > 0.5).sum()),
+             "auc": a, "width_auc": c["width_auc"][t], "dedup": dedup}
+        if sig:
+            lf, rate, _ = S.lift(x, y, min_fires, max_rate)
+            r.update(lift=lf, fire_rate=rate, mi_norm=S.mi_norm(x, y, [0.5]))
+        else:
+            r.update(lift=np.nan, fire_rate=np.nan, mi_norm=S.mi_norm(x, y, edges))
+        # residual beyond bb_width + guard_metric (FR-015): label targets, candidate bars
+        if pop == "candidate" and kind == "labels":
+            r["strat_auc"] = S.stratified_auc(x, y, c["a"], c["b"], c["ea"], c["eb"])
+        else:
+            r["strat_auc"] = np.nan
+        recs.append(r)
+
+
 # ---------------------------------------------------------------------------- instrument
 
 
 def instrument(df: pd.DataFrame, pr: dict, halves) -> dict:
+    """The screen must recover the label's known inputs with the right sign: each instrument column
+    has its expected direction and strength >= min_strength in EVERY window of `halves`
+    (pre-registration amendment, 2026-10-16). The top-ranked columns are listed for the report."""
     ins = pr["instrument"]
     g = df[(df["target"] == ins["target"]) & (df["population"] == ins["population"])
-           & df["half"].isin(halves) & (df["n_rows"] >= pr["min_rows"])]
-    med = g.groupby("column")["strength"].median().sort_values(ascending=False)
+           & df["half"].isin(halves)]
+    med = g[g["n_rows"] >= pr["min_rows"]].groupby("column")["strength"].median().sort_values(ascending=False)
     rank = {c: int(i) + 1 for i, c in enumerate(med.index)}
-    top = list(med.index[: max(ins["top_k"], 10)])
-    ok = all(rank.get(c, 10**9) <= ins["top_k"] for c in ins["columns"])
-    return {"verdict": "PASS" if ok else "FAIL", "halves": list(halves),
-            "ranks": {c: rank.get(c) for c in ins["columns"]},
-            "top": [{"column": c, "median_strength": round(float(med[c]), 6)} for c in top]}
+    wins = sorted(g["window"].unique())
+    cols = {}
+    for c, want in ins["expected_direction"].items():
+        r = g[g["column"] == c].set_index("window")
+        per = {w: (round(float(r.at[w, "auc"]), 4) if w in r.index else None) for w in wins}
+        ok = all(v is not None and S.direction(v) == want and abs(v - 0.5) >= ins["min_strength"]
+                 and r.at[w, "n_rows"] >= pr["min_rows"] for w, v in per.items())
+        cols[c] = {"pass": bool(ok), "expected_direction": want, "rank": rank.get(c), "auc_by_window": per}
+    return {"verdict": "PASS" if wins and all(v["pass"] for v in cols.values()) else "FAIL",
+            "rule": f"expected direction and strength >= {ins['min_strength']} in every window",
+            "halves": list(halves), "windows": wins, "columns": cols,
+            "top": [{"column": c, "median_strength": round(float(med[c]), 6)} for c in med.index[:10]]}
 
 
 # ---------------------------------------------------------------------------- summary
@@ -226,7 +250,9 @@ def summarise(df: pd.DataFrame, pr: dict, baseline: pd.DataFrame | None = None) 
             "median_direction": agg["median_direction"], "same_direction_share": agg["same_direction_share"],
             "halves": halves, "median_mi_norm": _med(tests["mi_norm"]), "median_lift": _med(tests["lift"]),
             "median_fire_rate": _med(tests["fire_rate"]), "median_strat_auc": _med(tests["strat_auc"]),
-            "width_sort_auc": _med(tests["width_auc"]), "candidate_flags": flags})
+            "width_sort_auc": _med(tests["width_auc"]),
+            "baseline_auc": None if bl is None else _med([bl.get((t, pop, wid), np.nan) for wid in tests["window"]]),
+            "dedup": bool(g["dedup"].any()) if "dedup" in g else False, "candidate_flags": flags})
     return out
 
 
@@ -302,7 +328,8 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
             dfi = score_windows(panel, ins_t, [w for w in wins if w.half in gate], cols, pr)
             dfi = dfi[dfi["population"] == pr["instrument"]["population"]]
             verdict = instrument(dfi, pr, gate)
-            print(f"instrument ({'+'.join(gate)}): {verdict['verdict']} ranks {verdict['ranks']}", flush=True)
+            print(f"instrument ({'+'.join(gate)}): {verdict['verdict']} "
+                  f"{ {c: v['pass'] for c, v in verdict['columns'].items()} }", flush=True)
             if verdict["verdict"] == "FAIL":
                 summary_path.write_text(json.dumps({"instrument": "FAIL", "detail": verdict}, indent=1))
                 return 1
@@ -357,6 +384,7 @@ class _Only:
 
     def __init__(self, inner, target):
         self.inner, self.ids, self.kind = inner, (target,), inner.kind
+        self.market_wide = tuple(t for t in getattr(inner, "market_wide", ()) if t == target)
 
     def y(self, t, w):
         return self.inner.y(t, w)

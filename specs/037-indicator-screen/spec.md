@@ -322,8 +322,13 @@ applied.
 
 - **SC-001**: 100% of the indicator strategies in scope are either harvested or listed with a reason.
   Every harvested column has a recorded causality result.
-- **SC-002**: The instrument check passes: guard_metric and bb_width are each in the top 5 columns for
-  the BUY label on all bars, by median strength. It gates the feature on the early windows plus E0
+- **SC-002**: The instrument check passes: guard_metric (lower → BUY) and bb_width (higher → BUY) each
+  have the expected direction and a strength of at least 0.15 for the BUY label on all bars, in every
+  gate window. *(Amended 2026-10-16 after the first run failed the original rule, "each in the top 5
+  by median strength": guard_metric ranked 13 with a stable, correctly-signed AUC of 0.21–0.27. The
+  label uses guard_metric < 0.3 (RMI 65) only as a loose overbought veto that removes ~35% of bars,
+  so it cannot be expected to rank near the top. Approved by the user. The gbb candidate flag, which
+  had been scored as a column and ranked first, now only defines the candidate population.)* It gates the feature on the early windows plus E0
   (before the pre-registration); if it fails, the feature stops and reports the defect instead of
   findings. After the late windows are scored, it is re-run over all 15 test windows and reported
   as a confirmation.

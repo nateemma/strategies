@@ -1,0 +1,28 @@
+{
+ "target": "label:sell",
+ "signals": 76,
+ "rule": {
+  "min_windows": 6,
+  "uplift": 1.1,
+  "min_lift": 1.2,
+  "top_n": 20
+ },
+ "windows_read": [
+  "E0",
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "populations": {
+  "candidate": {
+   "n_pairs": 2850,
+   "n_passing_rule": 0,
+   "survivors": []
+  }
+ }
+}

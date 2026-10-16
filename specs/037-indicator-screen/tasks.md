@@ -148,7 +148,7 @@ residual strength; the instrument check gates everything.
   - a rerun is byte-identical (SC-007);
   - MI edges come from the train span (assert via a column whose train and test distributions differ);
   - a planted column that agrees early and late but flips in E0 is NOT a candidate (`e0_agrees` false).
-- [ ] T021 [US2] RUN `screen_single --targets labels --halves e0,early`. Record the instrument verdict. If it is FAIL: stop, diagnose, and report to the user before any further run task.
+- [X] T021 [US2] RUN `screen_single --targets labels --halves e0,early`. *(First run 2026-10-16: FAIL under the top-5 rule; rule amended with the user's approval (SC-002) and gbb_candidate removed from scored columns; re-run.)* Record the instrument verdict. If it is FAIL: stop, diagnose, and report to the user before any further run task.
 
 **Checkpoint**: instrument PASS; early and E0 label scores exist.
 
@@ -161,13 +161,13 @@ residual strength; the instrument check gates everything.
 - the confirmation is a single late pass;
 - model training rows end one purge before the test window.
 
-- [ ] T022 [P] [US3] Implement `research/indicator_screen/screen_pairs.py` (R9):
+- [X] T022 [P] [US3] Implement `research/indicator_screen/screen_pairs.py` (R9):
   - `--select`: all unordered pairs of `raw_buy:*` signals (for `label:sell`: `raw_sell:*`) with causality PASS, combined with AND; lift per early window and E0;
   - populations: candidate bars for label targets; all bars (primary) and candidate bars (secondary) for regime targets, lift for the top tercile (FR-016, FR-019);
   - apply the pre-registered selection rule (computable in ≥ min_windows early windows; median lift ≥ uplift × max(component lifts) and ≥ min_lift; top_n);
   - `--confirm`: survivors only, on late windows, after `late_lock()`; set `confirmed` = "yes" only if late passes AND E0 lift ≥ max(component E0 lifts), else "early+late only" or "no" (R9);
   - output `research/indicator_screen/pairs_<target>.json` (PairResult).
-- [ ] T023 [P] [US3] Implement `research/indicator_screen/screen_models.py` (R10):
+- [X] T023 [P] [US3] Implement `research/indicator_screen/screen_models.py` (R10):
   - `--target <id> --fold fNN`: training rows = candidate bars for label targets; for regime targets, all bars (primary; every 4th bar = hourly, with the purge applied in bars BEFORE subsampling) and candidate bars (secondary; not subsampled); filtered by `windows.train_rows_mask`;
   - A2 targets: training rows are A2 bars of test windows f00…f(k−1) ending ≥ N bars before test_start; f00 is written as `computable: false, reason: "A2: no prior test windows"` (R10);
   - fit the tree (depth 3) and the HGB model with the pre-registered settings on all columns, and on [bb_width, guard_metric] (`restricted`); score test AUC;
@@ -175,7 +175,7 @@ residual strength; the instrument check gates everything.
   - export the tree paths as text, plus the top split columns;
   - late folds require `late_lock()`;
   - `--merge` aggregates `research/indicator_screen/models/<target>/<fold>.json` into `models_<target>.json` with early/late medians, the candidate rule (full > restricted in both halves), the computable fold count, and `persistence: "distant era not tested"` on every candidate.
-- [ ] T024 [P] [US3] Tests in `research/indicator_screen/tests/test_screens.py` (combination part):
+- [X] T024 [P] [US3] Tests in `research/indicator_screen/tests/test_screens.py` (combination part):
   - a planted pair (A AND B = label) is selected and confirmed;
   - a pair is never scored on late windows during `--select` (assert the windows read);
   - `train_rows_mask` excludes the purge;
@@ -185,7 +185,7 @@ residual strength; the instrument check gates everything.
   - the hourly subsample never includes a row inside the purge (purge applied before subsampling);
   - an A2 model on f00 is written as not computable;
   - a planted pair confirmed early and late but failing E0 gets `confirmed: "early+late only"`.
-- [ ] T025 [US3] RUN `screen_pairs --target label:buy --select` and `screen_pairs --target label:sell --select` (early + E0 only).
+- [X] T025 [US3] RUN `screen_pairs --target label:buy --select` and `screen_pairs --target label:sell --select` (early + E0 only).
 
 ## Phase 6: User Story 4 — Regime screen (P2)
 
@@ -197,20 +197,20 @@ with the pair's own and BTC's indicator values and persistence baselines.
 - baselines use only [t−N, t) and closed trades;
 - tercile cut points come from the declared span.
 
-- [ ] T026 [US4] Extend `research/indicator_screen/targets.py` with the regime targets (R11):
+- [X] T026 [US4] Extend `research/indicator_screen/targets.py` with the regime targets (R11):
   - A1:N from `research/outcomes/table.load_table` (Open operating point) candidate rows, pooled mean profit over (t, t+N];
   - A2:N from `w_aro` trades (`evaluation/folds/plan_w_aro.json` arm records; loader pattern from `research/live_pnl/shared_wallet._fold_trades`), pooled mean `profit_ratio` over open times in (t, t+N];
   - B-btc/B-pair forward log return; C-btc/C-pair forward std of 15m log returns;
   - terciles with cut points from the fold's train span (A2: early test windows), top = 1, bottom = 0, middle dropped;
   - baselines over [t−N, t), using only trades that CLOSED before t for A1/A2.
-- [ ] T027 [US4] Add the BTC join: in `research/indicator_screen/screen_single.py`, and in the pair and model loaders, read BTC/USDT's cache columns and join them by date under the `btc:` prefix for regime targets (FR-020).
-- [ ] T028 [P] [US4] Tests in `research/indicator_screen/tests/test_targets.py` (regime part):
+- [X] T027 [US4] Add the BTC join: in `research/indicator_screen/screen_single.py`, and in the pair and model loaders, read BTC/USDT's cache columns and join them by date under the `btc:` prefix for regime targets (FR-020).
+- [X] T028 [P] [US4] Tests in `research/indicator_screen/tests/test_targets.py` (regime part):
   - changing any bar at or before t never changes the target at t, while changing a bar in (t, t+N] does;
   - changing a bar in [t, t+N] never changes the baseline at t;
   - an A1/A2 trade closing after t is excluded from the baseline;
   - tercile cut points come from the declared span;
   - A2 is not computable outside the w_aro test windows.
-- [ ] T029 [US4] Extend `screen_single --targets regime` to:
+- [X] T029 [US4] Extend `screen_single --targets regime` to:
   - score every target × horizon × {pair, btc} column set, on all bars (primary) and candidate bars (secondary) (FR-019);
   - for market-wide targets (A1, A2, B-btc, C-btc) × `btc:` columns, de-duplicate to one row per timestamp before scoring and set `dedup: true` (R11);
   - apply the E0 rule (`e0_agrees`); A2 gets `e0_agrees: null` ("distant era not tested");
@@ -230,7 +230,7 @@ with the pair's own and BTC's indicator values and persistence baselines.
 
 ## Phase 8: Polish & cross-cutting
 
-- [ ] T035 Implement `research/indicator_screen/report.py`:
+- [X] T035 Implement `research/indicator_screen/report.py`:
   - `report.md` with the instrument verdict, the exclusions and causality failures, and the top columns per target/population with halves;
   - redundancy groups, and the residual table with the width-sort baseline;
   - pair survivors, the model comparison per target (rules and recurring splits), and regime results against baselines;
@@ -238,7 +238,7 @@ with the pair's own and BTC's indicator values and persistence baselines.
   - the SCREEN label (FR-025) and the autocorrelation caveat for 3 d / 7 d regimes;
   - the instrument gate (E0 + early) and its 15-window confirmation;
   - a persistence column on every candidate: "E0 agrees", "early+late only", or "distant era not tested" (models, A2), with the note that a later backtest must cover 2022.
-- [ ] T036 [P] Tests in `research/indicator_screen/tests/test_report.py`: the report contains every SC-004 heading; empty lists render as "none"; the FR-025 SCREEN statement is present; every candidate row has a persistence value.
+- [X] T036 [P] Tests in `research/indicator_screen/tests/test_report.py`: the report contains every SC-004 heading; empty lists render as "none"; the FR-025 SCREEN statement is present; every candidate row has a persistence value.
 - [ ] T037 RUN `report`; verify SC-007 by re-running T032's label screen into a scratch path and diffing it byte for byte.
 - [ ] T038 Add a "Current state" note for 037 to `AGENT_GUIDE.md`, pointing to `research/indicator_screen/report.md` (FR-022). Add the project memory file `project_037_indicator_screen.md` plus its index line in `MEMORY.md`.
 - [ ] T039 Run the full suite (AGENT_GUIDE command with `research/indicator_screen/tests` added); confirm no failures. Check that both bots are alive, then commit (named files only).

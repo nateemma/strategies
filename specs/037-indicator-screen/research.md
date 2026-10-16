@@ -120,8 +120,10 @@ outcome-table population) on one fold per pair: the fire counts must be equal.
 - **Aggregation over windows:** the median, and the share of computable windows whose direction
   matches the median's. Windows with fewer than `min_rows` rows are reported but excluded from
   aggregation.
-- **Instrument check (SC-002):** the rank of guard_metric and bb_width by median strength for BUY on
-  all bars: the gate over f00–f07 + E0, the confirmation over f00–f14 (R15).
+- **Instrument check (SC-002, amended 2026-10-16):** for BUY on all bars, guard_metric must have
+  direction −1 and bb_width +1, each with strength ≥ 0.15 in every window: the gate over f00–f07 +
+  E0, the confirmation over f00–f14 (R15). The original top-5 rule failed on a correctly-signed
+  guard_metric (see spec SC-002). `base:gbb_candidate` is not a scored column.
 
 ## R7 — Residual strength beyond bb_width + guard_metric (FR-015)
 

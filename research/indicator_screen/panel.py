@@ -22,8 +22,9 @@ def scored_columns(include_btc: bool = False) -> list[str]:
     """Every harvested value / raw-signal column (causality FAILs were never cached)."""
     m = json.loads(H.MANIFEST.read_text())
     cols = [c["name"] for c in m["columns"]
-            if c["kind"] in ("value", "raw_buy", "raw_sell", "candidate") and c["causality"] != "FAIL"]
-    return cols + ([f"btc:{c}" for c in cols if c != "base:gbb_candidate"] if include_btc else [])
+            if c["kind"] in ("value", "raw_buy", "raw_sell") and c["causality"] != "FAIL"]
+    # base:gbb_candidate is NOT scored: it is the label's own entry rule and defines the population
+    return cols + ([f"btc:{c}" for c in cols] if include_btc else [])
 
 
 class Panel:
