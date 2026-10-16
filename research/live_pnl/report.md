@@ -88,3 +88,51 @@ Spec: `specs/036-realistic-nnnc-pnl/`. **Label: PROVISIONAL.**
   day is partial.
 - **A failed day** (e.g. a download refused while a chain runs) is logged and can be re-run with
   `zsh scripts/live_pnl_daily.sh YYYY-MM-DD`.
+
+## US4: NNNC and the momentum basket in one wallet (T032–T033, 2026-10-16)
+
+**DEPLOYMENT INFORMATION ONLY.** It changes no NNNC default. It is PROVISIONAL: one era, an
+approximate replay, and fold models that inherit the full-history scaler.
+
+**Runs (one chain, no training):**
+- `cap_aro_ref`: the NNNC control with current defaults, on the existing fold weights, 15/15 folds.
+  It sums to 56.47% of wallet over the folds; `wf_aro_g24`, with the held-pair add off, made 49.97.
+  It is also the US3 reference.
+- `mom_basket`: `MomentumRegimeBasket15mFast` on the same 15 test windows (static 75-pair universe,
+  `config_mom_15m.json`, model-free, via `regime.run_arm`). Fold f12 made 0 trades (risk-off).
+
+**Replay** (`research/live_pnl/shared_wallet.py`): every recorded fill of both books goes through
+one 10,000 USDT wallet per fold, in time order.
+- An order is cut to the free cash, and refused if that leaves it under 10 USDT.
+- Exits return their proceeds, so the wallet compounds as the basket's does.
+- A trade's P&L scales with its filled share.
+- **Control checks:** each book alone reproduces its own backtest exactly, with 0 refused (NNNC
+  5,646.6 = 5,646.6; basket 65,913 = 65,913).
+- **Two replay defects were found and fixed before these numbers,** each with a regression test:
+  - exits returned only the cost basis, so the compounding basket was starved;
+  - the 10 USDT minimum refused the basket's genuinely small top-up orders (35% of its orders are
+    under 10 USDT).
+
+| sum of folds (USDT) | NNNC alone | NNNC shared | basket alone | basket shared | both, 2 wallets | both, 1 wallet |
+|---|---|---|---|---|---|---|
+| early f00–f07 | 3,847 | 2,089 | 46,965 | 46,621 | 50,812 | 48,710 |
+| late f08–f14 | 1,799 | 1,389 | 18,948 | 18,724 | 20,747 | 20,113 |
+| all | 5,647 | 3,477 | 65,913 | 65,344 | 71,559 | 68,821 |
+
+**Reading:**
+- **The basket crowds NNNC out; NNNC barely touches the basket.**
+  - Shared, NNNC loses 38% of its P&L (2,170 USDT): 214 of 1,237 entry orders were refused and 154
+    shrunk, because the basket is fully invested whenever it is risk-on.
+  - The basket loses 0.9%.
+  - The loss is larger early (−46%) than late (−23%).
+- **Per unit of capital, one wallet is far better:** 68,821 on 10,000, against 71,559 on 20,000
+  for two wallets. The one wallet keeps 96% of the two-wallet P&L with half the capital.
+- **Priority barely matters.** With the basket first on same-time clashes, NNNC gets 3,439
+  instead of 3,477.
+- **The scale of the basket's returns** (+294% in f04; summed +659%) comes with large drawdowns,
+  up to 63.6% in f05. Those risk numbers are the basket's own and are unchanged by sharing.
+- **Approximations:**
+  - a refused NNNC entry would have left its pair free for a later signal the archive does not
+    hold;
+  - shrinks are spread evenly over a trade's lots;
+  - fees on scaled fills are taken as proportional.

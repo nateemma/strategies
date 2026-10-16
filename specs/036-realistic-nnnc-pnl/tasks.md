@@ -302,10 +302,10 @@ and risk verdicts per budget.
 **Independent Test**: the shared-wallet report lists blocked and shrunk entries per strategy and
 the combined P&L against the sum.
 
-- [ ] T032 [US4] Check whether fold-range backtests of `MomentumRegimeBasket15mFast` exist. If
+- [X] T032 [US4] Check whether fold-range backtests of `MomentumRegimeBasket15mFast` exist. If
   not, create the plan `evaluation/folds/plan_mom_basket.json` (no_model; the same 15 test ranges;
   config `config_mom_15m.json`, a static 75-pair universe) and run it (one chain).
-- [ ] T033 [US4] Replay `cap_aro_ref` and the momentum basket through `evaluation/books.py
+- [X] T033 [US4] Replay `cap_aro_ref` and the momentum basket through `evaluation/books.py
   --shared-wallet`, and write `research/live_pnl/shared_wallet.json`. Add a `report.md` "Shared
   wallet (deployment information)" section that changes no default.
 

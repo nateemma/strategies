@@ -1,0 +1,444 @@
+{
+ "label": "036 US4 shared wallet -- DEPLOYMENT INFORMATION ONLY (PROVISIONAL; order-level replay, approximate: shrink spread over lots, refused entries not re-sequenced)",
+ "capacity_usdt": 10000.0,
+ "priority": [
+  "cap_aro_ref",
+  "mom_basket"
+ ],
+ "summary": {
+  "early": {
+   "cap_aro_ref": {
+    "separate_usdt": 3847.06,
+    "shared_usdt": 2088.6,
+    "lost_usdt": 1758.46,
+    "orders": 650,
+    "refused": 164,
+    "shrunk": 121
+   },
+   "mom_basket": {
+    "separate_usdt": 46965.07,
+    "shared_usdt": 46620.68,
+    "lost_usdt": 344.39,
+    "orders": 5910,
+    "refused": 42,
+    "shrunk": 19
+   },
+   "total": {
+    "separate_usdt (two wallets)": 50812.13,
+    "shared_usdt (one wallet)": 48709.28,
+    "shared_pct_of_one_wallet": 487.09,
+    "separate_pct_of_two_wallets": 254.06
+   }
+  },
+  "late": {
+   "cap_aro_ref": {
+    "separate_usdt": 1799.49,
+    "shared_usdt": 1388.53,
+    "lost_usdt": 410.96,
+    "orders": 587,
+    "refused": 50,
+    "shrunk": 33
+   },
+   "mom_basket": {
+    "separate_usdt": 18947.82,
+    "shared_usdt": 18723.66,
+    "lost_usdt": 224.16,
+    "orders": 2972,
+    "refused": 10,
+    "shrunk": 3
+   },
+   "total": {
+    "separate_usdt (two wallets)": 20747.31,
+    "shared_usdt (one wallet)": 20112.19,
+    "shared_pct_of_one_wallet": 201.12,
+    "separate_pct_of_two_wallets": 103.74
+   }
+  },
+  "all": {
+   "cap_aro_ref": {
+    "separate_usdt": 5646.56,
+    "shared_usdt": 3477.13,
+    "lost_usdt": 2169.43,
+    "orders": 1237,
+    "refused": 214,
+    "shrunk": 154
+   },
+   "mom_basket": {
+    "separate_usdt": 65912.89,
+    "shared_usdt": 65344.34,
+    "lost_usdt": 568.55,
+    "orders": 8882,
+    "refused": 52,
+    "shrunk": 22
+   },
+   "total": {
+    "separate_usdt (two wallets)": 71559.45,
+    "shared_usdt (one wallet)": 68821.47,
+    "shared_pct_of_one_wallet": 688.21,
+    "separate_pct_of_two_wallets": 357.8
+   }
+  }
+ },
+ "per_fold": {
+  "f00": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 400.85,
+     "shared": 71.71
+    },
+    "mom_basket": {
+     "separate": 2555.26,
+     "shared": 2437.47
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 52,
+     "refused": 17,
+     "shrunk": 18
+    },
+    "mom_basket": {
+     "orders": 645,
+     "refused": 2,
+     "shrunk": 2
+    }
+   }
+  },
+  "f01": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 139.49,
+     "shared": 133.51
+    },
+    "mom_basket": {
+     "separate": -1354.94,
+     "shared": -1354.94
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 21,
+     "refused": 0,
+     "shrunk": 1
+    },
+    "mom_basket": {
+     "orders": 724,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f02": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 234.82,
+     "shared": 232.23
+    },
+    "mom_basket": {
+     "separate": 139.3,
+     "shared": 129.09
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 22,
+     "refused": 1,
+     "shrunk": 0
+    },
+    "mom_basket": {
+     "orders": 505,
+     "refused": 2,
+     "shrunk": 1
+    }
+   }
+  },
+  "f03": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 463.57,
+     "shared": 394.97
+    },
+    "mom_basket": {
+     "separate": 6487.8,
+     "shared": 6542.19
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 100,
+     "refused": 14,
+     "shrunk": 20
+    },
+    "mom_basket": {
+     "orders": 865,
+     "refused": 11,
+     "shrunk": 3
+    }
+   }
+  },
+  "f04": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 525.81,
+     "shared": 50.04
+    },
+    "mom_basket": {
+     "separate": 29378.59,
+     "shared": 29619.01
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 112,
+     "refused": 46,
+     "shrunk": 21
+    },
+    "mom_basket": {
+     "orders": 923,
+     "refused": 14,
+     "shrunk": 1
+    }
+   }
+  },
+  "f05": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 530.58,
+     "shared": 255.29
+    },
+    "mom_basket": {
+     "separate": -6356.34,
+     "shared": -6264.95
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 84,
+     "refused": 19,
+     "shrunk": 15
+    },
+    "mom_basket": {
+     "orders": 732,
+     "refused": 7,
+     "shrunk": 3
+    }
+   }
+  },
+  "f06": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 447.7,
+     "shared": 447.7
+    },
+    "mom_basket": {
+     "separate": -863.04,
+     "shared": -863.04
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 51,
+     "refused": 0,
+     "shrunk": 0
+    },
+    "mom_basket": {
+     "orders": 501,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f07": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 1104.24,
+     "shared": 503.14
+    },
+    "mom_basket": {
+     "separate": 16978.44,
+     "shared": 16375.85
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 208,
+     "refused": 67,
+     "shrunk": 46
+    },
+    "mom_basket": {
+     "orders": 1015,
+     "refused": 6,
+     "shrunk": 9
+    }
+   }
+  },
+  "f08": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 398.62,
+     "shared": -5.83
+    },
+    "mom_basket": {
+     "separate": -3146.32,
+     "shared": -3090.8
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 180,
+     "refused": 36,
+     "shrunk": 20
+    },
+    "mom_basket": {
+     "orders": 566,
+     "refused": 2,
+     "shrunk": 2
+    }
+   }
+  },
+  "f09": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 458.34,
+     "shared": 452.99
+    },
+    "mom_basket": {
+     "separate": 4755.99,
+     "shared": 4755.99
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 46,
+     "refused": 0,
+     "shrunk": 1
+    },
+    "mom_basket": {
+     "orders": 655,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f10": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 19.43,
+     "shared": 52.41
+    },
+    "mom_basket": {
+     "separate": 4464.54,
+     "shared": 4464.54
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 22,
+     "refused": 6,
+     "shrunk": 8
+    },
+    "mom_basket": {
+     "orders": 859,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f11": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 472.37,
+     "shared": 472.37
+    },
+    "mom_basket": {
+     "separate": 6895.22,
+     "shared": 6895.22
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 183,
+     "refused": 0,
+     "shrunk": 0
+    },
+    "mom_basket": {
+     "orders": 233,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f12": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": -7.25,
+     "shared": -7.25
+    },
+    "mom_basket": {
+     "separate": 0.0,
+     "shared": 0.0
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 50,
+     "refused": 0,
+     "shrunk": 0
+    },
+    "mom_basket": {
+     "orders": 0,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f13": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 248.46,
+     "shared": 247.63
+    },
+    "mom_basket": {
+     "separate": 1752.67,
+     "shared": 1752.67
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 74,
+     "refused": 0,
+     "shrunk": 1
+    },
+    "mom_basket": {
+     "orders": 518,
+     "refused": 0,
+     "shrunk": 0
+    }
+   }
+  },
+  "f14": {
+   "pnl": {
+    "cap_aro_ref": {
+     "separate": 209.52,
+     "shared": 176.2
+    },
+    "mom_basket": {
+     "separate": 4225.72,
+     "shared": 3946.04
+    }
+   },
+   "stats": {
+    "cap_aro_ref": {
+     "orders": 32,
+     "refused": 8,
+     "shrunk": 3
+    },
+    "mom_basket": {
+     "orders": 141,
+     "refused": 8,
+     "shrunk": 1
+    }
+   }
+  }
+ }
+}
