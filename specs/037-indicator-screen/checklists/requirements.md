@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Two [NEEDS CLARIFICATION] markers in FR-011 (regime horizons; strategy-outcome source for regime A),
-  awaiting the user's answers.
+- Clarifications resolved 2026-10-16: Q1 = 12 h / 3 d / 7 d regime horizons; Q2 = regime A from both
+  the gbb-trigger outcome table and the width-book trades.
 - Research terms (AUC, mutual information, gbb trigger, walk-forward fold) are the project's domain
   vocabulary, not implementation detail; the readers are the researcher and later agents.

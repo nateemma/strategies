@@ -12,7 +12,8 @@ a variant that contains all of the indicators used, and labels from one of the f
 labels [...] What I would like to see is a study of whether any of the indicators correlate to the
 buy/sell signals. Maybe test with gbb_path, because we know the answer is at guard_metric and bb_width
 (and probably correlated indicators). [...] another useful study would be the same thing, but correlated
-to market regime (so that we can see if we can find a decent regime identification metric)." Follow-ups:
+to market regime (so that we can see if we can find a decent regime identification metric)." Clarifications (2026-10-16): Q1 = regime horizons 12 h, 3 d and 7 d;
+Q2 = regime A reported from both the gbb-trigger outcome table and the width-book trades. Follow-ups:
 all three regime definitions (strategy outcome, market direction, volatility) are in scope; no entry or
 exit guards; combinations of indicators are in scope. Draft:
 `research/indicator_screen/spec_037_draft.md`.
@@ -228,10 +229,14 @@ applied.
 - **FR-010**: The candidate population MUST be the bars where the gbb trigger fires.
   - The trigger is the registered one, including its own conditions.
   - It is not a guard: it defines which bars are asked about, and Story 2 also scores all bars.
-- **FR-011**: Regime targets MUST be defined for definitions A, B and C at the horizons N in [NEEDS
-  CLARIFICATION: horizons]. Each is the top vs bottom tercile of the forward quantity, with tercile
-  cut points fixed per fold on training data. For definition A, the outcome is [NEEDS CLARIFICATION:
-  strategy-outcome source].
+- **FR-011**: Regime targets MUST be defined for definitions A, B and C at the horizons N = 12 h
+  (48 bars, equal to the gbb_path label horizon), 3 days and 7 days.
+  - Each target is the top vs bottom tercile of the forward quantity, with tercile cut points fixed
+    per fold on training data.
+  - Definition A is reported from two outcome sources, side by side:
+    - (A1) every gbb-trigger bar's realised outcome from the per-bar outcome table (Open exit);
+    - (A2) the recorded width-book backtest trades. A period with no width-book trade is "not
+      computable" for A2, and per-window computable counts are reported.
 
 **Scores**
 - **FR-012**: For every column and target, the screen MUST report: rank strength and direction (AUC);
@@ -333,6 +338,9 @@ applied.
 - **Combination model sizes:** the rule model is limited to at most 3 conditions per path, for
   readability. The flexible model uses standard settings fixed in the pre-registration, not tuned per
   fold beyond what the training window alone supports.
+- **Regime horizon vs label horizon:** the regime horizon is separate from the label horizon
+  (`TrainingConfig.HORIZON` = 48 bars = 12 h). The 12 h regime horizon is a bridge: regime A at 12 h
+  should behave like a smoothed gbb_path label. The 3 d and 7 d horizons are the regime question proper.
 - **Regime targets:** they use the same 15m bars, aggregated forward over N days. BTC values come from
   the BTC/USDT series on the same exchange.
 - **Load:** the work is CPU-light compared with training, so it can run while the live bots record.
