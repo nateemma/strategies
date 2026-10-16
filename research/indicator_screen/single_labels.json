@@ -1,0 +1,56 @@
+{
+ "instrument": "FAIL",
+ "detail": {
+  "verdict": "FAIL",
+  "halves": [
+   "e0",
+   "early"
+  ],
+  "ranks": {
+   "base:guard_metric": 13,
+   "base:bb_width": 2
+  },
+  "top": [
+   {
+    "column": "base:gbb_candidate",
+    "median_strength": 0.457683
+   },
+   {
+    "column": "base:bb_width",
+    "median_strength": 0.403123
+   },
+   {
+    "column": "LWBreakout:level_pct_diff",
+    "median_strength": 0.311891
+   },
+   {
+    "column": "base:atr_pct",
+    "median_strength": 0.304437
+   },
+   {
+    "column": "base:gain",
+    "median_strength": 0.297339
+   },
+   {
+    "column": "base:roc",
+    "median_strength": 0.297337
+   },
+   {
+    "column": "VBM:vbm",
+    "median_strength": 0.294916
+   },
+   {
+    "column": "EWO:ewo",
+    "median_strength": 0.292948
+   },
+   {
+    "column": "COPP:copp",
+    "median_strength": 0.288674
+   },
+   {
+    "column": "base:atr_pct_roll",
+    "median_strength": 0.273784
+   }
+  ]
+ }
+}

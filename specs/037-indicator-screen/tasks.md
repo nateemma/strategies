@@ -21,8 +21,8 @@ correctness is the feature (Constitution IV, SC-007).
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the package `research/indicator_screen/__init__.py` and `research/indicator_screen/tests/__init__.py`, and add `research/indicator_screen/tests` to the full-suite command in `AGENT_GUIDE.md`.
-- [ ] T002 Write `research/indicator_screen/preregistration.json` as a DRAFT (not yet committed as the lock) with the data-model.md fields:
+- [X] T001 Create the package `research/indicator_screen/__init__.py` and `research/indicator_screen/tests/__init__.py`, and add `research/indicator_screen/tests` to the full-suite command in `AGENT_GUIDE.md`.
+- [X] T002 Write `research/indicator_screen/preregistration.json` as a DRAFT (not yet committed as the lock) with the data-model.md fields:
   - `min_rows`, `min_fires`, `max_fire_rate` 0.95;
   - instrument `{top_k: 5, columns: [guard_metric, bb_width]}`;
   - pairs `{min_windows: 6, uplift: 1.10, min_lift: 1.20, top_n: 20}`;
@@ -33,24 +33,24 @@ correctness is the feature (Constitution IV, SC-007).
 
 ## Phase 2: Foundational (blocks all stories)
 
-- [ ] T003 [P] Implement `research/indicator_screen/windows.py`:
+- [X] T003 [P] Implement `research/indicator_screen/windows.py`:
   - the 15 folds from `evaluation/folds/plan_wf_aro_g24.json`, giving test/train spans and half early (f00–f07) / late (f08–f14);
   - the era `E0` = 2021-04-01 → 2022-12-31 (no train span);
   - `purge(target)` (48 bars for labels, N for regime targets);
   - `train_rows_mask(dates, fold, target)` (`date < test_start − purge`, after the 1,000-bar warm-up);
   - `late_lock()`: refuses unless `preregistration.json` is committed in git with no working-tree diff (R15).
-- [ ] T004 [P] Tests for T003 in `research/indicator_screen/tests/test_windows.py`:
+- [X] T004 [P] Tests for T003 in `research/indicator_screen/tests/test_windows.py`:
   - fold spans match the plan;
   - E0 has no train span;
   - purge excludes the last N bars before test_start;
   - `late_lock` refuses for uncommitted, modified and missing files (using a temporary git repo).
-- [ ] T005 [P] Implement `research/indicator_screen/scores.py`:
+- [X] T005 [P] Implement `research/indicator_screen/scores.py`:
   - rank AUC (Mann–Whitney, ties averaged), direction, strength;
   - binned normalised MI, given bin edges (20 quantile edges supplied by the caller);
   - lift and fire rate, with `min_fires` / `max_fire_rate` → not computable;
   - stratified AUC on a 5 × 5 grid with n_pos × n_neg weights (R7);
   - window aggregation: median, same-direction share, `min_rows` exclusion, halves e0/early/late (R6).
-- [ ] T006 [P] Tests for T005 in `research/indicator_screen/tests/test_scores.py`:
+- [X] T006 [P] Tests for T005 in `research/indicator_screen/tests/test_scores.py`:
   - AUC equals `sklearn.metrics.roc_auc_score` on random data;
   - a perfectly separating column gives AUC 1 and MI_norm 1;
   - an independent column gives MI ≈ 0;
@@ -69,17 +69,17 @@ correctness is the feature (Constitution IV, SC-007).
 - raw signals equal the class's own pre-filter signals;
 - every kept column passes truncation.
 
-- [ ] T007 [P] [US1] Implement `research/indicator_screen/discover.py` (R2):
+- [X] T007 [P] [US1] Implement `research/indicator_screen/discover.py` (R2):
   - import every module in `SimpleStrategies/`;
   - keep concrete subclasses of `SimpleStrategy`, excluding `TriggerOnlyStrategy` subclasses and the trigger arms (`Breakout*Open`, `Gbb*Open`, `GeometryOpen`);
   - return `ClassEntry` items plus `excluded` with reason ∈ {trigger_arm, import_error};
   - CLI `discover [--json]`.
-- [ ] T008 [P] [US1] Implement `research/indicator_screen/overrides.py` (R1 table):
+- [X] T008 [P] [US1] Implement `research/indicator_screen/overrides.py` (R1 table):
   - `ehlers_triggers`: calls the class's own `get_cycle_entry_trigger`, `get_trend_entry_trigger`, `get_cycle_exit_trigger` and `get_trend_exit_trigger` after its `get_entry_signals` has populated the Ehlers columns with `atr_ok = True`; emits 4 raw signals;
   - `force_trend_mode` (BBBreakout): calls `get_entry_signals` / `get_exit_signals` with the `trend_mode` column forced to 1, then to 0, giving variants `tm1` / `tm0`;
   - `ichimoku_switches`: sets `entry_use_cloud_thickness` and `entry_use_htf_filter` to False on the instance;
   - a registry mapping class → override; the default is a plain `get_entry_signals` / `get_exit_signals` call.
-- [ ] T009 [US1] Implement `research/indicator_screen/harvest.py` (R1, R13):
+- [X] T009 [US1] Implement `research/indicator_screen/harvest.py` (R1, R13):
   - load classes via `StrategyResolver` (pattern `evaluation/pick_threshold._load_fold_context`) with `config/config_wf.json`;
   - build the base frame once per pair (`DataframePopulator.add_indicators(MINIMAL)` + `SimpleStrategy.add_additional_indicators`);
   - per class: copy the base, set `atr_ok = True`, apply the override, collect the new columns as `<class>:<col>` and the raw signals as `raw_buy:<class>[:variant]` / `raw_sell:...` (int8);
@@ -89,16 +89,16 @@ correctness is the feature (Constitution IV, SC-007).
   - write the feather to `user_data/data/indicator_screen/<PAIR>.feather` plus the sidecar JSON with `code_sha`, and update `research/indicator_screen/manifest.json`;
   - CLI `harvest --pair <PAIR|BTC/USDT|all> [--force]` and `--time-one <PAIR>`;
   - the running-chain refusal reuses the `ps` check from `research/live_pnl/parity.py`.
-- [ ] T010 [US1] Implement `research/indicator_screen/causality.py` (R12):
+- [X] T010 [US1] Implement `research/indicator_screen/causality.py` (R12):
   - an adapter over `research.outcomes.causality`'s slices and cut scheme: populate = harvest one frame; compare every column up to each cut (NaN == NaN, relative tolerance 1e-9);
   - write `research/indicator_screen/causality.json` and set `causality` / `first_mismatch` in `manifest.json`;
   - the harvest drops FAIL columns from the cache and records them excluded with reason `lookahead`.
-- [ ] T011 [P] [US1] Tests in `research/indicator_screen/tests/test_discover.py` and `research/indicator_screen/tests/test_overrides.py`:
+- [X] T011 [P] [US1] Tests in `research/indicator_screen/tests/test_discover.py` and `research/indicator_screen/tests/test_overrides.py`:
   - discovery includes CCI, Combo, Ehlers_BB and BBBreakout, and excludes GbbOpen and BreakoutVolOpen with `trigger_arm`;
   - each override CHANGES the signal relative to the as-built `get_entry_signals` on a real 2,000-bar SOL slice (Principle IV);
   - the BBBreakout `tm1 | tm0` union equals a version whose trend_mode alternates, exercising the class's own code path;
   - Ichimoku with the switches off differs from switches on whenever the cloud filter would bind.
-- [ ] T012 [P] [US1] Tests in `research/indicator_screen/tests/test_harvest.py` and `research/indicator_screen/tests/test_causality.py`:
+- [X] T012 [P] [US1] Tests in `research/indicator_screen/tests/test_harvest.py` and `research/indicator_screen/tests/test_causality.py`:
   - for CCI on a slice, the harvested `raw_buy:CCI` equals `CCI().get_entry_signals(frame)` exactly, and no SimpleStrategy filter column (`atr_ok`, `market_state`, …) changes it;
   - aliases are detected;
   - a constant column is excluded;
@@ -106,18 +106,18 @@ correctness is the feature (Constitution IV, SC-007).
   - the causality adapter flags a planted centred rolling mean, and passes a trailing one;
   - all 24 ARO `include_list` columns are present (as `aro:` or as an alias) and equal the control's frame on one fold (FR-006);
   - `base:gbb_candidate`'s fire count per pair equals the ARO control's candidate count on the same fold span (R5).
-- [ ] T013 [P] [US1] Implement `SimpleStrategies/AllIndicators.py` (R14):
+- [X] T013 [P] [US1] Implement `SimpleStrategies/AllIndicators.py` (R14):
   - a `SimpleStrategy` subclass whose `populate_indicators` calls the harvest functions for the pair;
   - `populate_entry_trend` / `populate_exit_trend` set no signals;
   - parameter dicts merged from the parent;
   - add `AllIndicators` to `research/indicator_screen/discover.py`'s exclusions (reason `harvest_wrapper`).
-- [ ] T014 [US1] RUN the cost gate:
+- [X] T014 [US1] RUN the cost gate:
   - `harvest --time-one SOL/USDT`; record per-class times in `research/indicator_screen/manifest.json` (`timing`);
   - if the total for 11 frames exceeds about 3 h, stop and report the slow classes before continuing.
-- [ ] T015 [US1] RUN `causality`; then `harvest --pair all` (10 pairs + BTC/USDT). Confirm:
+- [X] T015 [US1] RUN `causality`; then `harvest --pair all` (10 pairs + BTC/USDT). Confirm:
   - `manifest.json` lists every class as harvested or excluded with a reason (SC-001);
   - both bots are alive.
-- [ ] T016 [US1] Plot check: run `freqtrade plot-dataframe -s AllIndicators -c user_data/strategies/config/config_wf.json -p SOL/USDT --timerange 20250101-20250115` (outer repo root) and confirm the HTML is written. The plot is not committed.
+- [X] T016 [US1] Plot check: run `freqtrade plot-dataframe -s AllIndicators -c user_data/strategies/config/config_wf.json -p SOL/USDT --timerange 20250101-20250115` (outer repo root) and confirm the HTML is written. The plot is not committed.
 
 **Checkpoint**: the harvest is complete, causal and cached.
 
@@ -128,12 +128,12 @@ residual strength; the instrument check gates everything.
 
 **Independent test**: the instrument check passes; every column has early and E0 scores.
 
-- [ ] T017 [US2] Implement the label part of `research/indicator_screen/targets.py` (R4):
+- [X] T017 [US2] Implement the label part of `research/indicator_screen/targets.py` (R4):
   - `label:buy` / `label:sell` from the ARO control class `NNNC_A_Raw_Open` with the `wf_aro_g24` params snapshot, via `get_training_labels` on each pair's full-range frame;
   - the last 48 bars are NaN;
   - stored into the harvest cache as `label:buy` / `label:sell` (a harvest step, re-run without recomputing indicators).
-- [ ] T018 [P] [US2] Test in `research/indicator_screen/tests/test_targets.py`: full-range labels equal the per-fold labels from `research/label_screen/audit._frames(control class, "f03")` for every pair on that fold's span (R4). Mark it `slow` if it exceeds 60 s, but keep it in the suite.
-- [ ] T019 [US2] Implement `research/indicator_screen/screen_single.py` for `--targets labels`:
+- [X] T018 [P] [US2] Test in `research/indicator_screen/tests/test_targets.py`: full-range labels equal the per-fold labels from `research/label_screen/audit._frames(control class, "f03")` for every pair on that fold's span (R4). Mark it `slow` if it exceeds 60 s, but keep it in the suite.
+- [X] T019 [US2] Implement `research/indicator_screen/screen_single.py` for `--targets labels`:
   - per window × column × target × population: AUC, MI (edges from the fold's train span; E0 edges from itself, flagged `self`), lift/fire rate for raw signals, and stratified AUC on candidate bars with grid edges from the train-span candidate bars;
   - aggregation per R6, plus `width_sort_auc` (bb_width's AUC on the same rows);
   - instrument check first: the top-5 rule from `preregistration.json` on `label:buy` / all bars over `instrument_gate_halves` (E0 + early). On failure, write `{"instrument": "FAIL", ...}` to `single_labels.json` and exit 1. When `late` is scored, re-run it over f00–f14 and store it as `instrument_confirm` (SC-002);
@@ -141,7 +141,7 @@ residual strength; the instrument check gates everything.
   - redundancy (R8): Spearman on a seed-0 sample of 200,000 early candidate bars, average linkage on 1 − |ρ| cut at 0.8, plus `rho_guard` / `rho_width` on all bars and on candidate bars;
   - `--halves` respected; `late` calls `windows.late_lock()`;
   - output `research/indicator_screen/single_labels.json` (data-model ScreenResult and WindowScore).
-- [ ] T020 [P] [US2] Tests in `research/indicator_screen/tests/test_screens.py` (single part), using a synthetic 3-pair cache fixture:
+- [X] T020 [P] [US2] Tests in `research/indicator_screen/tests/test_screens.py` (single part), using a synthetic 3-pair cache fixture:
   - a planted column that equals the label ranks first;
   - the instrument check FAILs when guard_metric is shuffled;
   - `late` is refused without the lock;
