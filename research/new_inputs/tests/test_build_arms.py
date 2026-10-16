@@ -98,3 +98,30 @@ def test_null_arm_is_the_control_pipeline_with_nothing_added():
         assert a.NEW_INPUTS == () and a.include_list == b.include_list
         assert a.pre_normalized_columns == b.pre_normalized_columns
     assert TRN.refusals("NULL", {"f00"}, [], None) == []
+
+
+def test_both32_adds_raw8_and_composes_the_scalers_exactly():
+    import numpy as np
+    import pandas as pd
+    from sklearn.preprocessing import RobustScaler
+
+    from evaluation.fingerprint import load_strategy_class
+    from research.new_inputs import both32_scaler as BS
+    from research.new_inputs import train as TRN
+
+    from _raw8_features import RAW8_COLUMNS
+
+    if (STRAT / "NNNC" / "NNNC_NI_B32.py").is_file():
+        a, b = load_strategy_class("NNNC_NI_B32"), load_strategy_class("NNNC_A_Raw_Open")
+        assert a.include_list == list(b.include_list) + list(RAW8_COLUMNS)
+        assert a.pre_normalized_columns == b.pre_normalized_columns
+    assert TRN.refusals("B32", {"f00"}, [], None) == []
+    assert TRN.refusals("B32", {"f08"}, [], None)
+
+    rng = np.random.default_rng(0)
+    xa = pd.DataFrame(rng.normal(size=(40, 2)), columns=["a", "b"])
+    xb = pd.DataFrame(rng.normal(size=(40, 3)), columns=["c", "d", "e"])
+    sa, sb = RobustScaler().fit(xa), RobustScaler().fit(xb)
+    comp = BS.compose([sa, sb])
+    x = pd.concat([xa, xb], axis=1)
+    assert np.array_equal(comp.transform(x), np.hstack([sa.transform(xa), sb.transform(xb)]))

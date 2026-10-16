@@ -1,0 +1,25 @@
+{
+ "title": "035 follow-up: both32 (ARO's 24 indicators + GBR's 8 raw-price features) on gbb_path, ARO, f00-f07",
+ "date": "2026-10-15",
+ "parents": ["preregistration.json", "preregistration_null.json"],
+ "label": "S2 screen, one seed; nothing adopted or promoted here",
+ "question": "Does adding raw8 (ret1, ret4, log_hc, log_lc, log_oc, range, logvol_z, vol_ratio) to ARO's 24 indicators sharpen the model's ranking of the early width-book trades? 018 tested both32 only on forward_mae (MCC; worse than raw8 on 7/8 archs). On gbb_path ARO (ind24) beats GBR (raw8) as a sizer, 0.100 vs 0.013, and raw8 cannot see bb_width, which defines the label.",
+ "arms": {
+  "training": "NNNC_NI_B32 = Both32Mixin + NNNC_A_Raw_Open; include_list = ARO's 24 + RAW8_COLUMNS",
+  "sizer": "NNNC_NI_B32_SZ = Both32Mixin + NNNC_CS_ARO (same model key ff6a1116054dc145)"
+ },
+ "identity": "label, classifier (LSTM_RAW), seq_len, params, seed 1, training plan = the control's (plan_wf_aro_g24 copy, identical to plan_ni_null apart from names). Model-key diff vs ARO: include_list, main_scaler_name, files.main_scaler, methods.add_additional_indicators -- nothing else.",
+ "scaler": "main_scaler_both32 = exact composite of main_scaler (ARO's 6 columns) and main_scaler_fwdmae_raw8 (raw8's 8), per-column centre/scale unchanged; nothing refitted (research/new_inputs/both32_scaler.py). raw8 columns are scaled exactly as in GBR, ARO's columns exactly as in ARO.",
+ "instrument": "as 035 S2: 0.5-share sizer thresholds picked on each fold's validation tail (control_sizer.pick --plan plan_ni_b32_sz.json, one fold per process, --verify), gap = mean pp(agree) - mean pp(disagree) on the 412 early width-book trades (research.new_inputs.separation --tags B32)",
+ "reference": {"control_at_share": 0.1003, "null_retrain": 0.1003},
+ "rule": {
+  "S2_pass": "gap > 0.1003 AND <= 2 of 8 folds degenerate (agree share 0 or 1)",
+  "small_margin": "a pass by < 0.02 is recorded as PASS (small margin) and needs a seed-2 repeat before S3",
+  "on_pass": "S3: train f08-f14, picks, backtest NNNC_NI_B32_SZ on all 15 folds vs cs_aro, w_aro, wf_aro_g24 with judge_one; late half read only then",
+  "on_fail": "stop; report the gap, per-fold gaps and agree shares; late half unread"
+ },
+ "disclosed": [
+  "ARO S2 gaps for MS_VR/MS_BV/OF_TRG (0.036/0.044/0.034) and the null (0.1003) were read before this file",
+  "the 018 forward_mae both32 MCC table was read before this file"
+ ]
+}

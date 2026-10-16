@@ -47,10 +47,12 @@ def survivors(model: str = "ARO") -> list[str]:
 
 def table_plans() -> dict:
     """Signal-table registration for research/nnnc_framework/signals.py: NI_[GBR_]<TAG> -> plan.
-    Includes the no-input retrain (NULL) once its plan exists."""
+    Includes the no-input retrain (NULL) and both32 (B32, ARO only) once their plans exist."""
     folds = HERE.parents[1] / "evaluation" / "folds"
     out = {table_name(t, m): plan_tag(t, model=m) for m in MODELS for t in survivors(m)}
     for m in MODELS:
         if (folds / f"plan_{plan_tag('NULL', model=m)}.json").is_file():
             out[table_name("NULL", m)] = plan_tag("NULL", model=m)
+    if (folds / f"plan_{plan_tag('B32')}.json").is_file():
+        out[table_name("B32")] = plan_tag("B32")
     return out
