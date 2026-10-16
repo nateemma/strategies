@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -34,8 +34,9 @@
 - **Repo names are kept on purpose.** As in specs 032–035, the spec names repo artefacts (arm tags,
   the momentum bot's config file, the control class). They identify which existing system is meant,
   and are not implementation choices. No languages, libraries or code structure are prescribed.
-- **Open:** two clarification questions remain, US4 scope (FR-017) and the minimum recording
-  period (FR-019). They will be resolved with the user.
+- **Resolved (2026-10-16):** Q1 = B (US4 in scope, run last, deployment information only);
+  Q2 = C (at least 4 weeks AND every pair at ≥ 5 orders; pairs still short at 12 weeks are pooled
+  as thin); Q3 = A (control only, one bot).
 - **Defaults taken without a marker (see Assumptions):**
   - the live configuration is the NNNC control;
   - the retrain cadence is 90 days;

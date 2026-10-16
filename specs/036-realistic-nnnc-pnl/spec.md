@@ -57,6 +57,18 @@ from fill and depth evidence, not from backtests.
 
 Neither can be measured from history alone.
 
+## Clarifications
+
+### Session 2026-10-16
+
+- **Q: Is the shared-wallet story (US4) in scope?** → A: Yes, run last (after US3), reported as
+  deployment information only.
+- **Q: How long must the dry-run record before US2 and US3 are judged?** → A: Until every pair has
+  at least 5 recorded orders AND 4 weeks have passed. Pairs still short at 12 weeks are pooled as
+  thin (FR-019).
+- **Q: Which NNNC configuration runs live?** → A: The control only (ARO with current defaults), as
+  one bot.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Run NNNC live, on a current model, and record what execution would cost (Priority: P1)
@@ -170,11 +182,13 @@ with net P&L under the execution model. Check that:
 
 ---
 
-### User Story 4 - Measure sharing one wallet with the momentum basket (Priority: P4)
+### User Story 4 - Measure sharing one wallet with the momentum basket (Priority: P4, run last)
 
-[NEEDS CLARIFICATION: is this story in scope? With about 98% of NNNC's wallet idle, running NNNC
-and the momentum basket in one wallet would add their dollar P&L with little contention. This is
-deployment, not framework optimisation (memory `feedback_framework_not_portfolio`).]
+In scope, run last (after US3) and reported as deployment information only. With about 98% of
+NNNC's wallet idle, running NNNC and the momentum basket in one wallet would add their dollar P&L
+with little contention. This is deployment, not framework optimisation (memory
+`feedback_framework_not_portfolio`), so it informs the user's deployment choice and changes no NNNC
+default.
 
 **Why this priority**: largest dollar effect per unit of work, but it is a deployment choice for
 the user, not an improvement to NNNC itself.
@@ -294,9 +308,10 @@ report blocked or shrunk entries per strategy and the combined P&L against the s
   before any capacity result is offered for adoption.
 
 **Shared wallet (US4)**
-- **FR-017**: [NEEDS CLARIFICATION: scope — see User Story 4] If in scope: replay both strategies'
+- **FR-017**: After US3, replay both strategies'
   existing fold trades into one shared wallet, and report blocked or shrunk entries per strategy
   and the combined P&L against the sum of the separate runs.
+  Reported as deployment information only; it changes no NNNC default.
 
 **General**
 - **FR-018**: The changes MUST NOT:
@@ -307,9 +322,9 @@ report blocked or shrunk entries per strategy and the combined P&L against the s
   Parameter dictionaries merge from the parent. Promotion of any result to a default is the
   user's decision.
 - **FR-019**: US2 and US3 MUST NOT be judged before the dry-run has recorded at least
-  [NEEDS CLARIFICATION: minimum recording period before the execution model is built and the
-  capacity curve judged — e.g. 4 weeks (about 40 NNNC orders, about 100k depth snapshots), 8
-  weeks, or until a per-pair order count is reached].
+  4 weeks AND until every pair in the list has at least 5 recorded orders.
+  - A pair that has not reached 5 orders by 12 weeks is reported as thin and handled by the
+    structural pooling rule (FR-010). It never holds back the other pairs indefinitely.
 - **FR-020**: Every result MUST be labelled PROVISIONAL. The 15 folds are one era (2023–2026),
   and the recorded depth comes from a single recent period (constitution, Principle II).
 
