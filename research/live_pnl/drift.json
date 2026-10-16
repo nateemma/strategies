@@ -1,0 +1,22 @@
+{
+ "label": "036 drift (PROVISIONAL)",
+ "band": [
+  0.5,
+  2.0
+ ],
+ "runs": {
+  "live1": {
+   "threshold": 0.7783407204151153,
+   "target_rate": 0.014735,
+   "weeks": [
+    {
+     "week": "2026-10-12/2026-10-18",
+     "n": 30,
+     "buy_rate": 0.0,
+     "ratio_to_target": 0.0,
+     "flag": true
+    }
+   ]
+  }
+ }
+}

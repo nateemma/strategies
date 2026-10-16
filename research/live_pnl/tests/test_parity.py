@@ -86,3 +86,12 @@ def test_only_the_days_entries_are_compared():
     out = _cmp([], [("B", pd.Timestamp("2026-10-19 10:15", tz="UTC"),
                      pd.Timestamp("2026-10-19 12:00", tz="UTC"))])
     assert out["differences"] == []
+
+
+def test_trades_before_the_live_start_are_not_compared():
+    """Smoke run 2026-10-16: a backtest entry at 03:30 UTC, before the bot started at 15:56, was
+    reported UNEXPLAINED."""
+    bt = [("A", T("03:45"), T("10:30")), ("A", T("16:15"), None)]
+    live = [("A", T("16:15:04"), None)]
+    out = _cmp(live, bt, since=T("15:56"))
+    assert out["differences"] == [] and out["matched_entries"] == 1

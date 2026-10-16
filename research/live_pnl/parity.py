@@ -115,10 +115,16 @@ def classify(pair: str, signal_candle: pd.Timestamp, side: str, *, live_sig: pd.
 
 def compare_day(day: str, *, live_trades: pd.DataFrame, bt_trades: pd.DataFrame,
                 live_sig: pd.DataFrame, bt_sig: pd.DataFrame, unfilled: set = frozenset(),
-                max_open: int = 10) -> dict:
-    """Match the day's entries and exits; classify every difference."""
+                max_open: int = 10, since: pd.Timestamp | None = None) -> dict:
+    """Match the day's entries and exits; classify every difference. Only trades OPENED at or after
+    `since` (the live run's start) are compared: the backtest begins at the start day's 00:00, so
+    earlier backtest trades could never have been live."""
     d0 = pd.Timestamp(day, tz="UTC")
     d1 = d0 + pd.Timedelta(days=1)
+    if since is not None:
+        since = pd.Timestamp(since)
+        live_trades = live_trades[live_trades.open_date >= since] if not live_trades.empty else live_trades
+        bt_trades = bt_trades[bt_trades.open_date >= since] if not bt_trades.empty else bt_trades
 
     def entries(t):
         if t.empty:
@@ -236,7 +242,8 @@ def run(day: str, download: bool = True) -> dict:
     bt_sig = fold_table(rec["bot_class"], f"{d0:%Y%m%d}-{d0 + pd.Timedelta(days=1):%Y%m%d}")
     bt_sig["date"] = pd.to_datetime(bt_sig.date, utc=True)
     out = compare_day(day, live_trades=live_trades(), bt_trades=backtest(rec, day),
-                      live_sig=sig, bt_sig=bt_sig, unfilled=unfilled)
+                      live_sig=sig, bt_sig=bt_sig, unfilled=unfilled,
+                      since=pd.Timestamp(rec["started"]))
     out.update(run_id=rec["run_id"], backtest_range=f"{rec['started'][:10]}..{day}",
                filled_orders=len(filled), label="036 parity (PROVISIONAL)")
     OUT.mkdir(exist_ok=True)

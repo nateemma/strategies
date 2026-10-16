@@ -74,3 +74,17 @@ Spec: `specs/036-realistic-nnnc-pnl/`. **Label: PROVISIONAL.**
   That list is not hashed, so every model key is unchanged (the pre-034 key fixture test passes).
   This is the only edit to existing Framework code in 036, and it is classification only, with no
   behaviour change.
+
+## Daily duties scheduled (T017, 2026-10-16)
+
+- **Cron:** `40 17 * * *` local time (00:40 UTC in summer, 01:40 UTC in winter, so always after the
+  UTC day has closed) runs `scripts/live_pnl_daily.sh`. It runs parity for yesterday, then drift,
+  then gate, and logs to `user_data/logs/live_pnl_daily.log`. It commits nothing; weekly
+  summaries are committed by hand.
+- **Smoke run on the partial start day** exposed a parity defect: the cumulative backtest starts
+  at the start day's 00:00 UTC, so a backtest trade at 03:30 UTC, before the bot existed, was
+  reported UNEXPLAINED. Parity now compares only trades opened at or after `started`, with a
+  regression test. The re-run had 0 differences. The smoke file was deleted, because the start
+  day is partial.
+- **A failed day** (e.g. a download refused while a chain runs) is logged and can be re-run with
+  `zsh scripts/live_pnl_daily.sh YYYY-MM-DD`.
