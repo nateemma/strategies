@@ -42,6 +42,8 @@ def slug(target: str) -> str:
 
 
 def populations(target: str) -> tuple[str, ...]:
+    if target == "label:sell":       # no SELL positives on candidate bars (pre-registration)
+        return ("all",)
     return ("candidate",) if target in LABELS else ("all", "candidate")
 
 
@@ -63,7 +65,7 @@ def train_rows(panel, targets, target, pop, fold: W.Window, all_folds: list[W.Wi
     else:
         m = base & np.asarray((panel.date >= fold.train_start) & (panel.date < fold.start - purge))
         m &= np.isfinite(targets.y(target, fold))
-    if pop == "all" and target not in LABELS:
+    if pop == "all" and target != "label:buy":
         m &= hourly(panel)                        # after the purge (R10)
     return np.flatnonzero(m)
 
@@ -72,7 +74,7 @@ def test_rows(panel, targets, target, pop, fold) -> np.ndarray:
     m = fold.mask(panel.date) & panel.data_ok & np.isfinite(targets.y(target, fold))
     if pop == "candidate":
         m &= panel.candidate
-    if pop == "all" and target not in LABELS:
+    if pop == "all" and target != "label:buy":
         m &= hourly(panel)
     return np.flatnonzero(m)
 
@@ -126,7 +128,7 @@ def fit_fold(panel, targets, target, fold, all_folds, cols, pr) -> list[dict]:
         tr = train_rows(panel, targets, target, pop, fold, all_folds)
         te = test_rows(panel, targets, target, pop, fold)
         base = {"fold": fold.id, "half": fold.half, "target": target, "population": pop,
-                "subsample": 4 if (pop == "all" and target not in LABELS) else 1,
+                "subsample": 4 if (pop == "all" and target != "label:buy") else 1,
                 "n_train": int(len(tr)), "n_test": int(len(te))}
         # the fold's cut points applied to its training rows (A2: fixed early-window cuts, R11)
         ytr = targets.y(target, fold)[tr] > 0.5

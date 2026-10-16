@@ -1,0 +1,715 @@
+{
+ "target": "C-pair:288",
+ "signals": 75,
+ "rule": {
+  "min_windows": 6,
+  "uplift": 1.1,
+  "min_lift": 1.2,
+  "top_n": 20
+ },
+ "windows_read": [
+  "E0",
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "populations": {
+  "all": {
+   "n_pairs": 2775,
+   "n_passing_rule": 140,
+   "survivors": [
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:VBM",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.3719512195121952,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 0.9382255889615552,
+     "selected": true,
+     "e0_lift": 1.9837063262237664,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 0.9831283025151847
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:VBM",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.3360077417227156,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7407708950737946,
+     "lift_b_early": 0.9382255889615552,
+     "selected": true,
+     "e0_lift": 1.863836043732197,
+     "e0_lift_a": 1.6962026972847049,
+     "e0_lift_b": 0.9831283025151847
+    },
+    {
+     "a": "raw_buy:FVE",
+     "b": "raw_buy:ROC",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.317554322864483,
+      "n_windows": 8
+     },
+     "lift_a_early": 0.967837038426596,
+     "lift_b_early": 1.742435918151651,
+     "selected": true,
+     "e0_lift": 1.8594567791458168,
+     "e0_lift_a": 0.9768626784341858,
+     "e0_lift_b": 1.7195367112469646
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:PPO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.3065571639944924,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.016379479792557,
+     "lift_b_early": 1.625909193105088,
+     "selected": true,
+     "e0_lift": 1.8541530164269133,
+     "e0_lift_a": 0.9987457644593847,
+     "e0_lift_b": 1.5523839955588612
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.2843009278373563,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 1.0218063370546449,
+     "selected": true,
+     "e0_lift": 1.8661707097491431,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 1.0178235808373293
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:MI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.2684483931493786,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 0.9974036933127266,
+     "selected": true,
+     "e0_lift": 1.8526088145313193,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 0.9585857035685235
+    },
+    {
+     "a": "raw_buy:DCRevert",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.24685732512709,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.0749565488166772,
+     "lift_b_early": 1.7407708950737946,
+     "selected": true,
+     "e0_lift": 1.5577715505829672,
+     "e0_lift_a": 0.7276063790486315,
+     "e0_lift_b": 1.6962026972847049
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:FVE",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.237990001953065,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 0.967837038426596,
+     "selected": true,
+     "e0_lift": 1.8581719301835062,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 0.9768626784341858
+    },
+    {
+     "a": "raw_buy:MI",
+     "b": "raw_buy:ROC",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.2290708470269562,
+      "n_windows": 8
+     },
+     "lift_a_early": 0.9974036933127266,
+     "lift_b_early": 1.742435918151651,
+     "selected": true,
+     "e0_lift": 1.8664038214570182,
+     "e0_lift_a": 0.9585857035685235,
+     "e0_lift_b": 1.7195367112469646
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:ZScore",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.2124187613286446,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7407708950737946,
+     "lift_b_early": 0.972157901368937,
+     "selected": true,
+     "e0_lift": 1.857895169395573,
+     "e0_lift_a": 1.6962026972847049,
+     "e0_lift_b": 1.0432509648591566
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:MI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1873880159847525,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7407708950737946,
+     "lift_b_early": 0.9974036933127266,
+     "selected": true,
+     "e0_lift": 1.7645827007144141,
+     "e0_lift_a": 1.6962026972847049,
+     "e0_lift_b": 0.9585857035685235
+    },
+    {
+     "a": "raw_buy:PPO",
+     "b": "raw_buy:SMACross",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1846919127086006,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.625909193105088,
+     "lift_b_early": 0.9975491460597989,
+     "selected": true,
+     "e0_lift": 1.8864831763254717,
+     "e0_lift_a": 1.5523839955588612,
+     "e0_lift_b": 1.018268341170117
+    },
+    {
+     "a": "raw_buy:Ehlers_Ichimoku:trend",
+     "b": "raw_buy:PPO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1592832161646083,
+      "n_windows": 8
+     },
+     "lift_a_early": 0.99085100875586,
+     "lift_b_early": 1.625909193105088,
+     "selected": true,
+     "e0_lift": 1.8646479266322527,
+     "e0_lift_a": 0.9911689338773603,
+     "e0_lift_b": 1.5523839955588612
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:LWRevert",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1549993187115986,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7407708950737946,
+     "lift_b_early": 0.9667876173526122,
+     "selected": true,
+     "e0_lift": 1.8320177627195695,
+     "e0_lift_a": 1.6962026972847049,
+     "e0_lift_b": 1.0320117422275297
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1339098140604578,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 1.0842636968097954,
+     "selected": true,
+     "e0_lift": 1.454062085516808,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 0.5255906489508732
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:DCRevert",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1330691146066174,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 1.0749565488166772,
+     "selected": true,
+     "e0_lift": 1.6028107807822356,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 0.7276063790486315
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:STC",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1316342724490367,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.9045939231562143,
+     "lift_b_early": 0.9993949709177166,
+     "selected": true,
+     "e0_lift": 1.8899402338569067,
+     "e0_lift_a": 1.7304490192067625,
+     "e0_lift_b": 1.0036618963636292
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1314862432536605,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7407708950737946,
+     "lift_b_early": 1.0842636968097954,
+     "selected": true,
+     "e0_lift": 1.357697514537769,
+     "e0_lift_a": 1.6962026972847049,
+     "e0_lift_b": 0.5255906489508732
+    },
+    {
+     "a": "raw_buy:Ehlers_LW:cycle",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.1175006895095647,
+      "n_windows": 8
+     },
+     "lift_a_early": 0.9498804951995872,
+     "lift_b_early": 1.7407708950737946,
+     "selected": true,
+     "e0_lift": 1.832956730933991,
+     "e0_lift_a": 1.0570178470823939,
+     "e0_lift_b": 1.6962026972847049
+    },
+    {
+     "a": "raw_buy:ROC",
+     "b": "raw_buy:STC",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "all",
+     "early": {
+      "median_lift": 2.105457891437436,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.742435918151651,
+     "lift_b_early": 0.9993949709177166,
+     "selected": true,
+     "e0_lift": 1.8708471540106364,
+     "e0_lift_a": 1.7195367112469646,
+     "e0_lift_b": 1.0036618963636292
+    }
+   ]
+  },
+  "candidate": {
+   "n_pairs": 2775,
+   "n_passing_rule": 27,
+   "survivors": [
+    {
+     "a": "raw_buy:Ehlers_Ichimoku:trend",
+     "b": "raw_buy:VBM",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2902128812712008,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1125345975643914,
+     "lift_b_early": 1.1726795370930072,
+     "selected": true,
+     "e0_lift": 1.2208535029733965,
+     "e0_lift_a": 1.071315719292598,
+     "e0_lift_b": 1.1770480801852625
+    },
+    {
+     "a": "raw_buy:Ichimoku",
+     "b": "raw_buy:MI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2899389475112395,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1414523160992298,
+     "lift_b_early": 1.1574059429837718,
+     "selected": true,
+     "e0_lift": 1.1909552778012953,
+     "e0_lift_a": 1.0943110587232336,
+     "e0_lift_b": 1.0820384215479673
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2882756856346678,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1388243142211203,
+     "lift_b_early": 1.1404783269542218,
+     "selected": true,
+     "e0_lift": 1.1735389140183425,
+     "e0_lift_a": 1.0759730324079184,
+     "e0_lift_b": 1.078974612442995
+    },
+    {
+     "a": "raw_buy:EhlersBase:cycle",
+     "b": "raw_buy:MI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2830203483997604,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1291536232130412,
+     "lift_b_early": 1.1574059429837718,
+     "selected": true,
+     "e0_lift": 1.1669480598593511,
+     "e0_lift_a": 1.0953387371123167,
+     "e0_lift_b": 1.0820384215479673
+    },
+    {
+     "a": "raw_buy:SMACross",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.281112993730308,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1500445643268677,
+     "lift_b_early": 1.1404783269542218,
+     "selected": true,
+     "e0_lift": 1.1640736068894615,
+     "e0_lift_a": 1.0800326554843656,
+     "e0_lift_b": 1.078974612442995
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2786323678469032,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1388243142211203,
+     "lift_b_early": 1.046142121215442,
+     "selected": true,
+     "e0_lift": 1.0103565416065416,
+     "e0_lift_a": 1.0759730324079184,
+     "e0_lift_b": 0.7411764528485629
+    },
+    {
+     "a": "raw_buy:AO",
+     "b": "raw_buy:Ichimoku",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2785609183349946,
+      "n_windows": 6
+     },
+     "lift_a_early": 0.9760906398557984,
+     "lift_b_early": 1.1414523160992298,
+     "selected": true,
+     "e0_lift": 1.145849441983835,
+     "e0_lift_a": 0.9797137728173234,
+     "e0_lift_b": 1.0943110587232336
+    },
+    {
+     "a": "raw_buy:Aroon",
+     "b": "raw_buy:Ichimoku",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2772553829381303,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.083724897498766,
+     "lift_b_early": 1.1414523160992298,
+     "selected": true,
+     "e0_lift": 1.1222307176345911,
+     "e0_lift_a": 1.0912731926732826,
+     "e0_lift_b": 1.0943110587232336
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:MFI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2675932568000579,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1388243142211203,
+     "lift_b_early": 0.8594834909132707,
+     "selected": true,
+     "e0_lift": 1.0712056697137589,
+     "e0_lift_a": 1.0759730324079184,
+     "e0_lift_b": 0.7892032104070986
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:PPO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2634182181870177,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1388243142211203,
+     "lift_b_early": 0.9086421624474016,
+     "selected": true,
+     "e0_lift": 1.182642772689738,
+     "e0_lift_a": 1.0759730324079184,
+     "e0_lift_b": 0.9858116467400153
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2632282887011739,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.002492339538088,
+     "lift_b_early": 1.1404783269542218,
+     "selected": true,
+     "e0_lift": 1.1770824269230231,
+     "e0_lift_a": 1.0914357360848796,
+     "e0_lift_b": 1.078974612442995
+    },
+    {
+     "a": "raw_buy:HTSINE",
+     "b": "raw_buy:MFI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2593677207424858,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1354290676813612,
+     "lift_b_early": 0.8594834909132707,
+     "selected": true,
+     "e0_lift": 0.892270319557786,
+     "e0_lift_a": 1.0808978151178628,
+     "e0_lift_b": 0.7892032104070986
+    },
+    {
+     "a": "raw_buy:EMACross",
+     "b": "raw_buy:TEMACross",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2552166013879782,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1388243142211203,
+     "lift_b_early": 0.9832473707932173,
+     "selected": true,
+     "e0_lift": 1.0741362740733198,
+     "e0_lift_a": 1.0759730324079184,
+     "e0_lift_b": 1.0092670721195678
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:ZScore",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2494133217949044,
+      "n_windows": 7
+     },
+     "lift_a_early": 0.9977106205092905,
+     "lift_b_early": 0.9985702127883631,
+     "selected": true,
+     "e0_lift": 1.18581429176964,
+     "e0_lift_a": 1.0849654831157838,
+     "e0_lift_b": 1.021504369056681
+    },
+    {
+     "a": "raw_buy:FVE",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.247118560359783,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1089391418833343,
+     "lift_b_early": 1.046142121215442,
+     "selected": true,
+     "e0_lift": 0.7677428637618829,
+     "e0_lift_a": 1.0688490016045966,
+     "e0_lift_b": 0.7411764528485629
+    },
+    {
+     "a": "raw_buy:Ehlers_Ichimoku:trend",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2470896702491783,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1125345975643914,
+     "lift_b_early": 1.046142121215442,
+     "selected": true,
+     "e0_lift": 0.903386479267516,
+     "e0_lift_a": 1.071315719292598,
+     "e0_lift_b": 0.7411764528485629
+    },
+    {
+     "a": "raw_buy:STC",
+     "b": "raw_buy:UO",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2468459050652836,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.0760670453604773,
+     "lift_b_early": 1.046142121215442,
+     "selected": true,
+     "e0_lift": 0.8641569920471653,
+     "e0_lift_a": 1.0610611007714705,
+     "e0_lift_b": 0.7411764528485629
+    },
+    {
+     "a": "raw_buy:Ehlers_Ichimoku:trend",
+     "b": "raw_buy:MACDhist",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2390413145517245,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1125345975643914,
+     "lift_b_early": 1.0009784665720016,
+     "selected": true,
+     "e0_lift": 1.130664892803621,
+     "e0_lift_a": 1.071315719292598,
+     "e0_lift_b": 0.9895417900012111
+    },
+    {
+     "a": "raw_buy:Ehlers_Ichimoku:trend",
+     "b": "raw_buy:MFI",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2377550802168125,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.1125345975643914,
+     "lift_b_early": 0.8594834909132707,
+     "selected": true,
+     "e0_lift": 0.9815130494431837,
+     "e0_lift_a": 1.071315719292598,
+     "e0_lift_b": 0.7892032104070986
+    },
+    {
+     "a": "raw_buy:AO",
+     "b": "raw_buy:KCBreakout",
+     "side": "buy",
+     "target": "C-pair:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2340661438814684,
+      "n_windows": 8
+     },
+     "lift_a_early": 0.9760906398557984,
+     "lift_b_early": 1.1098718036316142,
+     "selected": true,
+     "e0_lift": 1.017629667107502,
+     "e0_lift_a": 0.9797137728173234,
+     "e0_lift_b": 0.8931484386504278
+    }
+   ]
+  }
+ }
+}

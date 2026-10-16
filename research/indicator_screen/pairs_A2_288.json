@@ -1,0 +1,715 @@
+{
+ "target": "A2:288",
+ "signals": 75,
+ "rule": {
+  "min_windows": 6,
+  "uplift": 1.1,
+  "min_lift": 1.2,
+  "top_n": 20
+ },
+ "windows_read": [
+  "E0",
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "populations": {
+  "all": {
+   "n_pairs": 2775,
+   "n_passing_rule": 49,
+   "survivors": [
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.645208586376733,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1512487141926389,
+     "lift_b_early": 1.0528333140104817,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.5825622436325477,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.148996961002084,
+     "lift_b_early": 1.0528333140104817,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:ROC",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.5418677859391394,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1415728646219172,
+     "lift_b_early": 1.0528333140104817,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:ZScore",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.5158335609112008,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.1512487141926389,
+     "lift_b_early": 0.9572919704423831,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:Ehlers_BB:cycle",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.5100361938840403,
+      "n_windows": 6
+     },
+     "lift_a_early": 0.9785951170533052,
+     "lift_b_early": 1.1512487141926389,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TRIX",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.4800442302476478,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.2155343792266846,
+     "lift_b_early": 1.0528333140104817,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBBreakout:tm0",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.4488182332284123,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0021128462050704,
+     "lift_b_early": 1.1512487141926389,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBRevert",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.4488182332284123,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0021128462050704,
+     "lift_b_early": 1.1512487141926389,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:MI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.4429390127186557,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1512487141926389,
+     "lift_b_early": 1.0031335716313867,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBRevert",
+     "b": "raw_buy:TRIX",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.419507575757576,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0021128462050704,
+     "lift_b_early": 1.2155343792266846,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBBreakout:tm0",
+     "b": "raw_buy:TRIX",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.419507575757576,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0021128462050704,
+     "lift_b_early": 1.2155343792266846,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:PPO",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.4139426107116762,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1256532013815572,
+     "lift_b_early": 1.0528333140104817,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:CCI",
+     "b": "raw_buy:PPO",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.402807486631016,
+      "n_windows": 7
+     },
+     "lift_a_early": 0.9632674748838463,
+     "lift_b_early": 1.1256532013815572,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:Ehlers_LW:cycle",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.390560277012737,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0092116678592005,
+     "lift_b_early": 1.1512487141926389,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TRIX",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3838470136680066,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.2155343792266846,
+     "lift_b_early": 1.0130796083331188,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:ROC",
+     "b": "raw_buy:TRIX",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3737529535868565,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1415728646219172,
+     "lift_b_early": 1.2155343792266846,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:EWO",
+     "b": "raw_buy:HTDCP:cycle",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3634171050354453,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.1539425313297844,
+     "lift_b_early": 1.033684173432908,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:COPP",
+     "b": "raw_buy:Ehlers_LW:cycle",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3627272727272728,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.148996961002084,
+     "lift_b_early": 1.0092116678592005,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:ROC",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3551713125598794,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.1512487141926389,
+     "lift_b_early": 1.1415728646219172,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:Ehlers_KC:cycle",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "all",
+     "early": {
+      "median_lift": 1.3536650615302301,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0008676233419678,
+     "lift_b_early": 1.1512487141926389,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    }
+   ]
+  },
+  "candidate": {
+   "n_pairs": 2775,
+   "n_passing_rule": 23,
+   "survivors": [
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.3116141653691062,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0183954082476947,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:ZScore",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.3063188474003131,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0183954082476947,
+     "lift_b_early": 1.0215091646108663,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:HTSINE",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.3039131067536975,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0430063339154305,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:FVE",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.270014046791071,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0387363952242703,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBBreakout:tm0",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.269505328115729,
+      "n_windows": 6
+     },
+     "lift_a_early": 0.9971081427227112,
+     "lift_b_early": 1.0183954082476947,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:BBRevert",
+     "b": "raw_buy:KST",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.269505328115729,
+      "n_windows": 6
+     },
+     "lift_a_early": 0.9971081427227112,
+     "lift_b_early": 1.0183954082476947,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:Ehlers_DC:cycle",
+     "b": "raw_buy:TRIX",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2637440082033533,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0395865600734262,
+     "lift_b_early": 1.0191170227072777,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TRIX",
+     "b": "raw_buy:ZScore",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2600389210244671,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0191170227072777,
+     "lift_b_early": 1.0215091646108663,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:HTSINE",
+     "b": "raw_buy:TRIX",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.25649638290826,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0430063339154305,
+     "lift_b_early": 1.0191170227072777,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:PSAR",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2521256827524072,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0367888685044973,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TRIX",
+     "b": "raw_buy:WTO",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.251420719517709,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.0191170227072777,
+     "lift_b_early": 1.0629050798542325,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:RVOL",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2407043220612877,
+      "n_windows": 6
+     },
+     "lift_a_early": 1.038073693584249,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:VZO",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2395837437351087,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0183954082476947,
+     "lift_b_early": 0.9206657070586414,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TRIX",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.237263943785683,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0191170227072777,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:PSAR",
+     "b": "raw_buy:WILLR",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2363875851065804,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0367888685044973,
+     "lift_b_early": 0.9891567166697725,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:CCI",
+     "b": "raw_buy:PPO",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2347158935056108,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0584615352842293,
+     "lift_b_early": 0.983153670897753,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:TEMACross",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2325612189594009,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0282274096358044,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:PPO",
+     "b": "raw_buy:VFI",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2321761639081796,
+      "n_windows": 7
+     },
+     "lift_a_early": 0.983153670897753,
+     "lift_b_early": 1.0987419967330205,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:KST",
+     "b": "raw_buy:LWRevert",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.222284961415396,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0183954082476947,
+     "lift_b_early": 1.0315514140590039,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    },
+    {
+     "a": "raw_buy:CCI",
+     "b": "raw_buy:STC",
+     "side": "buy",
+     "target": "A2:288",
+     "population": "candidate",
+     "early": {
+      "median_lift": 1.2128393580320984,
+      "n_windows": 7
+     },
+     "lift_a_early": 1.0584615352842293,
+     "lift_b_early": 1.0336140427028324,
+     "selected": true,
+     "e0_lift": null,
+     "e0_lift_a": null,
+     "e0_lift_b": null
+    }
+   ]
+  }
+ }
+}

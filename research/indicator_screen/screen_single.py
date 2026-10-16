@@ -334,12 +334,14 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
                 summary_path.write_text(json.dumps({"instrument": "FAIL", "detail": verdict}, indent=1))
                 return 1
 
-    df = score_windows(panel, targets, wins, cols, pr)
-    for h in halves:
-        df[df["half"] == h].reset_index(drop=True).to_feather(out_dir / f"single_{kind}_{h}.feather")
+    if halves:                                         # [] = summarise the stored window scores only
+        df = score_windows(panel, targets, wins, cols, pr)
+        for h in halves:
+            df[df["half"] == h].reset_index(drop=True).to_feather(out_dir / f"single_{kind}_{h}.feather")
     full = pd.concat([pd.read_feather(f) for f in sorted(out_dir.glob(f"single_{kind}_*.feather"))],
                      ignore_index=True)
-    baseline = targets.baseline_scores(panel, wins, pr, out_dir) if hasattr(targets, "baseline_scores") else None
+    all_wins = windows_fn(tuple(sorted(full["half"].unique())))   # baselines for EVERY scored window
+    baseline = targets.baseline_scores(panel, all_wins, pr, out_dir) if hasattr(targets, "baseline_scores") else None
     res = {"screen": f"037 single-column screen: {kind}",
            "label": "SCREEN (descriptive): association with a label or regime decides nothing; "
                     "a candidate needs a backtest in a later feature before any P&L claim (FR-025)",
@@ -363,10 +365,31 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
             r["redundancy_group"] = red["groups"].get(c)
             r["rho_guard"] = {p: red[f"rho_guard_{p}"].get(c) for p in POPS}
             r["rho_width"] = {p: red[f"rho_width_{p}"].get(c) for p in POPS}
+    if kind == "regime":       # the full summary (~60 MB) stays in the cache; commit the slim one
+        (out_dir / f"single_{kind}_full.json").write_text(json.dumps({**res, "results": results}, default=_json))
+        results = slim(results, REGIME_KEEP_TOP)
+        res["slim"] = (f"top {REGIME_KEEP_TOP} columns by median strength per target x population, plus every "
+                       f"column with a candidate flag; full summary: {out_dir / f'single_{kind}_full.json'}")
     res["results"] = results
     summary_path.write_text(json.dumps(res, indent=1, default=_json))
     print(f"{kind}: {len(results)} results, {time.perf_counter() - t0:.0f}s -> {summary_path.name}")
     return 0
+
+
+REGIME_KEEP_TOP = 30
+
+
+def slim(results: list[dict], top: int) -> list[dict]:
+    keep = set()
+    by = {}
+    for i, r in enumerate(results):
+        by.setdefault((r["target"], r["population"]), []).append(i)
+        if any(v is True for k, v in r["candidate_flags"].items() if k != "e0_agrees"):
+            keep.add(i)
+    for idx in by.values():
+        idx = sorted(idx, key=lambda i: (-(results[i]["median_strength"] or 0), results[i]["column"]))
+        keep.update(idx[:top])
+    return [results[i] for i in sorted(keep)]
 
 
 def _json(o):
@@ -402,14 +425,14 @@ def _regime_targets(panel):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--targets", choices=("labels", "regime"), required=True)
-    ap.add_argument("--halves", default="e0,early")
+    ap.add_argument("--halves", default="e0,early", help="comma list; 'none' = re-summarise stored scores")
     a = ap.parse_args(argv)
     busy = H._busy()
     if busy:
         print(f"REFUSED: a training/backtest chain is running: {busy}")
         return 1
     try:
-        return run(a.targets, a.halves.split(","))
+        return run(a.targets, [] if a.halves == "none" else a.halves.split(","))
     except W.LateLockError as e:
         print(f"REFUSED: {e}")
         return 1

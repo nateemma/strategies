@@ -31,6 +31,8 @@ LABELS = ("label:buy", "label:sell")
 
 
 def populations(target: str) -> tuple[str, ...]:
+    if target == "label:sell":       # no SELL positives on candidate bars (pre-registration)
+        return ("all",)
     return ("candidate",) if target in LABELS else ("all", "candidate")
 
 

@@ -1,0 +1,93 @@
+{
+ "title": "037 indicator screen: rules fixed before any late window (f08-f14) is scored",
+ "status": "LOCKED by the commit that adds this file (T031); late windows f08-f14 scored only after it",
+ "calibratable": [
+  "min_rows",
+  "min_fires"
+ ],
+ "min_rows": 200,
+ "min_fires": 20,
+ "max_fire_rate": 0.95,
+ "instrument": {
+  "rule": "direction_strength",
+  "target": "label:buy",
+  "population": "all",
+  "expected_direction": {
+   "base:guard_metric": -1,
+   "base:bb_width": 1
+  },
+  "min_strength": 0.15,
+  "amendment": "2026-10-16, after the first gate run FAILED under the original rule (both columns in the top 5 by median strength): guard_metric ranked 13 with a stable AUC of 0.21-0.27 in every gate window. Cause: the label uses guard_metric < 0.3 (RMI 65) as a loose overbought veto that removes ~35% of bars, so it cannot rank within the remaining 65%; bb_width (> 0.035 on ~30% of bars) and its volatility look-alikes rank above it. The check is meant to show the screen recovers the label's known inputs with the right sign, so it now asks for the expected direction and strength >= 0.15 in EVERY gate window. Also fixed: base:gbb_candidate (the label's own entry rule) was scored as a column and ranked #1; it now only defines the candidate population. Amendment approved by the user."
+ },
+ "instrument_gate_halves": [
+  "e0",
+  "early"
+ ],
+ "e0_required": {
+  "single": "same_direction",
+  "pairs": "lift_ge_max_component"
+ },
+ "pairs": {
+  "min_windows": 6,
+  "uplift": 1.1,
+  "min_lift": 1.2,
+  "top_n": 20
+ },
+ "models": {
+  "tree": {
+   "max_depth": 3,
+   "min_samples_leaf": 500,
+   "class_weight": "balanced",
+   "random_state": 0
+  },
+  "hgb": {
+   "max_iter": 300,
+   "learning_rate": 0.05,
+   "max_leaf_nodes": 31,
+   "min_samples_leaf": 200,
+   "l2_regularization": 1.0,
+   "early_stopping": false,
+   "random_state": 0
+  },
+  "restricted_inputs": [
+   "base:bb_width",
+   "base:guard_metric"
+  ]
+ },
+ "regime": {
+  "horizons": [
+   48,
+   288,
+   672
+  ],
+  "tercile": true,
+  "a2_cuts": "early_test",
+  "populations": [
+   "all",
+   "candidate"
+  ],
+  "model_subsample": 4,
+  "a2_model_train": "prior_test_windows",
+  "dedup_market_wide": true
+ },
+ "residual_grid": 5,
+ "mi_bins": 20,
+ "redundancy_cut": 0.8,
+ "sample_rows": 200000,
+ "seed": 0,
+ "rows": {
+  "scored": "meta:data_ok == 1 (bar in the raw data and >= 95% of the trailing 1,000 bars real) and the target defined",
+  "candidate": "base:gbb_candidate == 1",
+  "pooling": "all 10 pairs pooled per window"
+ },
+ "candidate_rules": {
+  "beats_width": "candidate population: median per-window strength minus the width sort's strength on the same rows > 0 in the early AND late halves",
+  "residual": "candidate population: stratified AUC (5x5 bb_width x guard_metric grid) median strength >= residual_min_strength, same direction, in the early AND late halves",
+  "beats_baseline": "regime targets: median per-window strength minus the persistence baseline's strength > 0 in the early AND late halves",
+  "e0": "every flag also needs the E0 direction to equal the early and late median directions (Principle II); not scorable -> null, reported as 'distant era not tested'"
+ },
+ "residual_min_strength": 0.02,
+ "mi_edges": "20 quantile edges from a seed-0 sample of up to sample_rows rows of the fold's training span (same population); E0 from itself",
+ "sell_population": "label:sell pairs and models use ALL bars (models: hourly subsample, as regime all-bars models). Found 2026-10-16 before the lock: the SELL label has zero positives on gbb candidate bars in every window (the candidate rule is a buy-side condition), so candidate-bar SELL pairs/models are empty by construction.",
+ "calibration_note": "min_rows 200 and min_fires 20 kept: on E0+early, no label window and 2.6% of regime windows (mostly A2) fall under min_rows; non-computable lifts are mostly targets with no positives in the population."
+}

@@ -197,6 +197,7 @@ def test_sell_pairs_use_raw_sells():
     assert SP.signal_columns("label:sell", COLS) == ["raw_sell:S"]
     assert "raw_sell:S" not in SP.signal_columns("B-pair:48", COLS)
     assert SP.populations("label:buy") == ("candidate",) and SP.populations("C-btc:288") == ("all", "candidate")
+    assert SP.populations("label:sell") == ("all",)
 
 
 def test_window_lifts_match_direct_computation():

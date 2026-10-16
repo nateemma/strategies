@@ -19,10 +19,351 @@
   "f07"
  ],
  "populations": {
-  "candidate": {
+  "all": {
    "n_pairs": 2850,
-   "n_passing_rule": 0,
-   "survivors": []
+   "n_passing_rule": 525,
+   "survivors": [
+    {
+     "a": "raw_sell:EWO",
+     "b": "raw_sell:MFI",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 15.17183550906526,
+      "n_windows": 8
+     },
+     "lift_a_early": 12.850797093952828,
+     "lift_b_early": 2.1776197747300383,
+     "selected": true,
+     "e0_lift": 7.862701031954691,
+     "e0_lift_a": 8.478371710660298,
+     "e0_lift_b": 1.8702226619471445
+    },
+    {
+     "a": "raw_sell:KST",
+     "b": "raw_sell:WILLR",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 14.46023926049876,
+      "n_windows": 8
+     },
+     "lift_a_early": 10.979950569121733,
+     "lift_b_early": 2.668183447269965,
+     "selected": true,
+     "e0_lift": 9.48220801889295,
+     "e0_lift_a": 7.301341825742074,
+     "e0_lift_b": 2.7624232029659868
+    },
+    {
+     "a": "raw_sell:EWO",
+     "b": "raw_sell:KST",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 14.198479729729732,
+      "n_windows": 7
+     },
+     "lift_a_early": 12.850797093952828,
+     "lift_b_early": 10.979950569121733,
+     "selected": true,
+     "e0_lift": 9.152383627511387,
+     "e0_lift_a": 8.478371710660298,
+     "e0_lift_b": 7.301341825742074
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:Ehlers_LW:cycle",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.820339992719171,
+      "n_windows": 7
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 1.672651414631975,
+     "selected": true,
+     "e0_lift": 7.800595570815345,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 1.4511210368565264
+    },
+    {
+     "a": "raw_sell:KST",
+     "b": "raw_sell:SAR",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.652438322375907,
+      "n_windows": 8
+     },
+     "lift_a_early": 10.979950569121733,
+     "lift_b_early": 1.7190077406904272,
+     "selected": true,
+     "e0_lift": 8.887782902618888,
+     "e0_lift_a": 7.301341825742074,
+     "e0_lift_b": 1.7655284397639976
+    },
+    {
+     "a": "raw_sell:MFI",
+     "b": "raw_sell:TRIX",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.648850426468652,
+      "n_windows": 8
+     },
+     "lift_a_early": 2.1776197747300383,
+     "lift_b_early": 10.706127212727704,
+     "selected": true,
+     "e0_lift": 7.267348508514105,
+     "e0_lift_a": 1.8702226619471445,
+     "e0_lift_b": 6.636478606927302
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:LWRevert",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.571945794972587,
+      "n_windows": 7
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 1.6385724090601128,
+     "selected": true,
+     "e0_lift": 7.773225060040554,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 1.4153326667762152
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:UO",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.513785250471436,
+      "n_windows": 8
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 2.5272778884793645,
+     "selected": true,
+     "e0_lift": 7.159272029874639,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 1.7899046581521845
+    },
+    {
+     "a": "raw_sell:TRIX",
+     "b": "raw_sell:UO",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.417909719791385,
+      "n_windows": 6
+     },
+     "lift_a_early": 10.706127212727704,
+     "lift_b_early": 2.5272778884793645,
+     "selected": true,
+     "e0_lift": 8.895042767569135,
+     "e0_lift_a": 6.636478606927302,
+     "e0_lift_b": 1.7899046581521845
+    },
+    {
+     "a": "raw_sell:TRIX",
+     "b": "raw_sell:VORTEX",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 13.11886121828636,
+      "n_windows": 8
+     },
+     "lift_a_early": 10.706127212727704,
+     "lift_b_early": 4.169378102730617,
+     "selected": true,
+     "e0_lift": 8.561813109609886,
+     "e0_lift_a": 6.636478606927302,
+     "e0_lift_b": 3.603118439595269
+    },
+    {
+     "a": "raw_sell:TRIX",
+     "b": "raw_sell:WILLR",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.816829511521922,
+      "n_windows": 8
+     },
+     "lift_a_early": 10.706127212727704,
+     "lift_b_early": 2.668183447269965,
+     "selected": true,
+     "e0_lift": 8.09169173522767,
+     "e0_lift_a": 6.636478606927302,
+     "e0_lift_b": 2.7624232029659868
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:KST",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.629497916699693,
+      "n_windows": 8
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 10.979950569121733,
+     "selected": true,
+     "e0_lift": 8.417151119039676,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 7.301341825742074
+    },
+    {
+     "a": "raw_sell:SAR",
+     "b": "raw_sell:TRIX",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.597439346716458,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.7190077406904272,
+     "lift_b_early": 10.706127212727704,
+     "selected": true,
+     "e0_lift": 7.925282803064329,
+     "e0_lift_a": 1.7655284397639976,
+     "e0_lift_b": 6.636478606927302
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:TRIX",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.468597917430833,
+      "n_windows": 8
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 10.706127212727704,
+     "selected": true,
+     "e0_lift": 7.831374598443499,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 6.636478606927302
+    },
+    {
+     "a": "raw_sell:CMO",
+     "b": "raw_sell:COPP",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.465786714300016,
+      "n_windows": 6
+     },
+     "lift_a_early": 3.218108611818397,
+     "lift_b_early": 11.131919994445866,
+     "selected": true,
+     "e0_lift": 6.073286121676545,
+     "e0_lift_a": 2.022142218965925,
+     "e0_lift_b": 7.27586070879949
+    },
+    {
+     "a": "raw_sell:COPP",
+     "b": "raw_sell:VFI",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 12.36858327390605,
+      "n_windows": 6
+     },
+     "lift_a_early": 11.131919994445866,
+     "lift_b_early": 1.859688530329203,
+     "selected": true,
+     "e0_lift": 7.814211155811677,
+     "e0_lift_a": 7.27586070879949,
+     "e0_lift_b": 1.968612218829681
+    },
+    {
+     "a": "raw_sell:CMO",
+     "b": "raw_sell:PPO",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 10.638545882590734,
+      "n_windows": 8
+     },
+     "lift_a_early": 3.218108611818397,
+     "lift_b_early": 7.60370509098043,
+     "selected": true,
+     "e0_lift": 5.22554862063975,
+     "e0_lift_a": 2.022142218965925,
+     "e0_lift_b": 5.386043363168024
+    },
+    {
+     "a": "raw_sell:LWRevert",
+     "b": "raw_sell:ROC",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 10.49132309709531,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.6385724090601128,
+     "lift_b_early": 9.06179196735282,
+     "selected": true,
+     "e0_lift": 6.766807504004415,
+     "e0_lift_a": 1.4153326667762152,
+     "e0_lift_b": 7.006514465381264
+    },
+    {
+     "a": "raw_sell:Ehlers_LW:cycle",
+     "b": "raw_sell:ROC",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 10.433649553707482,
+      "n_windows": 8
+     },
+     "lift_a_early": 1.672651414631975,
+     "lift_b_early": 9.06179196735282,
+     "selected": true,
+     "e0_lift": 6.695071381212196,
+     "e0_lift_a": 1.4511210368565264,
+     "e0_lift_b": 7.006514465381264
+    },
+    {
+     "a": "raw_sell:BBBreakout:tm0",
+     "b": "raw_sell:PPO",
+     "side": "sell",
+     "target": "label:sell",
+     "population": "all",
+     "early": {
+      "median_lift": 10.431762890482865,
+      "n_windows": 8
+     },
+     "lift_a_early": 2.1149770703111654,
+     "lift_b_early": 7.60370509098043,
+     "selected": true,
+     "e0_lift": 7.425950473691265,
+     "e0_lift_a": 2.2518016610393725,
+     "e0_lift_b": 5.386043363168024
+    }
+   ]
   }
  }
 }
