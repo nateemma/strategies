@@ -1,0 +1,18 @@
+{
+ "days": 0.01,
+ "orders_per_pair": {
+  "ZEC/USDT": 0,
+  "XRP/USDT": 0,
+  "SOL/USDT": 0,
+  "LINK/USDT": 0,
+  "NEAR/USDT": 0,
+  "AAVE/USDT": 0,
+  "AVAX/USDT": 0,
+  "LTC/USDT": 0,
+  "BCH/USDT": 0,
+  "DOT/USDT": 0
+ },
+ "open": false,
+ "thin_pairs": [],
+ "rule": ">= 28 days AND every pair >= 5 orders; or >= 84 days"
+}

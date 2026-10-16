@@ -44,8 +44,16 @@ gap, add a pointer to this file.
 
 ## Current state (2026-10-15)
 
-- **Live:** only a dry-run of the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`).
-  Never kill it (see Operational rules).
+- **Live (two dry-run bots, no real money):**
+  - the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`, port 8080). Never kill
+    it (see Operational rules);
+  - **since 2026-10-16, the NNNC control (feature 036):** class `NNNC_LIVE_live1_REC` (ARO trained
+    to 2026-10-16, threshold applied as 0.78), `config/config_live_nnnc.json`, port 8081, database
+    `tradesv3.live_nnnc.sqlite`. Control it only through
+    `zsh user_data/strategies/scripts/live_nnnc.sh start|stop|status` (repo root), which signals
+    only its own pid. It records orders, fills, exits, signals and order-book depth to
+    `user_data/data/live_nnnc/<run_id>/` (never committed). The model's record and the retrain
+    procedure are in `research/live_pnl/live_models.json` and `report.md`.
 - **NNNC defaults adopted by experiment:** stop-loss grace 24 h (was 6.5 h); the in-profit
   held-pair add (`HELD_PAIR_ADD = {"in_profit_only": True}`, feature 031). The ATR take-profit
   (`take_profit_atr_mult`, feature 028) exists as a default-off switch.
@@ -66,6 +74,7 @@ Recent features, newest first (each `specs/NNN-*` or the named `research/` direc
 
 | # | topic | outcome |
 |---|---|---|
+| 036 | realistic P&L: live NNNC dry-run recording depth, an execution-cost model, and a cost-budget stake cap (`research/live_pnl`) | recording since 2026-10-16; US2/US3 wait for the gate (≥ 4 weeks and ≥ 5 orders per pair) |
 | 035 | new-input screen: 17 non-OHLCV / market-state inputs, plus both32 (ind24 + raw8) (`research/new_inputs`) | no input beats the control at S2 |
 | — | control sizer: current ARO as a width-book stake sizer (`research/control_sizer`) | PASS (PROVISIONAL) |
 | 034 | label-type screen: ARO trained on 7 other label types, ranked inside the width book (`research/label_screen`) | all 8 FAIL at S1 |

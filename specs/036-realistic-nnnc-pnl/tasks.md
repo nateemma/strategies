@@ -313,7 +313,7 @@ the combined P&L against the sum.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T034 [P] Update AGENT_GUIDE.md: the "Current state" section (live NNNC dry-run, where its
+- [X] T034 [P] Update AGENT_GUIDE.md: the "Current state" section (live NNNC dry-run, where its
   records live, the launcher, never touching the momentum bot) and the feature table row 036.
 - [ ] T035 [P] Update `research/model_calibration/findings.md` with a §12 (036) when US2 and US3
   results exist, and the memory status entry.
