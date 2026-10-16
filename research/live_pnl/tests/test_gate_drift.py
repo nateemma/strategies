@@ -43,3 +43,11 @@ def test_drift_in_band_not_flagged():
 def test_drift_out_of_band_flagged():
     assert D.weekly(_sig(0.005), 0.8, 0.014735)[0]["flag"]
     assert D.weekly(_sig(0.040), 0.8, 0.014735)[0]["flag"]
+
+
+def test_drift_uses_the_logged_threshold():
+    sig = _sig(0.015)
+    sig["p_buy"] = [0.785] * 15 + [0.1] * 985   # above the picked 0.7783, above applied 0.78
+    sig["threshold"] = 0.79                      # applied threshold logged higher
+    w = D.weekly(sig, 0.7783, 0.014735)
+    assert w[0]["buy_rate"] == 0.0 and w[0]["flag"]

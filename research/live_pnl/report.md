@@ -44,3 +44,33 @@ Spec: `specs/036-realistic-nnnc-pnl/`. **Label: PROVISIONAL.**
 - **FR-002, the current defaults:** `HELD_PAIR_ADD = {'in_profit_only': True}`;
   `stoploss_grace_hours` 24.0 (class and fold json); grace level −0.27.
 - **Launcher check:** `live_nnnc.sh --check` passes.
+
+## Live bot started (T012, 2026-10-16)
+
+- **Start:** `live_nnnc.sh start` at 15:50 UTC, then a restart at **15:56 UTC**, which is the
+  effective start and the FR-019 clock. It runs as pid 41849 on port 8081, with database
+  `tradesv3.live_nnnc.sqlite` and log `user_data/logs/live_nnnc.log`.
+- **Momentum bot:** untouched. It is still pid 2661, started 2026-09-10 14:06, and port 8080
+  responds 200 before and after.
+- **Incident at the first start:** every pair's `analyze_ticker` raised `ValueError('cannot convert
+  float NaN to integer')`, so there were no signals and no trading for 6 minutes.
+  - **Cause:** the recorder converted the last row's `enter_long` (NaN on non-signal candles) with
+    `int()`, and its error guard re-raised every `ValueError`. The re-raise was meant only for the
+    RECORD_DIR refusal. A recording failure therefore broke the strategy, contrary to the contract.
+  - **Fix:** a dedicated `RecorderConfigError` is the only error that escapes; values are converted
+    NaN-safe. Two regression tests were added. The bot was restarted.
+- **After the fix**, by 16:02 UTC:
+  - 20 scheduled depth snapshots (2 candles × 10 pairs), 0 missing, 20 levels per side;
+  - one signal row per pair per candle with real p_buy values;
+  - no strategy exceptions.
+- **Effective threshold:** `prediction_threshold` is a 2-decimal `DecimalParameter`, so the picked
+  0.7783 is applied as **0.78**. Every walk-forward control ran with the same rounding (0.7732
+  became 0.77), so live matches how the controls were backtested. `drift.py` measures against the
+  logged, applied threshold.
+- **Model-key audit:** once the bot class existed on disk, `confirm_trade_exit` had a second
+  definition, and the audit requires every multiply-defined method to be classified.
+  `confirm_trade_exit` and `_fillable_stake` were added to BaseStrategy's
+  `MODEL_KEY_METHODS_IGNORED`, and both mixins declare their overridden callbacks as ignored.
+  That list is not hashed, so every model key is unchanged (the pre-034 key fixture test passes).
+  This is the only edit to existing Framework code in 036, and it is classification only, with no
+  behaviour change.

@@ -8,8 +8,9 @@
   "threshold": 0.7783407204151153,
   "target_rate": 0.014735,
   "params_sha": "10d203e2ad2ee9da",
-  "status": "picked",
-  "started": null,
-  "retired": null
+  "status": "live",
+  "started": "2026-10-16T15:56:00+00:00",
+  "retired": null,
+  "note": "first start 15:50Z had a recorder defect (NaN enter_long raised into analyze_ticker); fixed and restarted 15:56Z, which is the effective start"
  }
 ]

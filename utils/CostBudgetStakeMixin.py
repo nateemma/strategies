@@ -30,6 +30,8 @@ class CostBudgetStakeMixin:
     STAKE_COST_MODEL: str | None = None
     STAKE_COST_MODEL_SHA: str | None = None
     MODEL_KEY_IGNORED = ("STAKE_COST_BUDGET_BPS", "STAKE_COST_MODEL", "STAKE_COST_MODEL_SHA")
+    # stake sizing and the entry headroom check; neither shapes the weights
+    MODEL_KEY_METHODS_IGNORED = ("_fillable_stake", "custom_stake_amount", "confirm_trade_entry")
 
     _cb_model = None
 

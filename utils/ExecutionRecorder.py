@@ -39,6 +39,20 @@ DEPTH_TIMEOUT_S = 3.0
 CANDLE_SECONDS = 15 * 60
 
 
+class RecorderConfigError(ValueError):
+    """A misconfigured recorder (e.g. RECORD_DIR inside the repository): the only error that may
+    escape the recorder. Every other recording failure is logged and swallowed."""
+
+
+def _num(x):
+    """float, or None for a missing/NaN value."""
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if v != v else v
+
+
 def _candle(t: datetime, seconds: int = CANDLE_SECONDS) -> datetime:
     ts = int(t.timestamp()) // seconds * seconds
     return datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -107,6 +121,9 @@ class ExecutionRecorderMixin:
     RECORD_PBUY_COLUMN: str = "%predict_prob_buy"
     MODEL_KEY_IGNORED = ("RECORD_EXECUTION", "RECORD_DIR", "RECORD_RUN_ID", "RECORD_DEPTH_LEVELS",
                          "RECORD_PBUY_COLUMN")
+    # trading callbacks it wraps for recording only; none shapes the weights
+    MODEL_KEY_METHODS_IGNORED = ("custom_stake_amount", "confirm_trade_entry", "order_filled",
+                                 "confirm_trade_exit", "bot_loop_start", "populate_entry_trend")
 
     _rec_writer = None
     _rec_pool = None
@@ -123,10 +140,10 @@ class ExecutionRecorderMixin:
     def _rec(self) -> _DailyWriter:
         if self._rec_writer is None:
             if not self.RECORD_DIR or not self.RECORD_RUN_ID:
-                raise ValueError(f"{type(self).__name__}: RECORD_DIR and RECORD_RUN_ID are required")
+                raise RecorderConfigError(f"{type(self).__name__}: RECORD_DIR and RECORD_RUN_ID are required")
             root = Path(self.RECORD_DIR).resolve()
             if root == STRAT_DIR or STRAT_DIR in root.parents:
-                raise ValueError(f"{type(self).__name__}: RECORD_DIR {root} is inside the strategies "
+                raise RecorderConfigError(f"{type(self).__name__}: RECORD_DIR {root} is inside the strategies "
                                  "repository; recorded market data must never be committed")
             self._rec_writer = _DailyWriter(root / self.RECORD_RUN_ID)
             self._rec_stake = {}
@@ -135,7 +152,7 @@ class ExecutionRecorderMixin:
     def _rec_safe(self, fn, *args):
         try:
             fn(*args)
-        except ValueError:
+        except RecorderConfigError:
             raise
         except Exception as exc:  # recording must never affect trading
             logger.warning("ExecutionRecorder: %s failed: %s", fn.__name__, exc)
@@ -198,8 +215,8 @@ class ExecutionRecorderMixin:
         depth_ref = self._rec_depth(pair, current_time, "order")
         w.write("orders", day, key, {
             "run_id": self.RECORD_RUN_ID, "pair": pair, "signal_candle": candle,
-            "signal_close": None if last is None else float(last["close"]),
-            "signal_quote_volume": None if last is None else float(last["close"] * last["volume"]),
+            "signal_close": None if last is None else _num(last["close"]),
+            "signal_quote_volume": None if last is None else _num(last["close"] * last["volume"]),
             "requested_stake": requested, "granted_stake": granted,
             "rate": float(rate), "amount": float(amount), "order_type": order_type,
             "order_time": _iso(current_time), "entry_tag": entry_tag, "rejected": not ok,
@@ -266,7 +283,7 @@ class ExecutionRecorderMixin:
         col = self.RECORD_PBUY_COLUMN
         self._rec().write("signals", candle[:10], f"{pair}|{candle}", {
             "run_id": self.RECORD_RUN_ID, "pair": pair, "candle": candle,
-            "close": float(last["close"]), "quote_volume": float(last["close"] * last["volume"]),
-            "p_buy": None if col not in dataframe.columns else float(last[col]),
-            "threshold": None if thr is None else float(thr),
-            "enter_long": int(last.get("enter_long", 0) or 0)})
+            "close": _num(last["close"]), "quote_volume": _num(last["close"] * last["volume"]),
+            "p_buy": None if col not in dataframe.columns else _num(last[col]),
+            "threshold": _num(thr),
+            "enter_long": int(_num(last.get("enter_long", 0)) or 0)})

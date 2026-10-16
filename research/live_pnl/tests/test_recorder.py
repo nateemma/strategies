@@ -168,3 +168,22 @@ def test_mixin_does_not_change_the_model_key():
     rec = type("NNNC_A_Raw_Open_REC_T", (ER.ExecutionRecorderMixin, base),
                {"RECORD_EXECUTION": True, "RECORD_DIR": "/tmp/x", "RECORD_RUN_ID": "t"})
     assert MK.key_hash(MK.resolve(rec, cfg)) == MK.key_hash(MK.resolve(base, cfg))
+
+
+def test_nan_enter_long_never_breaks_analysis(tmp_path):
+    """Live regression 2026-10-16: enter_long is NaN on non-signal rows; int(NaN) raised a
+    ValueError that _rec_safe re-raised into freqtrade's analyze_ticker for every pair."""
+    s = _strategy(tmp_path)
+    df = pd.DataFrame({"date": [pd.Timestamp("2026-10-16 11:45", tz="UTC")], "close": [100.0],
+                       "volume": [50.0], "%predict_prob_buy": [float("nan")],
+                       "enter_long": [float("nan")]})
+    out = s.populate_entry_trend(df, {"pair": "AAA/USDT"})
+    assert len(out) == 1
+    sig = json.loads((tmp_path / "t1" / "signals-2026-10-16.jsonl").read_text().splitlines()[0])
+    assert sig["enter_long"] == 0 and sig["p_buy"] is None
+
+
+def test_recording_errors_are_swallowed_but_config_errors_are_not(tmp_path):
+    s = _strategy(tmp_path)
+    s.dp.get_analyzed_dataframe = lambda pair, timeframe: (_ for _ in ()).throw(ValueError("boom"))
+    assert s.confirm_trade_entry("AAA/USDT", "limit", 4.5, 100.0, "GTC", T0, None, "long") is True

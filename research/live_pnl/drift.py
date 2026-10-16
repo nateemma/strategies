@@ -26,7 +26,10 @@ def weekly(sig: pd.DataFrame, threshold: float, target: float) -> list[dict]:
     s["week"] = pd.to_datetime(s.candle, utc=True).dt.tz_localize(None).dt.to_period("W").astype(str)
     out = []
     for wk, g in s.groupby("week"):
-        rate = float((g.p_buy > threshold).mean())
+        # the threshold actually applied (the 2-decimal DecimalParameter rounds the picked value),
+        # as logged per candle; the picked value only when the log has none
+        thr = g.threshold if "threshold" in g and g.threshold.notna().all() else threshold
+        rate = float((g.p_buy > thr).mean())
         ratio = rate / target if target else None
         out.append({"week": wk, "n": int(len(g)), "buy_rate": round(rate, 6),
                     "ratio_to_target": None if ratio is None else round(ratio, 3),

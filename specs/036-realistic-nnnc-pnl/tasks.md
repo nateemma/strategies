@@ -128,10 +128,10 @@ parity report.
 depth; parity reports exist for each day with unexplained differences resolved; the momentum bot
 is unchanged.
 
-- [ ] T010 [US1] Download fresh 15m data for the 10 pairs (repo root):
+- [X] T010 [US1] Download fresh 15m data for the 10 pairs (repo root):
   `.venv/bin/freqtrade download-data -c user_data/strategies/config/config_wf.json -t 15m --days 10`.
   Do not run it while any chain is running. Record the last candle per pair in `report.md`.
-- [ ] T011 [US1] Train the live model:
+- [X] T011 [US1] Train the live model:
   `PYTHONPATH=. ../../.venv/bin/python -m research.live_pnl.live_fold --cut <first undownloaded day> --run-id live1`
   (one chain, `ps` first). Verify that:
   - `scripts/model_index.py key NNNC_LIVE_live1_REC` equals the record;
@@ -142,7 +142,7 @@ is unchanged.
     and record them in `report.md`.
 
   Commit `live_models.json`, the plan and the generated classes.
-- [ ] T012 [US1] Start the bot with `zsh user_data/strategies/scripts/live_nnnc.sh start` (repo
+- [X] T012 [US1] Start the bot with `zsh user_data/strategies/scripts/live_nnnc.sh start` (repo
   root). Within 30 minutes, verify:
   - `status` reports running on 8081;
   - the momentum bot is unchanged (pid 2661, same start time, port 8080 responds);
