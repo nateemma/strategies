@@ -102,16 +102,24 @@ That is far below Binance.US limits.
 
 **Decision**: `research/live_pnl/parity.py --day YYYY-MM-DD`. It:
 1. downloads the latest 15m candles for the 10 pairs into the normal data directory;
-2. backtests the live class on that day, with startup candles, `FT_MODEL_EVAL_STRICT=1`, and
-   `--timerange` covering the day;
+2. backtests the live class from the live run's start (`started` in live_models.json) through the
+   end of the day, with startup candles and `FT_MODEL_EVAL_STRICT=1`. Holding positions over
+   several days (24 h+ grace) and one trade per pair make a single-day backtest start from the
+   wrong open-trade state, so the backtest is cumulative and only the day's entries and exits are
+   compared;
 3. reads the live trades from `tradesv3.live_nnnc.sqlite` (read-only) and the signal log;
 4. matches trades on (pair, open candle);
 5. classifies each difference by a declared order of causes:
+   - (p) prediction difference, checked first: the live p_buy in the signal log differs from the
+     backtest's p_buy for the same pair and candle by more than 0.01. Live predicts pair by pair,
+     while the backtest uses the pair-aggregated, sequential-index path, so a pipeline difference
+     must be separated from market causes;
    - (a) data revision: the downloaded candle differs from the one the live bot saw (the signal
      log stores the live close and volume);
    - (b) gap-fill: a zero-volume bar on either side;
    - (c) timing: an entry within one candle, or an unfilled limit order;
-   - (d) wallet or slot state: a different open-trade set;
+   - (d) wallet or slot state: a different open-trade set, including a position carried from a
+     difference on an earlier day;
    - (e) UNEXPLAINED, which is flagged.
 
 Output goes to `research/live_pnl/parity/<day>.json` (committed weekly as a summary, not daily
@@ -202,6 +210,14 @@ inflate backtest returns without a cost model (memory `project_liquidity_and_cap
 The budget set {5, 10, 20, 40} bps is committed in a pre-registration before any capacity
 backtest.
 
+**Two baselines (analyze I2):** `restate` runs on the old `wf_aro_g24` records (held-pair add
+off, the historical comparator) AND on `cap_aro_ref` (current defaults). The capacity verdicts use
+`cap_aro_ref` only, and `report.md` labels each.
+
+**Gate 5 (paired seed robustness):** met by determinism. The capacity arms use fixed weights, and
+backtests are deterministic, so there is no run-to-run variance to isolate. This is stated in the
+capacity pre-registration.
+
 ## R9. Shared wallet with the momentum basket (US4, last)
 
 **Decision**: backtest `MomentumRegimeBasket15mFast` on the same 15 fold test ranges. It is
@@ -239,3 +255,14 @@ threshold is picked to a rate, so drift is measured against that rate.
 2026-09-10, before any live bar. The model key then matches the validated pipeline (the key hashes
 the scaler file). Re-fitting would change the key and the model, which is out of scope (FR-018).
 The walk-forward exposure in Principle XI is unchanged by this feature and stays recorded.
+
+## R13. Live record against the cost model (FR-016)
+
+**Decision**: `research/live_pnl/model_check.py`, run every 4 weeks once the cost model exists. For
+each recorded order and exit with a depth snapshot, it compares:
+- the cost the model predicts from participation at that candle;
+- the cost of walking that snapshot for the granted stake.
+
+It reports the median signed error per tier. A sustained bias is |median| > the tolerance on two
+consecutive checks. It is flagged in `model_check.json`, and `capacity` refuses to offer a result
+for adoption while a flag is open.

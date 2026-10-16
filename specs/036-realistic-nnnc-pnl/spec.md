@@ -66,6 +66,9 @@ Neither can be measured from history alone.
 - **Q: How long must the dry-run record before US2 and US3 are judged?** → A: Until every pair has
   at least 5 recorded orders AND 4 weeks have passed. Pairs still short at 12 weeks are pooled as
   thin (FR-019).
+- **Gate split (offered 2026-10-16, not taken):** a preliminary cost model from scheduled snapshots
+  after about 2 weeks was offered as a way to get an earlier capacity read. The recorded answer
+  above (4 weeks AND 5 orders per pair) stands unless the user changes it.
 - **Q: Which NNNC configuration runs live?** → A: The control only (ARO with current defaults), as
   one bot.
 
@@ -99,7 +102,8 @@ addresses the drift seen on the forward window.
 
 1. **Given** data up to the latest download, **When** the live model is prepared, **Then**:
    - it is trained only on data before a declared cut-off;
-   - its threshold is picked on that training span's validation tail by the standard rule;
+   - its threshold is picked on the model's training window at target rate 0.014735, the rule
+     every control threshold was picked by;
    - its identity (model key, training range, threshold, width cut if any) is recorded before the
      bot starts.
 2. **Given** the bot is running, **When** a signal produces an order, **Then** the order record and
@@ -244,7 +248,7 @@ report blocked or shrunk entries per strategy and the combined P&L against the s
   on the walk-forward pair list and stake settings.
 - **FR-003**: The live model MUST be:
   - trained only on data before a recorded cut-off;
-  - given a threshold picked on that span's validation tail by the standard walk-forward rule;
+  - given a threshold picked on its training window at target rate 0.014735 (the controls' rule);
   - identified by its model key and recorded before start.
 
   The bot MUST refuse to start, and never train, if those weights are missing or differ from the
@@ -325,7 +329,10 @@ report blocked or shrunk entries per strategy and the combined P&L against the s
   4 weeks AND until every pair in the list has at least 5 recorded orders.
   - A pair that has not reached 5 orders by 12 weeks is reported as thin and handled by the
     structural pooling rule (FR-010). It never holds back the other pairs indefinitely.
-- **FR-020**: Every result MUST be labelled PROVISIONAL. The 15 folds are one era (2023–2026),
+- **FR-020**: Every result MUST be labelled PROVISIONAL. Re-stated baselines and capacity points are
+  labelled as execution measurements, not edge findings. They are built on walk-forward fold
+  models that inherit the full-history scaler exposure (constitution, Principle XI; plan.md records
+  the exception), so they compare arms that share one model and do not claim model edge. The 15 folds are one era (2023–2026),
   and the recorded depth comes from a single recent period (constitution, Principle II).
 
 ### Key Entities

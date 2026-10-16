@@ -100,7 +100,7 @@ chosen constant. The stages:
 | VIII. One space at a time | PASS. Only the stake cap varies. |
 | IX. Orthogonality | Not applicable (no new factor). US4 measures contention only. |
 | X. No per-pair overrides | PASS. Cost tiers are terciles of a structural measure, and refusals cover missing tiers. |
-| XI. No leakage | The live fold trains only before the cut and reuses the scaler fitted on 2026-09-10, before any live bar (R12). The known walk-forward scaler exposure is unchanged and stays recorded. |
+| XI. No leakage | **Live:** PASS. The live fold trains only before the cut and reuses the scaler fitted on 2026-09-10, before any live bar (R12). **Folds: justified exception, recorded below.** The re-statement (US2) and capacity curve (US3) run on the 15 walk-forward fold models, which inherit the full-history scaler. Under Principle XI their absolute results would be void as model-evaluation findings. They are used only as execution measurements on fixed trade sets: every arm shares the same model and weights, so the scaler leak cannot favour one arm over another, and the question asked (what does size cost, and what does a cap change) is not a model-edge question. Outputs are labelled as execution measurements, never as edge findings (FR-020). The absolute baselines are reported with the exposure stated. |
 | Repository constraints | PASS. No Framework/ change, mixins in utils/, params merge, staging by name. |
 | Quality gates | Pinned ranges (fold plans), trade counts reported, liveness proof (R7). Scalers unchanged, since the include list is unchanged. |
 
@@ -162,3 +162,4 @@ the cost cap) are mixins in `utils/`, keeping Framework/ strategy-agnostic and u
 | a second long-running bot | live depth and parity can only be measured live | dry-run fills are simulated, and a backtest cannot see depth |
 | participation-based cost curves | apply recorded cost to 2023–26 history, where no depth exists | a fixed bps cost cannot price size, which is the question |
 | a recording gate (4 weeks + 5 orders per pair) | the user's choice (Q2 = C); guards against a thin cost model | — |
+| **Principle XI exception:** fold models with the full-history scaler used in US2/US3 | the only models with 15-fold trade sets; refitting a scaler per fold changes every model and is out of scope (FR-018) | per-fold scaler refit: a model change, not an execution measurement; it would also change the trade sets being priced |

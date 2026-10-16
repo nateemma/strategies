@@ -11,7 +11,8 @@ research.live_pnl.<tool>`, unless noted.
 | `gate` | writes `gate.json` | — |
 | `cost_model --fit` | fits the R5 model from recorded depth, holdout = the last 25% of days, writes `cost_model.json` | gate closed; the fitting rule is not committed |
 | `restate --arm TAG [--folds …]` | RestatedResult for an arm | no cost model; arm records missing |
-| `capacity` | judges the capacity arms (R8) into `capacity.json` | gate closed; pre-registration uncommitted; any arm INERT (reported) |
+| `capacity` | judges the capacity arms (R8) into `capacity.json` | gate closed; pre-registration uncommitted; any arm INERT (reported); `model_check` bias flag open (no result offered for adoption) |
+| `model_check` | the R13 comparison of recorded orders against cost-model predictions, writes `model_check.json` | no cost model |
 | `drift` | weekly live BUY rate against target (R11) | — |
 
 Every tool writes JSON with a `label` field ("PROVISIONAL …"), and never writes into

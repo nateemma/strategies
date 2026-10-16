@@ -43,8 +43,8 @@ contracts/study_cli.md, quickstart.md.
 ## Phase 1: Setup
 
 - [ ] T001 Create `research/live_pnl/__init__.py`, `research/live_pnl/tests/__init__.py` and
-  `research/live_pnl/parity/.gitkeep`. Move `research/live_pnl/spec_036_draft.md` under the new
-  package unchanged (it is already there; just confirm). Add `research/live_pnl/tests` to the
+  `research/live_pnl/parity/.gitkeep`, and confirm that `research/live_pnl/spec_036_draft.md` is
+  present (committed affb6069). Add `research/live_pnl/tests` to the
   suite command in AGENT_GUIDE.md's Tests line.
 - [ ] T002 [P] Confirm `user_data/data/live_nnnc/` resolves outside the nested repository, and
   that `tradesv3.live_nnnc.sqlite*` at the repo root is not tracked by the strategies repository.
@@ -86,7 +86,8 @@ contracts/study_cli.md, quickstart.md.
     (using `fold_has_model`, not `model_exists`), and regenerates the fold with the threshold;
   - writes `NNNC/NNNC_LIVE_<id>_REC.py` (ExecutionRecorderMixin + `NNNC_LIVE_<id>`;
     `RECORD_EXECUTION = True`; `RECORD_DIR` = `user_data/data/live_nnnc`; `RECORD_RUN_ID = <id>`)
-    and its `.json` copied from the fold's with `strategy_name` set;
+    and its `.json` copied from the fold's with `strategy_name` set. The threshold is scored on the
+    training window (`TrainWindow.from_fold`), as for every control;
   - appends a LiveModelRecord to `research/live_pnl/live_models.json` and retires the previous one.
 - [ ] T007 [P] Write `config/config_live_nnnc.json`:
   - from `config_wf.json`: whitelist (10 pairs), StaticPairList, stake 900, max_open 10, wallet
@@ -135,7 +136,10 @@ is unchanged.
   (one chain, `ps` first). Verify that:
   - `scripts/model_index.py key NNNC_LIVE_live1_REC` equals the record;
   - the threshold lies in the controls' historical range (0.73–0.79), or the difference is
-    explained in `report.md` before going on.
+    explained in `report.md` before going on;
+  - the `_REC` class runs the current NNNC defaults (FR-002): dump `HELD_PAIR_ADD` (expect
+    `{'in_profit_only': True}`) and the stop-loss grace (expect 24 h) from an instantiated class,
+    and record them in `report.md`.
 
   Commit `live_models.json`, the plan and the generated classes.
 - [ ] T012 [US1] Start the bot with `zsh user_data/strategies/scripts/live_nnnc.sh start` (repo
@@ -148,13 +152,27 @@ is unchanged.
 
   Record the start in `report.md` and live_models.json (`started`).
 - [ ] T013 [P] [US1] Tests in `research/live_pnl/tests/test_parity.py` for each R4 cause on
-  synthetic live and backtest trade sets and signal logs: matched; data_revision (a different close
-  in the signal log); gap_fill (a zero-volume bar); timing (an entry one candle apart or an
-  unfilled limit); wallet_state; UNEXPLAINED. The cause order is applied as declared.
+  synthetic live and backtest trade sets and signal logs:
+  - matched;
+  - prediction_difference (live and backtest p_buy differ by more than 0.01 for the candle);
+  - data_revision (a different close in the signal log);
+  - gap_fill (a zero-volume bar);
+  - timing (an entry one candle apart, or an unfilled limit);
+  - wallet_state, including a position carried from an earlier day's difference;
+  - UNEXPLAINED.
+
+  The cause order is applied as declared, with prediction_difference checked first. A further test
+  checks that only the day's entries and exits are compared, while the backtest range starts at
+  the live run's start.
 - [ ] T014 [US1] Implement `research/live_pnl/parity.py --day` to pass T013. It:
   - downloads 15m candles for the day (with the download guard of T010);
-  - backtests the live class on the day plus startup with `FT_MODEL_EVAL_STRICT=1` (repo root,
-    from `freqtrade backtesting`; record the result path);
+  - backtests the live class from the live run's `started` date through the end of the day
+    (cumulative; plus startup candles) with `FT_MODEL_EVAL_STRICT=1` (repo root,
+    `freqtrade backtesting`). Record the result path;
+  - gets the backtest's p_buy for every candle of the day from the strategy's own forward pass in
+    backtest runmode (`research.nnnc_framework.signals.fold_table(cls, timerange)`, which writes p_buy per
+    bar), for the prediction_difference cause. Backtest signal exports cover only candles that
+    signalled, so they cannot price live-only entries;
   - reads the live trades from `tradesv3.live_nnnc.sqlite` read-only (`?mode=ro`);
   - matches on (pair, open candle);
   - writes `research/live_pnl/parity/<day>.json` per data-model ParityReport.
@@ -214,9 +232,19 @@ is unchanged.
   - trade identity is unchanged;
   - the cost uses the causal rolling volume at the entry and exit candles;
   - a zero-cost model returns gross = net.
-- [ ] T024 [US2] Run `cost_model --fit` and `restate` on `wf_aro_g24` and `w_aro` (after the gate
-  opens). Commit the outputs and add a `report.md` "Execution cost" section: the cost curves per
-  tier, the held-out error per pair, the excluded pairs, and the restated baselines per half.
+- [ ] T024 [US2] Run `cost_model --fit` and `restate` on `wf_aro_g24` (historical records, held-pair
+  add off) and `w_aro` (after the gate opens). `cap_aro_ref` is restated in T030; `report.md`
+  labels which baseline each number belongs to. Commit the outputs and add a `report.md`
+  "Execution cost" section: the cost curves per tier, the held-out error per pair, the excluded
+  pairs, and the restated baselines per half. Label the baselines as execution measurements on
+  fold models that inherit the full-history scaler (FR-020; the plan.md Principle XI exception).
+
+- [ ] T025 [US2] Implement `research/live_pnl/model_check.py` (research R13; FR-016), with a test
+  in `tests/test_model_check.py`:
+  - a synthetic order set with a constant offset sets the flag on the second consecutive check;
+  - with no offset, the flag is never set.
+
+  Run it every 4 weeks once `cost_model.json` exists, and commit `model_check.json`.
 
 **Checkpoint**: realistic baselines exist; US3 can run.
 
@@ -229,16 +257,16 @@ is unchanged.
 **Independent Test**: off is byte-identical; each budget arm is live; `capacity.json` has paired
 and risk verdicts per budget.
 
-- [ ] T025 [P] [US3] Tests in `tests/test_cost_budget.py` per `contracts/cost_budget_stake.md`:
+- [ ] T026 [P] [US3] Tests in `tests/test_cost_budget.py` per `contracts/cost_budget_stake.md`:
   - (a) off: `custom_stake_amount` and `confirm_trade_entry` return the parent's values exactly,
     and the model key is unchanged;
   - (b) on: the stake is min(proposed, S_max), with S_max from the inverse curve;
   - (c) a missing model, a sha mismatch, or a pair without a tier is refused;
   - (d) the floors are kept.
-- [ ] T026 [US3] Implement `utils/CostBudgetStakeMixin.py` to pass T025, recording the requested
+- [ ] T027 [US3] Implement `utils/CostBudgetStakeMixin.py` to pass T026, recording the requested
   and granted stake per trade (custom_data or entry tag suffix; the record must be readable from
   the backtest zip).
-- [ ] T027 [US3] Write and commit `research/live_pnl/preregistration_capacity.json` BEFORE any
+- [ ] T028 [US3] Write and commit `research/live_pnl/preregistration_capacity.json` BEFORE any
   capacity backtest. It declares:
   - the budgets {5, 10, 20, 40} bps;
   - the reference `cap_aro_ref` (the control re-run with current defaults);
@@ -246,16 +274,20 @@ and risk verdicts per budget.
   - judge_one on net per fold (early and late), with the risk verdict not WORSENED;
   - the liveness rule (the realised stake distribution differs from the reference, KS p < 0.01,
     or the arm is INERT);
-  - PROVISIONAL labelling.
-- [ ] T028 [US3] Create the classes `NNNC/NNNC_CAP_ARO_B{5,10,20,40}.py`/`.json` (control +
+  - PROVISIONAL labelling, and the execution-measurement label (FR-020; the Principle XI
+    exception);
+  - quality gate 5 (paired seed robustness) is met by determinism: fixed weights and
+    deterministic backtests.
+- [ ] T029 [US3] Create the classes `NNNC/NNNC_CAP_ARO_B{5,10,20,40}.py`/`.json` (control +
   CostBudgetStakeMixin, with params merged from the control) and the plans
   `evaluation/folds/plan_cap_aro_{ref,b5,b10,b20,b40}.json`, copied from `plan_wf_aro_g24.json`
   with the same thresholds. Verify that every class resolves to the control's model key for each
   fold (no training).
-- [ ] T029 [US3] Run the 5 capacity plans, 15 folds each, as one chain with
+- [ ] T030 [US3] Run the 5 capacity plans, 15 folds each, as one chain with
   `FT_MODEL_EVAL_STRICT=1` (repo root). Then `restate` each arm.
-- [ ] T030 [US3] Implement and run `research/live_pnl/capacity.py`, which refuses while the gate
-  is closed or T027 is uncommitted. It writes `capacity.json` (data-model CapacityPoint), with a
+- [ ] T031 [US3] Implement and run `research/live_pnl/capacity.py`, which refuses while the gate
+  is closed or T028 is uncommitted, and withholds any adoption offer while `model_check.json` has
+  an open bias flag. It writes `capacity.json` (data-model CapacityPoint), with a
   test for the refusal and the INERT flag in `tests/test_capacity.py`. Add a `report.md`
   "Capacity" section: net P&L per budget per half, the verdicts, and the realised/requested stake.
 
@@ -270,10 +302,10 @@ and risk verdicts per budget.
 **Independent Test**: the shared-wallet report lists blocked and shrunk entries per strategy and
 the combined P&L against the sum.
 
-- [ ] T031 [US4] Check whether fold-range backtests of `MomentumRegimeBasket15mFast` exist. If
+- [ ] T032 [US4] Check whether fold-range backtests of `MomentumRegimeBasket15mFast` exist. If
   not, create the plan `evaluation/folds/plan_mom_basket.json` (no_model; the same 15 test ranges;
   config `config_mom_15m.json`, a static 75-pair universe) and run it (one chain).
-- [ ] T032 [US4] Replay `cap_aro_ref` and the momentum basket through `evaluation/books.py
+- [ ] T033 [US4] Replay `cap_aro_ref` and the momentum basket through `evaluation/books.py
   --shared-wallet`, and write `research/live_pnl/shared_wallet.json`. Add a `report.md` "Shared
   wallet (deployment information)" section that changes no default.
 
@@ -281,11 +313,11 @@ the combined P&L against the sum.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T033 [P] Update AGENT_GUIDE.md: the "Current state" section (live NNNC dry-run, where its
+- [ ] T034 [P] Update AGENT_GUIDE.md: the "Current state" section (live NNNC dry-run, where its
   records live, the launcher, never touching the momentum bot) and the feature table row 036.
-- [ ] T034 [P] Update `research/model_calibration/findings.md` with a §12 (036) when US2 and US3
+- [ ] T035 [P] Update `research/model_calibration/findings.md` with a §12 (036) when US2 and US3
   results exist, and the memory status entry.
-- [ ] T035 Final check:
+- [ ] T036 Final check:
   - the full suite passes;
   - the byte check from the Phase 2 checkpoint is repeated;
   - `git status` shows no files from `user_data/data/live_nnnc/` and no sqlite files;
@@ -299,19 +331,19 @@ the combined P&L against the sum.
 - **US2** needs US1 to be running plus the gate (T016) open, which is at least 4 weeks after T012.
   T019–T021 and T023's code and tests can be written while recording runs. T022 and T024 wait for
   the gate.
-- **US3** needs US2's cost model (T024). T025–T028 can be written early. T029–T030 wait for T024.
-- **US4** runs last (Q1 = B). T031 can run any time no other chain is running.
-- **Chains:** T011, T029 and T031 each train or backtest, so they never overlap each other. The
+- **US3** needs US2's cost model (T024). T026–T029 can be written early. T030–T031 wait for T024 and T025.
+- **US4** runs last (Q1 = B). T032 can run any time no other chain is running.
+- **Chains:** T011, T030 and T032 each train or backtest, so they never overlap each other. The
   live bot is not a chain: it does inference only, and it runs throughout.
 
 ## Parallel opportunities
 
 - Phase 2: T003, T005, T007 and T008 are different files.
 - US1: T013, T015 and T016 can be written in parallel once T012 is running.
-- During the recording wait: T019–T021, T023, and T025–T028 (code, tests, pre-registrations).
+- During the recording wait: T019–T021, T023, and T026–T029 (code, tests, pre-registrations).
 
 ## Implementation Strategy
 
 **MVP = US1.** Get the live bot recording as early as possible; the 4-week clock is the critical
 path. Build the US2 and US3 code during the wait, so that when the gate opens only T022, T024 and
-T029–T030 remain. US4 is last, and is deployment information only.
+T030–T031 remain. US4 is last, and is deployment information only.

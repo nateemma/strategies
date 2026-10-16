@@ -65,8 +65,9 @@ drift (R11).
 
 - the day and run_id;
 - the counts: `matched`, `live_only`, `backtest_only`;
-- a list of differences: {pair, candle, side, cause ∈ {data_revision, gap_fill, timing,
-  wallet_state, UNEXPLAINED}, evidence};
+- a list of differences: {pair, candle, side, cause ∈ {prediction_difference, data_revision,
+  gap_fill, timing, wallet_state, UNEXPLAINED}, evidence};
+- `backtest_range`: from the live run's start to the end of the day (cumulative);
 - `unexplained` (a count).
 
 A day with `unexplained > 0` blocks P&L reads until it is resolved or recorded as a defect.
@@ -98,6 +99,12 @@ A day with `unexplained > 0` blocks P&L reads until it is resolved or recorded a
 - trades;
 - the median realised/requested stake;
 - a `liveness` flag (whether the stake distribution differs from the reference).
+
+## ModelCheck (`research/live_pnl/model_check.json`)
+
+`checks`: a list of {date, n, median_signed_error_bps per tier}; `bias_flag` (bool; set when
+|median| exceeds the tolerance on two consecutive checks); `tolerance_bps` (from the cost
+pre-registration).
 
 ## GateStatus (`research/live_pnl/gate.json`)
 
