@@ -1,0 +1,20 @@
+{
+ "title": "Control sizer forward confirmation: fold f14 frozen, evaluated on 2026-09-07..2026-10-12",
+ "date": "2026-10-16",
+ "parent": "preregistration.json (control sizer, PASS PROVISIONAL, fd17cc92)",
+ "why": "The 15-fold late half was not read blind (findings section 5). These 35 days are after data_end 2026-09-07 of every plan: no weight, width cut, threshold or decision has seen them.",
+ "arms": {
+  "cs_aro": "plan_fwd_cs_aro.json -- NNNC_CS_ARO_fwd1, f14 weights, f14 width cut, f14 sizer threshold 0.7477",
+  "w_aro": "plan_fwd_w_aro.json -- NNNC_W_ARO_fwd1 (width book, same weights unused for sizing)",
+  "control": "plan_fwd_wf_aro_g24.json -- NNNC_ARO_fwd1, f14 entry threshold 0.7732; run with CURRENT NNNC defaults (in-profit held-pair add ON), i.e. what would run today"
+ },
+ "identity_checked": "all three resolve to model key 8a08f28dd178c6db = f14's, weights present; generated classes differ from f14 only in names and test range",
+ "primary": "cs_aro minus w_aro total pp on the forward window; trade identity on (pair, open_date, close_date) must match (the sizer changes stakes only)",
+ "read": {
+  "CONSISTENT": "cs_aro - w_aro > 0 on identical trades",
+  "INCONSISTENT": "cs_aro - w_aro <= 0",
+  "power": "about 25 trades expected (930 over 15 folds of ~90 days); one window cannot confirm or reject the +8.5 pp at any useful significance -- this is a sign check that is blind, not a test. Report the paired per-trade difference with a bootstrap interval as context.",
+  "secondary": "cs_aro vs control, and agree share on the forward trades (expected ~0.5)"
+ },
+ "no_adoption": "nothing is adopted or promoted from this; promotion is the user's decision"
+}

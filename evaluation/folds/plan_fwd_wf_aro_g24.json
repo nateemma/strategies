@@ -1,0 +1,36 @@
+{
+ "run_id": "fwd_wf_aro_g24",
+ "family": "NNNC",
+ "base_strategy": "NNNC_A_Raw_Open",
+ "anchored": true,
+ "min_train_days": 730,
+ "test_days": 90,
+ "data_start": "2021-01-01",
+ "data_end": "2026-10-12",
+ "config": "user_data/strategies/config/config_wf.json",
+ "params_snapshot": "user_data/strategies/evaluation/folds/params_20261013-g24_NNNC_A_Raw_Open.json",
+ "params_sha": "10d203e2ad2ee9da",
+ "validated": true,
+ "validation_errors": [],
+ "folds": [
+  {
+   "fold_id": "fwd1",
+   "train_start": "2021-01-01",
+   "train_end": "2026-06-13",
+   "test_start": "2026-09-07",
+   "test_end": "2026-10-12",
+   "train_timerange": "20210101-20260614",
+   "test_timerange": "20260907-20261012",
+   "test_days": 35,
+   "strategy_class": "NNNC_ARO_fwd1",
+   "model_dir": "user_data/strategies/saved_data/NNNC_ARO_fwd1",
+   "arm_tag": "fwd_wf_aro_g24_fwd1",
+   "status": "planned"
+  }
+ ],
+ "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+ "thresholds": {
+  "fwd1": 0.7731902599334717
+ },
+ "fwd_note": "Forward confirmation (2026-10-16): fold f14 frozen -- its weights (train 20210101-20260614), width cut and threshold -- evaluated on 20260907-20261012, data no model, cut or pick has seen. Copied from plan_wf_aro_g24.json."
+}
