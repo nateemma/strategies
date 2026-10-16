@@ -58,7 +58,8 @@ Scheduled snapshots are unique per (pair, candle).
 ## SignalRecord (`signals-YYYY-MM-DD.jsonl`)
 
 One per pair per closed candle: `pair`, `candle`, `close`, `quote_volume`, `p_buy`, `threshold`,
-`guards_pass`, `enter_long`, `run_id`. It is unique per (pair, candle). It feeds parity (R4) and
+`enter_long`, `run_id`. (`guards_pass` was dropped at implementation: no strategy-agnostic
+column carries it, and parity and drift need only p_buy and `enter_long`.) It is unique per (pair, candle). It feeds parity (R4) and
 drift (R11).
 
 ## ParityReport (`research/live_pnl/parity/<day>.json`)

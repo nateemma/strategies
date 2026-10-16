@@ -42,11 +42,11 @@ contracts/study_cli.md, quickstart.md.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `research/live_pnl/__init__.py`, `research/live_pnl/tests/__init__.py` and
+- [X] T001 Create `research/live_pnl/__init__.py`, `research/live_pnl/tests/__init__.py` and
   `research/live_pnl/parity/.gitkeep`, and confirm that `research/live_pnl/spec_036_draft.md` is
   present (committed affb6069). Add `research/live_pnl/tests` to the
   suite command in AGENT_GUIDE.md's Tests line.
-- [ ] T002 [P] Confirm `user_data/data/live_nnnc/` resolves outside the nested repository, and
+- [X] T002 [P] Confirm `user_data/data/live_nnnc/` resolves outside the nested repository, and
   that `tradesv3.live_nnnc.sqlite*` at the repo root is not tracked by the strategies repository.
   Record both checks in `research/live_pnl/report.md` (new file, "Setup" section).
 
@@ -54,7 +54,7 @@ contracts/study_cli.md, quickstart.md.
 
 ## Phase 2: Foundational (blocks US1–US3)
 
-- [ ] T003 [P] Tests first, in `research/live_pnl/tests/test_recorder.py`, for the contract
+- [X] T003 [P] Tests first, in `research/live_pnl/tests/test_recorder.py`, for the contract
   `contracts/execution_recorder.md`:
   - (a) with `RECORD_EXECUTION = False`, and with runmode backtest, every overridden method returns
     super()'s value and writes no file;
@@ -63,7 +63,7 @@ contracts/study_cli.md, quickstart.md.
   - (c) duplicate keys across two recorder instances (a simulated restart) are written once;
   - (d) a raising orderbook call yields `depth_missing = true` and the trade decision is unchanged;
   - (e) a `RECORD_DIR` inside the strategies repository is refused.
-- [ ] T004 Implement `utils/ExecutionRecorder.py` (`ExecutionRecorderMixin`) to pass T003. The
+- [X] T004 Implement `utils/ExecutionRecorder.py` (`ExecutionRecorderMixin`) to pass T003. The
   overrides are `custom_stake_amount`, `confirm_trade_entry`, `order_filled`,
   `confirm_trade_exit`, `bot_loop_start` and `populate_entry_trend`. All call super() first, and
   all I/O goes through one append+fsync writer with daily files: `orders-`, `fills-`, `exits-`,
@@ -71,14 +71,14 @@ contracts/study_cli.md, quickstart.md.
   OrderRecord, FillRecord, ExitRecord, DepthSnapshot and SignalRecord. Depth uses
   `dp.orderbook(pair, maximum=RECORD_DEPTH_LEVELS)` with a 3 s timeout, and scheduled snapshots are
   "at most one per pair per candle".
-- [ ] T005 [P] Tests in `research/live_pnl/tests/test_live_fold.py`:
+- [X] T005 [P] Tests in `research/live_pnl/tests/test_live_fold.py`:
   - (a) the generated `plan_live_aro.json` has one fold, `train_timerange` `20210101-<cut>`, and
     the control's params snapshot and sha;
   - (b) a cut later than the last downloaded 15m candle of any whitelist pair is refused;
   - (c) an existing run_id is refused;
   - (d) `NNNC_LIVE_<id>_REC` resolves to the same key as `NNNC_LIVE_<id>`;
   - (e) the tool refuses while another trainer is running (the 032 driver's busy check, injected).
-- [ ] T006 Implement `research/live_pnl/live_fold.py` (`--cut`, `--run-id`) to pass T005. It:
+- [X] T006 Implement `research/live_pnl/live_fold.py` (`--cut`, `--run-id`) to pass T005. It:
   - builds the plan from `plan_wf_aro_g24.json` (base `NNNC_A_Raw_Open`, the same params snapshot,
     seed 1, `test_timerange` `<cut>-<cut+90d>`, class `NNNC_LIVE_<id>`);
   - calls `run_folds.generate_fold` and `train_fold`, then `fold_has_model` (research R1);
@@ -89,7 +89,7 @@ contracts/study_cli.md, quickstart.md.
     and its `.json` copied from the fold's with `strategy_name` set. The threshold is scored on the
     training window (`TrainWindow.from_fold`), as for every control;
   - appends a LiveModelRecord to `research/live_pnl/live_models.json` and retires the previous one.
-- [ ] T007 [P] Write `config/config_live_nnnc.json`:
+- [X] T007 [P] Write `config/config_live_nnnc.json`:
   - from `config_wf.json`: whitelist (10 pairs), StaticPairList, stake 900, max_open 10, wallet
     10,000, 15m;
   - from `config_mom_dryrun_15m.json`: `entry_pricing`, `exit_pricing`, `order_types`,
@@ -99,13 +99,13 @@ contracts/study_cli.md, quickstart.md.
 
   Add a test in `research/live_pnl/tests/test_config.py` that it parses, that its port and
   bot_name differ from the momentum config's, and that dry_run is true.
-- [ ] T008 [P] Tests in `research/live_pnl/tests/test_launcher.py` (run the script with a
+- [X] T008 [P] Tests in `research/live_pnl/tests/test_launcher.py` (run the script with a
   `--check` mode that performs only the refusals). It must refuse when:
   - the port is in use (bind a socket in the test);
   - the db path equals `tradesv3.dryrun.sqlite`;
   - the pid file names a live process;
   - the strategy key does not match `live_models.json`.
-- [ ] T009 Implement `scripts/live_nnnc.sh` (zsh; run from the repo root) with `start`, `stop`,
+- [X] T009 Implement `scripts/live_nnnc.sh` (zsh; run from the repo root) with `start`, `stop`,
   `status` and `--check`, to pass T008. It:
   - sources `~/.freqtrade_env` and exports `FT_MODEL_EVAL_STRICT=1`;
   - reads the current `live` record from `research/live_pnl/live_models.json`;
