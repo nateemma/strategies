@@ -22,16 +22,16 @@ M=research.indicator_screen
    `user_data/data/indicator_screen/`.
 6. **Instrument check and early labels.** Run
    `$PY -m $M.screen_single --targets labels --halves e0,early`.
-   - Expect guard_metric and bb_width in the top 5 for `label:buy` on all bars.
+   - Expect guard_metric and bb_width in the top 5 for `label:buy` on all bars (E0 + early gate).
    - If they are not, stop: the output says INSTRUMENT FAIL.
 7. **Early regime screens and pair selection.**
    - `$PY -m $M.screen_single --targets regime --halves e0,early`
-   - `$PY -m $M.screen_pairs --target label:buy --select`
+   - `$PY -m $M.screen_pairs --target label:buy --select` (and `--target label:sell`)
 8. **Pre-registration.** Commit `research/indicator_screen/preregistration.json`.
 9. **Late windows and models.**
    - `$PY -m $M.screen_single --targets labels --halves late`
    - `$PY -m $M.screen_single --targets regime --halves late`
-   - `$PY -m $M.screen_pairs --target label:buy --confirm`
+   - `$PY -m $M.screen_pairs --target label:buy --confirm` (and `label:sell`)
    - `for f in f00 ... f14; do $PY -m $M.screen_models --target label:buy --fold $f; done`, then
      `$PY -m $M.screen_models --merge --target label:buy`. Do the same for the regime targets.
 10. **Report.** Run `$PY -m $M.report`, then read `research/indicator_screen/report.md`.

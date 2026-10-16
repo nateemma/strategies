@@ -14,8 +14,13 @@ Each decision resolves an open technical question from the plan's Technical Cont
   3. call the class's own `get_entry_signals` / `get_exit_signals` with its current parameters,
      loaded through freqtrade's `StrategyResolver` as `pick_threshold._load_fold_context` does;
   4. harvest the new columns (the column-set difference) plus the returned raw signals.
-- **Columns already in the base frame** (the 24 model inputs, guard_metric, bb_width, ...) are
-  harvested once, under source `base`.
+- **Columns already in the base frame** (guard_metric, bb_width, ...) are harvested once, under
+  source `base`.
+- **The 24 model inputs (FR-006)** are not assumed to be in the base frame. They are taken from the
+  ARO control class's own indicator step (the same `_load_fold_context` load used for labels, R4),
+  run on the pair's raw OHLCV. Its `include_list` columns are harvested under source `aro`
+  (`aro:<col>`). A column identical to a `base:` column is recorded as an alias (data-model rule).
+  A test asserts that all 24 are present and equal the control's frame on one fold.
 
 **Rationale.**
 - Calling `get_*_signals` directly skips `get_entry_conditions`, where SimpleStrategy applies the
@@ -65,12 +70,15 @@ enters as the candidate flag (FR-006, FR-010).
 - **Range:** 2021-01-01 → 2026-09-07 (the plan `wf_aro_g24` `data_end`), plus the startup warm-up.
 - **Warm-up:** the first 1,000 bars per pair are excluded from every score.
 - **Windows:** fold test windows f00–f14 (2023-01-01 → 2026-09-07; early f00–f07, late f08–f14),
-  plus an extra descriptive era **E0** = 2021-04-01 → 2022-12-31.
+  plus the distant era **E0** = 2021-04-01 → 2022-12-31 (required for persistence; see below).
 
 **Rationale for E0.** Constitution II asks for a genuinely distant era. The early and late halves
-are adjacent. E0 (2021–22, including the 2022 bear market) is scored for the single-indicator and
-pair screens and reported alongside. It needs no training, so it is available. Multivariate models
-cannot be scored on E0, because no training data precedes it. Their persistence rests on early/late.
+are adjacent, so they cannot carry persistence alone. E0 (2021–22, including the 2022 bear market)
+is scored for the single-indicator and pair screens and is a REQUIRED condition: a single-column or
+pair candidate must have the same direction in E0 as in both halves (pairs: E0 lift ≥ 1.0 × max of
+the components). Multivariate models cannot be scored on E0, because no training data precedes it,
+and A2 has no E0 trades. Those candidates are labelled `persistence: distant era not tested`, and
+any later backtest feature built on them must cover 2022.
 
 ## R4 — Label targets (FR-008)
 
@@ -86,8 +94,13 @@ cannot be scored on E0, because no training data precedes it. Their persistence 
 ## R5 — Candidate population (FR-010)
 
 **Decision.** `research.outcomes.triggers.evaluate("gbb", frame)`: the registered trigger, with its
-own conditions and its asymmetric NaN convention. It is stored as the harvest column
-`base:gbb_candidate`.
+own conditions and its asymmetric NaN convention. The frame passed to it is the one its own
+populate step builds on raw OHLCV (the same path `research/outcomes/table.py` uses), not the
+harvest base frame, so the columns it reads are exactly the ones it expects. The result is stored
+as `base:gbb_candidate`.
+
+**Check.** A test compares the flag with the ARO control's candidate bars (the `trigger_gate` /
+outcome-table population) on one fold per pair: the fire counts must be equal.
 
 ## R6 — Scores (FR-012, FR-013)
 
@@ -108,7 +121,7 @@ own conditions and its asymmetric NaN convention. It is stored as the harvest co
   matches the median's. Windows with fewer than `min_rows` rows are reported but excluded from
   aggregation.
 - **Instrument check (SC-002):** the rank of guard_metric and bb_width by median strength for BUY on
-  all bars, over f00–f14.
+  all bars: the gate over f00–f07 + E0, the confirmation over f00–f14 (R15).
 
 ## R7 — Residual strength beyond bb_width + guard_metric (FR-015)
 
@@ -141,8 +154,10 @@ own conditions and its asymmetric NaN convention. It is stored as the harvest co
 
 **Decision.**
 - Every unordered pair of raw BUY signals, combined with AND. With ~90 raw buy signals after
-  overrides, that is about 4,000 pairs.
-- Each pair is scored by lift for the BUY label on candidate bars, per early window.
+  overrides, that is about 4,000 pairs. The same is done for raw SELL signals against the SELL label.
+- Label targets: lift on candidate bars, per early window.
+- Regime targets: lift for the top tercile on all bars (primary) and on candidate bars (secondary),
+  using raw BUY signals.
 - **Selection rule (pre-registered):**
   - computable in ≥ 6 of 8 early windows;
   - median early lift ≥ max(lift of either component) × 1.10;
@@ -150,7 +165,9 @@ own conditions and its asymmetric NaN convention. It is stored as the harvest co
   - from those, the top 20 by median early lift.
 - Survivors are scored once on f08–f14. A survivor is CONFIRMED if its late median lift is also
   ≥ 1.20 and above both components' late lifts.
-- E0 lift is reported for survivors, descriptively.
+- E0 lift is computed for survivors. A confirmed survivor must also have E0 lift ≥ 1.0 × max of its
+  components' E0 lifts (persistence, Principle II); otherwise it is reported as
+  `confirmed: early+late only`.
 
 ## R10 — Multivariate models (FR-017, FR-018)
 
@@ -164,9 +181,17 @@ own conditions and its asymmetric NaN convention. It is stored as the harvest co
   - All settings are fixed in the pre-registration; no per-fold tuning.
 - **Inputs:** every harvested value column, plus raw signals as 0/1. Missing values are passed
   through, since both models handle NaN natively.
-- **Training rows:** candidate bars in [2021-01-01 + warm-up, test_start − purge).
+- **Training rows:** label targets use candidate bars in [2021-01-01 + warm-up, test_start − purge).
+  Regime targets use all bars (primary), subsampled to every 4th bar (hourly) to stay within the memory
+  constraint (~2.3M → ~0.6M rows × ~350 float32 ≈ 0.8 GB); the purge is applied in bars before
+  subsampling. Test rows are subsampled the same way. The secondary regime population (candidate
+  bars) is small enough to use unsubsampled.
+- **Cost:** one fold is timed on the largest training span before the full model run (T034).
   - purge = 48 bars for label targets, N bars for regime targets.
   - Built per fold (Principle XI).
+  - A2 has no training-window values. For fold k ≥ 1 its training rows are the A2 bars of test
+    windows f00…f(k−1) ending at least N bars before test_start; f00 is not computable for A2. The
+    report gives the per-target fold count.
 - **Scored:** test-window AUC.
 - **Comparisons, on the same rows:**
   - the restricted model, the same class trained on [bb_width, guard_metric] only;
@@ -195,7 +220,10 @@ per bar, from bars (t, t+N] only.
 - Bars in the top tercile = 1, bottom tercile = 0; the middle tercile is dropped.
 - Cut points come from the target's values in the fold's training window. For A2, which has no
   training-window trades, the cut points come from the early test windows (f00–f07). This is
-  pre-registered and flagged.
+  pre-registered and flagged. (A2 single-column scores on early windows therefore use in-sample cut
+  points; late windows do not.)
+- **Populations:** all bars (primary) and candidate bars (secondary), for single columns, pairs and
+  models alike.
 - A bar where no trigger or trade falls in (t, t+N] is "not computable" for A1/A2.
 
 **Persistence baselines (FR-021).** The same quantity over the trailing window [t−N, t):
@@ -208,6 +236,11 @@ both halves.
 
 **BTC-valued indicators.** The harvest is also run on BTC/USDT. Its columns are joined to each pair
 by timestamp, under the prefix `btc:`.
+
+**Market-wide de-duplication.** A1, A2, B-btc and C-btc take the same value for every pair at a
+timestamp, and so do `btc:` columns. When a market-wide target is scored against a `btc:` column, the
+rows are de-duplicated to one per timestamp before the AUC, and n is reported on that basis. Every
+other combination keeps one row per pair-bar.
 
 **Autocorrelation.** Regime targets at 3 d / 7 d are heavily autocorrelated: one 90-day window
 holds only about 13–30 independent 7-day periods. Window-level medians and the same-direction
@@ -234,7 +267,8 @@ The result is written to `research/indicator_screen/causality.json`.
   the columns and the parameters.
 - **Size estimate:** 11 frames (10 pairs + BTC) × ~200k bars × ~350 float32 columns ≈ 3 GB on disk.
 - **Screens read only the columns they need,** per pair (feather column selection). Peak memory is
-  one column across all pairs, or one fold's candidate rows for the models (~300k × 350 ≈ 0.4 GB).
+  one column across all pairs, or one fold's model rows (label targets: ~300k candidate rows × 350
+  ≈ 0.4 GB; regime targets: hourly-subsampled all bars, ≈ 0.8 GB, R10).
 - **Cost:** harvest time is measured on one pair before the full run (task-level gate). Expected to
   be minutes per pair. The Ehlers super-smoother and the pandas-ta calls dominate.
 - **Committed outputs:** small JSON plus `report.md` under `research/indicator_screen/`.
@@ -255,8 +289,12 @@ The result is written to `research/indicator_screen/causality.json`.
   - `min_rows`, `min_fires`;
   - the pair-selection rule (R9) and the model settings (R10);
   - the tercile rule (R11), the horizons, and the A2 cut-point exception;
-  - the instrument-check rule.
+  - the instrument-check rule;
+  - the E0 persistence rule (R3, R9), the regime populations and the hourly model subsample (R10),
+    the A2 model training rule (R10), and the market-wide de-duplication rule (R11).
 - Any screen asked to score a late window (f08–f14) first checks that `preregistration.json` is
   committed and unchanged since that commit (git). It refuses otherwise.
 - Early and E0 scoring may run before the commit, so the rules can be calibrated on early data.
   This is stated as such.
+- The instrument check gates on early + E0 (before the commit). After the lock it is re-run over all
+  15 test windows and reported as a confirmation (SC-002).

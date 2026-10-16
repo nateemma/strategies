@@ -16,7 +16,7 @@
 **ColumnEntry**:
 - `name`: `<source>:<column>` for values, `raw_buy:<source>[:variant]` / `raw_sell:...` for signals;
   `btc:` prefix when joined from BTC;
-- `source`: class name or "base";
+- `source`: class name, "base", or "aro" (the ARO control's 24 model inputs, R1);
 - `kind` ∈ {value, raw_buy, raw_sell, candidate};
 - `causality` ∈ {PASS, FAIL, UNTESTED};
 - `first_mismatch` (optional);
@@ -31,7 +31,7 @@
 ## Harvest frame (cache; one feather per pair)
 
 - `date` (UTC), OHLCV, every ColumnEntry with `causality = PASS` (float32 values, int8 signals);
-- `base:gbb_candidate` (int8);
+- `base:gbb_candidate` (int8; from the gbb trigger's own populate step, R5);
 - `label:buy`, `label:sell` (int8; NaN for the last 48 bars).
 
 Sidecar `<PAIR>.json`: `{code_sha, columns, rows, first_date, last_date}`.
@@ -68,23 +68,35 @@ strat_auc (candidate only), computable: bool, reason (optional)}`
 `{column, target, population, median_strength, median_direction, same_direction_share,
 halves: {e0, early, late}: {median_auc, median_strength, n_windows}, median_mi_norm, median_lift,
 median_strat_auc, width_sort_auc, redundancy_group, rho_guard, rho_width, baseline_auc (regime only),
-candidate_flags: {beats_width_both_halves, residual_both_halves, beats_baseline_both_halves}}`
+dedup: bool (market-wide target × btc: column, R11),
+candidate_flags: {beats_width_both_halves, residual_both_halves, beats_baseline_both_halves,
+e0_agrees: bool|null}}`
+
+A candidate flag counts only when `e0_agrees` is true; `null` (not scorable, e.g. A2) is reported as
+"distant era not tested".
 
 ## PairResult
 
-`{a, b, early: {median_lift, n_windows}, lift_a_early, lift_b_early, selected: bool,
-late: {median_lift, n_windows} (survivors only), confirmed: bool, e0_lift (optional)}`
+`{a, b, side: "buy"|"sell", target, population: "candidate"|"all", early: {median_lift, n_windows},
+lift_a_early, lift_b_early, selected: bool, late: {median_lift, n_windows} (survivors only),
+e0_lift, e0_lift_a, e0_lift_b (survivors only), confirmed: "yes"|"early+late only"|"no"}`
 
 ## ModelResult (one per fold × target × model)
 
-`{fold, target, model: "tree"|"hgb", inputs: "all"|"restricted", n_train, n_test, auc,
-width_sort_auc, aro_auc (optional), rules (tree only): [str], top_splits: [column]}`
+`{fold, target, population, model: "tree"|"hgb", inputs: "all"|"restricted", n_train, n_test,
+subsample: 1|4, auc, width_sort_auc, aro_auc (optional), rules (tree only): [str],
+top_splits: [column], computable: bool, reason (optional, e.g. "A2: no prior test windows" for f00)}`
+
+Every model candidate carries `persistence: "distant era not tested"`.
 
 ## Preregistration (`preregistration.json`)
 
 `{min_rows, min_fires, max_fire_rate: 0.95, instrument: {top_k: 5, columns: [guard_metric,
 bb_width]}, pairs: {min_windows: 6, uplift: 1.10, min_lift: 1.20, top_n: 20}, models: {...R10
-settings}, regime: {horizons: [48, 288, 672], tercile: true, a2_cuts: "early_test"},
+settings}, regime: {horizons: [48, 288, 672], tercile: true, a2_cuts: "early_test",
+populations: ["all", "candidate"], model_subsample: 4, a2_model_train: "prior_test_windows",
+dedup_market_wide: true}, e0_required: {single: "same_direction", pairs: "lift_ge_max_component"},
+instrument_gate_halves: ["e0", "early"],
 residual_grid: 5, mi_bins: 20, redundancy_cut: 0.8, sample_rows: 200000, seed: 0}`
 
 The late lock (R15) refuses any f08–f14 score unless this file is committed and has no

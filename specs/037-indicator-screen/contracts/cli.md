@@ -32,21 +32,25 @@ class (the cost gate, R13).
 
 `screen_single --targets labels|regime [--horizons 48,288,672] [--halves e0,early[,late]]`:
 - writes `single_labels.json` / `single_regime.json`;
-- `labels` first runs the instrument check. If it fails, it writes `{"instrument": "FAIL", ...}`
-  and exits 1 without scoring other columns;
+- `labels` first runs the instrument check over E0 + early. If it fails, it writes
+  `{"instrument": "FAIL", ...}` and exits 1 without scoring other columns. With `late`, it also
+  writes the 15-window `instrument_confirm`;
+- `regime` scores all bars (primary) and candidate bars (secondary);
 - `late` is refused unless the pre-registration lock passes (R15).
 
 ## screen_pairs
 
 `screen_pairs --target <id> [--select | --confirm]`:
-- `--select` uses the early windows (and E0, descriptively) and writes the survivors;
-- `--confirm` scores the survivors on the late windows (lock required);
+- `--select` uses the early windows and E0 and writes the survivors; `label:sell` uses raw sell
+  signals, every other target raw buy signals;
+- `--confirm` scores the survivors on the late windows (lock required) and applies the E0 rule;
 - writes `pairs_<target>.json`.
 
 ## screen_models
 
 `screen_models --target <id> --fold fNN`:
-- one fold per process;
+- one fold per process; regime targets use the hourly subsample; A2 on f00 is written as not
+  computable;
 - writes `models/<target>/<fold>.json`;
 - late folds require the lock.
 

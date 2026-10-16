@@ -35,3 +35,8 @@
   the gbb-trigger outcome table and the width-book trades.
 - Research terms (AUC, mutual information, gbb trigger, walk-forward fold) are the project's domain
   vocabulary, not implementation detail; the readers are the researcher and later agents.
+- Analyze remediation 2026-10-16: E0 (2021–22) made a required persistence condition for single
+  columns and pairs (Principle II; models/A2 labelled "distant era not tested"); 24 ARO inputs and
+  the gbb flag sourced from their own code with equality checks; sell-side pairs; regime
+  populations, hourly model subsample, A2 model training rule, market-wide de-duplication; instrument
+  gate on E0 + early with a 15-window confirmation.

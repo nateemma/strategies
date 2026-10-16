@@ -115,7 +115,7 @@ near the top for BUY on all bars before reading any other row.
 
 The researcher learns whether any combination of indicators identifies good candidate bars better than
 the band-width sort. Three levels:
-- pairs of raw buy signals that must both fire;
+- pairs of raw signals that must both fire (buy pairs for BUY, sell pairs for SELL);
 - a shallow, readable rule model on all columns;
 - a more flexible model on all columns.
 
@@ -131,9 +131,9 @@ explicit question. They depend on Stories 1–2 and carry the highest risk of ch
 
 **Acceptance Scenarios**:
 
-1. **Given** all pairs of raw buy signals, **When** the pairwise screen runs, **Then** each pair's lift
-   on candidate bars is computed on the early windows. The top pairs by a pre-declared rule are then
-   checked once on the late windows and reported with both halves.
+1. **Given** all pairs of raw buy (or sell) signals, **When** the pairwise screen runs, **Then** each
+   pair's lift on candidate bars is computed on the early windows and E0. The top pairs by a
+   pre-declared rule are then checked once on the late windows and reported with both halves and E0.
 2. **Given** the walk-forward folds, **When** the rule model and the flexible model run, **Then** each
    is fitted per fold on that fold's training window only and scored on its test window. Each is
    compared with: the same model given only bb_width and guard_metric; the width sort; and the current
@@ -142,7 +142,8 @@ explicit question. They depend on Stories 1–2 and carry the highest risk of ch
    3 conditions per path), with the columns and thresholds named per fold, and with how often the same
    columns recur across folds.
 4. **Given** any combination result, **When** it is reported, **Then** it counts as a candidate only if
-   it beats the bb_width + guard_metric comparison in BOTH the early and the late windows.
+   it beats the bb_width + guard_metric comparison in BOTH the early and the late windows. A pair must
+   also hold in E0; a model, which cannot be scored on E0, is labelled "distant era not tested".
 
 ---
 
@@ -168,7 +169,9 @@ applied.
 
 1. **Given** each regime definition and horizon, **When** the target is built, **Then** each bar is
    labelled top or bottom tercile of the forward quantity. The tercile cut points are fixed on the
-   training data of each fold. The target is used only as a target, never as an input.
+   training data of each fold (A2, which has no training-window trades, uses the early test windows;
+   this exception is pre-registered). The target is used only as a target, never as an input.
+   Scores are reported on all bars (primary) and candidate bars (secondary).
 2. **Given** the regime targets, **When** the single-indicator and combination screens run, **Then**
    they report the same measures and the same early/late rule as Stories 2–3, for both the pair's own
    and BTC's indicator values.
@@ -218,6 +221,10 @@ applied.
   with the reason. A column whose value never varies is not scored.
 - **FR-006**: The harvest MUST also include the 24 model input columns and the gbb trigger flag, so
   that guard_metric, bb_width and the candidate population are defined exactly as for NNNC.
+  - The 24 inputs are taken from the ARO control's own indicator step; a check confirms all 24 are
+    present and equal to the control's values.
+  - The gbb trigger flag is computed by the registered trigger on its own indicator step, and a check
+    confirms its fire count matches the control's candidate count on the same bars.
 - **FR-007**: The harvest MUST be usable as a normal strategy for plotting, and MUST be cached per pair
   so that the screens never recompute it.
 
@@ -225,7 +232,8 @@ applied.
 - **FR-008**: The label targets MUST be the gbb_path BUY and SELL training labels with the ARO
   control's label parameters, built per pair exactly as for training.
 - **FR-009**: Scores MUST be computed on each of the 15 walk-forward fold TEST windows. Medians and
-  same-direction shares are reported over those windows; early = f00–f07, late = f08–f14.
+  same-direction shares are reported over those windows; early = f00–f07, late = f08–f14. Single
+  columns and signal pairs are also scored on the distant era E0 = 2021-04-01 → 2022-12-31.
 - **FR-010**: The candidate population MUST be the bars where the gbb trigger fires.
   - The trigger is the registered one, including its own conditions.
   - It is not a guard: it defines which bars are asked about, and Story 2 also scores all bars.
@@ -250,7 +258,8 @@ applied.
 
 **Combinations**
 - **FR-016**: The pairwise screen MUST score every pair of raw buy signals (combined with AND) by lift
-  on candidate bars.
+  for the BUY label, and every pair of raw sell signals by lift for the SELL label. For label targets
+  the population is candidate bars; for regime targets see FR-019.
   - Selection is made on the early windows only, under a selection rule and survivor count fixed
     before running.
   - Survivors are scored once on the late windows.
@@ -261,23 +270,31 @@ applied.
 - **FR-018**: Each multivariate model MUST be compared with the same model restricted to bb_width +
   guard_metric, and with the width sort. A combination counts as a candidate only if it beats the
   restricted model in both the early and the late windows.
+  - Persistence (Principle II): single columns and signal pairs MUST also agree in direction in the
+    distant 2021–22 era (E0) to count as candidates. Models cannot be scored on E0 (no earlier
+    training data); a model candidate is labelled "distant era not tested", and that limit is carried
+    to any later backtest feature, which must include 2022.
 - **FR-019**: The combination screens MUST run for the label targets and for every regime target.
+  - For regime targets, the primary population is all bars (pairs of raw buy signals, lift for the
+    top tercile) and the secondary population is candidate bars.
+  - The same two populations apply to the single-column regime screen.
 
 **Regime-specific**
 - **FR-020**: Regime screens MUST score each indicator on both the pair's own values and BTC's values
   at the same bar.
 - **FR-021**: Each regime result MUST report a persistence baseline: the score of the trailing return
   (B) or trailing volatility (C) over the same N. A candidate counts only if it beats that baseline in
-  both halves.
+  both halves and agrees in direction in E0 (FR-018). A2 has no E0 values (width-book trades exist
+  only in fold test windows), so A2 candidates carry the "distant era not tested" label.
 
 **Outputs and conduct**
 - **FR-022**: All outputs MUST be written under the feature's research directory: one machine-readable
-  file per screen, plus a human-readable report. A findings section is added to the project findings
-  document.
+  file per screen, plus a human-readable report (`report.md` in that directory). The current-state section of the
+  agent guide links to it.
 - **FR-023**: The selection rules, survivor counts, horizons and minimum candidate counts MUST be
   recorded in a pre-registration committed before any late-window score is computed.
-- **FR-024**: The feature MUST NOT change any strategy, framework code, default, or either live
-  dry-run bot.
+- **FR-024**: The feature MUST NOT change any existing strategy, framework code, default, or either
+  live dry-run bot. Its only strategy addition is the new plotting class (FR-007), which never trades.
   - It runs no backtests.
   - It trains no neural model.
   - Multivariate fits run one fold per process.
@@ -306,12 +323,14 @@ applied.
 - **SC-001**: 100% of the indicator strategies in scope are either harvested or listed with a reason.
   Every harvested column has a recorded causality result.
 - **SC-002**: The instrument check passes: guard_metric and bb_width are each in the top 5 columns for
-  the BUY label on all bars, by median strength over the 15 test windows. If it fails, the feature
-  stops and reports the defect instead of findings.
+  the BUY label on all bars, by median strength. It gates the feature on the early windows plus E0
+  (before the pre-registration); if it fails, the feature stops and reports the defect instead of
+  findings. After the late windows are scored, it is re-run over all 15 test windows and reported
+  as a confirmation.
 - **SC-003**: Every column has a score on both populations and both label targets for every test
   window where it is computable. Every exclusion from a median is explained.
 - **SC-004**: The report answers each question below with a named list. An empty list is a valid
-  answer.
+  answer. "In both halves" also requires E0 agreement where E0 is scorable (FR-018).
   - (a) Which columns beat the width sort on candidate bars in both halves?
   - (b) Which columns retain residual strength beyond bb_width + guard_metric in both halves?
   - (c) Which signal pairs survive late confirmation?
@@ -331,8 +350,10 @@ applied.
   Indicator values are the primary object; raw-signal lift is secondary.
 - **Population:** "gbb candidate bars" means bars where the registered gbb trigger fires. This is the
   population on which the model behaves like a width sort.
-- **Persistence:** the early/late fold split (f00–f07 vs f08–f14) is the persistence check required by
-  the constitution's Principle II. It spans 2021–2026, so the halves are temporally distant.
+- **Persistence:** the early (2023–24) and late (2025–26) halves are adjacent, so on their own they do
+  not satisfy the constitution's Principle II. The distant era is E0 (2021-04 → 2022-12, including the
+  2022 bear market). Single columns and pairs must agree in E0 too (FR-018); models and A2 cannot be
+  scored there and are labelled accordingly.
 - **No P&L claim:** this is a screen. Under Principle III, association with a label or regime decides
   nothing about acceptance. It only nominates candidates for later backtested features.
 - **Combination model sizes:** the rule model is limited to at most 3 conditions per path, for

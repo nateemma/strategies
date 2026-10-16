@@ -16,7 +16,8 @@ truncation lookahead test are dropped. The surviving columns are then scored aga
 
 Scoring is done:
 - on two populations (all bars, gbb candidate bars);
-- per walk-forward test window, plus a descriptive 2021–22 era E0.
+- per walk-forward test window, plus the distant 2021–22 era E0, which single columns and pairs
+  must also agree in (Principle II).
 
 It runs at three levels:
 - single columns, including residual strength beyond bb_width + guard_metric;
@@ -55,21 +56,23 @@ backtests, no neural training, and no change to any strategy or bot.
 - must not disturb the live NNNC bot (pid file `user_data/logs/live_nnnc.pid`) or the momentum bot
   (pid 2661);
 - one heavy chain at a time;
-- per-pair streaming to keep memory under about 2 GB.
+- per-pair streaming to keep memory under about 2 GB; regime-target models use an hourly subsample
+  (R10).
 
 **Scale/Scope**:
 - 10 pairs + BTC × ~200k bars;
 - ~350 columns;
-- ~90 raw buy signals → ~4,000 pairs;
+- ~90 raw buy signals → ~4,000 pairs (plus the raw sell pairs for SELL);
 - 15 folds + E0;
-- 2 label targets + 6 regime target families × 3 horizons.
+- 2 label targets + 6 regime target families × 3 horizons;
+- populations: candidate bars for labels; all bars (primary) + candidate bars for regimes.
 
 ## Constitution Check
 
 | Principle | Status | How |
 |---|---|---|
 | I Deployment regime | PASS | The late half (2025-01 → 2026-09) is reported separately, and no full-history average is the headline. The screen makes no deployment claim. |
-| II Persistence (NON-NEGOTIABLE) | PASS | Every candidate needs early AND late. E0 (2021–22) is scored for single columns and pairs as the distant era (R3). Multivariate models have no E0, so their limitation is stated, and a later backtested feature must cover 2022. |
+| II Persistence (NON-NEGOTIABLE) | PASS | Early and late are adjacent, so the distant era E0 (2021–22) is REQUIRED: single-column and pair candidates must agree in E0 as well as both halves (R3, R9). Models and A2 cannot be scored on E0; their candidates are labelled "distant era not tested", and a later backtested feature must cover 2022. |
 | III Learnability ≠ edge | PASS | Screen only (FR-025). No acceptance. Candidates are nominated for backtests in later features. |
 | IV Parameters live | PASS | Every override (Ehlers triggers, BBBreakout forced trend_mode, Ichimoku switches) is proven to change the signal (R1). Constant or never-firing columns are excluded with a reason. |
 | V Lookahead / realism | PASS | Truncation test on every column (R12). No P&L figures are produced. |
@@ -111,7 +114,7 @@ research/indicator_screen/
 ├── spec_037_draft.md           # (exists)
 ├── discover.py                 # in-scope classes + exclusions (R2)
 ├── overrides.py                # raw-signal rules: Ehlers triggers, BBBreakout tm0/tm1, Ichimoku (R1)
-├── harvest.py                  # base frame + per-class columns + raw signals; cache I/O (R1, R13)
+├── harvest.py                  # base frame + aro:/per-class columns + raw signals; cache I/O (R1, R5, R13)
 ├── causality.py                # column truncation test via research.outcomes.causality (R12)
 ├── windows.py                  # fold test/train windows, E0, purge, early/late, prereg lock (R3, R15)
 ├── targets.py                  # labels, candidate flag, regime targets A1/A2/B/C, baselines (R4, R5, R11)
