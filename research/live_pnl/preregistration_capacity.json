@@ -1,0 +1,21 @@
+{
+ "title": "036 US3: capacity curve -- cost-budget stake cap vs the current 1/10-candle cap (pre-registered before any capacity backtest)",
+ "date": "2026-10-16",
+ "spec": "specs/036-realistic-nnnc-pnl (FR-013..FR-016, SC-005, SC-006; research R7, R8)",
+ "label": "PROVISIONAL execution measurement: fold models inherit the full-history scaler (FR-020; plan.md Principle XI exception); every arm shares the same weights, so the leak cannot favour an arm",
+ "arms": {
+  "cap_aro_ref": "the NNNC control NNNC_A_Raw_Open with current defaults (held-pair add on, 24 h grace), current 1/10 cap; plan copied from plan_wf_aro_g24.json (same thresholds, same weights)",
+  "cap_aro_b5": "control + CostBudgetStakeMixin, STAKE_COST_BUDGET_BPS = 5",
+  "cap_aro_b10": "... = 10",
+  "cap_aro_b20": "... = 20",
+  "cap_aro_b40": "... = 40"
+ },
+ "identity": "every arm resolves to the control's per-fold model key (nothing trains; FT_MODEL_EVAL_STRICT=1); the cost model and its sha are fixed before the runs (cost_model.json)",
+ "metric": "net P&L = restate (research/live_pnl/restate.py) of each arm's trades under the cost model; per fold, early f00-f07, late f08-f14",
+ "verdict": "judge_one (research/nnnc_switches/judge.py) on net per-fold P&L of each budget arm vs cap_aro_ref: early gain > 0, late gain > 0, paired and risk (evaluation/risk.py) not WORSENED. Reported per budget; there is no single winner rule -- the user picks a budget, or none",
+ "liveness": "an arm whose realised stake distribution (stake_amount) is not different from cap_aro_ref's (two-sample KS p >= 0.01) is INERT and reported as a defect, not a result",
+ "realised_vs_requested": "median stake_amount / 900 per arm (the configured stake)",
+ "quality_gate_5": "paired seed robustness is met by determinism: fixed weights and deterministic backtests leave no run-to-run variance",
+ "adoption_hold": "no capacity result is offered for adoption while research/live_pnl/model_check.json has an open bias flag (FR-016)",
+ "gate": "runs only after research/live_pnl/gate.json is open and cost_model.json exists"
+}

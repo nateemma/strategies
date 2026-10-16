@@ -14,6 +14,14 @@ stakes, not weights.
 - `custom_stake_amount` and `confirm_trade_entry` are exactly the parent's.
 - Every existing arm keeps its trades hash, fingerprint and model key (FR-014).
 
+## How it hooks in (implementation note)
+
+`BaseStrategy.custom_stake_amount` calls `BaseStrategy._fillable_stake(self, …)` unbound, so the
+mixin overrides `custom_stake_amount` itself. `confirm_trade_entry` runs the parent chain (so
+FamilyCoexistenceMixin's pair cap still applies) with `QUOTE_VOLUME_HEADROOM_MULT` set to qv ÷
+S_max for that call only; BaseStrategy's own check then reads size ≤ S_max. Pairs the cost model
+excludes keep the 1/10 rule.
+
 ## When on
 
 | step | rule |
@@ -22,7 +30,7 @@ stakes, not weights.
 | S_max | the largest S with cost_in(S / V) ≤ budget, from the committed model (monotone, so bisection) |
 | stake | min(proposed, S_max) |
 | headroom check | `confirm_trade_entry` accepts if amount × rate ≤ S_max (replacing the 1/10-candle rule); the MIN_QUOTE_VOLUME and min-stake floors are kept |
-| record | requested and granted stakes kept per trade, for the liveness check and the realised/requested ratio |
+| record | the granted stake is each trade's `stake_amount`, and the requested stake is the configured 900, so the realised/requested ratio and the liveness check read the backtest trades directly (no extra field; implementation note 2026-10-16) |
 
 ## Refusals
 

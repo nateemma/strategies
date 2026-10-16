@@ -1,0 +1,23 @@
+{
+ "title": "036 US2: execution cost model from recorded Binance.US depth (pre-registered before any fit)",
+ "date": "2026-10-16",
+ "spec": "specs/036-realistic-nnnc-pnl (FR-009, FR-010, SC-003; research R5)",
+ "label": "PROVISIONAL execution measurement; one recording period",
+ "data": {
+  "snapshots": "scheduled (one per pair per 15m candle) and order/exit snapshots from user_data/data/live_nnnc/<run_id>/depth-*.jsonl.gz; depth_missing snapshots excluded",
+  "volume": "rolling 24 h (96-bar) quote volume of the pair up to and including the snapshot's candle, from the downloaded 15m OHLCV (causal)",
+  "stake_grid_usdt": [100, 200, 300, 500, 900, 1500, 2500, 5000],
+  "cost": "walk the recorded book for the stake against the mid, in bps; buy walks asks, sell walks bids; stakes beyond recorded depth flagged extrapolated and excluded from fitting"
+ },
+ "split": "holdout = the last 25% of recorded calendar days (rounded up); fit on the rest",
+ "models": {
+  "participation": "per depth tier and side: isotonic cost vs participation p = stake / rolling 24 h quote volume (research/live_pnl/depth.py MonotoneCurve)",
+  "per_pair": "per pair and side: isotonic cost vs stake (USDT); valid for the recorded period only"
+ },
+ "tiers": "terciles of each pair's median top-20 quote depth (mean of bid and ask sides) over the fit days; 0 = thinnest",
+ "choice_rule": "use `participation` if its pooled held-out median absolute error at the 900 USDT stake (both sides) is <= the per_pair model's; otherwise use `per_pair` and label every 2023-26 re-statement EXTRAPOLATED",
+ "tolerance": "per pair: held-out median absolute error at 900 USDT <= 5 bps under the chosen model; a pair above it is EXCLUDED from re-statement and capacity (listed, never tuned)",
+ "coverage_floor": "a pair whose scheduled snapshots are < 80% non-missing over the recording period is EXCLUDED",
+ "gate": "fit only when research/live_pnl/gate.json is open (FR-019)",
+ "fees": "not part of this cost; the backtest already charges 0.10% per side"
+}

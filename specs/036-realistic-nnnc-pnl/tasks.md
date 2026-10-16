@@ -151,7 +151,7 @@ is unchanged.
   - the bot log has no training and no `ModelMissing`.
 
   Record the start in `report.md` and live_models.json (`started`).
-- [ ] T013 [P] [US1] Tests in `research/live_pnl/tests/test_parity.py` for each R4 cause on
+- [X] T013 [P] [US1] Tests in `research/live_pnl/tests/test_parity.py` for each R4 cause on
   synthetic live and backtest trade sets and signal logs:
   - matched;
   - prediction_difference (live and backtest p_buy differ by more than 0.01 for the candle);
@@ -164,7 +164,7 @@ is unchanged.
   The cause order is applied as declared, with prediction_difference checked first. A further test
   checks that only the day's entries and exits are compared, while the backtest range starts at
   the live run's start.
-- [ ] T014 [US1] Implement `research/live_pnl/parity.py --day` to pass T013. It:
+- [X] T014 [US1] Implement `research/live_pnl/parity.py --day` to pass T013. It:
   - downloads 15m candles for the day (with the download guard of T010);
   - backtests the live class from the live run's `started` date through the end of the day
     (cumulative; plus startup candles) with `FT_MODEL_EVAL_STRICT=1` (repo root,
@@ -176,10 +176,10 @@ is unchanged.
   - reads the live trades from `tradesv3.live_nnnc.sqlite` read-only (`?mode=ro`);
   - matches on (pair, open candle);
   - writes `research/live_pnl/parity/<day>.json` per data-model ParityReport.
-- [ ] T015 [P] [US1] Implement `research/live_pnl/drift.py` (R11). It computes the weekly live BUY
+- [X] T015 [P] [US1] Implement `research/live_pnl/drift.py` (R11). It computes the weekly live BUY
   rate from the signal logs against 0.014735, flags outside ×0.5–×2, and writes
   `research/live_pnl/drift.json`. Add a test in `tests/test_drift.py` on a synthetic signal log.
-- [ ] T016 [P] [US1] Implement `research/live_pnl/gate.py` (R10), with tests in
+- [X] T016 [P] [US1] Implement `research/live_pnl/gate.py` (R10), with tests in
   `tests/test_gate.py`:
   - closed at 27 days, or with any pair under 5 orders;
   - open at 28 days with every pair at 5 or more orders;
@@ -206,16 +206,16 @@ is unchanged.
 **Independent Test**: held-out error per pair is reported against the tolerance; the restated
 `wf_aro_g24` and `w_aro` have gross, cost and net per fold and half.
 
-- [ ] T019 [P] [US2] Tests in `tests/test_depth.py`:
+- [X] T019 [P] [US2] Tests in `tests/test_depth.py`:
   - cost(S) from a synthetic book: a buy walks the asks, a sell walks the bids, against the mid,
     in bps;
   - a stake beyond the book is marked extrapolated;
   - a monotone fit and its inverse round-trip within 0.5 bps;
   - tier assignment by terciles.
-- [ ] T020 [US2] Implement `research/live_pnl/depth.py` (walking the book, the stake grid
+- [X] T020 [US2] Implement `research/live_pnl/depth.py` (walking the book, the stake grid
   100…5,000 USDT, participation p = S ÷ rolling 24 h quote volume up to and including the
   snapshot's candle) to pass T019.
-- [ ] T021 [US2] Write and commit `research/live_pnl/preregistration_cost.json` BEFORE fitting.
+- [X] T021 [US2] Write and commit `research/live_pnl/preregistration_cost.json` BEFORE fitting.
   It declares:
   - the holdout (the last 25% of recorded days);
   - the tolerance (per-pair median absolute error ≤ 5 bps at the 900 USDT stake);
@@ -227,7 +227,7 @@ is unchanged.
   closed or T021 is uncommitted. It fits per R5, applies the pre-registered rule, and writes
   `research/live_pnl/cost_model.json` (data-model CostModel, with its sha recorded). Add a test
   of the refusals in `tests/test_cost_model.py`.
-- [ ] T023 [US2] Implement `research/live_pnl/restate.py --arm` (R6), with a test in
+- [X] T023 [US2] Implement `research/live_pnl/restate.py --arm` (R6), with a test in
   `tests/test_restate.py`:
   - trade identity is unchanged;
   - the cost uses the causal rolling volume at the entry and exit candles;
@@ -257,16 +257,16 @@ is unchanged.
 **Independent Test**: off is byte-identical; each budget arm is live; `capacity.json` has paired
 and risk verdicts per budget.
 
-- [ ] T026 [P] [US3] Tests in `tests/test_cost_budget.py` per `contracts/cost_budget_stake.md`:
+- [X] T026 [P] [US3] Tests in `tests/test_cost_budget.py` per `contracts/cost_budget_stake.md`:
   - (a) off: `custom_stake_amount` and `confirm_trade_entry` return the parent's values exactly,
     and the model key is unchanged;
   - (b) on: the stake is min(proposed, S_max), with S_max from the inverse curve;
   - (c) a missing model, a sha mismatch, or a pair without a tier is refused;
   - (d) the floors are kept.
-- [ ] T027 [US3] Implement `utils/CostBudgetStakeMixin.py` to pass T026, recording the requested
+- [X] T027 [US3] Implement `utils/CostBudgetStakeMixin.py` to pass T026, recording the requested
   and granted stake per trade (custom_data or entry tag suffix; the record must be readable from
   the backtest zip).
-- [ ] T028 [US3] Write and commit `research/live_pnl/preregistration_capacity.json` BEFORE any
+- [X] T028 [US3] Write and commit `research/live_pnl/preregistration_capacity.json` BEFORE any
   capacity backtest. It declares:
   - the budgets {5, 10, 20, 40} bps;
   - the reference `cap_aro_ref` (the control re-run with current defaults);
