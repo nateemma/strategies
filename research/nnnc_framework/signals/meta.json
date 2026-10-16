@@ -1438,5 +1438,53 @@
   "threshold": 0.8,
   "rows": 86410,
   "enter_long": 13
+ },
+ "NI_B32_f00": {
+  "class": "NNNC_NI_B32_f00",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_B32_f01": {
+  "class": "NNNC_NI_B32_f01",
+  "threshold": 0.8,
+  "rows": 77769,
+  "enter_long": 0
+ },
+ "NI_B32_f02": {
+  "class": "NNNC_NI_B32_f02",
+  "threshold": 0.8,
+  "rows": 84950,
+  "enter_long": 0
+ },
+ "NI_B32_f03": {
+  "class": "NNNC_NI_B32_f03",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_B32_f04": {
+  "class": "NNNC_NI_B32_f04",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_B32_f05": {
+  "class": "NNNC_NI_B32_f05",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_B32_f06": {
+  "class": "NNNC_NI_B32_f06",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
+ },
+ "NI_B32_f07": {
+  "class": "NNNC_NI_B32_f07",
+  "threshold": 0.8,
+  "rows": 86410,
+  "enter_long": 0
  }
 }

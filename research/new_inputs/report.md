@@ -205,6 +205,9 @@ the S2 instrument (0.5-share threshold on each fold's validation tail; 412 early
 - So raw8 adds no ranking information over ind24 on gbb_path, and through the operating point it
   costs the sizer. This matches the 018 forward_mae result (both32 <= the better single set) and
   is consistent with 035's inputs: nothing tried on the input side moves ARO's ranking.
+- As an entry source at NNNC's 0.8 threshold both32 would never trade: 0 entries on all 8 folds
+  (ARO's null retrain: 0/0/0/3/0/28/33/58). Its p_buy is compressed below 0.8, which fits the
+  shifted sizer operating point (signal-table meta, `research/nnnc_framework/signals/meta.json`).
 - Nothing trained beyond f07; no backtest; late half unread.
 
 ## Provenance

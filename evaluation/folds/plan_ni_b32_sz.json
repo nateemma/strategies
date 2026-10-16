@@ -225,5 +225,65 @@
   }
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
- "ni_note": "035 follow-up both32: NNNC_NI_B32_SZ; copied from plan_cs_aro.json (preregistration_b32.json)"
+ "ni_note": "035 follow-up both32: NNNC_NI_B32_SZ; copied from plan_cs_aro.json (preregistration_b32.json)",
+ "thresholds": {
+  "f00": 0.6974,
+  "f01": 0.6994,
+  "f02": 0.7118,
+  "f03": 0.7425,
+  "f04": 0.7501,
+  "f05": 0.7639,
+  "f06": 0.7631,
+  "f07": 0.761
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.4946,
+   "run_starts": 93,
+   "buy_argmax_share": 0.9785
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5052,
+   "run_starts": 97,
+   "buy_argmax_share": 0.9278
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 66,
+   "buy_argmax_share": 0.9091
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.4944,
+   "run_starts": 89,
+   "buy_argmax_share": 0.9775
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.5021,
+   "run_starts": 237,
+   "buy_argmax_share": 0.9705
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.4971,
+   "run_starts": 173,
+   "buy_argmax_share": 0.9769
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 254,
+   "buy_argmax_share": 0.9843
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.4982,
+   "run_starts": 273,
+   "buy_argmax_share": 0.9634
+  }
+ }
 }

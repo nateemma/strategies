@@ -254,3 +254,9 @@ Pre-registered.
 
   A no-input retrain reproduces both controls bit for bit (training is deterministic per seed),
   so these are input effects: every input hurts ARO and helps GBR only slightly.
+- **both32 (ARO's 24 indicators + GBR's 8 raw-price features):** FAIL at S2, gap 0.039 against
+  0.100. The validation-tail pick admits 66% of trades rather than about half. At a matched
+  within-fold median split (descriptive) the ranking equals ARO's: 0.0665 vs 0.0645. So raw8 adds
+  nothing over ind24 on gbb_path; 018's both32 test was on forward_mae (MCC) only.
+- **Overall:** nothing tried on the input side (17 new inputs, raw8) moves ARO's ranking of the
+  width-book trades. The control sizer (§10) is the open lead.

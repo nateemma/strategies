@@ -42,7 +42,7 @@ gap, add a pointer to this file.
 
 ---
 
-## Current state (2026-10-14)
+## Current state (2026-10-15)
 
 - **Live:** only a dry-run of the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`).
   Never kill it (see Operational rules).
@@ -53,6 +53,10 @@ gap, add a pointer to this file.
   candidates, what the NNNC models learned is mostly a `bb_width` sort; a model-free book that
   takes gbb entries with `bb_width` above a per-fold cut (`NNNC/_width_book.py`, arms `w_aro`,
   `w_gbr`) matches or beats every NNNC model book (`research/model_calibration/findings.md`).
+- **The model's measured value is as a sizer inside the width book.** `cs_aro` (ARO's p_buy as a
+  capital-neutral 1.333×/0.667× stake on the width book's own trades) beats the width book by
+  +8.5 pp on identical trades (PASS PROVISIONAL, `research/control_sizer/report.md`). Labels (034)
+  and inputs (035, both32) have not improved ARO's ranking of those trades.
 - **Primary model:** ARO (`NNNC_A_Raw_Open`, a plain LSTM on raw inputs; control arm
   `wf_aro_g24`). GBR (`NNNC_GbbRaw_Open`, control `fs_gbr_gr`) is the usual replication.
 - **Results are PROVISIONAL.** The data has no distant era (see Walk-forward folds), so nothing
@@ -62,7 +66,9 @@ Recent features, newest first (each `specs/NNN-*` or the named `research/` direc
 
 | # | topic | outcome |
 |---|---|---|
-| 034 | label-type screen: ARO trained on 7 other label types, ranked inside the width book (`research/label_screen`) | in progress |
+| 035 | new-input screen: 17 non-OHLCV / market-state inputs, plus both32 (ind24 + raw8) (`research/new_inputs`) | no input beats the control at S2 |
+| — | control sizer: current ARO as a width-book stake sizer (`research/control_sizer`) | PASS (PROVISIONAL) |
+| 034 | label-type screen: ARO trained on 7 other label types, ranked inside the width book (`research/label_screen`) | all 8 FAIL at S1 |
 | 033 | width-relative label (`research/width_relative`) | all arms FAIL |
 | 032 | train only on gbb-eligible rows (`research/candidate_training`) | FAIL at S2 |
 | 031 | held-pair add (position adjustment on a fresh signal) | in-profit add adopted for NNNC |
