@@ -1,0 +1,136 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); the vote was chosen and confirmed with the late half in view (037 tradeable-bars M-of-N screen), so the late half is NOT blind. Nothing is adopted.",
+ "arms": {
+  "st_mofn48": {
+   "instrument": {
+    "causality": true,
+    "causality_note": "PASS",
+    "trades": 941,
+    "trades_by_half": {
+     "early": 553,
+     "late": 388
+    },
+    "folds_missing": [],
+    "pass": true
+   },
+   "alone_vs_gbb": {
+    "arm": "st_mofn48",
+    "control": "st_fam_gbb",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain",
+     "risk"
+    ],
+    "arm_trades": 941,
+    "ctl_trades": 9056,
+    "arm_pp": -15.283000000000001,
+    "ctl_pp": 11.043999999999999,
+    "early_gain_pp": -32.428000000000004,
+    "late_gain_pp": 6.100999999999999,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "INCONCLUSIVE_ARM_LOSES",
+     "delta_pp": -26.33012623890525,
+     "ci_pp_yr": [
+      -16.800469046931234,
+      2.597310977971882
+     ],
+     "p": 0.1498
+    },
+    "risk": {
+     "days": 1346,
+     "arm": {
+      "sharpe": -0.9221413408712905,
+      "maxdd": 17.222916733537556,
+      "daily_sd": 0.23524071620623344
+     },
+     "ctl": {
+      "sharpe": 0.23927569586982333,
+      "maxdd": 32.60137286185778,
+      "daily_sd": 0.6551325570256109
+     },
+     "sharpe_delta": -1.1614170367411139,
+     "sharpe_ci": [
+      -2.2667897780408324,
+      -0.04654952462406336
+     ],
+     "sharpe_p": 0.043,
+     "verdict_sharpe": "WORSENED",
+     "maxdd_delta": -15.378456128320227,
+     "maxdd_ci": [
+      -34.76785715853387,
+      12.605391517695484
+     ],
+     "maxdd_p": 0.463,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.0114,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.6546,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 10,
+     "take_profit": 283,
+     "trailing_stop_loss": 385,
+     "unclog_12h": 236,
+     "unclog_1d": 19,
+     "force_exit": 3,
+     "metric_overbought": 2,
+     "stop_loss": 3
+    },
+    "exits_ctl": {
+     "force_exit": 33,
+     "roi": 63,
+     "take_profit": 3839,
+     "trailing_stop_loss": 3591,
+     "unclog_12h": 1442,
+     "unclog_1d": 64,
+     "metric_overbought": 12,
+     "stop_loss": 12
+    }
+   },
+   "beside_width_book": {
+    "verdict": "FAIL",
+    "combined": {
+     "total": 36.13953818242098,
+     "early": 33.89605992067159,
+     "late": 2.2434782617493876,
+     "positive": "13"
+    },
+    "width_book": {
+     "total": 51.443,
+     "early": 35.851,
+     "late": 15.592,
+     "positive": 15
+    },
+    "early_gain_pp": -1.955,
+    "late_gain_pp": -13.349,
+    "paired_whole": {
+     "verdict": "WORSENED",
+     "delta_pp": -15.303057098952426,
+     "p": 0.0132
+    },
+    "shared_wallet": {
+     "refused_pp": -0.2333396302270615,
+     "shrunk_pp": 0.25639834028124964
+    },
+    "same_pair_overlap_trades": 89
+   },
+   "decision": "not a candidate"
+  }
+ }
+}
