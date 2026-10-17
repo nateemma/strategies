@@ -1,0 +1,99 @@
+{
+ "title": "037 signal pairs as SimpleTrigger entry triggers: alone (vs gbb) and as a second book beside the width book (shared wallet)",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26); the pairs were chosen with the late half in view (037 tb/tbatr confirmation), so the late half is NOT blind. Nothing is adopted.",
+ "arms": {
+  "st_pt_cmo_macd": {
+   "trigger": "pair_cmo_macdhist",
+   "class": "SimpleTrigger_PT_CmoMacdhist"
+  },
+  "st_pt_cmo_dcb": {
+   "trigger": "pair_cmo_dcbreakout",
+   "class": "SimpleTrigger_PT_CmoDcbreakout"
+  },
+  "st_pt_kst_z": {
+   "trigger": "pair_kst_zscore",
+   "class": "SimpleTrigger_PT_KstZscore"
+  },
+  "st_pt_cci_copp": {
+   "trigger": "pair_cci_copp",
+   "class": "SimpleTrigger_PT_CciCopp"
+  }
+ },
+ "why_these": {
+  "st_pt_cmo_macd": "tbatr (volatility-neutral) confirmed pair with the most even lift: 1.36 / 1.32 / 1.32 (early/late/E0)",
+  "st_pt_cmo_dcb": "tbatr confirmed pair with the highest early lift: 1.71 / 1.46 / 1.16",
+  "st_pt_kst_z": "tb (fixed %, what the current exits pay) confirmed pair that beat the width book in all three: 1.96 / 1.85 / 1.52",
+  "st_pt_cci_copp": "tb confirmed pair that beat the width book in all three: 1.84 / 1.96 / 1.54"
+ },
+ "signals": "each leg is the SimpleStrategies class's raw buy at its Parameter DEFAULTS (what 037 screened; the harvest did not load buy_params), ported into research/outcomes/audit_triggers.py with the same library calls; 0 mismatches vs the 037 harvest on ~2.0M bars per leg (10 pairs + BTC, warm-up 200 bars excluded), checked before this file was committed",
+ "setup": "SimpleTriggerStrategy, PRESET ARM_D_FAMILY, family reversion (every pair has an oversold leg) -> the reversion exits of the gbb comparator; config_wf; 15 folds f00-f14",
+ "comparators": {
+  "alone": "st_fam_gbb (gbb on ARM_D_FAMILY, same exits)",
+  "book": "w_aro (the width book, NNNC)"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": "trigger causality PASS (research/outcomes/causality.py --write, all triggers re-run); no zero-trade half; arm trades >= 100 over 15 folds, else INCONCLUSIVE",
+ "alone": "judge_one(arm, st_fam_gbb) (early gain > 0, late gain > 0, paired and risk not WORSENED; rule maps below)",
+ "beside_width_book": "evaluation/books.py combine + shared_wallet (one wallet of stake x max_open_trades; refused and shrunk entries counted) of [w_aro, arm] vs w_aro alone: PASS = combined early AND late totals above w_aro's, AND the whole-period paired verdict (halves.split, split_after f14) not WORSENED; same-pair overlaps between the books reported (they need two sub-accounts)",
+ "decision": "per arm, both verdicts reported; 'candidate trigger' if either PASSes. Four arms are tested: one PASS at p ~ 0.05 is expected by chance about once in five such studies -- report p values",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seen_before": [
+  "037 tb / tbatr single and pair screens (all halves)",
+  "w_aro and st_fam_gbb backtests",
+  "no backtest of any pair trigger"
+ ]
+}

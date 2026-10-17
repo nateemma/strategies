@@ -71,6 +71,10 @@ _FAMILY = {
         "breakout_gbb minus fresh/held breaks: still buys high band position",
     ),
     "failed_breakout": ("reversion", "price back below a broken 20-bar high: fades a failed move"),
+    "pair_cmo_macdhist": ("reversion", "CMO(9) < -60 (oversold) AND the MACD(12,26,9) histogram crosses up"),
+    "pair_cmo_dcbreakout": ("reversion", "CMO(9) < -60 (oversold) AND a close crossing to the 24-bar high"),
+    "pair_kst_zscore": ("reversion", "KST(10,15,20,30) < -30 AND z-score(20) < -2: two oversold legs"),
+    "pair_cci_copp": ("reversion", "CCI(14) < -200 AND Coppock < -5: two oversold legs"),
 }
 
 
@@ -452,4 +456,83 @@ def register_break_recency_triggers(*, replace: bool = False) -> list[Trigger]:
                          source="composite (023 Addendum 7)", description=d, **_fam(n)),
                  replace=replace)
         for n, f, c, d in specs
+    ]
+
+
+# -------------------------------------------------------------------------------------------------
+# 037 signal pairs (research/pair_triggers/, 2026-10-17): both raw buy signals of two SimpleStrategies
+# classes, ported with the SAME library calls and the classes' Parameter DEFAULTS -- what the 037
+# harvest ran (it did not load buy_params) and therefore what was screened (CMO, MACDhist,
+# DCBreakout, KST, ZScore, CCI, COPP). research/pair_triggers/instrument.py checks each leg against
+# the 037 harvest's raw_buy columns, which ran the classes' own code.
+
+
+def _ohlcv(df: pd.DataFrame) -> pd.DataFrame:
+    return df[["open", "high", "low", "close", "volume"]].astype(float)
+
+
+def _leg_cmo(df):
+    from finta import TA as fta
+    return fta.CMO(_ohlcv(df), period=9) < -60.0
+
+
+def _leg_macdhist(df):
+    import talib.abstract as ta
+    import freqtrade.vendor.qtpylib.indicators as qtpylib
+    h = ta.MACD(_ohlcv(df), fastperiod=12, slowperiod=26, signalperiod=9)["macdhist"]
+    return qtpylib.crossed_above(h, 0.0)
+
+
+def _leg_dcbreakout(df):
+    import talib.abstract as ta
+    c = df["close"].astype(float)
+    up = pd.Series(np.asarray(ta.MAX(df["high"].astype(float), timeperiod=24), float), index=df.index)
+    return (c >= up) & (c.shift() <= up.shift())
+
+
+def _leg_kst(df):
+    from finta import TA as fta
+    return fta.KST(_ohlcv(df), r1=10, r2=15, r3=20, r4=30)["KST"] < -30.0
+
+
+def _leg_zscore(df):
+    c = df["close"].astype(float)
+    m, sd = c.rolling(window=20).mean(), c.rolling(window=20).std()
+    return (c - m) / sd < -2.0
+
+
+def _leg_cci(df):
+    import talib.abstract as ta
+    return ta.CCI(_ohlcv(df), timeperiod=14) < -200.0
+
+
+def _leg_copp(df):
+    from finta import TA as fta
+    return fta.COPP(_ohlcv(df)) < -5.0
+
+
+PAIR_LEGS = {"cmo": _leg_cmo, "macdhist": _leg_macdhist, "dcbreakout": _leg_dcbreakout,
+             "kst": _leg_kst, "zscore": _leg_zscore, "cci": _leg_cci, "copp": _leg_copp}
+
+
+def _pair(a: str, b: str):
+    def f(df: pd.DataFrame) -> pd.Series:
+        x = np.asarray(PAIR_LEGS[a](df), dtype=bool) & np.asarray(PAIR_LEGS[b](df), dtype=bool)
+        return pd.Series(x, index=df.index)
+    return f
+
+
+PAIR_TRIGGERS = (("cmo", "macdhist"), ("cmo", "dcbreakout"), ("kst", "zscore"), ("cci", "copp"))
+
+
+def register_pair_triggers(*, replace: bool = False) -> list[Trigger]:
+    """037 confirmed signal pairs as triggers (research/pair_triggers/preregistration.json)."""
+    return [
+        register(Trigger(name=f"pair_{a}_{b}", evaluate=_pair(a, b),
+                         required_columns=("open", "high", "low", "close", "volume"),
+                         source="037 signal pair (research/indicator_screen)",
+                         description=f"raw buy of {a} AND raw buy of {b} (SimpleStrategies Parameter defaults)",
+                         **_fam(f"pair_{a}_{b}")),
+                 replace=replace)
+        for a, b in PAIR_TRIGGERS
     ]

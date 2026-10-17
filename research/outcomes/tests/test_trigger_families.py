@@ -17,7 +17,8 @@ FAMILIES = {"reversion", "momentum", "unassigned"}
 #: spec FR-001, verbatim
 EXPECTED = {
     **dict.fromkeys(
-        ["gbb", "gbb_tight", "gbb_stale", "geometry", "votes_tech", "failed_breakout"],
+        ["gbb", "gbb_tight", "gbb_stale", "geometry", "votes_tech", "failed_breakout",
+         "pair_cmo_macdhist", "pair_cmo_dcbreakout", "pair_kst_zscore", "pair_cci_copp"],
         "reversion",
     ),
     **dict.fromkeys(

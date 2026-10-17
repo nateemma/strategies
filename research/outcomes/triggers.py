@@ -211,6 +211,9 @@ def ensure_builtins() -> None:
     if not {"breakout_gbb_nofresh", "failed_breakout"} <= set(_REGISTRY):
         from research.outcomes.audit_triggers import register_break_recency_triggers
         register_break_recency_triggers(replace=True)
+    if not {"pair_cmo_macdhist", "pair_kst_zscore"} <= set(_REGISTRY):
+        from research.outcomes.audit_triggers import register_pair_triggers
+        register_pair_triggers(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:

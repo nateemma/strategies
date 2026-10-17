@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-11T16:27:04+00:00",
-  "code_sha": "e2914f93881745b9",
+  "generated": "2026-10-17T16:02:17+00:00",
+  "code_sha": "5da3a8d1f27cc501",
   "pairs": [
     "SOL",
     "LTC",
@@ -163,6 +163,34 @@
     },
     "geometry": {
       "trigger": "geometry",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "pair_cci_copp": {
+      "trigger": "pair_cci_copp",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "pair_cmo_dcbreakout": {
+      "trigger": "pair_cmo_dcbreakout",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "pair_cmo_macdhist": {
+      "trigger": "pair_cmo_macdhist",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "pair_kst_zscore": {
+      "trigger": "pair_kst_zscore",
       "verdict": "PASS",
       "first_mismatch": null,
       "comparisons": 144,
