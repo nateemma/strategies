@@ -23,10 +23,14 @@ SIG = HERE.parent / "nnnc_framework" / "signals"
 
 
 def p_for(panel: Panel, prefix: str) -> np.ndarray:
+    return p_for_folds(panel, prefix, W.folds())
+
+
+def p_for_folds(panel: Panel, prefix: str, folds) -> np.ndarray:
     p = np.full(len(panel), np.nan)
     key = pd.DataFrame({"date": panel.date.tz_convert("UTC"), "pair": np.asarray(panel.pairs)[panel.pair],
                         "i": np.arange(len(panel))})
-    for f in W.folds():
+    for f in folds:
         t = pd.read_parquet(SIG / f"{prefix}_{f.id}.parquet", columns=["date", "pair", "p_buy"])
         t["date"] = pd.to_datetime(t["date"], utc=True)
         m = key.merge(t, on=["date", "pair"], how="inner")
