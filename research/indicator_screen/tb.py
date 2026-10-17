@@ -49,6 +49,11 @@ TARGET = LABELS[NAME]["target"]
 TB = LABELS[NAME]["params"]
 
 
+DEST = HERE            # where JSON / report outputs go (vol.py points it at vol/)
+FEATHERS = None        # per-window score feathers (None = screen_single's default cache dir)
+PANEL_KW: dict = {}    # Panel(**PANEL_KW); vol.py sets tradeable_only
+
+
 def use(name: str) -> None:
     """Point the module at one label: its target, params and output names."""
     global NAME, TARGET, TB
@@ -58,8 +63,8 @@ def use(name: str) -> None:
 def _out(stem: str, ext: str = "json") -> Path:
     """tb keeps its committed names (single_tb.json, resid_aro.json, report_tb.md)."""
     if stem == "resid_aro":
-        return HERE / (f"resid_aro.{ext}" if NAME == "tb" else f"resid_aro_{NAME}.{ext}")
-    return HERE / f"{stem}_{NAME}.{ext}"
+        return DEST / (f"resid_aro.{ext}" if NAME == "tb" else f"resid_aro_{NAME}.{ext}")
+    return DEST / f"{stem}_{NAME}.{ext}"
 COMPARATORS = ("base:gbb_candidate", "cmp:width_book")
 PREREG_TB = HERE / "preregistration_tb.json"
 ARO_SIGNALS = HERE.parent / "nnnc_framework" / "signals"
@@ -151,9 +156,10 @@ def columns() -> list[str]:
 def single(halves=("e0", "early", "late")) -> int:
     from research.indicator_screen import screen_single as SS
 
-    panel = Panel()
+    panel = Panel(**PANEL_KW)
+    kw = {"out_dir": FEATHERS} if FEATHERS is not None else {}
     return SS.run(NAME, list(halves), panel=panel, targets=TBTargets(panel), cols=columns(),
-                  summary_path=_out("single"), red_path=HERE / "redundancy.json")
+                  summary_path=_out("single"), red_path=DEST / "redundancy.json", **kw)
 
 
 def comparator_lifts(panel: Panel, targets, pr) -> dict:
@@ -172,12 +178,12 @@ def pairs() -> int:
     from research.indicator_screen import screen_pairs as SP
 
     pr = prereg()
-    panel = Panel()
+    panel = Panel(**PANEL_KW)
     t = TBTargets(panel)
     sel = SP.select(panel, t, TARGET, W.all_windows, columns(), pr)
     res = SP.confirm(panel, t, sel, W.all_windows, pr)
     res["comparator_lifts"] = comparator_lifts(panel, t, pr)
-    SP.out_path(TARGET).write_text(json.dumps(res, indent=1))
+    SP.out_path(TARGET, DEST).write_text(json.dumps(res, indent=1))
     for pop, b in res["populations"].items():
         print(f"{TARGET} [{pop}]: {b['n_passing_rule']} pass the rule, {len(b['survivors'])} survivors, "
               f"confirmed {sum(s.get('confirmed') == 'yes' for s in b['survivors'])}")
@@ -201,7 +207,7 @@ def aro_p(panel: Panel) -> np.ndarray:
 
 def resid(cols: list[str] | None = None) -> dict:
     pr = prereg()
-    panel = Panel()
+    panel = Panel(**PANEL_KW)
     cols = cols or scored_columns(include_btc=False)
     pa = aro_p(panel)
     ys = {TARGET: panel.columns([TARGET])[TARGET].astype(float), "label:buy": panel.core["label:buy"]}
@@ -265,7 +271,7 @@ def report() -> str:
     from research.indicator_screen.screen_pairs import out_path
 
     st = json.loads(_out("single").read_text())["results"]
-    pp = json.loads(out_path(TARGET).read_text())
+    pp = json.loads(out_path(TARGET, DEST).read_text())
     rr = json.loads(_out("resid_aro").read_text()) if _out("resid_aro").exists() else None
     f = lambda v, n=3: "–" if v is None else f"{v:.{n}f}"
     L = ["# 037 addendum: indicators vs a gbb-neutral triple-barrier label", "",

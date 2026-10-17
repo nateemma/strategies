@@ -36,6 +36,7 @@ POOL_FROM = HERE / "pairs_label_tbatr_buy.json"
 PHI_CUT = 0.3
 N_MAX = 8
 OUT = HERE / "mofn.json"
+PANEL_KW: dict = {}    # vol.py sets tradeable_only (and POOL_FROM / OUT to vol/)
 POPS = ("all", "candidate")
 
 
@@ -167,7 +168,7 @@ def logistic_benchmark(panel, mem, y, pr) -> dict:
 
 def run() -> dict:
     pr = prereg()
-    panel = Panel()
+    panel = Panel(**PANEL_KW)
     ys = {t: panel.columns([t])[t].astype(float) for t in (PRIMARY, SECONDARY)}
     W.require_lock_for(W.all_windows(("late",)))
     mem = members(panel, pool(), ys[PRIMARY], pr)

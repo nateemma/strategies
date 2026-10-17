@@ -1,0 +1,10 @@
+{
+ "title": "037 screens re-run on tradeable bars only (volume > 0)",
+ "date": "2026-10-17",
+ "status": "post-lock re-run at the user's request, after the pair-trigger backtests showed the tbatr pairs fire almost only on zero-volume bars; committed before any vol score",
+ "change": "the ONLY change: every screen row also needs volume > 0 (Panel(tradeable_only=True)); 32% of the original data_ok bars are zero-volume",
+ "unchanged": "every locked rule (preregistration.json), the tb / tbatr / mofn addenda's rules (preregistration_tb.json, _tbatr.json, _mofn.json), labels (computed on all bars, as before: a forward price path is a price path), windows, populations, comparators",
+ "scope": "label screens (single + pairs), tb and tbatr (single, pairs, beyond-ARO), M-of-N (members re-derived from the vol tbatr pair survivors). NOT re-run: regime targets, per-fold models, the HGB sizer",
+ "outputs": "research/indicator_screen/vol/ (score feathers in user_data/data/indicator_screen/out_vol/); originals untouched",
+ "redundancy": "recomputed on tradeable early candidate bars (vol/redundancy.json)"
+}

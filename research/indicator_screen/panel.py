@@ -28,15 +28,22 @@ def scored_columns(include_btc: bool = False) -> list[str]:
 
 
 class Panel:
-    def __init__(self, pairs: list[str] | None = None, cache=H.CACHE):
+    """`tradeable_only` (2026-10-17 re-run): rows also need volume > 0. 32% of data_ok bars are
+    zero-volume (gap-filled) bars on which no strategy enters; the original screens kept them."""
+
+    def __init__(self, pairs: list[str] | None = None, cache=H.CACHE, tradeable_only: bool = False):
         self.pairs = pairs or screen_pairs()
         self.cache = cache
-        frames = [H.read_cache(p, CORE, cache).assign(pair=i) for i, p in enumerate(self.pairs)]
+        self.tradeable_only = tradeable_only
+        need = CORE + (["volume"] if tradeable_only else [])
+        frames = [H.read_cache(p, need, cache).assign(pair=i) for i, p in enumerate(self.pairs)]
         self.lengths = [len(f) for f in frames]
         core = pd.concat(frames, ignore_index=True)
         self.date = pd.DatetimeIndex(core["date"])
         self.pair = core["pair"].to_numpy(np.int16)
         self.data_ok = core["meta:data_ok"].to_numpy() > 0
+        if tradeable_only:
+            self.data_ok &= core["volume"].to_numpy() > 0
         self.candidate = core["base:gbb_candidate"].to_numpy() > 0
         self.core = {c: core[c].to_numpy(np.float64) for c in CORE if c in core}
         self._btc_pos = None
