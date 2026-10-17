@@ -1,0 +1,17 @@
+{
+ "title": "037 addendum: indicators and signal pairs vs a gbb-neutral triple-barrier label, with gbb as comparator",
+ "date": "2026-10-17",
+ "status": "ADDED AFTER the 037 pre-registration lock (4ccb4ad0) at the user's request; committed before any tb score exists",
+ "question": "Do any harvested indicators or signal pairs predict a gbb-neutral look-ahead label better than gbb itself (and the width book's entry rule); which columns carry information beyond ARO's own p_buy?",
+ "label": {"id": "label:tb_buy", "source": "Framework/TrainingSignals.labels_triple_barrier on every bar (no gbb condition)",
+           "params": {"horizon": 48, "pt": 0.02, "sl": 0.05, "min_gain": 0.02}, "why": "034's TB candidate exactly (+2% before -5% within 48 bars; close-based; same-bar tie = 0)"},
+ "comparators": {"base:gbb_candidate": "the gbb trigger (guard_metric < 0.3 AND bb_width > 0.035)",
+                 "cmp:width_book": "gbb AND bb_width >= the fold's width-book cut (NNNC_LS_CONTROL_SZ.WIDTH_CUTS); E0 rows use f00's cut"},
+ "rules": "the locked 037 rules unchanged: single screen (min_rows, min_fires, max_fire_rate, E0 agreement), pair screen (select on early + E0: min_windows 6, uplift 1.1, min_lift 1.2, top_n 20; confirm on late, E0 >= components); populations all bars (primary) and gbb candidate bars",
+ "better_than_gbb": "a raw signal or confirmed pair 'beats gbb' when its median lift exceeds the comparator's median lift in early AND late, and E0 agrees (lift >= comparator's E0 lift); reported against both comparators",
+ "beyond_aro": "descriptive: per test window, AUC within ARO p_buy quintiles (stratified AUC; quintile edges from the window's own rows; nothing fitted); a column 'carries information beyond ARO' when |resid AUC - 0.5| >= residual_min_strength (0.02) in early AND late with the same sign. ARO exists only in test windows, so E0 is not tested",
+ "seen_before": ["037 single/pair/model results on gbb_path labels and regime targets (all halves)",
+                 "034 trained ARO on TB: S1 FAIL (ranked width-book trades worse than gbb_path)",
+                 "no score of any column against label:tb_buy"],
+ "label_note": "SCREEN (descriptive): association decides nothing; a candidate needs a backtest"
+}

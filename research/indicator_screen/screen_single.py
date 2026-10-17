@@ -119,7 +119,7 @@ def score_windows(panel, targets, windows, cols, pr) -> pd.DataFrame:
         data = panel.columns(chunk)
         for col in chunk:
             x_all = data[col]
-            sig = col.startswith("raw_") or col == "base:gbb_candidate"
+            sig = col.startswith(("raw_", "cmp:")) or col == "base:gbb_candidate"
             for w in windows:
                 for pop in POPS:
                     c = ctx[(w.id, pop)]
