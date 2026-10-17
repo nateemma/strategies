@@ -1,0 +1,89 @@
+{
+ "title": "Composite sizer: the 037 'dip' composite as the capital-neutral stake sizer on the width book (cs_aro's design), backtested on all 15 folds",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26), and the late half is NOT blind (see seen_before). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "arm": "cs_cmp",
+ "arm_class": "NNNC_CS_CMP = NNNC_CS_HGB's score lookup pointed at user_data/data/cmp_sizer/HGB_fNN.parquet (research/cmp_sizer/signals.py); entries, ARO weights (model keys equal cs_aro's), AGREE_SHARE 0.5, STAKE_WEIGHTS (1.0, 0.5) -> 1.333x / 0.667x, HELD_PAIR_ADD off: all cs_aro's. A width-book entry with no score reads 0 (the composite's mid-range, not 'disagree' -- the instrument caps such entries at 1%).",
+ "thresholds": "per fold, research/cmp_sizer/pick.py (= research/hgb_sizer/pick.py on plan_cs_cmp.json): cs_aro's rule on the composite -- first bar of each width-book run in the fold's validation tail, (1 - 0.5) quantile, 4 decimals; verify every fold (tag mismatches 0, loaded == stored). tail_leak_pairs is empty by construction (nothing fitted)",
+ "comparators": {
+  "width": "w_aro",
+  "control": "wf_aro_g24",
+  "incumbent_sizer": "cs_aro"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": {
+  "per_half": "trade set == w_aro on (pair, open_date, close_date) in all but <= 2 folds; 0 entry violations; 0 tag mismatches; thresholds loaded at 4 dp; mean capital ratio vs w_aro within +-10%; no zero-trade fold; width-book entries without an composite score <= 1%",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "pass": "judge_one(cs_hgb, w_aro) PASS AND judge_one(cs_hgb, wf_aro_g24) PASS -- cs_aro's own bar",
+ "secondary": "judge_one(cs_cmp, cs_aro) on the same trades: PASS = the composite sizer beats the ARO sizer (reported; replacing ARO as the sizer needs this AND the primary PASS). cs_cmp vs cs_hgb reported descriptively",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE (the composite is deterministic; the repeat would be the forward window)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds (plan_fwd_*) or dry-run; live use needs the 7 member columns at runtime (5 SimpleStrategies columns + 2 raw8 returns)",
+ "seen_before": [
+  "037 addendum 4 composite screen (all halves): label:tbatr_buy AUC 0.535 / 0.536 all bars, 0.554 / 0.552 candidate bars vs ARO 0.541 / 0.539; on label:tb_buy 0.56 / 0.56 vs ARO 0.59 / 0.59 (candidate)",
+  "cs_aro backtest on all 15 folds: 59.95 pp vs w_aro 51.44 vs wf_aro_g24 49.97; cs_hgb 58.67 (PASS vs width/control, FAIL vs cs_aro)",
+  "backtest P&L of w_aro, wf_aro_g24, cs_aro and cs_hgb on all 15 folds",
+  "no backtest or simulator split of the width-book trades by the composite has been run"
+ ],
+ "question": "does the composite's directional edge on candidate bars (better than ARO's on the volatility-neutral label, worse on the fixed-% label) survive real execution as a width-book sizer, above the width book, the control and the ARO sizer?",
+ "composite": "037 addendum 4 composite (vol/composite.json, chosen on early + E0 only): 7 members TEMACross tema_long/close, Ehlers_DC dc_upper/close, Ehlers_LW lw_trend_buy/close, UO (-), raw8 ret1 (-), raw8 log_hc, EhlersBase cg_slope (-); per fold each z-scored on tradeable bars (data_ok, volume > 0, warm-up excluded) from train_start to the pair's validation-tail start, signed, missing -> 0, mean. No label is used (no fit, no purge); scored on candidate bars from the tail start to the fold's test end"
+}
