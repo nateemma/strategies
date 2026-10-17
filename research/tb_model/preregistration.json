@@ -1,0 +1,106 @@
+{
+ "title": "ATR-barrier study: ARO's architecture trained on 037's ATR-scaled triple barrier (tradeable rows), without (A) and with (B) the 037 composite's 7 member columns as inputs -- S1 screen, then S2 as a width-book sizer",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26). The tbatr label, the composite members and every comparator's results were read on all halves before this file; no tbatr-trained model, score or backtest exists. Nothing is adopted or promoted.",
+ "why": "034's fixed-% triple-barrier model learned volatility (all-bar AUC 0.617 on its own label) but not direction where we trade (candidate AUC 0.525; 0.51 on tbatr) -- research/tb_model/check.json. The ATR-scaled label removes the volatility shortcut; 037 found direction signal on it (composite candidate AUC 0.554 / 0.552 vs ARO 0.541 / 0.539). Arm B asks whether those indicators help a model learn it.",
+ "label_definition": "framework labels_triple_barrier / _sell with pt = sl = 1e-9, atr_scale 4.0 (ATR(14) Wilder), horizon 48, min_gain / min_loss None, post-label peak filter OFF (LABEL_PEAK_FILTER False, model-key attribute): BUY = up 4xATR first, SELL = down first, HOLD = timeout / tie. Checked before this file: equal to 037's label:tbatr_buy on SOL, 199,152 rows, 0 mismatches",
+ "training": "per fold f00-f14, research.candidate_training.train --model TBA / TBB (seed 1, cs_aro's params snapshot), TRAIN_ROW_FILTER volume > 0 (last bar of each window); everything else ARO's (architecture, horizon, scaler for ARO's 24 columns)",
+ "arms": {
+  "cs_tba": {
+   "model": "TBA",
+   "class": "NNNC_CS_TBA = AtrBarrierLabelMixin + NNNC_CS_ARO + TRAIN_ROW_FILTER volume > 0",
+   "inputs": "ARO's 24",
+   "width": "w_aro",
+   "control": "wf_aro_g24",
+   "secondary": "cs_aro"
+  },
+  "cs_tbb": {
+   "model": "TBB",
+   "class": "NNNC_CS_TBB = TbInputMixin + NNNC_CS_TBA",
+   "inputs": "ARO's 24 + 7 composite members (user_data/data/tb_inputs, table_sha d84f8123ea593215: 037-cache columns, trailing z 2880 / min 960, clip +-5, /5)",
+   "width": "w_aro",
+   "control": "wf_aro_g24",
+   "secondary": "cs_aro"
+  }
+ },
+ "s1": {
+  "rows": "test windows f00-f14, tradeable bars (data_ok AND volume > 0), label:tbatr_buy defined (timeouts / ties excluded)",
+  "pass": "per arm: median gbb-candidate AUC of p_buy above ARO's in BOTH halves (research/tb_model/screen.py)",
+  "reported": "all-bar AUC; candidate-bar MCC of BUY-argmax (the MCC without the gbb-setup shortcut); the 037 composite's candidate AUC per fold; B vs A (inputs_help_both_halves = B's candidate AUC above A's in both halves)",
+  "fail": "no S2 for that arm"
+ },
+ "s2": {
+  "design": "cs_aro's: the model's p_buy as the capital-neutral width-book sizer, research/control_sizer/pick.py --plan plan_cs_<arm>.json (validation-tail run starts, 0.5 share, 4 dp, verified), 15-fold backtest",
+  "instrument": "research/xmodel_sizer/instrument.arm_check (cs_aro's checks; tag check against the arm's own test-window table signals/CS_TB?_fNN; entries without a score <= 1%)",
+  "pass": "cs_aro's bar: judge_one PASS vs w_aro AND wf_aro_g24 (small-margin rule)",
+  "question": "judge_one(arm, cs_aro): PASS = both half gains > 0, not WORSENED -- the tbatr-trained sizer beats the current ARO sizer"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "seen_before": [
+  "037 tbatr screens (all halves, all and tradeable bars), composite and its members",
+  "034 TB model check (research/tb_model/check.json, f00-f07)",
+  "cs_aro, w_aro, wf_aro_g24, cs_arov, cs_cmp, cs_mix results",
+  "no tbatr-trained weights"
+ ],
+ "question": "can ARO's model learn direction (tbatr) on tradeable bars better than ARO, do the 037 indicators help it, and does that make a better width-book sizer than cs_aro?"
+}
