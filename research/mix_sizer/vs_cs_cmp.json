@@ -1,0 +1,89 @@
+{
+ "arm": "cs_mix",
+ "control": "cs_cmp",
+ "verdict": "FAIL",
+ "failed": [
+  "late gain"
+ ],
+ "arm_trades": 930,
+ "ctl_trades": 930,
+ "arm_pp": 61.067,
+ "ctl_pp": 60.92,
+ "early_gain_pp": 1.536999999999999,
+ "late_gain_pp": -1.3900000000000006,
+ "folds_changed": 8,
+ "paired": {
+  "verdict": "UNCHANGED",
+  "delta_pp": 0.1475733437916392,
+  "ci_pp_yr": [
+   -0.7643469510670095,
+   0.9183034022770791
+  ],
+  "p": 0.9507
+ },
+ "risk": {
+  "days": 1343,
+  "arm": {
+   "sharpe": 2.7048906602711638,
+   "maxdd": 4.299248783339316,
+   "daily_sd": 0.3211643195880189
+  },
+  "ctl": {
+   "sharpe": 2.627391724553072,
+   "maxdd": 5.408100308908516,
+   "daily_sd": 0.3298416440921258
+  },
+  "sharpe_delta": 0.07749893571809174,
+  "sharpe_ci": [
+   -0.10342698667949618,
+   0.26386413786147567
+  ],
+  "sharpe_p": 0.488,
+  "verdict_sharpe": "UNCHANGED",
+  "maxdd_delta": -1.1088515255692002,
+  "maxdd_ci": [
+   -1.357160882354911,
+   0.11457137224469535
+  ],
+  "maxdd_p": 0.489,
+  "verdict_maxdd": "UNCHANGED"
+ },
+ "halves": {
+  "early": {
+   "verdict": "UNCHANGED",
+   "p": 0.2714,
+   "risk": [
+    "UNCHANGED",
+    "UNCHANGED"
+   ]
+  },
+  "late": {
+   "verdict": "WORSENED",
+   "p": 0.0257,
+   "risk": [
+    "WORSENED",
+    "UNCHANGED"
+   ]
+  }
+ },
+ "exits_arm": {
+  "take_profit": 557,
+  "trailing_stop_loss": 151,
+  "unclog_12h": 165,
+  "unclog_1d": 19,
+  "roi": 18,
+  "force_exit": 5,
+  "stop_loss": 13,
+  "metric_overbought": 2
+ },
+ "exits_ctl": {
+  "take_profit": 557,
+  "trailing_stop_loss": 151,
+  "unclog_12h": 165,
+  "unclog_1d": 19,
+  "roi": 18,
+  "force_exit": 5,
+  "stop_loss": 13,
+  "metric_overbought": 2
+ }
+}
