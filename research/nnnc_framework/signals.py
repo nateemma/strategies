@@ -39,6 +39,8 @@ PLANS = {"ARO": "wf_aro_b030", "GBR": "sw_gbr_ctl_b030", "GFM": "sw_gfm_ctl_b030
 #: 032: candidate-only arms (research/candidate_training). Not in the default --models list.
 CO_PLANS = {"CO_ARO": "co_aro", "CO_GBR": "co_gbr",
             "AROV": "cs_arov"}  # research/aro_volume: ARO retrained on volume > 0 rows
+#: research/xmodel_sizer: the GBR / MLX width-book sizers (their own p_buy on the test windows)
+CO_PLANS |= {"CS_GBR": "cs_gbr", "CS_MLX": "cs_mlx"}
 #: 033: width-relative sizer arms (research/width_relative); the exit-off plan (same predictions).
 WR_PLANS = {"WR_ARO": "wr_aro_sz", "WR_GBR": "wr_gbr_sz"}
 #: 034: label-screen candidates (research/label_screen; the training `es` plans).

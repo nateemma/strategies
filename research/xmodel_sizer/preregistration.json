@@ -1,0 +1,116 @@
+{
+ "title": "Cross-model sizers: the width-book sizer (cs_aro's design) on GBR and MLX, with the model's own p_buy and with the ARO-style mixed score (model + 037 composite percentiles), all 15 folds",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26). The late halves are not blind for ARO's sizers (read) or for the GBR / MLX width books and controls (read); no GBR / MLX sizer backtest has been run. Nothing is adopted or promoted.",
+ "why": "Defaults are promoted only after a cross-model pass (grace 24 h: ARO + GBR + MLX). Every sizer result so far is ARO's. This asks whether the sizer (cs_aro) and the mixed sizer (cs_mix) generalise to the other NNNC models before either is considered as an NNNC default.",
+ "arms": {
+  "cs_gbr": {
+   "model": "GBR",
+   "class": "NNNC_CS_GBR (035, unchanged) = WidthSizerMixin + NNNC_W_GBR, AGREE_RULE p_buy",
+   "width": "w_gbr",
+   "control": "fs_gbr_gr",
+   "secondary": "w_gbr",
+   "note": "plan_cs_gbr.json already holds 8 early picks from 035 (S1 reference, never backtested); all 15 folds are re-picked by the same rule and the report states whether f00-f07 reproduce"
+  },
+  "cs_mlx": {
+   "model": "MLX",
+   "class": "NNNC_CS_MLX = WidthSizerMixin + NNNC_W_MLX, AGREE_RULE p_buy",
+   "width": "w_mlx",
+   "control": "fs_mlx_gr",
+   "secondary": "w_mlx"
+  },
+  "cs_gbr_mix": {
+   "model": "GBR",
+   "class": "NNNC_CS_GBR_MIX = _mix_sizer.MixSizerMixin + NNNC_CS_GBR",
+   "width": "w_gbr",
+   "control": "fs_gbr_gr",
+   "secondary": "cs_gbr"
+  },
+  "cs_mlx_mix": {
+   "model": "MLX",
+   "class": "NNNC_CS_MLX_MIX = _mix_sizer.MixSizerMixin + NNNC_CS_MLX",
+   "width": "w_mlx",
+   "control": "fs_mlx_gr",
+   "secondary": "cs_mlx"
+  }
+ },
+ "weights": "each arm resolves to its control's existing weights (model keys checked before this file: cs_gbr / cs_gbr_mix -> NNNC_GBR_fNN, cs_mlx / cs_mlx_mix -> NNNC_WF_fNN, the fs_*_gr weights); no training",
+ "entries_stakes": "each model's own width book (its WIDTH_CUTS), AGREE_SHARE 0.5, STAKE_WEIGHTS (1.0, 0.5) -> 1.333x / 0.667x, HELD_PAIR_ADD off: cs_aro's design",
+ "scores": {
+  "plain": "the model's p_buy (%predict_prob_buy)",
+  "mix": "0.5 x (percentile of the model's p_buy + percentile of the 037 composite), percentiles = share of the fold's validation-tail width-book run starts <= x (research/xmodel_sizer/knots.py, from the plain arm's fold strategy; the composite from the model-free cs_cmp tables); a bar missing either score reads 0"
+ },
+ "thresholds": "per fold: plain arms research/control_sizer/pick.py --plan plan_cs_<m>.json; mix arms research/xmodel_sizer/pick.py (hgb_sizer pick on plan_cs_<m>_mix.json, plan passed explicitly); cs_aro's rule (validation-tail run starts, 0.5-share quantile, 4 dp); verify every fold (tag mismatches 0, loaded == stored)",
+ "instrument": "per arm and half, cs_aro's checks: trade set == the model's width book in all but <= 2 folds; 0 entry violations; 0 tag mismatches vs the arm's own score table (plain: nnnc_framework/signals/CS_<M>_fNN; mix: user_data/data/mix_sizer_<m>/signals_fNN); thresholds loaded at 4 dp; capital vs width within +-10%; no zero-trade fold; entries without a score <= 1%. Fail -> INCONCLUSIVE, no P&L read",
+ "pass": "per arm, cs_aro's bar: judge_one(arm, width) PASS AND judge_one(arm, control) PASS (research/control_sizer/judge.py decide; small-margin rule)",
+ "secondary": "mix arms: judge_one(cs_<m>_mix, cs_<m>) -- does the composite add on this model (PASS = both half gains > 0, not WORSENED). Plain arms: none beyond the primary (the width-book comparison is the question)",
+ "cross_model_read": "the sizer generalises if cs_gbr AND cs_mlx PASS (with cs_aro's PASS: 3/3 models); the mixed sizer generalises if cs_gbr_mix AND cs_mlx_mix PASS (with cs_mix's). Either is then a candidate NNNC default switch -- promotion is the user's call, after the forward window",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "seen_before": [
+  "cs_aro 59.95 (PASS vs w_aro / wf_aro_g24), cs_mix 61.07, cs_cmp 60.92, cs_hgb 58.67",
+  "w_gbr, w_mlx, fs_gbr_gr, fs_mlx_gr backtests on all 15 folds (model check / framework study)",
+  "035: cs_gbr early (f00-f07) agree-share picks, no backtest",
+  "no GBR or MLX sizer backtest, no mixed score for GBR / MLX"
+ ],
+ "question": "do the width-book sizer and the mixed sizer beat each model's own width book and control on GBR and MLX, as they do on ARO?"
+}
