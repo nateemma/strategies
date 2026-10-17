@@ -1,8 +1,9 @@
 """Forward confirmation of cs_cmp / cs_mix (preregistration.json): the composite on 2026-09-07..10-12.
 
 1. The 7 composite member columns, by the 037 harvest's own code (harvest_frame with the scope's first
-   class as the base and the member classes; extras ratio_frame / raw8_frame), on candles from
-   DATA_START through FWD_END. Instrument: equal to the 037 cache on every bar before 2026-09-07.
+   class as the base and the member classes; extras ratio_frame / raw8_frame), cast to float32 as the
+   cache stores them, on candles from DATA_START through FWD_END. Instrument: equal to the 037 cache
+   on every bar before 2026-09-07.
 2. f14 frozen: each member z-scored with f14's mean / sd (research/cmp_sizer/signals: tradeable bars
    before f14's validation tail, from the 037 cache), signed, missing -> 0, averaged; written for
    gbb candidate bars in the forward window as user_data/data/cmp_sizer/HGB_f15.parquet.
@@ -48,7 +49,9 @@ def member_frame(cfg, strats, pair: str, cols: list[str]) -> pd.DataFrame:
     f, _ = H.harvest_frame(load(cfg, pair), strats, None, pair, keep_defects=True)
     srcs = [c[: -len("/close")] for c in cols if c.endswith("/close")]
     f = pd.concat([f, E.raw8_frame(f), E.ratio_frame(f, srcs)], axis=1)
-    return f[["date", "base:gbb_candidate", *cols]]
+    f = f[["date", "base:gbb_candidate", *cols]].copy()
+    f[cols] = f[cols].astype(np.float32)        # as the 037 cache stores values (extras come out float64)
+    return f
 
 
 def run() -> dict:

@@ -1,0 +1,123 @@
+{
+ "instrument_mismatches": 0,
+ "per_pair": {
+  "AAVE/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "AVAX/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "BCH/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "DOT/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "LINK/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "LTC/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "NEAR/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "SOL/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "XRP/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  },
+  "ZEC/USDT": {
+   "TEMACross:tema_long/close": 0,
+   "Ehlers_DC:dc_upper/close": 0,
+   "Ehlers_LW:lw_trend_buy/close": 0,
+   "raw8:ret1": 0,
+   "UO:uo": 0,
+   "raw8:log_hc": 0,
+   "EhlersBase:cg_slope": 0
+  }
+ },
+ "forward_candidate_bars": 5407,
+ "f14_mean": [
+  1.0000402131537247,
+  1.017509078369169,
+  1.0029047701613631,
+  -1.0045506918587644e-06,
+  50.63530068358218,
+  0.0024639313450344103,
+  -1.487867923962575e-05
+ ],
+ "f14_sd": [
+  0.012296246086811149,
+  0.05608370195812474,
+  0.006784969954162251,
+  0.007667122867337899,
+  16.23815054267128,
+  0.00583553394374386,
+  0.005962892569416456
+ ],
+ "members": [
+  "TEMACross:tema_long/close",
+  "Ehlers_DC:dc_upper/close",
+  "Ehlers_LW:lw_trend_buy/close",
+  "raw8:ret1",
+  "UO:uo",
+  "raw8:log_hc",
+  "EhlersBase:cg_slope"
+ ]
+}
