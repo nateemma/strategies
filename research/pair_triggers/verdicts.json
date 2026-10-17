@@ -1,0 +1,290 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); the pairs were chosen with the late half in view (037 tb/tbatr confirmation), so the late half is NOT blind. Nothing is adopted.",
+ "arms": {
+  "st_pt_cmo_macd": {
+   "instrument": {
+    "causality": true,
+    "causality_note": "PASS",
+    "trades": 5,
+    "trades_by_half": {
+     "early": 3,
+     "late": 2
+    },
+    "folds_missing": [],
+    "pass": false
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  },
+  "st_pt_cmo_dcb": {
+   "instrument": {
+    "causality": true,
+    "causality_note": "PASS",
+    "trades": 1,
+    "trades_by_half": {
+     "early": 1,
+     "late": 0
+    },
+    "folds_missing": [],
+    "pass": false
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  },
+  "st_pt_kst_z": {
+   "instrument": {
+    "causality": true,
+    "causality_note": "PASS",
+    "trades": 708,
+    "trades_by_half": {
+     "early": 360,
+     "late": 348
+    },
+    "folds_missing": [],
+    "pass": true
+   },
+   "alone_vs_gbb": {
+    "arm": "st_pt_kst_z",
+    "control": "st_fam_gbb",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain"
+    ],
+    "arm_trades": 708,
+    "ctl_trades": 9056,
+    "arm_pp": 18.477999999999998,
+    "ctl_pp": 11.043999999999999,
+    "early_gain_pp": -13.346,
+    "late_gain_pp": 20.78,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 7.433896881952241,
+     "ci_pp_yr": [
+      -8.083085990742104,
+      12.429943354257636
+     ],
+     "p": 0.6933
+    },
+    "risk": {
+     "days": 1346,
+     "arm": {
+      "sharpe": 1.07961392137336,
+      "maxdd": 6.8527572331375435,
+      "daily_sd": 0.24293375276407883
+     },
+     "ctl": {
+      "sharpe": 0.23927569586982333,
+      "maxdd": 32.60137286185778,
+      "daily_sd": 0.6551325570256109
+     },
+     "sharpe_delta": 0.8403382255035367,
+     "sharpe_ci": [
+      -0.4262853710490848,
+      2.2679879646883836
+     ],
+     "sharpe_p": 0.218,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": -25.748615628720238,
+     "maxdd_ci": [
+      -47.28138582973547,
+      -4.735130615969971
+     ],
+     "maxdd_p": 0.007,
+     "verdict_maxdd": "IMPROVED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.3029,
+      "risk": [
+       "UNCHANGED",
+       "IMPROVED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.1311,
+      "risk": [
+       "UNCHANGED",
+       "IMPROVED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 401,
+     "trailing_stop_loss": 212,
+     "unclog_12h": 63,
+     "roi": 22,
+     "stop_loss": 6,
+     "unclog_1d": 3,
+     "force_exit": 1
+    },
+    "exits_ctl": {
+     "force_exit": 33,
+     "roi": 63,
+     "take_profit": 3839,
+     "trailing_stop_loss": 3591,
+     "unclog_12h": 1442,
+     "unclog_1d": 64,
+     "metric_overbought": 12,
+     "stop_loss": 12
+    }
+   },
+   "beside_width_book": {
+    "verdict": "FAIL",
+    "combined": {
+     "total": 60.807673390839206,
+     "early": 49.99090442836925,
+     "late": 10.816768962469956,
+     "positive": "12"
+    },
+    "width_book": {
+     "total": 51.443,
+     "early": 35.851,
+     "late": 15.592,
+     "positive": 15
+    },
+    "early_gain_pp": 14.14,
+    "late_gain_pp": -4.775,
+    "paired_whole": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 9.363257798646657,
+     "p": 0.2783
+    },
+    "shared_wallet": {
+     "refused_pp": 9.3079977329223,
+     "shrunk_pp": -0.18931140910480102
+    },
+    "same_pair_overlap_trades": 339
+   },
+   "decision": "not a candidate"
+  },
+  "st_pt_cci_copp": {
+   "instrument": {
+    "causality": true,
+    "causality_note": "PASS",
+    "trades": 459,
+    "trades_by_half": {
+     "early": 269,
+     "late": 190
+    },
+    "folds_missing": [],
+    "pass": true
+   },
+   "alone_vs_gbb": {
+    "arm": "st_pt_cci_copp",
+    "control": "st_fam_gbb",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain"
+    ],
+    "arm_trades": 459,
+    "ctl_trades": 9056,
+    "arm_pp": 17.716,
+    "ctl_pp": 11.043999999999999,
+    "early_gain_pp": -13.282,
+    "late_gain_pp": 19.954,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 6.672260464808092,
+     "ci_pp_yr": [
+      -8.123806541019908,
+      11.60760612584235
+     ],
+     "p": 0.7245
+    },
+    "risk": {
+     "days": 1346,
+     "arm": {
+      "sharpe": 0.9476140764246983,
+      "maxdd": 6.088595469940881,
+      "daily_sd": 0.2653600501481588
+     },
+     "ctl": {
+      "sharpe": 0.23927569586982333,
+      "maxdd": 32.60137286185778,
+      "daily_sd": 0.6551325570256109
+     },
+     "sharpe_delta": 0.708338380554875,
+     "sharpe_ci": [
+      -0.5723353909431076,
+      2.2063973396840026
+     ],
+     "sharpe_p": 0.305,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": -26.512777391916902,
+     "maxdd_ci": [
+      -47.25493043556967,
+      -4.3880824925835515
+     ],
+     "maxdd_p": 0.005,
+     "verdict_maxdd": "IMPROVED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.302,
+      "risk": [
+       "UNCHANGED",
+       "IMPROVED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.1416,
+      "risk": [
+       "UNCHANGED",
+       "IMPROVED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 269,
+     "trailing_stop_loss": 134,
+     "unclog_12h": 32,
+     "roi": 18,
+     "stop_loss": 5,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "force_exit": 33,
+     "roi": 63,
+     "take_profit": 3839,
+     "trailing_stop_loss": 3591,
+     "unclog_12h": 1442,
+     "unclog_1d": 64,
+     "metric_overbought": 12,
+     "stop_loss": 12
+    }
+   },
+   "beside_width_book": {
+    "verdict": "FAIL",
+    "combined": {
+     "total": 56.86539668360792,
+     "early": 48.57313644953783,
+     "late": 8.292260234070092,
+     "positive": "13"
+    },
+    "width_book": {
+     "total": 51.443,
+     "early": 35.851,
+     "late": 15.592,
+     "positive": 15
+    },
+    "early_gain_pp": 12.722,
+    "late_gain_pp": -7.3,
+    "paired_whole": {
+     "verdict": "UNCHANGED",
+     "delta_pp": 5.421213948367611,
+     "p": 0.4857
+    },
+    "shared_wallet": {
+     "refused_pp": 10.266899253952834,
+     "shrunk_pp": 2.0319114626115233
+    },
+    "same_pair_overlap_trades": 223
+   },
+   "decision": "not a candidate"
+  }
+ }
+}
