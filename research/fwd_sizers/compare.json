@@ -1,0 +1,58 @@
+{
+ "cs_cmp": {
+  "n_trades": 49,
+  "total_pp": 0.075,
+  "vs_w_aro": {
+   "identical_trades": true,
+   "only_arm": 0,
+   "only_cmp": 0,
+   "delta_pp": -0.22099999999999997,
+   "paired_usdt": -22.12125902999999,
+   "ci90_usdt": [
+    -74.726130446,
+    30.859121135000027
+   ]
+  },
+  "vs_cs_aro": {
+   "identical_trades": true,
+   "only_arm": 0,
+   "only_cmp": 0,
+   "delta_pp": 0.191,
+   "paired_usdt": 19.130708770000012,
+   "ci90_usdt": [
+    -35.62159200999999,
+    79.29716482
+   ]
+  },
+  "agree_share": 0.5918367346938775,
+  "read": "INCONSISTENT"
+ },
+ "cs_mix": {
+  "n_trades": 49,
+  "total_pp": -0.327,
+  "vs_w_aro": {
+   "identical_trades": true,
+   "only_arm": 0,
+   "only_cmp": 0,
+   "delta_pp": -0.623,
+   "paired_usdt": -62.337119779999995,
+   "ci90_usdt": [
+    -112.6753605575,
+    -13.634699376999981
+   ]
+  },
+  "vs_cs_aro": {
+   "identical_trades": true,
+   "only_arm": 0,
+   "only_cmp": 0,
+   "delta_pp": -0.21100000000000002,
+   "paired_usdt": -21.08515198,
+   "ci90_usdt": [
+    -56.801480139999995,
+    6.738184249999999
+   ]
+  },
+  "agree_share": 0.5918367346938775,
+  "read": "INCONSISTENT"
+ }
+}
