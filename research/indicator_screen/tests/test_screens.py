@@ -277,3 +277,26 @@ def test_a2_model_on_the_first_fold_is_not_computable(synth):
     tr = SM.train_rows(panel, t, "A2:48", "all", folds[2], folds)
     assert len(tr) and panel.date[tr].max() < folds[2].start                   # only earlier test windows
     assert (folds[0].mask(panel.date[tr]) | folds[1].mask(panel.date[tr])).all()
+
+
+def test_regime_model_must_beat_the_persistence_baseline(tmp_path):
+    """FR-021: a model above the restricted model but below the baseline is not a regime candidate."""
+    from research.indicator_screen import screen_models as SM
+
+    d = tmp_path / SM.slug("C-pair:48")
+    d.mkdir()
+    recs = []
+    for fold, half in (("f00", "early"), ("f10", "late")):
+        for pop in ("all", "candidate"):
+            for model in ("tree", "hgb"):
+                for inputs, auc in (("all", 0.80), ("restricted", 0.70)):
+                    recs.append({"fold": fold, "half": half, "population": pop, "computable": True, "model": model,
+                                 "inputs": inputs, "auc": auc, "width_sort_auc": 0.6, "aro_auc": None,
+                                 "top_splits": []})
+    (d / "f00.json").write_text(json.dumps({"results": recs}))
+    (d / "baseline.json").write_text(json.dumps({"auc": {
+        "f00": {"all": 0.90, "candidate": 0.10}, "f10": {"all": 0.90, "candidate": 0.40}}}))
+    m = SM.merge("C-pair:48", tmp_path)["populations"]
+    assert m["all"]["hgb"]["candidate"] and not m["all"]["hgb"]["beats_baseline_both_halves"]
+    # an anti-correlated baseline counts by its strength: |0.10 - 0.5| = 0.40 > 0.30 in early
+    assert not m["candidate"]["hgb"]["beats_baseline_both_halves"]

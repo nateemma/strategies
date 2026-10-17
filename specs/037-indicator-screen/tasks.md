@@ -226,7 +226,7 @@ with the pair's own and BTC's indicator values and persistence baselines.
   - COMMIT it — this commit is the lock. Record its sha in the file's commit message and in `report.md`.
 - [X] T032 RUN the late single screens: `screen_single --targets labels --halves late` and `screen_single --targets regime --halves late`. The labels run also writes the 15-window instrument confirmation (SC-002).
 - [X] T033 RUN `screen_pairs --confirm` for `label:buy`, `label:sell` and every regime target with survivors.
-- [ ] T034 First time one fold (`label:buy` f07, and one regime target on all bars at f14, the largest training span); if 15 folds × all targets would exceed about 6 h, report the per-target estimate to the user before continuing (Principle VII). Then RUN `screen_models` one fold per process (f00–f14), then `--merge`, for: `label:buy`, `label:sell`, and each regime target at each horizon. Run them sequentially in one chain, confirming both bots are alive between targets.
+- [X] T034 First time one fold (`label:buy` f07, and one regime target on all bars at f14, the largest training span); if 15 folds × all targets would exceed about 6 h, report the per-target estimate to the user before continuing (Principle VII). Then RUN `screen_models` one fold per process (f00–f14), then `--merge`, for: `label:buy`, `label:sell`, and each regime target at each horizon. Run them sequentially in one chain, confirming both bots are alive between targets.
 
 ## Phase 8: Polish & cross-cutting
 
@@ -239,9 +239,9 @@ with the pair's own and BTC's indicator values and persistence baselines.
   - the instrument gate (E0 + early) and its 15-window confirmation;
   - a persistence column on every candidate: "E0 agrees", "early+late only", or "distant era not tested" (models, A2), with the note that a later backtest must cover 2022.
 - [X] T036 [P] Tests in `research/indicator_screen/tests/test_report.py`: the report contains every SC-004 heading; empty lists render as "none"; the FR-025 SCREEN statement is present; every candidate row has a persistence value.
-- [ ] T037 RUN `report`; verify SC-007 by re-running T032's label screen into a scratch path and diffing it byte for byte.
-- [ ] T038 Add a "Current state" note for 037 to `AGENT_GUIDE.md`, pointing to `research/indicator_screen/report.md` (FR-022). Add the project memory file `project_037_indicator_screen.md` plus its index line in `MEMORY.md`.
-- [ ] T039 Run the full suite (AGENT_GUIDE command with `research/indicator_screen/tests` added); confirm no failures. Check that both bots are alive, then commit (named files only).
+- [X] T037 RUN `report`; verify SC-007 by re-running T032's label screen into a scratch path and diffing it byte for byte.
+- [X] T038 Add a "Current state" note for 037 to `AGENT_GUIDE.md`, pointing to `research/indicator_screen/report.md` (FR-022). Add the project memory file `project_037_indicator_screen.md` plus its index line in `MEMORY.md`.
+- [X] T039 Run the full suite (AGENT_GUIDE command with `research/indicator_screen/tests` added); confirm no failures. Check that both bots are alive, then commit (named files only).
 
 ## Dependencies & execution order
 

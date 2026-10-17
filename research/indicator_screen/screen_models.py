@@ -165,9 +165,22 @@ def fit_fold(panel, targets, target, fold, all_folds, cols, pr) -> list[dict]:
     return recs
 
 
+def baselines(panel, targets, target, folds) -> dict:
+    """FR-021: {fold: {population: AUC of the trailing persistence baseline}} on each fold's own test rows."""
+    b = targets.baseline(target)
+    out = {}
+    for fold in folds:
+        for pop in populations(target):
+            te = test_rows(panel, targets, target, pop, fold)
+            out.setdefault(fold.id, {})[pop] = S.auc(b[te], targets.y(target, fold)[te]) if len(te) else None
+    return out
+
+
 def merge(target: str, models_dir: Path = MODELS_DIR) -> dict:
     files = sorted((models_dir / slug(target)).glob("f*.json"))
     recs = [r for f in files for r in json.loads(f.read_text())["results"]]
+    bp = models_dir / slug(target) / "baseline.json"
+    bl = json.loads(bp.read_text())["auc"] if bp.exists() else {}
     out = {"target": target, "folds": [f.stem for f in files],
            "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be "
                     "scored on E0) -- a later backtest must cover 2022", "populations": {}}
@@ -187,11 +200,22 @@ def merge(target: str, models_dir: Path = MODELS_DIR) -> dict:
                 halves[h] = {"median_auc_all": _med(full), "median_auc_restricted": _med(rest),
                              "median_width_sort_auc": _med(wid), "median_aro_auc": _med(aro),
                              "n_folds": len(full)}
+                if bl:      # model strength minus baseline strength, per fold (as in the single screen)
+                    beat = [(r["auc"] - 0.5) - abs(bl[r["fold"]][pop] - 0.5) for r in comp
+                            if r["model"] == model and r["inputs"] == "all" and r["half"] == h
+                            and bl.get(r["fold"], {}).get(pop) is not None]
+                    halves[h]["median_baseline_auc"] = _med([bl[r["fold"]][pop] for r in comp
+                                                             if r["model"] == model and r["inputs"] == "all"
+                                                             and r["half"] == h and bl.get(r["fold"], {}).get(pop) is not None])
+                    halves[h]["median_beat_baseline"] = _med(beat)
             cand = all(halves[h]["median_auc_all"] is not None and halves[h]["median_auc_restricted"] is not None
                        and halves[h]["median_auc_all"] > halves[h]["median_auc_restricted"] for h in ("early", "late"))
             splits = Counter(c for r in comp if r["model"] == "tree" and r["inputs"] == "all"
                              for c in r.get("top_splits", [])[:3])
+            if bl:
+                block_bb = all((halves[h].get("median_beat_baseline") or 0) > 0 for h in ("early", "late"))
             block[model] = {"halves": halves, "candidate": bool(cand) if halves["late"]["n_folds"] else None,
+                            **({"beats_baseline_both_halves": bool(block_bb)} if bl else {}),
                             "persistence": "distant era not tested",
                             "recurring_top_splits": splits.most_common(10)}
         out["populations"][pop] = block
@@ -215,7 +239,18 @@ def main(argv=None) -> int:
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--fold")
     g.add_argument("--merge", action="store_true")
+    g.add_argument("--baselines", action="store_true", help="regime targets: score the persistence baseline (FR-021)")
     a = ap.parse_args(argv)
+    if a.baselines:
+        folds = W.folds()
+        W.require_lock_for(folds)
+        panel = Panel()
+        d = MODELS_DIR / slug(a.target)
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "baseline.json").write_text(json.dumps(
+            {"target": a.target, "auc": baselines(panel, provider(panel, a.target), a.target, folds)}, indent=1))
+        print(f"{a.target}: baseline written")
+        return 0
     if a.merge:
         res = merge(a.target)
         (HERE / f"models_{slug(a.target)}.json").write_text(json.dumps(res, indent=1))

@@ -109,7 +109,7 @@ def sc004(single_labels, single_regime, pairs, models, tags=None) -> dict:
             continue
         for pop, blk in sorted(m["populations"].items()):
             for model in ("tree", "hgb"):
-                if blk[model]["candidate"]:
+                if blk[model].get("beats_baseline_both_halves"):
                     e.setdefault(f"{t} [{pop}]", []).append(f"{model} model (distant era not tested)")
     def split(cols):
         keep = [c for c in cols if _tag(c.split(" (")[0], tags) == "indicator"]
@@ -163,6 +163,10 @@ def build(d: Path = HERE) -> str:
           "- Column tags (added after the lock at the user's request; no score changed): "
           + ", ".join(f"{k} {v}" for k, v in sorted(((_load('tags.json', d) or {}).get('counts') or {}).items()))
           + ". Tagged columns are listed apart from candidates."]
+    ex = man.get("extras")
+    if ex:
+        L += [f"- Extra columns added {ex['added']}: {ex['n']} (`raw8:*` raw-price inputs, `ni:*` 035 inputs, "
+              "`<price column>/close`); scored by the locked rules and refit into every model."]
     never = sorted({c for v in man.get("excluded_columns", {}).values() for c, why in v.items() if why == "constant"})
     L += [f"- Constant on some pair (never fires / never varies): {_names(never)}.", ""]
     if sl is None:
@@ -224,8 +228,16 @@ def build(d: Path = HERE) -> str:
                          f"{_f(h['late']['median_auc_all'])} | {_f(h['late']['median_auc_restricted'])} | "
                          f"{_f(h['early']['median_width_sort_auc'])} / {_f(h['late']['median_width_sort_auc'])} | "
                          f"{_f(h['early']['median_aro_auc'])} / {_f(h['late']['median_aro_auc'])} | {blk[model]['candidate']} |")
+            if "beats_baseline_both_halves" in blk["hgb"]:
+                h = blk["hgb"]["halves"]
+                L += ["", f"Persistence baseline AUC on the same test rows (early / late): "
+                      f"{_f(h['early'].get('median_baseline_auc'))} / {_f(h['late'].get('median_baseline_auc'))}; "
+                      "beats it in both halves: " + ", ".join(
+                          f"{mm} {blk[mm]['beats_baseline_both_halves']}" for mm in ("tree", "hgb")) + "."]
             sp = blk["tree"]["recurring_top_splits"]
-            L += ["", "Recurring tree splits: " + (", ".join(f"`{c}` ×{n}" for c, n in sp) or "none"), ""]
+            tagged = [c for c, _ in sp if _tag(c, _tags(d)) != "indicator"]
+            L += ["", "Recurring tree splits: " + (", ".join(f"`{c}` ×{n}" for c, n in sp) or "none")
+                  + (f" (tagged, not comparable across time or pairs: {len(tagged)} of {len(sp)})" if tagged else ""), ""]
     L += ["## Regime screen", ""]
     if sr is None:
         L += ["Not run.", ""]

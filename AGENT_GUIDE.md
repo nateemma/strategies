@@ -74,6 +74,7 @@ Recent features, newest first (each `specs/NNN-*` or the named `research/` direc
 
 | # | topic | outcome |
 |---|---|---|
+| 037 | indicator screen: ~800 columns from 67 SimpleStrategies classes (+ raw8, 035 inputs, price/close ratios added after the lock) scored against the NNNC labels and 18 regime targets; signal pairs; per-fold tree/HGB models (`research/indicator_screen/report.md`) | SCREEN only, no backtest. label:buy candidate bars: best single column `atr_pct_roll` (AUC ≈ 0.59); HGB on all columns 0.62 early / 0.625 late vs ARO 0.61 / 0.60 vs width 0.55. Price-level and calendar columns dominate naive regime results (tagged, not counted). Regime models that beat the persistence baseline: 9 blocks, all at 48/288 bars; none for A2 |
 | 036 | realistic P&L: live NNNC dry-run recording depth, an execution-cost model, and a cost-budget stake cap (`research/live_pnl`) | recording since 2026-10-16; US2/US3 wait for the gate (≥ 4 weeks and ≥ 5 orders per pair) |
 | 035 | new-input screen: 17 non-OHLCV / market-state inputs, plus both32 (ind24 + raw8) (`research/new_inputs`) | no input beats the control at S2 |
 | — | control sizer: current ARO as a width-book stake sizer (`research/control_sizer`) | PASS (PROVISIONAL) |
