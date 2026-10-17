@@ -29,10 +29,7 @@ def _key(t):
 
 
 def _total_pp(rec) -> float:
-    for k in ("profit_total_pct", "total_profit_pct"):
-        if k in rec:
-            return float(rec[k])
-    return float(rec["metrics"]["profit_total_pct"])
+    return float(rec["wallet_profit_pct"])     # the wallet return, as the cs_aro forward read used
 
 
 def main() -> int:
