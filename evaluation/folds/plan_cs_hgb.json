@@ -225,5 +225,144 @@
   }
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
- "cs_note": "HGB sizer study (research/hgb_sizer): cs_aro with the agree score from the 037 label:buy HGB (user_data/data/hgb_sizer/HGB_fNN.parquet); same weights (model keys = cs_aro's), entries, stakes and threshold rule."
+ "cs_note": "HGB sizer study (research/hgb_sizer): cs_aro with the agree score from the 037 label:buy HGB (user_data/data/hgb_sizer/HGB_fNN.parquet); same weights (model keys = cs_aro's), entries, stakes and threshold rule.",
+ "thresholds": {
+  "f00": 0.6324,
+  "f01": 0.5831,
+  "f02": 0.6093,
+  "f03": 0.6038,
+  "f04": 0.5416,
+  "f05": 0.6539,
+  "f06": 0.656,
+  "f07": 0.6977,
+  "f08": 0.6447,
+  "f09": 0.6712,
+  "f10": 0.6833,
+  "f11": 0.6098,
+  "f12": 0.6286,
+  "f13": 0.5862,
+  "f14": 0.5663
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.5054,
+   "run_starts": 93,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "789f17d0dbcc4de0bdcea574e70b1e5e3e0080da7090cb8cca041b6a25a5131c"
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.4948,
+   "run_starts": 97,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "f3e60fab6da58c2f2e6b62216a4e0f6a6cf416769aff3eaa8b5c956346987ad6"
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 66,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "3d33f11664d1cf01c1f8ba64c26581e68d5a727f30330b2d20af0566d83c9c78"
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.4944,
+   "run_starts": 89,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "1b5e1605084f06e319bf8c7715438e0c701510e85dd8cb82b0fb0694ac6f00eb"
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.4979,
+   "run_starts": 237,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "51e775cad6b12dd2827570526a84082a40ea9c303c6142df82e977791c104ee1"
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.5029,
+   "run_starts": 173,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "b613847c25ff7e4b9673d74bafadeae796fef4e95aaf939ee0232f724f5f1d12"
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 254,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "32690bdf4f732b4bee8bae72f8453e8530f2d9961613deb957eb5042da7806f9"
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.5018,
+   "run_starts": 273,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "4d70eae207a766cd9f32f0edd2dddc2b10f7299bde83c8a4744d63dbde58dc6c"
+  },
+  "f08": {
+   "target_share": 0.5,
+   "achieved_share": 0.4993,
+   "run_starts": 695,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "51da2430a58ae3f6a56951bf76f4c5c93c01ead6bcb92c3c2d223fe02c1eb9b8"
+  },
+  "f09": {
+   "target_share": 0.5,
+   "achieved_share": 0.4994,
+   "run_starts": 795,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "c02556200ea4bec3778ea364e3ca3d8f55068de0dd648cf4186b3aea3a888337"
+  },
+  "f10": {
+   "target_share": 0.5,
+   "achieved_share": 0.4991,
+   "run_starts": 531,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "98daec1bdc9f4901d0061c2b718cb3d8a8ffca82127ecdd3c3cb1d59e91c3d65"
+  },
+  "f11": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 972,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "9adf510d65bd916246b767e5d26986f5573b6b1df3ba2030eecc6dfd69df2703"
+  },
+  "f12": {
+   "target_share": 0.5,
+   "achieved_share": 0.4991,
+   "run_starts": 565,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "7749b55b5bc54377cbcdcf129ea11292ad9f93b9020db0254b2170c504500552"
+  },
+  "f13": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 520,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "b1665b6843e6576dc3a804504091ae6e0ad2a66460b55a2d2effce7ca982c2ba"
+  },
+  "f14": {
+   "target_share": 0.5,
+   "achieved_share": 0.5004,
+   "run_starts": 1245,
+   "run_starts_without_hgb_p": 0,
+   "tail_leak_pairs": [],
+   "hgb_sha256": "55e47cbccdc9c0d3b0cefada6e2f705d793600d1fb183347c399035129840da7"
+  }
+ }
 }
