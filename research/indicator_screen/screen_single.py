@@ -309,7 +309,10 @@ def redundancy(panel: Panel, cols: list[str], pr: dict, early: list[W.Window]) -
 
 def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path = OUT,
         summary_path: Path | None = None, cols: list[str] | None = None, targets=None,
-        windows_fn=W.all_windows, pr: dict | None = None, red_path: Path | None = None) -> int:
+        windows_fn=W.all_windows, pr: dict | None = None, red_path: Path | None = None,
+        suffix: str = "", red_cols: list[str] | None = None) -> int:
+    """`suffix` (extras mode): score only `cols`, into single_<kind>_<half>_<suffix>.feather, keeping
+    every stored score; the instrument check (already passed) is not re-run."""
     pr = pr or prereg()
     wins = windows_fn(tuple(halves))
     lock = W.require_lock_for(wins)
@@ -320,7 +323,7 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
     summary_path = summary_path or HERE / f"single_{kind}.json"
     t0 = time.perf_counter()
 
-    if kind == "labels":
+    if kind == "labels" and not suffix:
         gate = pr["instrument_gate_halves"]
         first = targets.ids[:1] if set(halves) >= set(gate) else ()
         if first:                                          # instrument first: label:buy, all bars
@@ -337,7 +340,8 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
     if halves:                                         # [] = summarise the stored window scores only
         df = score_windows(panel, targets, wins, cols, pr)
         for h in halves:
-            df[df["half"] == h].reset_index(drop=True).to_feather(out_dir / f"single_{kind}_{h}.feather")
+            df[df["half"] == h].reset_index(drop=True).to_feather(
+                out_dir / f"single_{kind}_{h}{'_' + suffix if suffix else ''}.feather")
     full = pd.concat([pd.read_feather(f) for f in sorted(out_dir.glob(f"single_{kind}_*.feather"))],
                      ignore_index=True)
     all_wins = windows_fn(tuple(sorted(full["half"].unique())))   # baselines for EVERY scored window
@@ -355,7 +359,7 @@ def run(kind: str, halves: list[str], panel: Panel | None = None, out_dir: Path 
             res["instrument_confirm"] = instrument(full, pr, ("early", "late"))
     red_path = red_path or HERE / "redundancy.json"
     if kind == "labels" and "early" in halves:          # R8: early candidate bars only
-        own = [c for c in cols if not c.startswith("btc:")]
+        own = [c for c in (red_cols or cols) if not c.startswith("btc:")]
         red_path.write_text(json.dumps(redundancy(panel, own, pr, windows_fn(("early",))), indent=1))
     red = json.loads(red_path.read_text()) if red_path.exists() else None
     results = summarise(full, pr, baseline)
@@ -426,12 +430,19 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--targets", choices=("labels", "regime"), required=True)
     ap.add_argument("--halves", default="e0,early", help="comma list; 'none' = re-summarise stored scores")
+    ap.add_argument("--extras", action="store_true", help="score only the post-lock extra columns (extras.py)")
     a = ap.parse_args(argv)
     busy = H._busy()
     if busy:
         print(f"REFUSED: a training/backtest chain is running: {busy}")
         return 1
     try:
+        if a.extras:
+            allc = scored_columns(include_btc=(a.targets == "regime"))
+            xc = [c for c in allc if (c[4:] if c.startswith("btc:") else c).startswith(("raw8:", "ni:"))
+                  or c.endswith("/close")]
+            return run(a.targets, a.halves.split(","), cols=xc, suffix="x",
+                       red_cols=scored_columns())
         return run(a.targets, [] if a.halves == "none" else a.halves.split(","))
     except W.LateLockError as e:
         print(f"REFUSED: {e}")

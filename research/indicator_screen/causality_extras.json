@@ -1,0 +1,780 @@
+{
+ "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged",
+ "slices": {
+  "checked": [
+   "SOL@2021-10-01",
+   "SOL@2023-10-01",
+   "SOL@2025-07-01",
+   "LTC@2021-10-01",
+   "LTC@2023-10-01",
+   "LTC@2025-07-01",
+   "AAVE@2021-10-01",
+   "AAVE@2023-10-01",
+   "AAVE@2025-07-01"
+  ],
+  "skipped": []
+ },
+ "columns": {
+  "raw8:ret1": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:ret4": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:log_hc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:log_lc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:log_oc": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:range": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:logvol_z": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "raw8:vol_ratio": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "AO:aosc/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "APO:apo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_lowerband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_middleband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBBreakout:bb_upperband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_lowerband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_middleband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "BBRevert:bb_upperband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCBreakout:dc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCBreakout:dc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCRevert:dc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "DCRevert:dc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EMACross:ema_long/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EMACross:ema_short/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "EhlersBase:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_BB:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_mid/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DC:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_DYMI:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Fisher:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cloud_bottom/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:cloud_top/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:kijun_sen/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:senkou_span_a/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:senkou_span_b/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Ichimoku:tenkan_sen/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_Indicator:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_mid/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:kc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_KC:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_atr/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_cycle_buy/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_cycle_sell/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_trend_buy/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:lw_trend_sell/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_LW:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ROC:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ehlers_ind_DYMI:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:dpo/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:dsp/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_slope/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ema_slow/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:itrend/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "HTDCP:ss/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:kijun_sen/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:senkou_span_a/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:senkou_span_b/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "Ichimoku:tenkan_sen/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCBreakout:kc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCBreakout:kc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_lower/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_middle/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "KCRevert:kc_upper/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:atr/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:buy_level/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWBreakout:sell_level/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:atr/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:buy_level/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "LWRevert:sell_level/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macd/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macdhist/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDhist:macdsignal/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macd/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macdhist/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "MACDsignal:macdsignal/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:ema200/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "PSAR:psar/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SAR:sar/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SMACross:sma_long/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "SMACross:sma_short/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TEMACross:tema_long/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "TEMACross:tema_short/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "ZScore:rolling_mean/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "ZScore:rolling_std/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_lowerband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_middleband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:bb_upperband/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:close_safe/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ema200/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ema_fast/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macd/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdhist/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:macdsignal/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  },
+  "base:ss_close/close": {
+   "verdict": "PASS",
+   "first_mismatch": null,
+   "comparisons": 144
+  }
+ },
+ "fails": []
+}

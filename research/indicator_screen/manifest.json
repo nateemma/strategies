@@ -4435,6 +4435,1217 @@
    "source": "ZScore",
    "kind": "raw_sell",
    "causality": "PASS"
+  },
+  {
+   "name": "AO:aosc/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "APO:apo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBBreakout:bb_lowerband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBBreakout:bb_middleband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBBreakout:bb_upperband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBRevert:bb_lowerband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBRevert:bb_middleband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "BBRevert:bb_upperband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "DCBreakout:dc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "DCBreakout:dc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "DCRevert:dc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "DCRevert:dc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EMACross:ema_long/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EMACross:ema_short/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "EhlersBase:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_BB:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:dc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:dc_mid/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:dc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DC:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_DYMI:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Fisher:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cloud_bottom/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:cloud_top/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:kijun_sen/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:senkou_span_a/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:senkou_span_b/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Ichimoku:tenkan_sen/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_Indicator:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:kc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:kc_mid/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:kc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_KC:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:lw_atr/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:lw_cycle_buy/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:lw_cycle_sell/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:lw_trend_buy/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:lw_trend_sell/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_LW:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ROC:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ehlers_ind_DYMI:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:dpo/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:dsp/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:ema_slope/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:ema_slow/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:itrend/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "HTDCP:ss/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ichimoku:kijun_sen/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ichimoku:senkou_span_a/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ichimoku:senkou_span_b/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "Ichimoku:tenkan_sen/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "KCBreakout:kc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "KCBreakout:kc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "KCRevert:kc_lower/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "KCRevert:kc_middle/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "KCRevert:kc_upper/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWBreakout:atr/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWBreakout:buy_level/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWBreakout:sell_level/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWRevert:atr/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWRevert:buy_level/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "LWRevert:sell_level/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDhist:macd/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDhist:macdhist/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDhist:macdsignal/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDsignal:macd/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDsignal:macdhist/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "MACDsignal:macdsignal/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "PSAR:ema200/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "PSAR:psar/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "SAR:sar/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "SMACross:sma_long/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "SMACross:sma_short/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "TEMACross:tema_long/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "TEMACross:tema_short/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ZScore:rolling_mean/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ZScore:rolling_std/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:bb_lowerband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:bb_middleband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:bb_upperband/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:close_safe/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:ema200/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:ema_fast/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:macd/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:macdhist/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:macdsignal/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "base:ss_close/close",
+   "source": "ratio",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ba_ch",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ba_lv",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ms_ba",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ms_br",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ms_bv",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ms_rr",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_ms_vr",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_gus",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_szg",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_tbg",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_tbu",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_trg",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_of_tru",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_fl",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_fl_missing",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_oi",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_oi_missing",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_tk",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_tk_missing",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_tt",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "ni:ni_po_tt_missing",
+   "source": "ni",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:log_hc",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:log_lc",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:log_oc",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:logvol_z",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:range",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:ret1",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:ret4",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
+  },
+  {
+   "name": "raw8:vol_ratio",
+   "source": "raw8",
+   "kind": "value",
+   "causality": "PASS",
+   "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged"
   }
  ],
  "pairs": [
@@ -4529,6 +5740,14 @@
    "ZScore": 0.03,
    "aro": 2.1,
    "gbb": 1.26
+  }
+ },
+ "extras": {
+  "added": "2026-10-16, after the pre-registration lock (user request); rules unchanged",
+  "n": 173,
+  "causality": {
+   "raw8_and_ratios": "causality_extras.json",
+   "ni": "research/new_inputs/causality.json (035)"
   }
  }
 }
