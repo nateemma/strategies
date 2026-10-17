@@ -2,9 +2,11 @@
 label, with gbb as a comparator. Rules are the locked ones (preregistration.json); this file's own
 choices are in preregistration_tb.json, committed before any score.
 
+`--label tb` (default) or `--label tbatr` (outputs suffixed _tbatr; see LABELS):
 - `label:tb_buy`: 034's triple-barrier candidate on EVERY bar (Framework/TrainingSignals
   labels_triple_barrier, horizon 48, +2% before -5%, min_gain 0.02); no gbb condition. Last 48
-  bars NaN.
+  bars NaN. `label:tbatr_buy` (2026-10-17, preregistration_tbatr.json): symmetric +-4 x ATR barriers,
+  direction of resolution only (fixed % barriers made volatility look predictive).
 - Comparator signals, scored like raw signals (lift): `base:gbb_candidate` (the gbb trigger) and
   `cmp:width_book` (gbb AND bb_width >= the fold's width-book cut, NNNC_LS_CONTROL_SZ.WIDTH_CUTS;
   E0 rows use f00's cut, which was picked on data overlapping E0 -- comparator only).
@@ -34,8 +36,30 @@ from research.indicator_screen import windows as W
 from research.indicator_screen.panel import Panel, scored_columns
 from research.indicator_screen.screen_single import HERE, prereg
 
-TARGET = "label:tb_buy"
-TB = {"horizon": W.LABEL_HORIZON, "pt": 0.02, "sl": 0.05, "min_gain": 0.02}     # 034 candidates.TB
+LABELS = {
+    # 034 candidates.TB: fixed +2% before -5% (timeouts = 0) -- favours volatile bars
+    "tb": {"target": "label:tb_buy", "params": {"horizon": W.LABEL_HORIZON, "pt": 0.02, "sl": 0.05, "min_gain": 0.02}},
+    # volatility-neutral: symmetric +-4 x ATR(14)/close (no %-floor), 1 = up first, 0 = down first,
+    # NaN = timeout or same-bar tie; k = 4.0 puts the median barrier at 2% on f00's training span
+    "tbatr": {"target": "label:tbatr_buy", "params": {"horizon": W.LABEL_HORIZON, "pt": 1e-9, "sl": 1e-9,
+                                                      "atr_scale": 4.0}},
+}
+NAME = "tb"
+TARGET = LABELS[NAME]["target"]
+TB = LABELS[NAME]["params"]
+
+
+def use(name: str) -> None:
+    """Point the module at one label: its target, params and output names."""
+    global NAME, TARGET, TB
+    NAME, TARGET, TB = name, LABELS[name]["target"], LABELS[name]["params"]
+
+
+def _out(stem: str, ext: str = "json") -> Path:
+    """tb keeps its committed names (single_tb.json, resid_aro.json, report_tb.md)."""
+    if stem == "resid_aro":
+        return HERE / (f"resid_aro.{ext}" if NAME == "tb" else f"resid_aro_{NAME}.{ext}")
+    return HERE / f"{stem}_{NAME}.{ext}"
 COMPARATORS = ("base:gbb_candidate", "cmp:width_book")
 PREREG_TB = HERE / "preregistration_tb.json"
 ARO_SIGNALS = HERE.parent / "nnnc_framework" / "signals"
@@ -66,9 +90,16 @@ def width_book(frame: pd.DataFrame, cuts: dict[str, float]) -> np.ndarray:
 
 
 def tb_label(ohlcv: pd.DataFrame) -> np.ndarray:
-    from Framework.TrainingSignals import labels_triple_barrier
+    from Framework.TrainingSignals import labels_triple_barrier, labels_triple_barrier_sell
 
-    y = labels_triple_barrier(ohlcv[["date", *H.OHLCV]].reset_index(drop=True), **TB).to_numpy(float).copy()
+    d = ohlcv[["date", *H.OHLCV]].reset_index(drop=True)
+    if NAME == "tb":
+        y = labels_triple_barrier(d, **TB).to_numpy(float).copy()
+    else:
+        kw = {**TB, "min_gain": None}
+        up = labels_triple_barrier(d, **kw).to_numpy(float)
+        dn = labels_triple_barrier_sell(d, **{**TB, "min_loss": None}).to_numpy(float)
+        y = np.where(up > 0.5, 1.0, np.where(dn > 0.5, 0.0, np.nan))
     y[-W.LABEL_HORIZON:] = np.nan
     return y
 
@@ -86,18 +117,18 @@ def add_labels(pairs: list[str]) -> None:
         frame.to_feather(H.cache_path(pair))
         sc = json.loads(H.sidecar_path(pair).read_text())
         sc["columns"] = [c for c in frame.columns if c not in ("date", *H.OHLCV)]
-        sc["tb"] = {"params": TB, "buy_share": float(np.nanmean(y)), "added": "2026-10-17 (post-lock)"}
+        sc[NAME] = {"params": TB, "buy_share": float(np.nanmean(y)), "nan_share": float(np.mean(np.isnan(y))),
+                    "added": "2026-10-17 (post-lock)"}
         H.sidecar_path(pair).write_text(json.dumps(sc, indent=1))
-        print(f"{pair}: tb_buy {np.nanmean(y):.4f}", flush=True)
+        print(f"{pair}: {TARGET} {np.nanmean(y):.4f}, NaN {np.mean(np.isnan(y)):.3f}", flush=True)
 
 
 class TBTargets:
-    kind = "tb"
-    ids = (TARGET,)
     market_wide = ()
 
     def __init__(self, panel: Panel):
         self.p = panel
+        self.kind, self.ids = NAME, (TARGET,)
         self._y = panel.columns([TARGET])[TARGET].astype(np.float64)
 
     def y(self, target: str, window: W.Window) -> np.ndarray:
@@ -121,8 +152,8 @@ def single(halves=("e0", "early", "late")) -> int:
     from research.indicator_screen import screen_single as SS
 
     panel = Panel()
-    return SS.run("tb", list(halves), panel=panel, targets=TBTargets(panel), cols=columns(),
-                  summary_path=HERE / "single_tb.json", red_path=HERE / "redundancy.json")
+    return SS.run(NAME, list(halves), panel=panel, targets=TBTargets(panel), cols=columns(),
+                  summary_path=_out("single"), red_path=HERE / "redundancy.json")
 
 
 def comparator_lifts(panel: Panel, targets, pr) -> dict:
@@ -214,7 +245,7 @@ def resid(cols: list[str] | None = None) -> dict:
                                           == np.sign(_med(h["late"]["resid_auc"]) - 0.5))})
     for (wid, pop, t), idx in ctx.items():
         out["aro_auc"].setdefault(f"{t} [{pop}]", {})[wid] = S.auc(pa[idx], ys[t][idx])
-    (HERE / "resid_aro.json").write_text(json.dumps(out, indent=1))
+    _out("resid_aro").write_text(json.dumps(out, indent=1))
     return out
 
 
@@ -231,15 +262,19 @@ def report() -> str:
     from research.indicator_screen import tags as TG
 
     tags = TG.load()
-    st = json.loads((HERE / "single_tb.json").read_text())["results"]
-    pp = json.loads((HERE / "pairs_label_tb_buy.json").read_text())
-    rr = json.loads((HERE / "resid_aro.json").read_text()) if (HERE / "resid_aro.json").exists() else None
+    from research.indicator_screen.screen_pairs import out_path
+
+    st = json.loads(_out("single").read_text())["results"]
+    pp = json.loads(out_path(TARGET).read_text())
+    rr = json.loads(_out("resid_aro").read_text()) if _out("resid_aro").exists() else None
     f = lambda v, n=3: "–" if v is None else f"{v:.{n}f}"
     L = ["# 037 addendum: indicators vs a gbb-neutral triple-barrier label", "",
          "**SCREEN (descriptive), added after the pre-registration lock (user request, 2026-10-17); "
          "rules are the locked ones, this addendum's choices are in `preregistration_tb.json`.** "
          "Nothing here is a P&L claim.", "",
-         f"Label `{TARGET}`: triple barrier on every bar, {TB}. Comparators: the gbb trigger "
+         f"Label `{TARGET}`: triple barrier on every bar, {TB}"
+         + (" (symmetric ATR barriers; timeouts and ties are NaN, so the label is the direction of "
+            "resolution)" if NAME != "tb" else "") + ". Comparators: the gbb trigger "
          "(`base:gbb_candidate`) and the width book's entry rule (`cmp:width_book`).", ""]
     cl = pp["comparator_lifts"]
     L += ["## Comparator lifts (median per half)", "", "| population | comparator | E0 | early | late |", "|---|---|---|---|---|"]
@@ -289,7 +324,7 @@ def report() -> str:
                     L.append(f"| `{r['column']}` | {f(r['early_resid_auc'])} | {f(r['late_resid_auc'])} | "
                              f"{f(r['early_auc'])} | {f(r['late_auc'])} |")
     text = "\n".join(L) + "\n"
-    (HERE / "report_tb.md").write_text(text)
+    _out("report", "md").write_text(text)
     return text
 
 
@@ -298,7 +333,9 @@ def main(argv=None) -> int:
     g = ap.add_mutually_exclusive_group(required=True)
     for k in ("labels", "single", "pairs", "resid", "report"):
         g.add_argument(f"--{k}", action="store_true")
+    ap.add_argument("--label", choices=sorted(LABELS), default="tb")
     a = ap.parse_args(argv)
+    use(a.label)
     if not a.report:
         busy = H._busy()
         if busy:

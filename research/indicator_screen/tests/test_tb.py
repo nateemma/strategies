@@ -38,3 +38,21 @@ def test_comparators_are_scored_as_signals():
     _score_group(recs, "cmp:width_book", True, x, ["label:tb_buy"], [y], w, "all",
                  {"width_auc": {"label:tb_buy": 0.5}}, None, False, "tb", 20, 0.95)
     assert recs[0]["lift"] == S.lift(x, y, 20, 0.95)[0] > 1
+
+
+def test_tbatr_is_direction_of_resolution_and_timeouts_are_nan():
+    n = 300
+    rng = np.random.default_rng(0)
+    c = 100 * np.exp(np.cumsum(rng.normal(0, 0.001, n)))      # quiet walk: ATR ~ 0.1-0.2%
+    c[150:] *= 1.05                                             # a +5% jump: up first for bars just before
+    c[250:] *= 0.95                                             # a -5% drop: down first just before
+    df = pd.DataFrame({"date": pd.date_range("2023-01-01", periods=n, freq="15min", tz="UTC"),
+                       "open": c, "high": c * 1.001, "low": c * 0.999, "close": c, "volume": 1.0})
+    tb.use("tbatr")
+    try:
+        y = tb.tb_label(df)
+    finally:
+        tb.use("tb")
+    assert y[149] == 1 and y[249] == 0
+    assert np.isnan(y[-W.LABEL_HORIZON:]).all()
+    assert set(np.unique(y[np.isfinite(y)])) <= {0.0, 1.0}
