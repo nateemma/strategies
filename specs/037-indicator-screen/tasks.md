@@ -217,15 +217,15 @@ with the pair's own and BTC's indicator values and persistence baselines.
   - report `baseline_auc` and `beats_baseline_both_halves`;
   - report the overlap with the persistence baseline (FR-021, spec US4 scenario 3);
   - output `research/indicator_screen/single_regime.json`.
-- [ ] T030 [US4] RUN `screen_single --targets regime --halves e0,early` (A2 has no E0). Then run `screen_pairs --select` for each regime target id at each horizon, early + E0 only.
+- [X] T030 [US4] RUN `screen_single --targets regime --halves e0,early` (A2 has no E0). Then run `screen_pairs --select` for each regime target id at each horizon, early + E0 only.
 
 ## Phase 7: Pre-registration lock and late windows
 
-- [ ] T031 Review `research/indicator_screen/preregistration.json` against the early results:
+- [X] T031 Review `research/indicator_screen/preregistration.json` against the early results:
   - adjust only the thresholds marked calibratable (`min_rows`, `min_fires`), recording the reason in a `calibration_note` field;
   - COMMIT it — this commit is the lock. Record its sha in the file's commit message and in `report.md`.
-- [ ] T032 RUN the late single screens: `screen_single --targets labels --halves late` and `screen_single --targets regime --halves late`. The labels run also writes the 15-window instrument confirmation (SC-002).
-- [ ] T033 RUN `screen_pairs --confirm` for `label:buy`, `label:sell` and every regime target with survivors.
+- [X] T032 RUN the late single screens: `screen_single --targets labels --halves late` and `screen_single --targets regime --halves late`. The labels run also writes the 15-window instrument confirmation (SC-002).
+- [X] T033 RUN `screen_pairs --confirm` for `label:buy`, `label:sell` and every regime target with survivors.
 - [ ] T034 First time one fold (`label:buy` f07, and one regime target on all bars at f14, the largest training span); if 15 folds × all targets would exceed about 6 h, report the per-target estimate to the user before continuing (Principle VII). Then RUN `screen_models` one fold per process (f00–f14), then `--merge`, for: `label:buy`, `label:sell`, and each regime target at each horizon. Run them sequentially in one chain, confirming both bots are alive between targets.
 
 ## Phase 8: Polish & cross-cutting

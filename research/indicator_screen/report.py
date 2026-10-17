@@ -50,22 +50,36 @@ def _top_table(results, target, pop, key="median_strength", n=TOP):
     return out
 
 
+def grouped(cols, groups: dict) -> list[str]:
+    """One entry per redundancy group (|rho| >= 0.8): 'representative (+k in group)'."""
+    by = {}
+    for c in sorted(cols):
+        g = groups.get(c[4:] if c.startswith("btc:") else c)
+        by.setdefault((g, c.startswith("btc:")) if g is not None else c, []).append(c)
+    out = []
+    for members in by.values():
+        rep = min(members, key=lambda c: (c.count(":") > 1 and not c.startswith("btc:"), len(c), c))
+        out.append(rep + (f" (+{len(members) - 1} in group)" if len(members) > 1 else ""))
+    return sorted(out)
+
+
 def sc004(single_labels, single_regime, pairs, models) -> dict:
     """The SC-004 answer lists. A flag counts only with E0 agreement (Principle II)."""
     res = (single_labels or {}).get("results", [])
+    groups = {r["column"]: r.get("redundancy_group") for r in res}
     a = sorted({r["column"] for r in res if r["population"] == "candidate"
                 and r["candidate_flags"].get("beats_width_both_halves") and r["candidate_flags"].get("e0_agrees")})
     b = sorted({r["column"] for r in res if r["population"] == "candidate"
                 and r["candidate_flags"].get("residual_both_halves") and r["candidate_flags"].get("e0_agrees")})
-    c, c_partial = [], []
+    c, c_partial = {}, {}
     for t, p in sorted(pairs.items()):
         for pop, blk in sorted(p["populations"].items()):
             for s in blk["survivors"]:
-                tag = f"{s['a']} AND {s['b']} [{t}, {pop}]"
+                key, tag = f"{t} [{pop}]", f"{s['a']} AND {s['b']}"
                 if s.get("confirmed") == "yes":
-                    c.append(tag)
+                    c.setdefault(key, []).append(tag)
                 elif s.get("confirmed") == "early+late only":
-                    c_partial.append(tag)
+                    c_partial.setdefault(key, []).append(tag)
     d = []
     for t, m in sorted(models.items()):
         for pop, blk in sorted(m["populations"].items()):
@@ -85,7 +99,9 @@ def sc004(single_labels, single_regime, pairs, models) -> dict:
             for model in ("tree", "hgb"):
                 if blk[model]["candidate"]:
                     e.setdefault(f"{t} [{pop}]", []).append(f"{model} model (distant era not tested)")
-    return {"a": a, "b": b, "c": c, "c_partial": c_partial, "d": d, "e": {k: sorted(v) for k, v in sorted(e.items())}}
+    return {"a": grouped(a, groups), "b": grouped(b, groups), "c": c, "c_partial": c_partial, "d": d,
+            "e": {k: grouped(v, groups) for k, v in sorted(e.items())},
+            "n": {"a": len(a), "b": len(b)}}
 
 
 def build(d: Path = HERE) -> str:
@@ -192,10 +208,14 @@ def build(d: Path = HERE) -> str:
             L += _top_table(sr["results"], t, "all", n=8) + [""]
     ans = sc004(sl, sr, pairs, models)
     L += ["## SC-004 answers", "",
-          "**(a) Columns that beat the width sort on candidate bars in both halves (E0 agrees):** " + _names(ans["a"]), "",
-          "**(b) Columns with residual strength beyond bb_width + guard_metric in both halves (E0 agrees):** " + _names(ans["b"]), "",
-          "**(c) Signal pairs that survive late confirmation (E0 agrees):** " + _names(ans["c"]), "",
-          "  - early + late only (E0 fails or not computable): " + _names(ans["c_partial"]), "",
+          f"**(a) Columns that beat the width sort on candidate bars in both halves (E0 agrees):** "
+          f"{ans['n']['a']} columns in {len(ans['a'])} redundancy groups: " + _names(ans["a"]), "",
+          f"**(b) Columns with residual strength beyond bb_width + guard_metric in both halves (E0 agrees):** "
+          f"{ans['n']['b']} columns in {len(ans['b'])} redundancy groups: " + _names(ans["b"]), "",
+          "**(c) Signal pairs that survive late confirmation (E0 agrees), per target:**"]
+    L += [f"  - {k}: {_names(v)}" for k, v in ans["c"].items()] or ["  none"]
+    L += ["", "  Early + late only (E0 fails or not computable): "
+          + ("; ".join(f"{k}: {len(v)}" for k, v in ans["c_partial"].items()) or "none"), "",
           "**(d) Multivariate models that beat the restricted model in both halves:** " + _names(ans["d"]), "",
           "**(e) Regime columns/models that beat the persistence baseline in both halves:**"]
     if ans["e"]:
