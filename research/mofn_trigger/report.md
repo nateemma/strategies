@@ -17,3 +17,12 @@
   label (tbatr), and on the fixed-% label the ARM_D_FAMILY exits pay (tb) it was "no" (lift 1.16 /
   1.17 vs width 1.62 / 1.62). The pre-registration flagged this; the result matches it.
 - Beside the width book, 89 trades held a pair the width book also held.
+
+## Follow-up: the same vote with C2, the ATR take-profit (`preregistration_c2.json`, `c2/`)
+
+| arm | trades | alone pp (gbb 11.04) | vs gbb early / late | beside width book: total / early / late | paired (whole) |
+|---|---|---|---|---|---|
+| `st_mofn48_c2` | 945 | -13.69 | -30.72 / +5.98 → FAIL | 37.73 / 35.60 / 2.13 → FAIL | WORSENED (p 0.0238) |
+
+- Exit effect on the same entries (secondary, vs `st_mofn48`): +1.71 early / −0.12 late, UNCHANGED.
+  The ATR exit does not explain the FAIL: the entries themselves lose in the early half.
