@@ -1,0 +1,15 @@
+{
+ "title": "037 addendum 3: M-of-N vote of raw buy signals vs the width book",
+ "date": "2026-10-17",
+ "status": "ADDED AFTER the 037 lock at the user's request, after the tb and tbatr screens were read; committed before any M-of-N score",
+ "labels": {"primary": "label:tbatr_buy (volatility-neutral direction)", "secondary": "label:tb_buy (fixed +2%/-5%: what the current fixed-% exits pay)"},
+ "pool": "every raw_buy signal in a tbatr pair SURVIVOR (pairs_label_tbatr_buy.json, either population; selected on early + E0, confirmation status NOT used): 33 signals",
+ "members": "early windows, all bars, primary label: phi correlation of fires, average-linkage clusters cut at phi >= 0.3; one member per cluster = highest early median single lift; the 8 clusters whose member lifts most (N <= 8)",
+ "score": "count of members firing; signal = count >= M",
+ "choice_of_M": "early windows, primary label, per population: M_best = highest early median lift (computable in >= 6 early windows); M_match = early median fire rate closest to the width book's",
+ "confirm": "per M in {M_best, M_match}, per population, on both labels: yes = late median lift > width book's late median AND > the best single member's late median, AND E0 lift >= width book's E0 lift and >= 1; early+late only = E0 fails; else no",
+ "benchmark": "per fold: logistic regression on the N member signals (training rows to 48 bars before the fold start, hourly, data_ok) vs the count score, test-window AUC on the primary label; descriptive",
+ "rules": "037 locked min_fires 20, max_fire_rate 0.95, min_windows 6",
+ "seen_before": ["tb and tbatr single and pair screens (all halves)", "HGB sizer result"],
+ "label_note": "SCREEN (descriptive); any survivor needs a backtest as a trigger (alone and with the width book)"
+}
