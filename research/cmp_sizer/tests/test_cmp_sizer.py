@@ -22,3 +22,14 @@ def test_composite_is_signed_mean_of_z_on_norm_rows():
 def test_class_points_at_cmp_tables():
     import NNNC_CS_CMP as M
     assert M.NNNC_CS_CMP.HGB_SIGNALS.name == "cmp_sizer"
+
+
+def test_pick_passes_the_cmp_plan(monkeypatch):
+    from research.cmp_sizer import pick as P
+
+    seen = {}
+    monkeypatch.setattr(P.HP, "pick", lambda fid, plan: (seen.setdefault("pick", plan), (0.1, {"tail_leak_pairs": []}))[1])
+    monkeypatch.setattr(P.HP, "verify", lambda fid, plan: seen.setdefault("verify", plan) is not None)
+    monkeypatch.setattr(P.HP.CP, "store", lambda plan, fid, t, extra: seen.setdefault("store", plan) and t)
+    assert P.main(["--fold", "f00"]) == 0 and P.main(["--fold", "f00", "--verify"]) == 0
+    assert {p.name for p in seen.values()} == {"plan_cs_cmp.json"}
