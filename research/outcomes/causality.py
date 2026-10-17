@@ -43,6 +43,9 @@ CODE_FILES = (
     "research/outcomes/audit_triggers.py",
     "research/outcomes/triggers.py",
     "research/outcomes/causality.py",
+    # mofn_4of8 runs the 037 harvest's own signal path
+    "research/indicator_screen/harvest.py",
+    "research/indicator_screen/overrides.py",
 )
 
 #: Whitelist pairs whose 15m history is CONTIGUOUS through all three eras. XRP is not: it was

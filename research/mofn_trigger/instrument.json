@@ -1,0 +1,379 @@
+{
+ "total_mismatch": 0,
+ "pairs": {
+  "ZEC/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 15593
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 8086
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 12692
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2571
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 1147
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1326
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 10314
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 28281
+   }
+  },
+  "XRP/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 1218
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 6271
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 96839
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 1004
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 228
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 654
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 8361
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 108952
+   }
+  },
+  "SOL/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 2262
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 11006
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 15988
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 4167
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 350
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 487
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 14575
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 38167
+   }
+  },
+  "LINK/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 4076
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 8831
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 12324
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2276
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 463
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1552
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 11996
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 30822
+   }
+  },
+  "NEAR/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 11763
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 8950
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 10064
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 3079
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 870
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1765
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 10506
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 27106
+   }
+  },
+  "AAVE/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 16971
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 10093
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 13788
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2936
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 1228
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 2210
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 11458
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 29570
+   }
+  },
+  "AVAX/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 4533
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 9562
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 12871
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2881
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 444
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1073
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 12262
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 31168
+   }
+  },
+  "LTC/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 3529
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 10615
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 14780
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2689
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 443
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1481
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 15160
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 39517
+   }
+  },
+  "BCH/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 11174
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 11028
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 11703
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2505
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 912
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 2077
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 13510
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 35613
+   }
+  },
+  "DOT/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 7176
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 9308
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 10996
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 2048
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 679
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 1727
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 11893
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 29568
+   }
+  },
+  "BTC/USDT": {
+   "CMO": {
+    "mismatch": 0,
+    "fires": 2312
+   },
+   "ZScore": {
+    "mismatch": 0,
+    "fires": 10925
+   },
+   "LWRevert": {
+    "mismatch": 0,
+    "fires": 13196
+   },
+   "ROC": {
+    "mismatch": 0,
+    "fires": 1119
+   },
+   "Ehlers_Indicator:cycle": {
+    "mismatch": 0,
+    "fires": 344
+   },
+   "CMF": {
+    "mismatch": 0,
+    "fires": 456
+   },
+   "WTO": {
+    "mismatch": 0,
+    "fires": 14325
+   },
+   "EMACross": {
+    "mismatch": 0,
+    "fires": 39510
+   }
+  }
+ }
+}

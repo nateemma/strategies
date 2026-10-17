@@ -1,0 +1,86 @@
+{
+ "title": "037 M-of-N vote (4 of 8 raw buys) as a SimpleTrigger entry trigger: alone (vs gbb) and as a second book beside the width book (shared wallet)",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26); the vote was chosen and confirmed with the late half in view (037 tradeable-bars M-of-N screen), so the late half is NOT blind. Nothing is adopted.",
+ "arms": {
+  "st_mofn48": {
+   "trigger": "mofn_4of8",
+   "class": "SimpleTrigger_MofN4of8"
+  }
+ },
+ "why_these": {
+  "st_mofn48": "the only M-of-N confirmed in the 037 tradeable-bars re-run (indicator_screen/vol/mofn.json): label:tbatr_buy, all bars, M=4 of N=8, lift 1.18 / 1.13 / 1.19 (early/late/E0) vs width book 1.09 / 1.11 / 0.96; fires on ~0.4% of bars. On label:tb_buy (what fixed-% exits pay) it was NOT confirmed (1.16 / 1.17 vs width 1.62 / 1.62)."
+ },
+ "signals": "members CMO, ZScore, LWRevert, ROC, Ehlers_Indicator:cycle, CMF, WTO, EMACross; each the class's raw buy computed by the 037 harvest's OWN path (populate_path + overrides.raw_signals, atr_ok forced True, Parameter defaults); 0 mismatches vs the 037 harvest on all 11 pairs, full history, warm-up 200 bars excluded (research/mofn_trigger/instrument.json), checked before this file was committed",
+ "setup": "SimpleTriggerStrategy, PRESET ARM_D_FAMILY, family reversion (most members are oversold/turn legs) -> the reversion exits of the gbb comparator; config_wf; 15 folds f00-f14",
+ "comparators": {
+  "alone": "st_fam_gbb (gbb on ARM_D_FAMILY, same exits)",
+  "book": "w_aro (the width book, NNNC)"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": "trigger causality PASS (research/outcomes/causality.py --write, all triggers re-run); no zero-trade half; arm trades >= 100 over 15 folds, else INCONCLUSIVE",
+ "alone": "judge_one(arm, st_fam_gbb) (early gain > 0, late gain > 0, paired and risk not WORSENED; rule maps below)",
+ "beside_width_book": "evaluation/books.py combine + shared_wallet (one wallet of stake x max_open_trades; refused and shrunk entries counted) of [w_aro, arm] vs w_aro alone: PASS = combined early AND late totals above w_aro's, AND the whole-period paired verdict (halves.split, split_after f14) not WORSENED; same-pair overlaps between the books reported (they need two sub-accounts)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "decision": "both verdicts reported; 'candidate trigger' if either PASSes. One arm is tested; report p values",
+ "note": "The screen favoured this vote only on the volatility-neutral label; the backtest pays fixed-% reversion exits (ARM_D_FAMILY), where the screen said 'no'. A FAIL here may be the exits, not the entry -- reported, not used to re-pick anything.",
+ "seen_before": [
+  "037 tbatr / tb M-of-N screens on tradeable bars (all halves)",
+  "w_aro and st_fam_gbb backtests",
+  "pair-trigger backtests (KST∧Z, CCI∧COPP)",
+  "no backtest of any M-of-N trigger"
+ ]
+}

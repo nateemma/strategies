@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-17T16:02:17+00:00",
-  "code_sha": "5da3a8d1f27cc501",
+  "generated": "2026-10-17T18:05:27+00:00",
+  "code_sha": "50fe8dd44c92263c",
   "pairs": [
     "SOL",
     "LTC",
@@ -163,6 +163,13 @@
     },
     "geometry": {
       "trigger": "geometry",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "mofn_4of8": {
+      "trigger": "mofn_4of8",
       "verdict": "PASS",
       "first_mismatch": null,
       "comparisons": 144,

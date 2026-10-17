@@ -75,6 +75,8 @@ _FAMILY = {
     "pair_cmo_dcbreakout": ("reversion", "CMO(9) < -60 (oversold) AND a close crossing to the 24-bar high"),
     "pair_kst_zscore": ("reversion", "KST(10,15,20,30) < -30 AND z-score(20) < -2: two oversold legs"),
     "pair_cci_copp": ("reversion", "CCI(14) < -200 AND Coppock < -5: two oversold legs"),
+    "mofn_4of8": ("reversion", "4 of 8 raw buys, mostly oversold/turn legs (CMO, ZScore, LWRevert, ROC, "
+                  "Ehlers cycle, CMF, WTO, EMACross pullback)"),
 }
 
 
@@ -536,3 +538,57 @@ def register_pair_triggers(*, replace: bool = False) -> list[Trigger]:
                  replace=replace)
         for a, b in PAIR_TRIGGERS
     ]
+
+
+# -------------------------------------------------------------------------------------------------
+# 037 M-of-N vote (research/mofn_trigger/, 2026-10-17): the 4-of-8 vote confirmed on tradeable bars
+# (indicator_screen/vol/mofn.json, label:tbatr_buy, all bars). Each member is its class's raw buy
+# computed by the 037 harvest's OWN path (populate_path base frame, atr_ok forced True,
+# overrides.raw_signals at the Parameter defaults) -- no formula is re-implemented, so the Ehlers
+# cycle hook is exactly what was screened.
+
+MOFN_MEMBERS = (("CMO", ""), ("ZScore", ""), ("LWRevert", ""), ("ROC", ""),
+                ("Ehlers_Indicator", "cycle"), ("CMF", ""), ("WTO", ""), ("EMACross", ""))
+MOFN_M = 4
+_MOFN_STRATS: dict = {}
+
+
+def _mofn_strats() -> dict:
+    if not _MOFN_STRATS:
+        from research.indicator_screen import discover as D
+        from research.indicator_screen import harvest as H
+
+        H._quiet()
+        cfg = H.base_config()
+        _MOFN_STRATS["base"] = H.load_strategy(cfg, D.discover()["classes"][0]["class"])
+        _MOFN_STRATS["members"] = [H.load_strategy(cfg, c) for c, _ in MOFN_MEMBERS]
+    return _MOFN_STRATS
+
+
+def mofn_votes(df: pd.DataFrame) -> pd.DataFrame:
+    """One 0/1 column per member (raw buy), as the 037 harvest built it."""
+    from research.indicator_screen import harvest as H
+    from research.indicator_screen import overrides as O
+
+    s = _mofn_strats()
+    base = H.populate_path(s["base"], df[["date", *H.OHLCV]].reset_index(drop=True), "")
+    base["atr_ok"] = True
+    out = {}
+    for (cls, var), st in zip(MOFN_MEMBERS, s["members"]):
+        sig = O.raw_signals(st, base.copy())
+        out[f"{cls}:{var}" if var else cls] = sig["buy:" + var if var else "buy"]
+    return pd.DataFrame(out, index=df.index)
+
+
+def _mofn(df: pd.DataFrame) -> pd.Series:
+    return mofn_votes(df).sum(axis=1) >= MOFN_M
+
+
+def register_mofn_trigger(*, replace: bool = False) -> list[Trigger]:
+    """The 037 4-of-8 vote (research/mofn_trigger/preregistration.json)."""
+    return [register(Trigger(name="mofn_4of8", evaluate=_mofn,
+                             required_columns=("date", "open", "high", "low", "close", "volume"),
+                             source="037 M-of-N vote (research/indicator_screen/vol/mofn.json)",
+                             description="at least 4 of 8 SimpleStrategies raw buys (Parameter defaults)",
+                             **_fam("mofn_4of8")),
+                    replace=replace)]

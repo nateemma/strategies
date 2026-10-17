@@ -214,6 +214,9 @@ def ensure_builtins() -> None:
     if not {"pair_cmo_macdhist", "pair_kst_zscore"} <= set(_REGISTRY):
         from research.outcomes.audit_triggers import register_pair_triggers
         register_pair_triggers(replace=True)
+    if "mofn_4of8" not in _REGISTRY:
+        from research.outcomes.audit_triggers import register_mofn_trigger
+        register_mofn_trigger(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:
