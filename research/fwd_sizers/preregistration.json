@@ -1,0 +1,29 @@
+{
+ "title": "Composite and mixed sizers forward confirmation: fold f14 frozen, evaluated on 2026-09-07..2026-10-12",
+ "date": "2026-10-17",
+ "parents": [
+  "research/cmp_sizer/preregistration.json (cs_cmp PASS PROVISIONAL vs width/control)",
+  "research/mix_sizer/preregistration.json (cs_mix PASS PROVISIONAL vs width/control)",
+  "research/control_sizer/preregistration_forward.json (same window, same rule)"
+ ],
+ "why": "Late halves were not blind for either sizer. These 35 days are after data_end 2026-09-07: no weight, width cut, threshold, composite member choice, normalisation or knot has seen them. cs_aro's result on this window (INCONSISTENT, -0.12 vs width +0.30) was read before this file; cs_cmp / cs_mix forward results were not computed.",
+ "arms": {
+  "cs_cmp": "plan_fwd_cs_cmp.json -- NNNC_CS_CMP_f15: f14 weights (entries only), f14 width cut, cs_cmp f14 threshold 0.5851, composite on f14's normalisation (mean/sd of tradeable bars before f14's validation tail)",
+  "cs_mix": "plan_fwd_cs_mix.json -- NNNC_CS_MIX_f15: as cs_cmp plus f14's percentile knots (MIX_f14.json copied as MIX_f15.json), cs_mix f14 threshold 0.4867"
+ },
+ "comparators": {
+  "w_aro": "fwd_w_aro (fwd1, already run)",
+  "cs_aro": "fwd_cs_aro (fwd1, already run)",
+  "control": "fwd_wf_aro_g24 (fwd1, already run)"
+ },
+ "composite_columns": "the 7 member columns computed by the 037 harvest's own code (harvest_frame on the member classes + extras ratio_frame / raw8_frame) on candles through 2026-10-12; instrument: equal to the 037 cache on every overlapping bar before 2026-09-07 (NaN-equal), else the forward run is INCONCLUSIVE",
+ "identity": "each arm's trades must equal fwd_w_aro's on (pair, open_date, close_date) (the sizer changes stakes only); else INCONCLUSIVE",
+ "primary": "per arm: arm minus w_aro total pp on the forward window",
+ "read": {
+  "CONSISTENT": "arm - w_aro > 0 on identical trades",
+  "INCONSISTENT": "arm - w_aro <= 0",
+  "power": "~49 trades (cs_aro's window); a blind sign check, not a test. Paired per-trade difference with a bootstrap 90% interval reported as context",
+  "secondary": "arm minus cs_aro on the same trades; agree share on the forward trades (expected ~0.5)"
+ },
+ "no_adoption": "nothing is adopted or promoted from this; promotion is the user's decision"
+}

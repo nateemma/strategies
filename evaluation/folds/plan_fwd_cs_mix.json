@@ -1,0 +1,37 @@
+{
+  "run_id": "fwd_cs_mix",
+  "family": "NNNC",
+  "base_strategy": "NNNC_CS_MIX",
+  "anchored": true,
+  "min_train_days": 730,
+  "test_days": 90,
+  "data_start": "2021-01-01",
+  "data_end": "2026-10-12",
+  "config": "user_data/strategies/config/config_wf.json",
+  "params_snapshot": "user_data/strategies/evaluation/folds/params_20261013-g24_NNNC_A_Raw_Open.json",
+  "params_sha": "10d203e2ad2ee9da",
+  "validated": true,
+  "validation_errors": [],
+  "folds": [
+    {
+      "fold_id": "f15",
+      "train_start": "2021-01-01",
+      "train_end": "2026-06-13",
+      "test_start": "2026-09-07",
+      "test_end": "2026-10-12",
+      "train_timerange": "20210101-20260614",
+      "test_timerange": "20260907-20261012",
+      "test_days": 35,
+      "strategy_class": "NNNC_CS_MIX_f15",
+      "model_dir": "user_data/strategies/saved_data/NNNC_CS_MIX_f15",
+      "arm_tag": "fwd_cs_mix_f15",
+      "status": "planned"
+    }
+  ],
+  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+  "cs_note": "Mixed sizer study (research/mix_sizer): cs_aro with the agree score = mean of the ARO p_buy and 037 composite percentiles (validation-tail run-start knots, user_data/data/mix_sizer); same weights (model keys = cs_aro's), entries, stakes and threshold rule.",
+  "thresholds": {
+    "f15": 0.4867
+  },
+  "fwd_note": "Forward confirmation (2026-10-17, research/fwd_sizers): fold f14 frozen -- weights (train 20210101-20260614), width cut, cs_mix threshold, composite normalisation and percentile knots -- on 20260907-20261012. Fold id 'f15' (not 'fwd1') because the sizer classes read the fold id as _fNN from the class name; it is the SAME window and frozen f14 state as fwd_cs_aro's fwd1."
+}
