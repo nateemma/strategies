@@ -1,0 +1,281 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); the late half is not blind for cs_aro (its result was read), but no retrained weights or their scores have been seen. Nothing is adopted or promoted.",
+ "decision": {
+  "decision": "PASS (PROVISIONAL)",
+  "reason": "both judge_one PASS",
+  "gains": {
+   "width_early": 3.612000000000002,
+   "width_late": 2.2479999999999993,
+   "control_early": 4.1810000000000045,
+   "control_late": 3.157
+  }
+ },
+ "secondary_vs_cs_aro": {
+  "verdict": "FAIL",
+  "early_gain_pp": -1.2379999999999995,
+  "late_gain_pp": -1.4080000000000013
+ },
+ "vs_width": {
+  "arm": "cs_arov",
+  "control": "w_aro",
+  "verdict": "PASS",
+  "failed": [],
+  "arm_trades": 930,
+  "ctl_trades": 930,
+  "arm_pp": 57.303,
+  "ctl_pp": 51.443,
+  "early_gain_pp": 3.612000000000002,
+  "late_gain_pp": 2.2479999999999993,
+  "folds_changed": 14,
+  "paired": {
+   "verdict": "IMPROVED",
+   "delta_pp": 5.859541421631507,
+   "ci_pp_yr": [
+    0.1781008529761025,
+    2.9595179267642195
+   ],
+   "p": 0.0264
+  },
+  "risk": {
+   "days": 1343,
+   "arm": {
+    "sharpe": 2.597188238499296,
+    "maxdd": 4.056140123600599,
+    "daily_sd": 0.31386605689725294
+   },
+   "ctl": {
+    "sharpe": 2.4123463526189473,
+    "maxdd": 4.876079241340705,
+    "daily_sd": 0.3033591125568981
+   },
+   "sharpe_delta": 0.18484188588034867,
+   "sharpe_ci": [
+    -0.1464134251789812,
+    0.5047700374236661
+   ],
+   "sharpe_p": 0.288,
+   "verdict_sharpe": "UNCHANGED",
+   "maxdd_delta": -0.8199391177401054,
+   "maxdd_ci": [
+    -1.3499296488236872,
+    0.2146682322252799
+   ],
+   "maxdd_p": 0.157,
+   "verdict_maxdd": "UNCHANGED"
+  },
+  "halves": {
+   "early": {
+    "verdict": "IMPROVED",
+    "p": 0.0114,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   },
+   "late": {
+    "verdict": "UNCHANGED",
+    "p": 0.3037,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   }
+  },
+  "exits_arm": {
+   "take_profit": 557,
+   "trailing_stop_loss": 152,
+   "unclog_12h": 164,
+   "unclog_1d": 19,
+   "roi": 18,
+   "force_exit": 5,
+   "stop_loss": 13,
+   "metric_overbought": 2
+  },
+  "exits_ctl": {
+   "take_profit": 557,
+   "trailing_stop_loss": 152,
+   "unclog_12h": 164,
+   "unclog_1d": 19,
+   "roi": 18,
+   "force_exit": 5,
+   "stop_loss": 13,
+   "metric_overbought": 2
+  }
+ },
+ "vs_control": {
+  "arm": "cs_arov",
+  "control": "wf_aro_g24",
+  "verdict": "PASS",
+  "failed": [],
+  "arm_trades": 930,
+  "ctl_trades": 1176,
+  "arm_pp": 57.303,
+  "ctl_pp": 49.965,
+  "early_gain_pp": 4.1810000000000045,
+  "late_gain_pp": 3.157,
+  "folds_changed": 15,
+  "paired": {
+   "verdict": "UNCHANGED",
+   "delta_pp": 7.33405011089755,
+   "ci_pp_yr": [
+    -4.785352343296472,
+    8.854723071753659
+   ],
+   "p": 0.5695
+  },
+  "risk": {
+   "days": 1343,
+   "arm": {
+    "sharpe": 2.597188238499296,
+    "maxdd": 4.056140123600599,
+    "daily_sd": 0.31386605689725294
+   },
+   "ctl": {
+    "sharpe": 2.5392415546525413,
+    "maxdd": 3.6944448119481095,
+    "daily_sd": 0.2799189462696044
+   },
+   "sharpe_delta": 0.05794668384675461,
+   "sharpe_ci": [
+    -1.05546538014167,
+    1.1257961490363468
+   ],
+   "sharpe_p": 0.902,
+   "verdict_sharpe": "UNCHANGED",
+   "maxdd_delta": 0.3616953116524897,
+   "maxdd_ci": [
+    -3.5196483179782008,
+    2.033362035179667
+   ],
+   "maxdd_p": 0.544,
+   "verdict_maxdd": "UNCHANGED"
+  },
+  "halves": {
+   "early": {
+    "verdict": "UNCHANGED",
+    "p": 0.567,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   },
+   "late": {
+    "verdict": "UNCHANGED",
+    "p": 0.7816,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   }
+  },
+  "exits_arm": {
+   "take_profit": 557,
+   "trailing_stop_loss": 152,
+   "unclog_12h": 164,
+   "unclog_1d": 19,
+   "roi": 18,
+   "force_exit": 5,
+   "stop_loss": 13,
+   "metric_overbought": 2
+  },
+  "exits_ctl": {
+   "roi": 33,
+   "take_profit": 694,
+   "trailing_stop_loss": 199,
+   "unclog_12h": 212,
+   "unclog_1d": 27,
+   "force_exit": 4,
+   "stop_loss": 7
+  }
+ },
+ "vs_cs_aro": {
+  "arm": "cs_arov",
+  "control": "cs_aro",
+  "verdict": "FAIL",
+  "failed": [
+   "early gain",
+   "late gain"
+  ],
+  "arm_trades": 930,
+  "ctl_trades": 930,
+  "arm_pp": 57.303,
+  "ctl_pp": 59.949,
+  "early_gain_pp": -1.2379999999999995,
+  "late_gain_pp": -1.4080000000000013,
+  "folds_changed": 4,
+  "paired": {
+   "verdict": "UNCHANGED",
+   "delta_pp": -2.643572407845992,
+   "ci_pp_yr": [
+    -1.8916794596998345,
+    0.2811824149740737
+   ],
+   "p": 0.1872
+  },
+  "risk": {
+   "days": 1343,
+   "arm": {
+    "sharpe": 2.597188238499296,
+    "maxdd": 4.056140123600599,
+    "daily_sd": 0.31386605689725294
+   },
+   "ctl": {
+    "sharpe": 2.588177302461619,
+    "maxdd": 4.489445186897925,
+    "daily_sd": 0.3295022150154822
+   },
+   "sharpe_delta": 0.009010936037677109,
+   "sharpe_ci": [
+    -0.13119355365934732,
+    0.1544872738753338
+   ],
+   "sharpe_p": 0.939,
+   "verdict_sharpe": "UNCHANGED",
+   "maxdd_delta": -0.43330506329732543,
+   "maxdd_ci": [
+    -1.0178524002131684,
+    0.23063738763362282
+   ],
+   "maxdd_p": 0.729,
+   "verdict_maxdd": "UNCHANGED"
+  },
+  "halves": {
+   "early": {
+    "verdict": "UNCHANGED",
+    "p": 0.2019,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   },
+   "late": {
+    "verdict": "UNCHANGED",
+    "p": 0.4794,
+    "risk": [
+     "UNCHANGED",
+     "UNCHANGED"
+    ]
+   }
+  },
+  "exits_arm": {
+   "take_profit": 557,
+   "trailing_stop_loss": 152,
+   "unclog_12h": 164,
+   "unclog_1d": 19,
+   "roi": 18,
+   "force_exit": 5,
+   "stop_loss": 13,
+   "metric_overbought": 2
+  },
+  "exits_ctl": {
+   "take_profit": 557,
+   "trailing_stop_loss": 151,
+   "unclog_12h": 165,
+   "unclog_1d": 19,
+   "roi": 18,
+   "force_exit": 5,
+   "stop_loss": 13,
+   "metric_overbought": 2
+  }
+ }
+}
