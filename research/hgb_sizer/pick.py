@@ -3,8 +3,8 @@
 cs_aro's rule (research/control_sizer/pick.py) on the HGB score: the first bar of each width-book
 run in the fold's validation tail, threshold at the (1 - AGREE_SHARE) quantile of the HGB p_buy
 (the strategy's `sizer_score` column), 4 decimals, stored in plan_cs_hgb.json. Also records, per
-pair, whether the HGB's fit cutoff (signals.py) lies before the strategy's own tail start
-(`tail_leak_pairs` must be empty). `--verify` regenerates the fold class with the stored threshold
+pair, whether the HGB's last fitted row (signals.py) plus the 48-bar label horizon reaches the
+strategy's own tail start (`tail_leak_pairs` must be empty). `--verify` regenerates the fold class with the stored threshold
 and checks every width-book entry tag equals (score > threshold).
 
     PYTHONPATH=. ../../.venv/bin/python -m research.hgb_sizer.pick --fold f00 [--verify]
@@ -53,8 +53,11 @@ def pick(fid: str, plan_path: Path = PLAN) -> tuple[float, dict]:
     share = float(strat.AGREE_SHARE)
     t, achieved = WP.threshold_for_share(score, share)
     meta = json.loads((OUT / f"HGB_{fid}.json").read_text())
-    mine = {p: pd.Timestamp(v) for p, v in meta["tail_starts"].items()}
-    leak = sorted(p for p, d in firsts.items() if p in mine and mine[p] > d)
+    from research.indicator_screen import windows as W
+
+    last = {p: pd.Timestamp(v) for p, v in meta["fit_last"].items()}
+    horizon = W.LABEL_HORIZON * W.BAR
+    leak = sorted(p for p, d in firsts.items() if p in last and last[p] + horizon >= d)
     missing = int(sum(np.isnan(s["sizer_score"].to_numpy(float))[WP.run_starts(
         s["enter_long"].fillna(0).to_numpy() == 1)].sum() for s in frames.values()))
     return t, {"target_share": share, "achieved_share": round(achieved, 4), "run_starts": len(score),

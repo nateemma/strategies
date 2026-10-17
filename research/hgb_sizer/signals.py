@@ -6,8 +6,9 @@ a purge (48 bars) BEFORE the fold's validation tail, so the threshold pick on th
 the model never fitted -- as ARO's threshold is picked on its own validation tail.
 
 Validation tail per pair: the strategy's own split, rows [int(TRAIN_DATA_SPLIT * n), n) of the
-pair's bars in [train_start, test_start) (research/width_relative/pick.py `_frames`). `pick.py`
-re-derives it from the strategy frames and records any pair whose fit cutoff is later than the tail.
+pair's candles in [train_start, test_start), counted on the candle files WITHOUT gap-fill (research/width_relative/pick.py `_frames`). `pick.py`
+re-derives the tail from the strategy frames and records any pair whose last fitted row plus the
+label horizon reaches it (the gap-filled XRP span splits differently, but its bars fail data_ok).
 
 Output, user_data/data/hgb_sizer/ (not committed; sha256 in the plan's threshold_picks):
 - HGB_fNN.parquet: date, pair, p_buy for every gbb candidate bar from the tail start to the fold's
@@ -41,14 +42,23 @@ TRAIN_DATA_SPLIT = 0.8          # Framework/BaseNNStrategy.TRAIN_DATA_SPLIT
 TARGET = "label:buy"
 
 
-def tail_starts(panel: Panel, fold: W.Window) -> dict[int, pd.Timestamp]:
-    """{pair code: first validation-tail date} for the fold's training span."""
+def tail_starts(panel: Panel, fold: W.Window, dates: dict[str, pd.DatetimeIndex] | None = None
+                ) -> dict[int, pd.Timestamp]:
+    """{pair code: first validation-tail date} for the fold's training span, counted on `dates`
+    (per pair; default the panel's own) -- the strategy splits the candles it loads, which are NOT
+    gap-filled (XRP 2021-01 -> 2023-07)."""
     out = {}
-    for k in range(len(panel.pairs)):
-        d = panel.date[(panel.pair == k) & (panel.date >= fold.train_start) & (panel.date < fold.start)]
+    for k, pair in enumerate(panel.pairs):
+        d = panel.date[panel.pair == k] if dates is None else dates[pair]
+        d = d[(d >= fold.train_start) & (d < fold.start)]
         if len(d):
             out[k] = d[int(TRAIN_DATA_SPLIT * len(d))]
     return out
+
+
+def raw_dates(pairs: list[str]) -> dict[str, pd.DatetimeIndex]:
+    cfg = H.base_config()
+    return {p: pd.DatetimeIndex(H.load_ohlcv(cfg, p, filled=False)["date"]) for p in pairs}
 
 
 def fit_rows(panel: Panel, y: np.ndarray, fold: W.Window, tails: dict) -> np.ndarray:
@@ -72,7 +82,7 @@ def run(fid: str, panel: Panel | None = None, out: Path = OUT) -> dict:
     fold = next(f for f in W.folds() if f.id == fid)
     panel = panel or Panel()
     y = LabelTargets(panel).y(TARGET, fold)
-    tails = tail_starts(panel, fold)
+    tails = tail_starts(panel, fold, raw_dates(panel.pairs))
     tr, te = fit_rows(panel, y, fold, tails), score_rows(panel, fold, tails)
     cols = scored_columns(include_btc=False)
     Xtr = SM.matrix(panel, cols, tr)
@@ -93,6 +103,8 @@ def run(fid: str, panel: Panel | None = None, out: Path = OUT) -> dict:
             "fit_positive_rate": round(float(np.mean(y[tr] > 0.5)), 4),
             "dropped_all_missing": [c for c, u in zip(cols, usable) if not u],
             "tail_starts": {panel.pairs[k]: str(v) for k, v in sorted(tails.items())},
+            "fit_last": {panel.pairs[k]: str(panel.date[tr[panel.pair[tr] == k]].max())
+                         for k in range(len(panel.pairs)) if (panel.pair[tr] == k).any()},
             "sha256": hashlib.sha256((out / f"HGB_{fid}.parquet").read_bytes()).hexdigest()}
 
 
