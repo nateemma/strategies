@@ -37,7 +37,8 @@ CONFIG = "user_data/strategies/config/config_wf.json"
 PLANS = {"ARO": "wf_aro_b030", "GBR": "sw_gbr_ctl_b030", "GFM": "sw_gfm_ctl_b030",
          "MLX": "sw_mlx_ctl_b030"}
 #: 032: candidate-only arms (research/candidate_training). Not in the default --models list.
-CO_PLANS = {"CO_ARO": "co_aro", "CO_GBR": "co_gbr"}
+CO_PLANS = {"CO_ARO": "co_aro", "CO_GBR": "co_gbr",
+            "AROV": "cs_arov"}  # research/aro_volume: ARO retrained on volume > 0 rows
 #: 033: width-relative sizer arms (research/width_relative); the exit-off plan (same predictions).
 WR_PLANS = {"WR_ARO": "wr_aro_sz", "WR_GBR": "wr_gbr_sz"}
 #: 034: label-screen candidates (research/label_screen; the training `es` plans).

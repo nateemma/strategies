@@ -25,7 +25,7 @@ sys.path.insert(0, str(STRAT))
 sys.path.insert(0, str(STRAT / "evaluation"))
 
 FOLDS = STRAT / "evaluation" / "folds"
-PLANS = {"ARO": "co_aro", "GBR": "co_gbr"}
+PLANS = {"ARO": "co_aro", "GBR": "co_gbr", "AROV": "cs_arov"}  # AROV: research/aro_volume
 BUSY = ("freqtrade backtesting", "freqtrade hyperopt", "test_strat.sh", "evaluation.run_folds",
         "regime.run_arm", "research.candidate_training.train ")
 

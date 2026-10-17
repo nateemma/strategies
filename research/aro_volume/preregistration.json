@@ -1,0 +1,90 @@
+{
+ "title": "ARO volume-filter retrain: cs_aro with ARO retrained on windows whose last bar has volume > 0, as the width-book sizer, all 15 folds",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26); the late half is not blind for cs_aro (its result was read), but no retrained weights or their scores have been seen. Nothing is adopted or promoted.",
+ "arm": "cs_arov",
+ "arm_class": "NNNC_CS_AROV = NNNC_CS_ARO + TRAIN_ROW_FILTER (('volume', 'gt', 0.0),) in MODEL_KEY_ATTRIBUTES (feature 032 mechanism: training and validation windows kept only if their last raw bar has volume > 0). New model key -> new weights, trained per fold by research.candidate_training.train --model AROV (seed 1, same params snapshot as cs_aro). Entries (width book), AGREE_SHARE 0.5, STAKE_WEIGHTS, HELD_PAIR_ADD off: cs_aro's.",
+ "thresholds": "per fold, research/control_sizer/pick.py --plan plan_cs_arov.json (cs_aro's rule: validation-tail width-book run starts, 0.5-share quantile of the retrained p_buy, 4 dp); verify every fold (tag mismatches 0, loaded == stored)",
+ "comparators": {
+  "width": "w_aro",
+  "control": "wf_aro_g24",
+  "incumbent_sizer": "cs_aro"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": {
+  "per_half": "cs_aro's checks: trade set == w_aro in all but <= 2 folds; 0 entry violations; 0 tag mismatches vs the retrained model's own test-window table (signals/AROV_fNN); thresholds loaded at 4 dp; capital vs w_aro within +-10%; no zero-trade fold; entries without a p_buy <= 1%",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "pass": "judge_one(cs_arov, w_aro) PASS AND judge_one(cs_arov, wf_aro_g24) PASS -- cs_aro's own bar",
+ "secondary": "judge_one(cs_arov, cs_aro) on the same trades: THE QUESTION. PASS = the retrained weights size better than the current ones (both half gains > 0, paired and risk not WORSENED). Adopting the filter needs this AND the primary PASS",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE (seed 1 only; training is deterministic per seed, the repeat would be seed 2)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "forward window (plan_fwd_*) after a PASS; then the same filter for GBR and future label/input studies",
+ "seen_before": [
+  "cs_aro 59.95 / w_aro 51.44 / wf_aro_g24 49.97 on all 15 folds, both halves; cs_aro forward window INCONSISTENT",
+  "037 finding: 24% of ARO BUY positives on zero-volume bars; BUY rate on candidate bars 0.497 zero-volume vs 0.511 traded",
+  "cs_hgb / cs_cmp / cs_mix sizer results (all halves)",
+  "no retrained (volume-filtered) weights, scores or backtests"
+ ],
+ "question": "does dropping zero-volume rows from ARO's training make it a better width-book sizer than the current ARO (cs_aro), in both halves?",
+ "why": "24% of ARO's BUY training positives (35% of all rows) sit on zero-volume gap-filled bars no strategy enters; training on them may blur the ranking of tradeable candidates",
+ "descriptive": "research/aro_volume/auc.py: label:buy AUC of the retrained vs current p_buy on tradeable gbb candidate bars (037 panel, test windows), medians per half; the retrain's row_filter.json (rows kept / dropped) per fold"
+}
