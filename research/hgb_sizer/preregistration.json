@@ -1,0 +1,89 @@
+{
+ "title": "HGB sizer: the 037 label:buy HGB as the capital-neutral stake sizer on the width book (cs_aro's design), backtested on all 15 folds",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26), and the late half is NOT blind (see seen_before). A pass is PASS (PROVISIONAL) with a forward-confirmation route. Nothing is adopted or promoted.",
+ "arm": "cs_hgb",
+ "arm_class": "NNNC_CS_HGB = NNNC_CS_ARO with WidthSizerMixin.sizer_score taken from the fold's HGB p_buy (user_data/data/hgb_sizer/HGB_fNN.parquet, research/hgb_sizer/signals.py); entries, ARO weights (model keys equal cs_aro's), AGREE_SHARE 0.5, STAKE_WEIGHTS (1.0, 0.5) -> 1.333x / 0.667x, HELD_PAIR_ADD off: all cs_aro's. A width-book entry with no HGB row scores 0 (disagree).",
+ "hgb": "037 label:buy model (research/indicator_screen preregistration models.hgb settings, unchanged): gbb candidate bars with meta:data_ok, every 037 scored column without btc: (incl. the post-lock extras: raw8, ni:, price/close), fitted per fold on rows from train_start to 48 bars BEFORE the pair's validation tail (the strategy's own TRAIN_DATA_SPLIT 0.8 split of [train_start, test_start)); scored on candidate bars from the tail start to the fold's test end",
+ "thresholds": "per fold, research/hgb_sizer/pick.py: cs_aro's rule on the HGB score -- first bar of each width-book run in the fold's validation tail, (1 - 0.5) quantile, 4 decimals; tail_leak_pairs must be empty; verify every fold (tag mismatches 0, loaded == stored)",
+ "comparators": {
+  "width": "w_aro",
+  "control": "wf_aro_g24",
+  "incumbent_sizer": "cs_aro"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": {
+  "per_half": "trade set == w_aro on (pair, open_date, close_date) in all but <= 2 folds; 0 entry violations; 0 tag mismatches; thresholds loaded at 4 dp; mean capital ratio vs w_aro within +-10%; no zero-trade fold; width-book entries without an HGB p_buy <= 1%",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "pass": "judge_one(cs_hgb, w_aro) PASS AND judge_one(cs_hgb, wf_aro_g24) PASS -- cs_aro's own bar",
+ "secondary": "judge_one(cs_hgb, cs_aro) on the same trades: PASS = the HGB sizer beats the ARO sizer (reported; replacing ARO as the sizer needs this AND the primary PASS)",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE (the HGB is deterministic, random_state 0; the repeat would be the forward window, not a seed)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 folds (plan_fwd_*) or dry-run; NOTE live use would need the 794 037 columns (643 values + 151 raw signals) computed at runtime -- not assessed here",
+ "seen_before": [
+  "037 (screen, all halves incl. late): label:buy candidate-bar AUC, HGB all columns 0.619 early / 0.625 late vs ARO p_buy 0.607 / 0.597 vs width sort 0.549 / 0.554 (HGB there was fitted up to the fold start; here it stops before the validation tail)",
+  "cs_aro backtest on all 15 folds: 59.95 pp vs w_aro 51.44 vs wf_aro_g24 49.97 (control_sizer report); its forward window was INCONSISTENT",
+  "backtest P&L of w_aro, wf_aro_g24 and cs_aro on all 15 folds (comparators)",
+  "no backtest or simulator split of the width-book trades by HGB p_buy has been run"
+ ],
+ "question": "does the 037 HGB's better within-candidate ranking (AUC, both halves) survive real execution as a width-book sizer, above the width book, the control and the ARO sizer?"
+}

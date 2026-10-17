@@ -30,6 +30,11 @@ class WidthSizerMixin:
     STAKE_WEIGHTS = (1.0, 0.5)
     AGREE_RULE = "decision"
     MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS", "AGREE_RULE")
+    MODEL_KEY_METHODS_IGNORED = ("sizer_score",)
+
+    def sizer_score(self, dataframe):
+        """The AGREE_RULE "p_buy" score: the model's p_buy. A subclass may supply another source."""
+        return dataframe["%predict_prob_buy"].to_numpy(float)
 
     def get_entry_conditions(self, dataframe):
         mask = super().get_entry_conditions(dataframe)  # the width book; predictions written
@@ -37,7 +42,7 @@ class WidthSizerMixin:
         if mask is None or tags is None:
             raise ValueError(f"{type(self).__name__}: the sizer needs the width book's tagged mask")
         if self.AGREE_RULE == "p_buy":
-            p = np.nan_to_num(dataframe["%predict_prob_buy"].to_numpy(float), nan=0.0)
+            p = np.nan_to_num(np.asarray(self.sizer_score(dataframe), dtype=float), nan=0.0)
             agree = p > float(self.prediction_threshold.value)
         else:
             agree = dataframe["predict_buy"].to_numpy() > 0.5
