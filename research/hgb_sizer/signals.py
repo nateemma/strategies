@@ -6,7 +6,8 @@ a purge (48 bars) BEFORE the fold's validation tail, so the threshold pick on th
 the model never fitted -- as ARO's threshold is picked on its own validation tail.
 
 Validation tail per pair: the strategy's own split, rows [int(TRAIN_DATA_SPLIT * n), n) of the
-pair's candles in [train_start, test_start), counted on the candle files WITHOUT gap-fill (research/width_relative/pick.py `_frames`). `pick.py`
+pair's candles in [train_start, test_start), gap-filled only between that range's own first and
+last real candle, as freqtrade loads them (research/width_relative/pick.py `_frames`). `pick.py`
 re-derives the tail from the strategy frames and records any pair whose last fitted row plus the
 label horizon reaches it (the gap-filled XRP span splits differently, but its bars fail data_ok).
 
@@ -45,12 +46,15 @@ TARGET = "label:buy"
 def tail_starts(panel: Panel, fold: W.Window, dates: dict[str, pd.DatetimeIndex] | None = None
                 ) -> dict[int, pd.Timestamp]:
     """{pair code: first validation-tail date} for the fold's training span, counted on `dates`
-    (per pair; default the panel's own) -- the strategy splits the candles it loads, which are NOT
-    gap-filled (XRP 2021-01 -> 2023-07)."""
+    (per pair: the raw candles; default the panel's own). The strategy splits the candles it loads
+    for [train_start, test_start), gap-filled only BETWEEN that range's first and last real candle:
+    XRP's 2021-01 -> 2023-07 gap is unfilled while no later candle is in range (f00-f02), filled after."""
     out = {}
     for k, pair in enumerate(panel.pairs):
         d = panel.date[panel.pair == k] if dates is None else dates[pair]
         d = d[(d >= fold.train_start) & (d < fold.start)]
+        if dates is not None and len(d):       # freqtrade fills only between the range's own candles
+            d = pd.date_range(d[0], d[-1], freq=W.BAR)
         if len(d):
             out[k] = d[int(TRAIN_DATA_SPLIT * len(d))]
     return out
