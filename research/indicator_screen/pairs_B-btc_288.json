@@ -16,7 +16,14 @@
   "f04",
   "f05",
   "f06",
-  "f07"
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
  ],
  "populations": {
   "all": {
@@ -38,7 +45,14 @@
      "selected": true,
      "e0_lift": 1.070955915530018,
      "e0_lift_a": 1.0060186374377877,
-     "e0_lift_b": 1.0064705338874664
+     "e0_lift_b": 1.0064705338874664,
+     "late": {
+      "median_lift": 1.5807539866227438,
+      "n_windows": 4,
+      "lift_a": 1.2269791197235993,
+      "lift_b": 0.9953538086400472
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:HTSINE",
@@ -55,7 +69,14 @@
      "selected": true,
      "e0_lift": 1.0777150747869415,
      "e0_lift_a": 0.9935954407240545,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.3895886043045784,
+      "n_windows": 7,
+      "lift_a": 0.9791076989240712,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:COPP",
@@ -72,7 +93,14 @@
      "selected": true,
      "e0_lift": 0.9157793608701514,
      "e0_lift_a": 1.013793398429157,
-     "e0_lift_b": 1.0002906789081998
+     "e0_lift_b": 1.0002906789081998,
+     "late": {
+      "median_lift": 1.306094552177924,
+      "n_windows": 7,
+      "lift_a": 1.2664741557662043,
+      "lift_b": 0.9906725294625661
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:CCI",
@@ -89,7 +117,14 @@
      "selected": true,
      "e0_lift": 1.1003114740209758,
      "e0_lift_a": 1.0259116875076495,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.5399644424983863,
+      "n_windows": 5,
+      "lift_a": 1.057974584025876,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:CCI",
@@ -106,7 +141,14 @@
      "selected": true,
      "e0_lift": 1.085353868258639,
      "e0_lift_a": 1.0259116875076495,
-     "e0_lift_b": 1.013793398429157
+     "e0_lift_b": 1.013793398429157,
+     "late": {
+      "median_lift": 1.5350063727860062,
+      "n_windows": 5,
+      "lift_a": 1.057974584025876,
+      "lift_b": 1.2664741557662043
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:COPP",
@@ -123,7 +165,14 @@
      "selected": true,
      "e0_lift": 0.9765974027159342,
      "e0_lift_a": 1.013793398429157,
-     "e0_lift_b": 0.9952477191732092
+     "e0_lift_b": 0.9952477191732092,
+     "late": {
+      "median_lift": 1.1512144947989444,
+      "n_windows": 4,
+      "lift_a": 1.2664741557662043,
+      "lift_b": 0.9868161577608142
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:EhlersBase:cycle",
@@ -140,7 +189,14 @@
      "selected": true,
      "e0_lift": 1.0095126616269758,
      "e0_lift_a": 0.9933075165775368,
-     "e0_lift_b": 0.9992744831612853
+     "e0_lift_b": 0.9992744831612853,
+     "late": {
+      "median_lift": 1.1321905950335447,
+      "n_windows": 6,
+      "lift_a": 0.9897384440066495,
+      "lift_b": 1.1336747977819903
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:PSAR",
@@ -157,7 +213,14 @@
      "selected": true,
      "e0_lift": 0.9599111984761568,
      "e0_lift_a": 0.9929334836951165,
-     "e0_lift_b": 1.0060186374377877
+     "e0_lift_b": 1.0060186374377877,
+     "late": {
+      "median_lift": 1.339460214053048,
+      "n_windows": 5,
+      "lift_a": 0.986706925225751,
+      "lift_b": 1.2269791197235993
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:FVE",
@@ -174,7 +237,14 @@
      "selected": true,
      "e0_lift": 0.8969323376663959,
      "e0_lift_a": 1.0002906789081998,
-     "e0_lift_b": 1.0060186374377877
+     "e0_lift_b": 1.0060186374377877,
+     "late": {
+      "median_lift": 1.3097807353504405,
+      "n_windows": 7,
+      "lift_a": 0.9906725294625661,
+      "lift_b": 1.2269791197235993
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:COPP",
@@ -191,7 +261,14 @@
      "selected": true,
      "e0_lift": 1.0527332617998066,
      "e0_lift_a": 1.013793398429157,
-     "e0_lift_b": 1.0064705338874664
+     "e0_lift_b": 1.0064705338874664,
+     "late": {
+      "median_lift": 1.393265429680544,
+      "n_windows": 7,
+      "lift_a": 1.2664741557662043,
+      "lift_b": 0.9953538086400472
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:EhlersBase:trend",
@@ -208,7 +285,14 @@
      "selected": true,
      "e0_lift": 0.9552133323195267,
      "e0_lift_a": 0.9920622836127088,
-     "e0_lift_b": 1.0184744606753908
+     "e0_lift_b": 1.0184744606753908,
+     "late": {
+      "median_lift": 1.3623569698488265,
+      "n_windows": 5,
+      "lift_a": 0.9890628115458782,
+      "lift_b": 1.1834733914727387
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:EhlersBase:cycle",
@@ -225,7 +309,14 @@
      "selected": true,
      "e0_lift": 1.0845241062372666,
      "e0_lift_a": 0.9933075165775368,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.2349760218311696,
+      "n_windows": 5,
+      "lift_a": 0.9897384440066495,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:COPP",
@@ -242,7 +333,14 @@
      "selected": true,
      "e0_lift": 0.9788921438274475,
      "e0_lift_a": 1.013793398429157,
-     "e0_lift_b": 0.9991804135099482
+     "e0_lift_b": 0.9991804135099482,
+     "late": {
+      "median_lift": 1.2167964952362436,
+      "n_windows": 7,
+      "lift_a": 1.2664741557662043,
+      "lift_b": 0.9817314107758381
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:MI",
@@ -259,7 +357,14 @@
      "selected": true,
      "e0_lift": 1.024178087993458,
      "e0_lift_a": 1.011465085068105,
-     "e0_lift_b": 1.0060186374377877
+     "e0_lift_b": 1.0060186374377877,
+     "late": {
+      "median_lift": 1.2666049360732219,
+      "n_windows": 7,
+      "lift_a": 0.9965949979541473,
+      "lift_b": 1.2269791197235993
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:Ehlers_Fisher:trend",
@@ -276,7 +381,14 @@
      "selected": true,
      "e0_lift": 0.9565111765210478,
      "e0_lift_a": 0.9952477191732092,
-     "e0_lift_b": 0.9992744831612853
+     "e0_lift_b": 0.9992744831612853,
+     "late": {
+      "median_lift": 1.1484860090758213,
+      "n_windows": 7,
+      "lift_a": 0.9868161577608142,
+      "lift_b": 1.1336747977819903
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:Ehlers_ROC:trend",
@@ -293,7 +405,14 @@
      "selected": true,
      "e0_lift": 0.9899135017831178,
      "e0_lift_a": 1.0102585651166893,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.2694506801209107,
+      "n_windows": 7,
+      "lift_a": 0.9986264084894748,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_Indicator:trend",
@@ -310,7 +429,14 @@
      "selected": true,
      "e0_lift": 0.9533228059326443,
      "e0_lift_a": 0.9932953549510012,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.3312177066772657,
+      "n_windows": 7,
+      "lift_a": 0.9996284355421412,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_ind_DYMI:trend",
@@ -327,7 +453,14 @@
      "selected": true,
      "e0_lift": 0.9660270681571063,
      "e0_lift_a": 0.9991804135099482,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.2552461449858454,
+      "n_windows": 7,
+      "lift_a": 0.9817314107758381,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:KST",
@@ -344,7 +477,14 @@
      "selected": true,
      "e0_lift": 0.9999889572720045,
      "e0_lift_a": 1.0189853378534015,
-     "e0_lift_b": 1.021660544581305
+     "e0_lift_b": 1.021660544581305,
+     "late": {
+      "median_lift": 1.224175347222222,
+      "n_windows": 7,
+      "lift_a": 1.2364550350309675,
+      "lift_b": 1.0207101798659457
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:Ehlers_Fisher:trend",
@@ -361,7 +501,14 @@
      "selected": true,
      "e0_lift": 0.9554261695147851,
      "e0_lift_a": 0.9952477191732092,
-     "e0_lift_b": 1.0189853378534015
+     "e0_lift_b": 1.0189853378534015,
+     "late": {
+      "median_lift": 1.2920467602102992,
+      "n_windows": 5,
+      "lift_a": 0.9868161577608142,
+      "lift_b": 1.2364550350309675
+     },
+     "confirmed": "early+late only"
     }
    ]
   },
@@ -384,7 +531,14 @@
      "selected": true,
      "e0_lift": 1.082363988892204,
      "e0_lift_a": 1.0167349836974162,
-     "e0_lift_b": 1.0178837080420655
+     "e0_lift_b": 1.0178837080420655,
+     "late": {
+      "median_lift": 1.400491019103438,
+      "n_windows": 4,
+      "lift_a": 1.14131884266102,
+      "lift_b": 1.065632999369307
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:HTSINE",
@@ -401,7 +555,14 @@
      "selected": true,
      "e0_lift": 1.050397141057427,
      "e0_lift_a": 0.9936176064081724,
-     "e0_lift_b": 1.0278419814419286
+     "e0_lift_b": 1.0278419814419286,
+     "late": {
+      "median_lift": 1.2958484294402894,
+      "n_windows": 6,
+      "lift_a": 0.9893653762091642,
+      "lift_b": 1.1946928304833362
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:KST",
@@ -418,7 +579,14 @@
      "selected": true,
      "e0_lift": 1.0604224560295945,
      "e0_lift_a": 1.0278419814419286,
-     "e0_lift_b": 1.0303419820843585
+     "e0_lift_b": 1.0303419820843585,
+     "late": {
+      "median_lift": 1.4121125224984188,
+      "n_windows": 6,
+      "lift_a": 1.1946928304833362,
+      "lift_b": 1.0904736457770852
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:HTSINE",
@@ -435,7 +603,14 @@
      "selected": true,
      "e0_lift": 1.0106410739656122,
      "e0_lift_a": 0.9936176064081724,
-     "e0_lift_b": 1.022067284318855
+     "e0_lift_b": 1.022067284318855,
+     "late": {
+      "median_lift": 1.2074160193934598,
+      "n_windows": 7,
+      "lift_a": 0.9893653762091642,
+      "lift_b": 1.137576740388399
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:COPP",
@@ -452,7 +627,14 @@
      "selected": true,
      "e0_lift": 1.0656678925481065,
      "e0_lift_a": 1.024897483377543,
-     "e0_lift_b": 1.0178837080420655
+     "e0_lift_b": 1.0178837080420655,
+     "late": {
+      "median_lift": 1.2608002248217236,
+      "n_windows": 7,
+      "lift_a": 1.1568416509890933,
+      "lift_b": 1.065632999369307
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:CCI",
@@ -469,7 +651,14 @@
      "selected": true,
      "e0_lift": 1.027084545757293,
      "e0_lift_a": 1.0049183045773584,
-     "e0_lift_b": 1.022067284318855
+     "e0_lift_b": 1.022067284318855,
+     "late": {
+      "median_lift": 1.350127427803385,
+      "n_windows": 6,
+      "lift_a": 1.1098915252872867,
+      "lift_b": 1.137576740388399
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:CCI",
@@ -486,7 +675,14 @@
      "selected": true,
      "e0_lift": 1.096915311987067,
      "e0_lift_a": 1.0049183045773584,
-     "e0_lift_b": 1.024897483377543
+     "e0_lift_b": 1.024897483377543,
+     "late": {
+      "median_lift": 1.4146748958251436,
+      "n_windows": 5,
+      "lift_a": 1.1098915252872867,
+      "lift_b": 1.1568416509890933
+     },
+     "confirmed": "yes"
     },
     {
      "a": "raw_buy:Ehlers_ind_DYMI:trend",
@@ -503,7 +699,14 @@
      "selected": true,
      "e0_lift": 0.9778558205083357,
      "e0_lift_a": 0.9798177904036901,
-     "e0_lift_b": 1.0278419814419286
+     "e0_lift_b": 1.0278419814419286,
+     "late": {
+      "median_lift": 1.2603728623493133,
+      "n_windows": 7,
+      "lift_a": 0.9829449402556629,
+      "lift_b": 1.1946928304833362
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_Indicator:trend",
@@ -520,7 +723,14 @@
      "selected": true,
      "e0_lift": 0.9469986889551832,
      "e0_lift_a": 0.9960944923663813,
-     "e0_lift_b": 1.0278419814419286
+     "e0_lift_b": 1.0278419814419286,
+     "late": {
+      "median_lift": 1.2452630955714203,
+      "n_windows": 6,
+      "lift_a": 0.992726115518378,
+      "lift_b": 1.1946928304833362
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_ROC:trend",
@@ -537,7 +747,14 @@
      "selected": true,
      "e0_lift": 0.9936883849829633,
      "e0_lift_a": 1.0171563937446852,
-     "e0_lift_b": 1.0278419814419286
+     "e0_lift_b": 1.0278419814419286,
+     "late": {
+      "median_lift": 1.2413671450545418,
+      "n_windows": 7,
+      "lift_a": 1.0044052462891824,
+      "lift_b": 1.1946928304833362
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:EhlersBase:cycle",
@@ -554,7 +771,14 @@
      "selected": true,
      "e0_lift": 1.0043245672533272,
      "e0_lift_a": 0.9735533281320118,
-     "e0_lift_b": 1.0278419814419286
+     "e0_lift_b": 1.0278419814419286,
+     "late": {
+      "median_lift": 1.1347115951052191,
+      "n_windows": 4,
+      "lift_a": 0.9551724137931034,
+      "lift_b": 1.1946928304833362
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:Ehlers_Fisher:trend",
@@ -571,7 +795,14 @@
      "selected": true,
      "e0_lift": 0.975277942464053,
      "e0_lift_a": 1.001604753774861,
-     "e0_lift_b": 1.01159410026768
+     "e0_lift_b": 1.01159410026768,
+     "late": {
+      "median_lift": 1.131003592344382,
+      "n_windows": 7,
+      "lift_a": 1.0323827772002419,
+      "lift_b": 1.065799049107837
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:PSAR",
@@ -588,7 +819,14 @@
      "selected": true,
      "e0_lift": 0.9701363974919172,
      "e0_lift_a": 0.9633740002170177,
-     "e0_lift_b": 1.0167349836974162
+     "e0_lift_b": 1.0167349836974162,
+     "late": {
+      "median_lift": 1.329974558442194,
+      "n_windows": 5,
+      "lift_a": 1.037886660988288,
+      "lift_b": 1.14131884266102
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:COPP",
@@ -605,9 +843,17 @@
      "selected": true,
      "e0_lift": 0.9262308713996356,
      "e0_lift_a": 1.024897483377543,
-     "e0_lift_b": 0.9908400097163832
+     "e0_lift_b": 0.9908400097163832,
+     "late": {
+      "median_lift": 1.247691370288795,
+      "n_windows": 7,
+      "lift_a": 1.1568416509890933,
+      "lift_b": 0.9559078725549012
+     },
+     "confirmed": "early+late only"
     }
    ]
   }
- }
+ },
+ "confirmed_at_lock": "4ccb4ad0"
 }

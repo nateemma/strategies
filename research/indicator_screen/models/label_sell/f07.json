@@ -1,0 +1,92 @@
+{
+ "target": "label:sell",
+ "fold": "f07",
+ "prereg_lock": null,
+ "results": [
+  {
+   "fold": "f07",
+   "half": "early",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 253767,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "all",
+   "auc": 0.9609051427695536,
+   "width_sort_auc": 0.8523838017799921,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350012 -> p1=0.000 n=177818",
+    "base:bb_width > 0.0350012 AND base:guard_metric <= 0.299998 -> p1=0.000 n=46195",
+    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:atr_pct_roll <= 0.00696728 -> p1=0.926 n=17764",
+    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:atr_pct_roll > 0.00696728 -> p1=0.952 n=11990"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric",
+    "base:atr_pct_roll"
+   ]
+  },
+  {
+   "fold": "f07",
+   "half": "early",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 253767,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "restricted",
+   "auc": 0.9610859529538267,
+   "width_sort_auc": 0.8523838017799921,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350012 -> p1=0.000 n=177818",
+    "base:bb_width > 0.0350012 AND base:guard_metric <= 0.299998 -> p1=0.000 n=46195",
+    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:bb_width <= 0.0505049 -> p1=0.931 n=14306",
+    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:bb_width > 0.0505049 -> p1=0.944 n=15448"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric"
+   ]
+  },
+  {
+   "fold": "f07",
+   "half": "early",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 253767,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "all",
+   "auc": 0.9655650458776536,
+   "width_sort_auc": 0.8523838017799921,
+   "aro_auc": null
+  },
+  {
+   "fold": "f07",
+   "half": "early",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 253767,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "restricted",
+   "auc": 0.9617421642735285,
+   "width_sort_auc": 0.8523838017799921,
+   "aro_auc": null
+  }
+ ]
+}

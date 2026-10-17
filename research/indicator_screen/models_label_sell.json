@@ -1,0 +1,159 @@
+{
+ "target": "label:sell",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.969935245936923,
+      "median_auc_restricted": 0.9703823119766071,
+      "median_width_sort_auc": 0.9074784729069612,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.967904599360956,
+      "median_auc_restricted": 0.9700312862570014,
+      "median_width_sort_auc": 0.8900451551766777,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": false,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:bb_width",
+      15
+     ],
+     [
+      "raw_buy:WTO",
+      7
+     ],
+     [
+      "base:guard_metric",
+      5
+     ],
+     [
+      "base:atr_pct_roll",
+      5
+     ],
+     [
+      "base:guard_metric_pos",
+      5
+     ],
+     [
+      "base:guard_metric_neg",
+      3
+     ],
+     [
+      "COPP:copp",
+      2
+     ],
+     [
+      "Ehlers_BB:cg",
+      2
+     ],
+     [
+      "Ehlers_Fisher:trend_alive",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.9740777319692926,
+      "median_auc_restricted": 0.9700802386669514,
+      "median_width_sort_auc": 0.9074784729069612,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.9759565310320141,
+      "median_auc_restricted": 0.9687507622550798,
+      "median_width_sort_auc": 0.8900451551766777,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:bb_width",
+      15
+     ],
+     [
+      "raw_buy:WTO",
+      7
+     ],
+     [
+      "base:guard_metric",
+      5
+     ],
+     [
+      "base:atr_pct_roll",
+      5
+     ],
+     [
+      "base:guard_metric_pos",
+      5
+     ],
+     [
+      "base:guard_metric_neg",
+      3
+     ],
+     [
+      "COPP:copp",
+      2
+     ],
+     [
+      "Ehlers_BB:cg",
+      2
+     ],
+     [
+      "Ehlers_Fisher:trend_alive",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

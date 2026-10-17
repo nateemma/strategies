@@ -1,0 +1,95 @@
+{
+ "target": "label:sell",
+ "fold": "f13",
+ "prereg_lock": "4ccb4ad0",
+ "results": [
+  {
+   "fold": "f13",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 383367,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "all",
+   "auc": 0.9800357320198457,
+   "width_sort_auc": 0.9204215387487259,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 AND raw_buy:WTO <= 0.5 -> p1=0.000 n=245179",
+    "base:bb_width <= 0.0350004 AND raw_buy:WTO > 0.5 -> p1=0.000 n=19227",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos <= 0.340293 -> p1=0.000 n=72279",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll <= 0.0063186 -> p1=0.928 n=26945",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll > 0.0063186 -> p1=0.946 n=19737"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "raw_buy:WTO",
+    "base:guard_metric_pos",
+    "base:atr_pct_roll"
+   ]
+  },
+  {
+   "fold": "f13",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 383367,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "restricted",
+   "auc": 0.9799218428561672,
+   "width_sort_auc": 0.9204215387487259,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 AND base:bb_width <= 3.05498e-06 -> p1=0.000 n=3505",
+    "base:bb_width <= 0.0350004 AND base:bb_width > 3.05498e-06 -> p1=0.000 n=260901",
+    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 -> p1=0.000 n=72279",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width <= 0.0504922 -> p1=0.930 n=22846",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width > 0.0504922 -> p1=0.941 n=23836"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric"
+   ]
+  },
+  {
+   "fold": "f13",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 383367,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "all",
+   "auc": 0.9830643401502585,
+   "width_sort_auc": 0.9204215387487259,
+   "aro_auc": null
+  },
+  {
+   "fold": "f13",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 383367,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "restricted",
+   "auc": 0.9790087682565888,
+   "width_sort_auc": 0.9204215387487259,
+   "aro_auc": null
+  }
+ ]
+}

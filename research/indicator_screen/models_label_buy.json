@@ -1,0 +1,167 @@
+{
+ "target": "label:buy",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.6012447277268977,
+      "median_auc_restricted": 0.5495752893281103,
+      "median_width_sort_auc": 0.5493977146031741,
+      "median_aro_auc": 0.6065742690636322,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5944809380251552,
+      "median_auc_restricted": 0.5476011734121379,
+      "median_width_sort_auc": 0.5540390164144029,
+      "median_aro_auc": 0.5974919887942881,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "base:spread_ma",
+      8
+     ],
+     [
+      "base:fastk_scaled",
+      7
+     ],
+     [
+      "WOBV:wobv_raw",
+      3
+     ],
+     [
+      "base:bb_width",
+      2
+     ],
+     [
+      "base:atr_pct",
+      2
+     ],
+     [
+      "base:minus_di_scaled",
+      2
+     ],
+     [
+      "base:log_volume",
+      2
+     ],
+     [
+      "base:macdhist_norm",
+      1
+     ],
+     [
+      "Ehlers_DC:dc_lower",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.6214278665348643,
+      "median_auc_restricted": 0.5516699188882805,
+      "median_width_sort_auc": 0.5493977146031741,
+      "median_aro_auc": 0.6065742690636322,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.6134368127888303,
+      "median_auc_restricted": 0.5506890790929327,
+      "median_width_sort_auc": 0.5540390164144029,
+      "median_aro_auc": 0.5974919887942881,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "base:spread_ma",
+      8
+     ],
+     [
+      "base:fastk_scaled",
+      7
+     ],
+     [
+      "WOBV:wobv_raw",
+      3
+     ],
+     [
+      "base:bb_width",
+      2
+     ],
+     [
+      "base:atr_pct",
+      2
+     ],
+     [
+      "base:minus_di_scaled",
+      2
+     ],
+     [
+      "base:log_volume",
+      2
+     ],
+     [
+      "base:macdhist_norm",
+      1
+     ],
+     [
+      "Ehlers_DC:dc_lower",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

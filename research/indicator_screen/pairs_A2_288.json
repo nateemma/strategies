@@ -16,7 +16,14 @@
   "f04",
   "f05",
   "f06",
-  "f07"
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
  ],
  "populations": {
   "all": {
@@ -38,7 +45,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6504325994958364,
+      "n_windows": 6,
+      "lift_a": 1.489358430892152,
+      "lift_b": 1.2230423653400475
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:COPP",
@@ -55,7 +69,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6833272335193805,
+      "n_windows": 6,
+      "lift_a": 1.3752075055610757,
+      "lift_b": 1.2230423653400475
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:ROC",
@@ -72,7 +93,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4832969977527757,
+      "n_windows": 6,
+      "lift_a": 1.2874587461095484,
+      "lift_b": 1.2230423653400475
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:KST",
@@ -89,7 +117,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7712937758470424,
+      "n_windows": 6,
+      "lift_a": 1.489358430892152,
+      "lift_b": 1.0627802490622478
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_BB:cycle",
@@ -106,7 +141,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6813253373671104,
+      "n_windows": 6,
+      "lift_a": 1.1066766961066918,
+      "lift_b": 1.489358430892152
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:TRIX",
@@ -123,7 +165,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6186653779916185,
+      "n_windows": 6,
+      "lift_a": 1.3716506218519235,
+      "lift_b": 1.2230423653400475
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:BBBreakout:tm0",
@@ -140,7 +189,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7517996779013136,
+      "n_windows": 5,
+      "lift_a": 1.1313850383650315,
+      "lift_b": 1.489358430892152
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:BBRevert",
@@ -157,7 +213,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7517996779013136,
+      "n_windows": 5,
+      "lift_a": 1.1313850383650315,
+      "lift_b": 1.489358430892152
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:KST",
@@ -174,7 +237,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.3845269337868045,
+      "n_windows": 6,
+      "lift_a": 1.489358430892152,
+      "lift_b": 0.9698394242207983
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:BBRevert",
@@ -191,7 +261,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.5202741581330255,
+      "n_windows": 6,
+      "lift_a": 1.1313850383650315,
+      "lift_b": 1.3716506218519235
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:BBBreakout:tm0",
@@ -208,7 +285,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.5202741581330255,
+      "n_windows": 6,
+      "lift_a": 1.1313850383650315,
+      "lift_b": 1.3716506218519235
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:PPO",
@@ -225,7 +309,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4723990628395625,
+      "n_windows": 6,
+      "lift_a": 1.2700286009770774,
+      "lift_b": 1.2230423653400475
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:CCI",
@@ -242,7 +333,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6190180535647154,
+      "n_windows": 6,
+      "lift_a": 1.0942487735644153,
+      "lift_b": 1.2700286009770774
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_LW:cycle",
@@ -259,7 +357,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7443098742543142,
+      "n_windows": 6,
+      "lift_a": 1.007461880806896,
+      "lift_b": 1.489358430892152
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:TRIX",
@@ -276,7 +381,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7184633106626017,
+      "n_windows": 6,
+      "lift_a": 1.3716506218519235,
+      "lift_b": 1.001051363156396
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:ROC",
@@ -293,7 +405,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4065140982837825,
+      "n_windows": 6,
+      "lift_a": 1.2874587461095484,
+      "lift_b": 1.3716506218519235
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:EWO",
@@ -310,7 +429,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.7291762143676999,
+      "n_windows": 4,
+      "lift_a": 1.2701757686472313,
+      "lift_b": 0.9817648334897872
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:COPP",
@@ -327,7 +453,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.5217016058372617,
+      "n_windows": 6,
+      "lift_a": 1.3752075055610757,
+      "lift_b": 1.007461880806896
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:KST",
@@ -344,7 +477,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4751714774093303,
+      "n_windows": 6,
+      "lift_a": 1.489358430892152,
+      "lift_b": 1.2874587461095484
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:Ehlers_KC:cycle",
@@ -361,7 +501,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6238929107278934,
+      "n_windows": 6,
+      "lift_a": 1.1298649806788492,
+      "lift_b": 1.489358430892152
+     },
+     "confirmed": "early+late only"
     }
    ]
   },
@@ -384,7 +531,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4744440538948607,
+      "n_windows": 6,
+      "lift_a": 1.285371259192787,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:KST",
@@ -401,7 +555,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4487523374549816,
+      "n_windows": 6,
+      "lift_a": 1.285371259192787,
+      "lift_b": 0.9867406387925733
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:HTSINE",
@@ -418,7 +579,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.31515090272306,
+      "n_windows": 6,
+      "lift_a": 0.9833619460981731,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:FVE",
@@ -435,7 +603,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.3532230397747127,
+      "n_windows": 6,
+      "lift_a": 1.025193291071091,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:BBBreakout:tm0",
@@ -452,7 +627,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4207764952780693,
+      "n_windows": 5,
+      "lift_a": 0.9919612026498277,
+      "lift_b": 1.285371259192787
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:BBRevert",
@@ -469,7 +651,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4207764952780693,
+      "n_windows": 5,
+      "lift_a": 0.9919612026498277,
+      "lift_b": 1.285371259192787
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:Ehlers_DC:cycle",
@@ -486,7 +675,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.250189034043726,
+      "n_windows": 6,
+      "lift_a": 0.9894811680416503,
+      "lift_b": 1.2406408283065187
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:TRIX",
@@ -503,7 +699,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.36885217892442,
+      "n_windows": 6,
+      "lift_a": 1.2406408283065187,
+      "lift_b": 0.9867406387925733
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:HTSINE",
@@ -520,7 +723,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.6331299771112935,
+      "n_windows": 6,
+      "lift_a": 0.9833619460981731,
+      "lift_b": 1.2406408283065187
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:PSAR",
@@ -537,7 +747,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.2837025591391438,
+      "n_windows": 6,
+      "lift_a": 1.1481289899908558,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:TRIX",
@@ -554,7 +771,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4305430091814761,
+      "n_windows": 6,
+      "lift_a": 1.2406408283065187,
+      "lift_b": 1.1515427365384092
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:RVOL",
@@ -571,7 +795,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.235551944879739,
+      "n_windows": 6,
+      "lift_a": 1.0518483157554772,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:KST",
@@ -588,7 +819,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4099335838319274,
+      "n_windows": 6,
+      "lift_a": 1.285371259192787,
+      "lift_b": 0.9030631748624707
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:TRIX",
@@ -605,7 +843,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.449925886059256,
+      "n_windows": 6,
+      "lift_a": 1.2406408283065187,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:PSAR",
@@ -622,7 +867,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.1236552567551665,
+      "n_windows": 6,
+      "lift_a": 1.1481289899908558,
+      "lift_b": 0.9226584250350592
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:CCI",
@@ -639,7 +891,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.3387768448979012,
+      "n_windows": 6,
+      "lift_a": 1.0975251566875726,
+      "lift_b": 1.0684555213822664
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:TEMACross",
@@ -656,7 +915,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4940075274059215,
+      "n_windows": 6,
+      "lift_a": 1.290951143788275,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:PPO",
@@ -673,7 +939,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.3199607747694193,
+      "n_windows": 6,
+      "lift_a": 1.0684555213822664,
+      "lift_b": 1.342912645983961
+     },
+     "confirmed": "no"
     },
     {
      "a": "raw_buy:KST",
@@ -690,7 +963,14 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.4207764952780693,
+      "n_windows": 5,
+      "lift_a": 1.285371259192787,
+      "lift_b": 1.0450091526020662
+     },
+     "confirmed": "early+late only"
     },
     {
      "a": "raw_buy:CCI",
@@ -707,9 +987,17 @@
      "selected": true,
      "e0_lift": null,
      "e0_lift_a": null,
-     "e0_lift_b": null
+     "e0_lift_b": null,
+     "late": {
+      "median_lift": 1.12937648417985,
+      "n_windows": 6,
+      "lift_a": 1.0975251566875726,
+      "lift_b": 1.1397661525634817
+     },
+     "confirmed": "no"
     }
    ]
   }
- }
+ },
+ "confirmed_at_lock": "4ccb4ad0"
 }

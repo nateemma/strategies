@@ -1,0 +1,98 @@
+{
+ "target": "label:sell",
+ "fold": "f09",
+ "prereg_lock": "4ccb4ad0",
+ "results": [
+  {
+   "fold": "f09",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 296967,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "all",
+   "auc": 0.967904599360956,
+   "width_sort_auc": 0.8900451551766777,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 AND raw_buy:WTO <= 0.5 -> p1=0.000 n=188661",
+    "base:bb_width <= 0.0350004 AND raw_buy:WTO > 0.5 -> p1=0.000 n=14992",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos <= 0.340293 AND Ehlers_ind_DYMI:ebsw_turn_down <= 0.5 -> p1=0.000 n=48206",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos <= 0.340293 AND Ehlers_ind_DYMI:ebsw_turn_down > 0.5 -> p1=0.000 n=8641",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll <= 0.0047046 -> p1=0.918 n=11880",
+    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll > 0.0047046 -> p1=0.943 n=24587"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "raw_buy:WTO",
+    "base:guard_metric_pos",
+    "Ehlers_ind_DYMI:ebsw_turn_down",
+    "base:atr_pct_roll"
+   ]
+  },
+  {
+   "fold": "f09",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 296967,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "restricted",
+   "auc": 0.9700312862570014,
+   "width_sort_auc": 0.8900451551766777,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 AND base:bb_width <= 6.61982e-07 -> p1=0.000 n=748",
+    "base:bb_width <= 0.0350004 AND base:bb_width > 6.61982e-07 -> p1=0.000 n=202905",
+    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 AND base:bb_width <= 0.0351777 -> p1=0.000 n=501",
+    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 AND base:bb_width > 0.0351777 -> p1=0.000 n=56346",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width <= 0.0504027 -> p1=0.929 n=17373",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width > 0.0504027 -> p1=0.941 n=19094"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric"
+   ]
+  },
+  {
+   "fold": "f09",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 296967,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "all",
+   "auc": 0.9706349529990871,
+   "width_sort_auc": 0.8900451551766777,
+   "aro_auc": null
+  },
+  {
+   "fold": "f09",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 296967,
+   "n_test": 21600,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "restricted",
+   "auc": 0.9684546205396489,
+   "width_sort_auc": 0.8900451551766777,
+   "aro_auc": null
+  }
+ ]
+}

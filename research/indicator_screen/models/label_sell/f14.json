@@ -1,0 +1,92 @@
+{
+ "target": "label:sell",
+ "fold": "f14",
+ "prereg_lock": "4ccb4ad0",
+ "results": [
+  {
+   "fold": "f14",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 404967,
+   "n_test": 20190,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "all",
+   "auc": 0.9779972349838353,
+   "width_sort_auc": 0.9333142334524417,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 -> p1=0.000 n=281331",
+    "base:bb_width > 0.0350004 AND base:guard_metric_neg <= 0.0402803 AND base:atr_pct_roll <= 0.00629127 -> p1=0.929 n=28092",
+    "base:bb_width > 0.0350004 AND base:guard_metric_neg <= 0.0402803 AND base:atr_pct_roll > 0.00629127 -> p1=0.947 n=20400",
+    "base:bb_width > 0.0350004 AND base:guard_metric_neg > 0.0402803 -> p1=0.000 n=75144"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric_neg",
+    "base:atr_pct_roll"
+   ]
+  },
+  {
+   "fold": "f14",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 404967,
+   "n_test": 20190,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "tree",
+   "inputs": "restricted",
+   "auc": 0.9767559128807215,
+   "width_sort_auc": 0.9333142334524417,
+   "aro_auc": null,
+   "rules": [
+    "base:bb_width <= 0.0350004 -> p1=0.000 n=281331",
+    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 -> p1=0.000 n=75144",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width <= 0.0504027 -> p1=0.931 n=23708",
+    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:bb_width > 0.0504027 -> p1=0.943 n=24784"
+   ],
+   "top_splits": [
+    "base:bb_width",
+    "base:guard_metric"
+   ]
+  },
+  {
+   "fold": "f14",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 404967,
+   "n_test": 20190,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "all",
+   "auc": 0.9814797515739323,
+   "width_sort_auc": 0.9333142334524417,
+   "aro_auc": null
+  },
+  {
+   "fold": "f14",
+   "half": "late",
+   "target": "label:sell",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 404967,
+   "n_test": 20190,
+   "dropped_all_missing": [],
+   "computable": true,
+   "model": "hgb",
+   "inputs": "restricted",
+   "auc": 0.9765110600646588,
+   "width_sort_auc": 0.9333142334524417,
+   "aro_auc": null
+  }
+ ]
+}

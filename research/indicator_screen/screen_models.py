@@ -85,6 +85,7 @@ def matrix(panel, cols, idx) -> np.ndarray:
         d = panel.columns(cols[k: k + CHUNK])
         for j, c in enumerate(cols[k: k + CHUNK]):
             X[:, k + j] = d[c][idx]
+    X[~np.isfinite(X)] = np.nan          # +-inf (ratio indicators) = missing, as in the single screens
     return X
 
 
@@ -139,11 +140,15 @@ def fit_fold(panel, targets, target, fold, all_folds, cols, pr) -> list[dict]:
             recs.append({**base, "computable": False, "reason": reason})
             continue
         Xtr, Xte = matrix(panel, cols, tr), matrix(panel, cols, te)
-        ri = [cols.index(c) for c in restricted]
         width_te = Xte[:, cols.index(WIDTH)]
+        usable = np.isfinite(Xtr).any(axis=0)          # a column with no training value cannot be fitted
+        base["dropped_all_missing"] = [c for c, u in zip(cols, usable) if not u]
+        fcols = [c for c, u in zip(cols, usable) if u]
+        Xtr, Xte = Xtr[:, usable], Xte[:, usable]
+        ri = [fcols.index(c) for c in restricted]
         aro = aro_p_buy(panel, te, fold.id) if target == "label:buy" else None
         for model in ("tree", "hgb"):
-            for inputs, Xa, Xb, names in (("all", Xtr, Xte, cols),
+            for inputs, Xa, Xb, names in (("all", Xtr, Xte, fcols),
                                           ("restricted", Xtr[:, ri], Xte[:, ri], restricted)):
                 m = (DecisionTreeClassifier(**pr["models"]["tree"]) if model == "tree"
                      else HistGradientBoostingClassifier(**pr["models"]["hgb"]))
