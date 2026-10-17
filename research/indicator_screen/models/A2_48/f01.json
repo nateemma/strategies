@@ -1,0 +1,29 @@
+{
+ "target": "A2:48",
+ "fold": "f01",
+ "prereg_lock": null,
+ "results": [
+  {
+   "fold": "f01",
+   "half": "early",
+   "target": "A2:48",
+   "population": "all",
+   "subsample": 4,
+   "n_train": 0,
+   "n_test": 909,
+   "computable": false,
+   "reason": "A2: no prior test windows"
+  },
+  {
+   "fold": "f01",
+   "half": "early",
+   "target": "A2:48",
+   "population": "candidate",
+   "subsample": 1,
+   "n_train": 0,
+   "n_test": 745,
+   "computable": false,
+   "reason": "A2: no prior test windows"
+  }
+ ]
+}

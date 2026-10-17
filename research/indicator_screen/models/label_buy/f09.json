@@ -15,25 +15,25 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.5764897061807133,
+   "auc": 0.5896641610929164,
    "width_sort_auc": 0.5656862900029419,
    "aro_auc": 0.5876080250830336,
    "rules": [
-    "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled <= -0.799949 AND base:spread_ma <= 0.236638 -> p1=0.537 n=10859",
-    "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled <= -0.799949 AND base:spread_ma > 0.236638 -> p1=0.448 n=16413",
+    "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled <= -0.799949 AND ni:ni_of_tbu <= -0.994403 -> p1=0.525 n=14465",
+    "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled <= -0.799949 AND ni:ni_of_tbu > -0.994403 -> p1=0.437 n=12807",
     "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled > -0.799949 AND base:atr_pct_roll <= 0.00384354 -> p1=0.334 n=26038",
     "base:atr_pct_roll <= 0.00536805 AND base:fastk_scaled > -0.799949 AND base:atr_pct_roll > 0.00384354 -> p1=0.413 n=28688",
-    "base:atr_pct_roll > 0.00536805 AND CCI:cci <= -32.4954 AND base:atr_pct_roll <= 0.00860249 -> p1=0.543 n=47751",
-    "base:atr_pct_roll > 0.00536805 AND CCI:cci <= -32.4954 AND base:atr_pct_roll > 0.00860249 -> p1=0.634 n=44647",
-    "base:atr_pct_roll > 0.00536805 AND CCI:cci > -32.4954 AND base:fisher_wr <= 0.407532 -> p1=0.511 n=41840",
-    "base:atr_pct_roll > 0.00536805 AND CCI:cci > -32.4954 AND base:fisher_wr > 0.407532 -> p1=0.403 n=11422"
+    "base:atr_pct_roll > 0.00536805 AND Ehlers_KC:kc_upper/close <= 1.02634 AND ZScore:zscore <= 0.358559 -> p1=0.517 n=52409",
+    "base:atr_pct_roll > 0.00536805 AND Ehlers_KC:kc_upper/close <= 1.02634 AND ZScore:zscore > 0.358559 -> p1=0.421 n=16106",
+    "base:atr_pct_roll > 0.00536805 AND Ehlers_KC:kc_upper/close > 1.02634 AND base:atr_pct_roll <= 0.0104979 -> p1=0.569 n=43893",
+    "base:atr_pct_roll > 0.00536805 AND Ehlers_KC:kc_upper/close > 1.02634 AND base:atr_pct_roll > 0.0104979 -> p1=0.643 n=33252"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:fastk_scaled",
-    "base:spread_ma",
-    "CCI:cci",
-    "base:fisher_wr"
+    "ni:ni_of_tbu",
+    "Ehlers_KC:kc_upper/close",
+    "ZScore:zscore"
    ]
   },
   {
@@ -78,7 +78,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6124582238097587,
+   "auc": 0.6041399192897653,
    "width_sort_auc": 0.5656862900029419,
    "aro_auc": 0.5876080250830336
   },

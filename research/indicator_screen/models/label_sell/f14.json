@@ -15,19 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.9779972349838353,
+   "auc": 0.9702711842776927,
    "width_sort_auc": 0.9333142334524417,
    "aro_auc": null,
    "rules": [
-    "base:bb_width <= 0.0350004 -> p1=0.000 n=281331",
-    "base:bb_width > 0.0350004 AND base:guard_metric_neg <= 0.0402803 AND base:atr_pct_roll <= 0.00629127 -> p1=0.929 n=28092",
-    "base:bb_width > 0.0350004 AND base:guard_metric_neg <= 0.0402803 AND base:atr_pct_roll > 0.00629127 -> p1=0.947 n=20400",
-    "base:bb_width > 0.0350004 AND base:guard_metric_neg > 0.0402803 -> p1=0.000 n=75144"
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=21095",
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350004 -> p1=0.000 n=14123",
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350004 -> p1=0.938 n=46388",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp <= 2.30278 AND EhlersBase:cg <= 5.51805 -> p1=0.015 n=314486",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp <= 2.30278 AND EhlersBase:cg > 5.51805 -> p1=0.506 n=1515",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp > 2.30278 AND base:bb_width <= 0.0350213 -> p1=0.000 n=4560",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp > 2.30278 AND base:bb_width > 0.0350213 -> p1=0.783 n=2800"
    ],
    "top_splits": [
     "base:bb_width",
-    "base:guard_metric_neg",
-    "base:atr_pct_roll"
+    "base:bb_lowerband/close",
+    "base:guard_metric_pos",
+    "COPP:copp",
+    "EhlersBase:cg"
    ]
   },
   {
@@ -68,7 +73,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9814797515739323,
+   "auc": 0.9800153139356814,
    "width_sort_auc": 0.9333142334524417,
    "aro_auc": null
   },

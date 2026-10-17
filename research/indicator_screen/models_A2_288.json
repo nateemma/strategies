@@ -1,0 +1,325 @@
+{
+ "target": "A2:288",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [
+    [
+     "f00",
+     "A2: no prior test windows"
+    ],
+    [
+     "f01",
+     "A2: no prior test windows"
+    ]
+   ],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.4982173338472551,
+      "median_auc_restricted": 0.44565067351993276,
+      "median_width_sort_auc": 0.5161456884352892,
+      "median_aro_auc": null,
+      "n_folds": 6
+     },
+     "late": {
+      "median_auc_all": 0.5309810671256454,
+      "median_auc_restricted": 0.5080990615856092,
+      "median_width_sort_auc": 0.5527106092511089,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:doy_sin",
+      6
+     ],
+     [
+      "ni:ni_ms_br",
+      5
+     ],
+     [
+      "base:doy_sin",
+      4
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      2
+     ],
+     [
+      "ni:ni_ms_bv",
+      2
+     ],
+     [
+      "btc:KCBreakout:kc_lower",
+      2
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ehlers_LW:ss",
+      1
+     ],
+     [
+      "btc:Ehlers_Ichimoku:senkou_span_a",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5522229817501122,
+      "median_auc_restricted": 0.4690599040270579,
+      "median_width_sort_auc": 0.5161456884352892,
+      "median_aro_auc": null,
+      "n_folds": 6
+     },
+     "late": {
+      "median_auc_all": 0.5995503751284661,
+      "median_auc_restricted": 0.5180014465532679,
+      "median_width_sort_auc": 0.5527106092511089,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:doy_sin",
+      6
+     ],
+     [
+      "ni:ni_ms_br",
+      5
+     ],
+     [
+      "base:doy_sin",
+      4
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      2
+     ],
+     [
+      "ni:ni_ms_bv",
+      2
+     ],
+     [
+      "btc:KCBreakout:kc_lower",
+      2
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ehlers_LW:ss",
+      1
+     ],
+     [
+      "btc:Ehlers_Ichimoku:senkou_span_a",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [
+    [
+     "f00",
+     "A2: no prior test windows"
+    ],
+    [
+     "f01",
+     "A2: no prior test windows"
+    ]
+   ],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5,
+      "median_auc_restricted": 0.4970348184601303,
+      "median_width_sort_auc": 0.5188229783644559,
+      "median_aro_auc": null,
+      "n_folds": 6
+     },
+     "late": {
+      "median_auc_all": 0.5551280003445659,
+      "median_auc_restricted": 0.5512527993396186,
+      "median_width_sort_auc": 0.5604803498157287,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:doy_sin",
+      6
+     ],
+     [
+      "btc:base:doy_sin",
+      6
+     ],
+     [
+      "ni:ni_ms_br",
+      5
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:EMACross:ema_long",
+      2
+     ],
+     [
+      "btc:base:ema200",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      2
+     ],
+     [
+      "btc:Ehlers_LW:ss",
+      1
+     ],
+     [
+      "btc:SMACross:sma_long",
+      1
+     ],
+     [
+      "btc:base:ss_close",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5215986839975718,
+      "median_auc_restricted": 0.49737841921265735,
+      "median_width_sort_auc": 0.5188229783644559,
+      "median_aro_auc": null,
+      "n_folds": 6
+     },
+     "late": {
+      "median_auc_all": 0.7679019738612652,
+      "median_auc_restricted": 0.5368685724692938,
+      "median_width_sort_auc": 0.5604803498157287,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:doy_sin",
+      6
+     ],
+     [
+      "btc:base:doy_sin",
+      6
+     ],
+     [
+      "ni:ni_ms_br",
+      5
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:EMACross:ema_long",
+      2
+     ],
+     [
+      "btc:base:ema200",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      2
+     ],
+     [
+      "btc:Ehlers_LW:ss",
+      1
+     ],
+     [
+      "btc:SMACross:sma_long",
+      1
+     ],
+     [
+      "btc:base:ss_close",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

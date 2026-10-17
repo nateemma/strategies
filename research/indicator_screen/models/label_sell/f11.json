@@ -15,21 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.96353745607188,
+   "auc": 0.9572654125687545,
    "width_sort_auc": 0.8491693863278695,
    "aro_auc": null,
    "rules": [
-    "base:bb_width <= 0.0350004 -> p1=0.000 n=235457",
-    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 AND Ehlers_Fisher:trend_alive <= 0.5 -> p1=0.000 n=51696",
-    "base:bb_width > 0.0350004 AND base:guard_metric <= 0.300013 AND Ehlers_Fisher:trend_alive > 0.5 -> p1=0.000 n=11738",
-    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:atr_pct_roll <= 0.00469959 -> p1=0.920 n=15199",
-    "base:bb_width > 0.0350004 AND base:guard_metric > 0.300013 AND base:atr_pct_roll > 0.00469959 -> p1=0.944 n=26077"
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=17932",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350004 -> p1=0.000 n=12207",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350004 -> p1=0.937 n=39517",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND EhlersBase:cg <= 5.51842 -> p1=0.015 n=263457",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND EhlersBase:cg > 5.51842 -> p1=0.513 n=1102",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width <= 0.0350213 -> p1=0.000 n=3606",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width > 0.0350213 -> p1=0.782 n=2346"
    ],
    "top_splits": [
     "base:bb_width",
-    "base:guard_metric",
-    "Ehlers_Fisher:trend_alive",
-    "base:atr_pct_roll"
+    "base:bb_lowerband/close",
+    "base:guard_metric_pos",
+    "COPP:copp",
+    "EhlersBase:cg"
    ]
   },
   {
@@ -71,7 +74,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9671890113290786,
+   "auc": 0.9669896178136141,
    "width_sort_auc": 0.8491693863278695,
    "aro_auc": null
   },

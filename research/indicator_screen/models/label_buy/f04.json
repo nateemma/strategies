@@ -15,25 +15,25 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.5855906947462289,
+   "auc": 0.5889043934552232,
    "width_sort_auc": 0.5695161878144227,
    "aro_auc": 0.601739519260943,
    "rules": [
     "base:atr_pct_roll <= 0.00529593 AND base:spread_ma <= 0.608966 AND Ehlers_DC:dc_lower <= 169.635 -> p1=0.488 n=16196",
     "base:atr_pct_roll <= 0.00529593 AND base:spread_ma <= 0.608966 AND Ehlers_DC:dc_lower > 169.635 -> p1=0.348 n=2096",
-    "base:atr_pct_roll <= 0.00529593 AND base:spread_ma > 0.608966 AND Ehlers_DC:cg_slope <= -0.00453938 -> p1=0.455 n=5724",
-    "base:atr_pct_roll <= 0.00529593 AND base:spread_ma > 0.608966 AND Ehlers_DC:cg_slope > -0.00453938 -> p1=0.339 n=23072",
-    "base:atr_pct_roll > 0.00529593 AND CCI:cci <= -5.91362 AND base:atr_pct_roll <= 0.00860265 -> p1=0.526 n=34077",
-    "base:atr_pct_roll > 0.00529593 AND CCI:cci <= -5.91362 AND base:atr_pct_roll > 0.00860265 -> p1=0.625 n=35059",
-    "base:atr_pct_roll > 0.00529593 AND CCI:cci > -5.91362 AND base:fisher_wr <= 0.417903 -> p1=0.497 n=17876",
-    "base:atr_pct_roll > 0.00529593 AND CCI:cci > -5.91362 AND base:fisher_wr > 0.417903 -> p1=0.392 n=6211"
+    "base:atr_pct_roll <= 0.00529593 AND base:spread_ma > 0.608966 AND Ehlers_Ichimoku:cg_slope <= -0.00453938 -> p1=0.455 n=5724",
+    "base:atr_pct_roll <= 0.00529593 AND base:spread_ma > 0.608966 AND Ehlers_Ichimoku:cg_slope > -0.00453938 -> p1=0.339 n=23072",
+    "base:atr_pct_roll > 0.00529593 AND Ehlers_KC:kc_upper/close <= 1.03138 AND base:fisher_wr <= 0.407533 -> p1=0.521 n=46725",
+    "base:atr_pct_roll > 0.00529593 AND Ehlers_KC:kc_upper/close <= 1.03138 AND base:fisher_wr > 0.407533 -> p1=0.396 n=6405",
+    "base:atr_pct_roll > 0.00529593 AND Ehlers_KC:kc_upper/close > 1.03138 AND base:atr_pct_roll <= 0.00766991 -> p1=0.530 n=9356",
+    "base:atr_pct_roll > 0.00529593 AND Ehlers_KC:kc_upper/close > 1.03138 AND base:atr_pct_roll > 0.00766991 -> p1=0.629 n=30737"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:spread_ma",
     "Ehlers_DC:dc_lower",
-    "Ehlers_DC:cg_slope",
-    "CCI:cci",
+    "Ehlers_Ichimoku:cg_slope",
+    "Ehlers_KC:kc_upper/close",
     "base:fisher_wr"
    ]
   },
@@ -79,7 +79,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6105240220750259,
+   "auc": 0.6157972801738828,
    "width_sort_auc": 0.5695161878144227,
    "aro_auc": 0.601739519260943
   },

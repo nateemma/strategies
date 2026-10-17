@@ -1,0 +1,311 @@
+{
+ "target": "B-pair:48",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5049429921666904,
+      "median_auc_restricted": 0.5294508783573277,
+      "median_width_sort_auc": 0.5178022489280685,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5232064221820966,
+      "median_auc_restricted": 0.5277725017494086,
+      "median_width_sort_auc": 0.5076819023749829,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": false,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:BBBreakout:bb_upperband",
+      7
+     ],
+     [
+      "btc:base:atr_pct",
+      7
+     ],
+     [
+      "ni:ni_ms_vr",
+      6
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      5
+     ],
+     [
+      "btc:Ehlers_KC:kc_mid",
+      4
+     ],
+     [
+      "base:dymi_scaled",
+      3
+     ],
+     [
+      "CMO:cmo",
+      3
+     ],
+     [
+      "btc:base:adx",
+      2
+     ],
+     [
+      "base:dow_sin",
+      2
+     ],
+     [
+      "btc:ZScore:rolling_std",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5403788668106453,
+      "median_auc_restricted": 0.5237483297775174,
+      "median_width_sort_auc": 0.5178022489280685,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5321261474429374,
+      "median_auc_restricted": 0.5278071791514372,
+      "median_width_sort_auc": 0.5076819023749829,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:BBBreakout:bb_upperband",
+      7
+     ],
+     [
+      "btc:base:atr_pct",
+      7
+     ],
+     [
+      "ni:ni_ms_vr",
+      6
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      5
+     ],
+     [
+      "btc:Ehlers_KC:kc_mid",
+      4
+     ],
+     [
+      "base:dymi_scaled",
+      3
+     ],
+     [
+      "CMO:cmo",
+      3
+     ],
+     [
+      "btc:base:adx",
+      2
+     ],
+     [
+      "base:dow_sin",
+      2
+     ],
+     [
+      "btc:ZScore:rolling_std",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5103483249547551,
+      "median_auc_restricted": 0.5200663085827352,
+      "median_width_sort_auc": 0.5365500485122645,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5307408639088586,
+      "median_auc_restricted": 0.5281867037741692,
+      "median_width_sort_auc": 0.5186665102533169,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": false,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "ni:ni_ms_bv",
+      9
+     ],
+     [
+      "base:ema200/close",
+      5
+     ],
+     [
+      "btc:Ehlers_KC:kc_lower",
+      4
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "Ehlers_Ichimoku:senkou_span_b/close",
+      3
+     ],
+     [
+      "btc:Ehlers_Ichimoku:cloud_bottom",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:base:ema200",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ichimoku:senkou_span_b",
+      2
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5702253205982752,
+      "median_auc_restricted": 0.5152832850000582,
+      "median_width_sort_auc": 0.5365500485122645,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5473206401979901,
+      "median_auc_restricted": 0.5230646063371013,
+      "median_width_sort_auc": 0.5186665102533169,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "ni:ni_ms_bv",
+      9
+     ],
+     [
+      "base:ema200/close",
+      5
+     ],
+     [
+      "btc:Ehlers_KC:kc_lower",
+      4
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "Ehlers_Ichimoku:senkou_span_b/close",
+      3
+     ],
+     [
+      "btc:Ehlers_Ichimoku:cloud_bottom",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:base:ema200",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ichimoku:senkou_span_b",
+      2
+     ]
+    ]
+   }
+  }
+ }
+}

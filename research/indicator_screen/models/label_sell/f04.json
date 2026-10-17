@@ -15,23 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.9665771956111189,
+   "auc": 0.958749668336689,
    "width_sort_auc": 0.8713232975917342,
    "aro_auc": null,
    "rules": [
-    "base:bb_width <= 0.0350012 AND raw_buy:WTO <= 0.5 -> p1=0.000 n=121861",
-    "base:bb_width <= 0.0350012 AND raw_buy:WTO > 0.5 -> p1=0.000 n=9512",
-    "base:bb_width > 0.0350012 AND base:guard_metric_pos <= 0.340281 AND Ehlers_ind_DYMI:ebsw_turn_down <= 0.5 -> p1=0.000 n=29597",
-    "base:bb_width > 0.0350012 AND base:guard_metric_pos <= 0.340281 AND Ehlers_ind_DYMI:ebsw_turn_down > 0.5 -> p1=0.000 n=5468",
-    "base:bb_width > 0.0350012 AND base:guard_metric_pos > 0.340281 AND base:atr_pct <= 0.00614493 -> p1=0.919 n=10185",
-    "base:bb_width > 0.0350012 AND base:guard_metric_pos > 0.340281 AND base:atr_pct > 0.00614493 -> p1=0.948 n=12344"
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=9919",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350012 -> p1=0.000 n=6619",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350012 -> p1=0.937 n=21598",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND TEMACross:tema_short/close <= 1.00354 -> p1=0.008 n=141195",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND TEMACross:tema_short/close > 1.00354 -> p1=0.188 n=6417",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width <= 0.0350505 -> p1=0.000 n=1902",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width > 0.0350505 -> p1=0.770 n=1317"
    ],
    "top_splits": [
     "base:bb_width",
-    "raw_buy:WTO",
+    "base:bb_lowerband/close",
     "base:guard_metric_pos",
-    "Ehlers_ind_DYMI:ebsw_turn_down",
-    "base:atr_pct"
+    "COPP:copp",
+    "TEMACross:tema_short/close"
    ]
   },
   {
@@ -74,7 +75,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9699761982800331,
+   "auc": 0.9686738930249255,
    "width_sort_auc": 0.8713232975917342,
    "aro_auc": null
   },

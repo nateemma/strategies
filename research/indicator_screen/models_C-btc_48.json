@@ -1,0 +1,303 @@
+{
+ "target": "C-btc:48",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.7330157011078298,
+      "median_auc_restricted": 0.6408642533589133,
+      "median_width_sort_auc": 0.6447288311274422,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.8380403635172753,
+      "median_auc_restricted": 0.6844209320091673,
+      "median_width_sort_auc": 0.6868659100003638,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      7
+     ],
+     [
+      "btc:base:dow_sin",
+      5
+     ],
+     [
+      "btc:base:mod_cos",
+      5
+     ],
+     [
+      "btc:PSAR:ema200/close",
+      3
+     ],
+     [
+      "base:dow_sin",
+      3
+     ],
+     [
+      "base:mod_cos",
+      3
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      1
+     ],
+     [
+      "btc:base:ema200/close",
+      1
+     ],
+     [
+      "btc:Ehlers_LW:lw_atr",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8782071617669959,
+      "median_auc_restricted": 0.6367304504766003,
+      "median_width_sort_auc": 0.6447288311274422,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.9240561578138855,
+      "median_auc_restricted": 0.6945166044286802,
+      "median_width_sort_auc": 0.6868659100003638,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      7
+     ],
+     [
+      "btc:base:dow_sin",
+      5
+     ],
+     [
+      "btc:base:mod_cos",
+      5
+     ],
+     [
+      "btc:PSAR:ema200/close",
+      3
+     ],
+     [
+      "base:dow_sin",
+      3
+     ],
+     [
+      "base:mod_cos",
+      3
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      1
+     ],
+     [
+      "btc:base:ema200/close",
+      1
+     ],
+     [
+      "btc:Ehlers_LW:lw_atr",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.7244082678688758,
+      "median_auc_restricted": 0.5670935893952856,
+      "median_width_sort_auc": 0.5604925022982792,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.789835397058382,
+      "median_auc_restricted": 0.586437725662232,
+      "median_width_sort_auc": 0.5863287853398631,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      11
+     ],
+     [
+      "btc:base:mod_cos",
+      5
+     ],
+     [
+      "btc:Ehlers_LW:lw_atr",
+      5
+     ],
+     [
+      "btc:base:doy_sin",
+      3
+     ],
+     [
+      "base:mod_cos",
+      3
+     ],
+     [
+      "ni:ni_ms_vr",
+      1
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "btc:LWBreakout:atr/close",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.9030617852727489,
+      "median_auc_restricted": 0.5460812515845719,
+      "median_width_sort_auc": 0.5604925022982792,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.9297297297297298,
+      "median_auc_restricted": 0.5962970883505363,
+      "median_width_sort_auc": 0.5863287853398631,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      11
+     ],
+     [
+      "btc:base:mod_cos",
+      5
+     ],
+     [
+      "btc:Ehlers_LW:lw_atr",
+      5
+     ],
+     [
+      "btc:base:doy_sin",
+      3
+     ],
+     [
+      "base:mod_cos",
+      3
+     ],
+     [
+      "ni:ni_ms_vr",
+      1
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "btc:LWBreakout:atr/close",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

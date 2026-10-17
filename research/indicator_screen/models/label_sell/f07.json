@@ -15,19 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.9609051427695536,
+   "auc": 0.9535834404763712,
    "width_sort_auc": 0.8523838017799921,
    "aro_auc": null,
    "rules": [
-    "base:bb_width <= 0.0350012 -> p1=0.000 n=177818",
-    "base:bb_width > 0.0350012 AND base:guard_metric <= 0.299998 -> p1=0.000 n=46195",
-    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:atr_pct_roll <= 0.00696728 -> p1=0.926 n=17764",
-    "base:bb_width > 0.0350012 AND base:guard_metric > 0.299998 AND base:atr_pct_roll > 0.00696728 -> p1=0.952 n=11990"
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=13072",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350012 -> p1=0.000 n=8784",
+    "base:bb_lowerband/close <= 0.976155 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350012 -> p1=0.939 n=28504",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND Ehlers_KC:cg <= 5.51795 -> p1=0.014 n=198191",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp <= 2.32847 AND Ehlers_KC:cg > 5.51795 -> p1=0.491 n=926",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width <= 0.0350213 -> p1=0.000 n=2580",
+    "base:bb_lowerband/close > 0.976155 AND COPP:copp > 2.32847 AND base:bb_width > 0.0350213 -> p1=0.779 n=1710"
    ],
    "top_splits": [
     "base:bb_width",
-    "base:guard_metric",
-    "base:atr_pct_roll"
+    "base:bb_lowerband/close",
+    "base:guard_metric_pos",
+    "COPP:copp",
+    "Ehlers_KC:cg"
    ]
   },
   {
@@ -68,7 +73,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9655650458776536,
+   "auc": 0.9664725592868754,
    "width_sort_auc": 0.8523838017799921,
    "aro_auc": null
   },

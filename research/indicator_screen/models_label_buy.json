@@ -41,14 +41,14 @@
    "tree": {
     "halves": {
      "early": {
-      "median_auc_all": 0.6012447277268977,
+      "median_auc_all": 0.5987913403801001,
       "median_auc_restricted": 0.5495752893281103,
       "median_width_sort_auc": 0.5493977146031741,
       "median_aro_auc": 0.6065742690636322,
       "n_folds": 8
      },
      "late": {
-      "median_auc_all": 0.5944809380251552,
+      "median_auc_all": 0.5919341925958996,
       "median_auc_restricted": 0.5476011734121379,
       "median_width_sort_auc": 0.5540390164144029,
       "median_aro_auc": 0.5974919887942881,
@@ -60,42 +60,42 @@
     "recurring_top_splits": [
      [
       "base:atr_pct_roll",
-      15
-     ],
-     [
-      "base:spread_ma",
-      8
+      14
      ],
      [
       "base:fastk_scaled",
       7
      ],
      [
-      "WOBV:wobv_raw",
-      3
+      "base:spread_ma",
+      6
      ],
      [
-      "base:bb_width",
-      2
+      "SAR:sar/close",
+      5
      ],
      [
       "base:atr_pct",
       2
      ],
      [
-      "base:minus_di_scaled",
+      "WOBV:wobv_raw",
       2
      ],
      [
-      "base:log_volume",
+      "ni:ni_of_tbu",
       2
      ],
      [
-      "base:macdhist_norm",
+      "ni:ni_ms_bv",
+      2
+     ],
+     [
+      "ZScore:rolling_std/close",
       1
      ],
      [
-      "Ehlers_DC:dc_lower",
+      "Ehlers_KC:kc_upper/close",
       1
      ]
     ]
@@ -103,14 +103,14 @@
    "hgb": {
     "halves": {
      "early": {
-      "median_auc_all": 0.6214278665348643,
+      "median_auc_all": 0.6192886881768178,
       "median_auc_restricted": 0.5516699188882805,
       "median_width_sort_auc": 0.5493977146031741,
       "median_aro_auc": 0.6065742690636322,
       "n_folds": 8
      },
      "late": {
-      "median_auc_all": 0.6134368127888303,
+      "median_auc_all": 0.6249434783295263,
       "median_auc_restricted": 0.5506890790929327,
       "median_width_sort_auc": 0.5540390164144029,
       "median_aro_auc": 0.5974919887942881,
@@ -122,42 +122,42 @@
     "recurring_top_splits": [
      [
       "base:atr_pct_roll",
-      15
-     ],
-     [
-      "base:spread_ma",
-      8
+      14
      ],
      [
       "base:fastk_scaled",
       7
      ],
      [
-      "WOBV:wobv_raw",
-      3
+      "base:spread_ma",
+      6
      ],
      [
-      "base:bb_width",
-      2
+      "SAR:sar/close",
+      5
      ],
      [
       "base:atr_pct",
       2
      ],
      [
-      "base:minus_di_scaled",
+      "WOBV:wobv_raw",
       2
      ],
      [
-      "base:log_volume",
+      "ni:ni_of_tbu",
       2
      ],
      [
-      "base:macdhist_norm",
+      "ni:ni_ms_bv",
+      2
+     ],
+     [
+      "ZScore:rolling_std/close",
       1
      ],
      [
-      "Ehlers_DC:dc_lower",
+      "Ehlers_KC:kc_upper/close",
       1
      ]
     ]

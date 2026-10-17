@@ -15,12 +15,12 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.6369473809792123,
+   "auc": 0.6382904455921211,
    "width_sort_auc": 0.5285398063876459,
    "aro_auc": 0.6429551678316424,
    "rules": [
-    "base:atr_pct <= 0.00758516 AND base:fastk_scaled <= -0.876169 AND base:atr_pct_roll <= 0.00489708 -> p1=0.508 n=35632",
-    "base:atr_pct <= 0.00758516 AND base:fastk_scaled <= -0.876169 AND base:atr_pct_roll > 0.00489708 -> p1=0.586 n=15140",
+    "base:atr_pct <= 0.00758516 AND base:fastk_scaled <= -0.876169 AND ni:ni_ms_bv <= -0.106847 -> p1=0.463 n=13573",
+    "base:atr_pct <= 0.00758516 AND base:fastk_scaled <= -0.876169 AND ni:ni_ms_bv > -0.106847 -> p1=0.556 n=37199",
     "base:atr_pct <= 0.00758516 AND base:fastk_scaled > -0.876169 AND base:atr_pct_roll <= 0.00486018 -> p1=0.372 n=68676",
     "base:atr_pct <= 0.00758516 AND base:fastk_scaled > -0.876169 AND base:atr_pct_roll > 0.00486018 -> p1=0.469 n=57728",
     "base:atr_pct > 0.00758516 AND base:fisher_wr <= 0.0627715 AND base:atr_pct <= 0.0110839 -> p1=0.574 n=50978",
@@ -30,9 +30,10 @@
    ],
    "top_splits": [
     "base:atr_pct",
-    "base:atr_pct_roll",
     "base:fisher_wr",
-    "base:fastk_scaled"
+    "base:fastk_scaled",
+    "ni:ni_ms_bv",
+    "base:atr_pct_roll"
    ]
   },
   {
@@ -77,7 +78,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6642406428768427,
+   "auc": 0.6574640622018981,
    "width_sort_auc": 0.5285398063876459,
    "aro_auc": 0.6429551678316424
   },

@@ -15,25 +15,25 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.5881253920997346,
+   "auc": 0.6005622933453001,
    "width_sort_auc": 0.5466990086155893,
    "aro_auc": 0.6001908869882052,
    "rules": [
-    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND WOBV:wobv_raw <= -18291.1 -> p1=0.433 n=9501",
-    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND WOBV:wobv_raw > -18291.1 -> p1=0.521 n=15293",
+    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND PSAR:psar/close <= 1.01685 -> p1=0.451 n=14443",
+    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND PSAR:psar/close > 1.01685 -> p1=0.539 n=10351",
     "base:atr_pct_roll <= 0.00652467 AND base:spread_ma > 0.608227 AND base:atr_pct <= 0.00425301 -> p1=0.321 n=13062",
     "base:atr_pct_roll <= 0.00652467 AND base:spread_ma > 0.608227 AND base:atr_pct > 0.00425301 -> p1=0.421 n=21697",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci <= -5.91402 AND base:atr_pct <= 0.00991873 -> p1=0.551 n=24004",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci <= -5.91402 AND base:atr_pct > 0.00991873 -> p1=0.635 n=26562",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci > -5.91402 AND base:fisher_wr <= 0.407533 -> p1=0.507 n=13380",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci > -5.91402 AND base:fisher_wr > 0.407533 -> p1=0.396 n=4855"
+    "base:atr_pct_roll > 0.00652467 AND ZScore:rolling_mean/close <= 1.00332 AND base:fisher_wr <= 0.407533 -> p1=0.510 n=15269",
+    "base:atr_pct_roll > 0.00652467 AND ZScore:rolling_mean/close <= 1.00332 AND base:fisher_wr > 0.407533 -> p1=0.396 n=4980",
+    "base:atr_pct_roll > 0.00652467 AND ZScore:rolling_mean/close > 1.00332 AND base:atr_pct <= 0.00991964 -> p1=0.556 n=23005",
+    "base:atr_pct_roll > 0.00652467 AND ZScore:rolling_mean/close > 1.00332 AND base:atr_pct > 0.00991964 -> p1=0.637 n=25547"
    ],
    "top_splits": [
     "base:atr_pct",
     "base:atr_pct_roll",
     "base:spread_ma",
-    "WOBV:wobv_raw",
-    "CCI:cci",
+    "PSAR:psar/close",
+    "ZScore:rolling_mean/close",
     "base:fisher_wr"
    ]
   },
@@ -79,7 +79,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.610548654972327,
+   "auc": 0.6270155600802841,
    "width_sort_auc": 0.5466990086155893,
    "aro_auc": 0.6001908869882052
   },

@@ -15,26 +15,25 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.610214876741147,
+   "auc": 0.5882318942482978,
    "width_sort_auc": 0.5469337437418194,
    "aro_auc": 0.6098421563014803,
    "rules": [
-    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma <= 0.608227 AND base:bb_width <= 0.0457982 -> p1=0.451 n=12727",
-    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma <= 0.608227 AND base:bb_width > 0.0457982 -> p1=0.528 n=8936",
-    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma > 0.608227 AND base:atr_pct_roll <= 0.00476614 -> p1=0.355 n=17045",
-    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma > 0.608227 AND base:atr_pct_roll > 0.00476614 -> p1=0.433 n=10979",
-    "base:atr_pct_roll > 0.00652782 AND CCI:cci <= 3.32347 AND base:atr_pct <= 0.0103745 -> p1=0.543 n=26042",
-    "base:atr_pct_roll > 0.00652782 AND CCI:cci <= 3.32347 AND base:atr_pct > 0.0103745 -> p1=0.628 n=23486",
-    "base:atr_pct_roll > 0.00652782 AND CCI:cci > 3.32347 AND base:mod_sin <= 0.582166 -> p1=0.438 n=10647",
-    "base:atr_pct_roll > 0.00652782 AND CCI:cci > 3.32347 AND base:mod_sin > 0.582166 -> p1=0.541 n=4573"
+    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma <= 0.608227 AND SAR:sar/close <= 1.02435 -> p1=0.462 n=16698",
+    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma <= 0.608227 AND SAR:sar/close > 1.02435 -> p1=0.554 n=4965",
+    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma > 0.608227 AND ni:ni_ms_vr <= -0.0367918 -> p1=0.335 n=11655",
+    "base:atr_pct_roll <= 0.00652782 AND base:spread_ma > 0.608227 AND ni:ni_ms_vr > -0.0367918 -> p1=0.422 n=16369",
+    "base:atr_pct_roll > 0.00652782 AND Ehlers_KC:kc_upper/close <= 1.02894 AND SAR:sar/close <= 0.976031 -> p1=0.410 n=5240",
+    "base:atr_pct_roll > 0.00652782 AND Ehlers_KC:kc_upper/close <= 1.02894 AND SAR:sar/close > 0.976031 -> p1=0.522 n=24289",
+    "base:atr_pct_roll > 0.00652782 AND Ehlers_KC:kc_upper/close > 1.02894 AND Ehlers_KC:kc_upper/close <= 1.05253 -> p1=0.581 n=23956",
+    "base:atr_pct_roll > 0.00652782 AND Ehlers_KC:kc_upper/close > 1.02894 AND Ehlers_KC:kc_upper/close > 1.05253 -> p1=0.647 n=11263"
    ],
    "top_splits": [
+    "SAR:sar/close",
+    "Ehlers_KC:kc_upper/close",
     "base:atr_pct_roll",
     "base:spread_ma",
-    "base:bb_width",
-    "CCI:cci",
-    "base:atr_pct",
-    "base:mod_sin"
+    "ni:ni_ms_vr"
    ]
   },
   {
@@ -79,7 +78,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6460945518556716,
+   "auc": 0.6227800961797527,
    "width_sort_auc": 0.5469337437418194,
    "aro_auc": 0.6098421563014803
   },

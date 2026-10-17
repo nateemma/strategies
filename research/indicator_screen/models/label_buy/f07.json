@@ -15,7 +15,7 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.6063970945504582,
+   "auc": 0.622216678950847,
    "width_sort_auc": 0.5569888613026835,
    "aro_auc": 0.6142470683832176,
    "rules": [
@@ -23,17 +23,17 @@
     "base:atr_pct_roll <= 0.00532707 AND base:fastk_scaled <= -0.798936 AND WOBV:wobv_raw > -22242.6 -> p1=0.522 n=13198",
     "base:atr_pct_roll <= 0.00532707 AND base:fastk_scaled > -0.798936 AND base:atr_pct_roll <= 0.00314406 -> p1=0.310 n=13311",
     "base:atr_pct_roll <= 0.00532707 AND base:fastk_scaled > -0.798936 AND base:atr_pct_roll > 0.00314406 -> p1=0.405 n=32148",
-    "base:atr_pct_roll > 0.00532707 AND CCI:cci <= -5.89837 AND base:atr_pct_roll <= 0.00896451 -> p1=0.535 n=47584",
-    "base:atr_pct_roll > 0.00532707 AND CCI:cci <= -5.89837 AND base:atr_pct_roll > 0.00896451 -> p1=0.634 n=39361",
-    "base:atr_pct_roll > 0.00532707 AND CCI:cci > -5.89837 AND base:fisher_wr <= 0.407118 -> p1=0.499 n=22642",
-    "base:atr_pct_roll > 0.00532707 AND CCI:cci > -5.89837 AND base:fisher_wr > 0.407118 -> p1=0.396 n=8726"
+    "base:atr_pct_roll > 0.00532707 AND Ehlers_KC:kc_upper/close <= 1.02635 AND ZScore:zscore <= 0.35898 -> p1=0.519 n=42299",
+    "base:atr_pct_roll > 0.00532707 AND Ehlers_KC:kc_upper/close <= 1.02635 AND ZScore:zscore > 0.35898 -> p1=0.418 n=12596",
+    "base:atr_pct_roll > 0.00532707 AND Ehlers_KC:kc_upper/close > 1.02635 AND base:atr_pct_roll <= 0.00899095 -> p1=0.552 n=26475",
+    "base:atr_pct_roll > 0.00532707 AND Ehlers_KC:kc_upper/close > 1.02635 AND base:atr_pct_roll > 0.00899095 -> p1=0.631 n=36943"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:fastk_scaled",
     "WOBV:wobv_raw",
-    "CCI:cci",
-    "base:fisher_wr"
+    "Ehlers_KC:kc_upper/close",
+    "ZScore:zscore"
    ]
   },
   {
@@ -78,7 +78,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6224872357641916,
+   "auc": 0.6133780146966883,
    "width_sort_auc": 0.5569888613026835,
    "aro_auc": 0.6142470683832176
   },

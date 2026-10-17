@@ -15,24 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.9735553001382633,
+   "auc": 0.9812125583377237,
    "width_sort_auc": 0.9384942960349095,
    "aro_auc": null,
    "rules": [
-    "COPP:copp <= 2.09166 AND Ehlers_BB:cg <= 5.51607 AND Ehlers_KC:cg <= 5.51162 -> p1=0.018 n=93900",
-    "COPP:copp <= 2.09166 AND Ehlers_BB:cg <= 5.51607 AND Ehlers_KC:cg > 5.51162 -> p1=0.277 n=4850",
-    "COPP:copp <= 2.09166 AND Ehlers_BB:cg > 5.51607 AND base:bb_width <= 0.0350114 -> p1=0.000 n=2167",
-    "COPP:copp <= 2.09166 AND Ehlers_BB:cg > 5.51607 AND base:bb_width > 0.0350114 -> p1=0.849 n=3005",
-    "COPP:copp > 2.09166 AND base:bb_width <= 0.0350012 -> p1=0.000 n=4655",
-    "COPP:copp > 2.09166 AND base:bb_width > 0.0350012 AND base:guard_metric_neg <= 0.040283 -> p1=0.925 n=15595",
-    "COPP:copp > 2.09166 AND base:bb_width > 0.0350012 AND base:guard_metric_neg > 0.040283 -> p1=0.000 n=2754"
+    "base:bb_lowerband/close <= 0.976102 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=8164",
+    "base:bb_lowerband/close <= 0.976102 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350012 -> p1=0.000 n=4823",
+    "base:bb_lowerband/close <= 0.976102 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350012 -> p1=0.927 n=17154",
+    "base:bb_lowerband/close > 0.976102 AND COPP:copp <= 2.33479 AND Ehlers_LW:cg <= 5.51325 -> p1=0.011 n=91550",
+    "base:bb_lowerband/close > 0.976102 AND COPP:copp <= 2.33479 AND Ehlers_LW:cg > 5.51325 -> p1=0.233 n=2843",
+    "base:bb_lowerband/close > 0.976102 AND COPP:copp > 2.33479 AND base:bb_width <= 0.0350505 -> p1=0.000 n=1343",
+    "base:bb_lowerband/close > 0.976102 AND COPP:copp > 2.33479 AND base:bb_width > 0.0350505 -> p1=0.729 n=1049"
    ],
    "top_splits": [
     "base:bb_width",
+    "base:bb_lowerband/close",
+    "base:guard_metric_pos",
     "COPP:copp",
-    "Ehlers_BB:cg",
-    "Ehlers_KC:cg",
-    "base:guard_metric_neg"
+    "Ehlers_LW:cg"
    ]
   },
   {
@@ -75,7 +75,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9871071350182592,
+   "auc": 0.9861517266018677,
    "width_sort_auc": 0.9384942960349095,
    "aro_auc": null
   },

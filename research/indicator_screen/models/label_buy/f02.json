@@ -15,26 +15,26 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.6306414008088471,
+   "auc": 0.6373122004831765,
    "width_sort_auc": 0.5518616854645287,
    "aro_auc": 0.6464415105394867,
    "rules": [
-    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND base:macdhist_norm <= 0.931873 -> p1=0.492 n=21787",
-    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND base:macdhist_norm > 0.931873 -> p1=0.321 n=1106",
+    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND SAR:sar/close <= 1.02435 -> p1=0.462 n=17715",
+    "base:atr_pct_roll <= 0.00652467 AND base:spread_ma <= 0.608227 AND SAR:sar/close > 1.02435 -> p1=0.558 n=5178",
     "base:atr_pct_roll <= 0.00652467 AND base:spread_ma > 0.608227 AND base:atr_pct_roll <= 0.00381351 -> p1=0.333 n=12943",
     "base:atr_pct_roll <= 0.00652467 AND base:spread_ma > 0.608227 AND base:atr_pct_roll > 0.00381351 -> p1=0.419 n=18511",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci <= -5.91402 AND base:atr_pct <= 0.00991873 -> p1=0.546 n=23089",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci <= -5.91402 AND base:atr_pct > 0.00991873 -> p1=0.631 n=26094",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci > -5.91402 AND base:fisher_wr <= 0.407533 -> p1=0.505 n=13043",
-    "base:atr_pct_roll > 0.00652467 AND CCI:cci > -5.91402 AND base:fisher_wr > 0.407533 -> p1=0.401 n=4631"
+    "base:atr_pct_roll > 0.00652467 AND base:bb_middleband/close <= 1.01016 AND base:fisher_wr <= 0.407533 -> p1=0.526 n=26668",
+    "base:atr_pct_roll > 0.00652467 AND base:bb_middleband/close <= 1.01016 AND base:fisher_wr > 0.407533 -> p1=0.402 n=4746",
+    "base:atr_pct_roll > 0.00652467 AND base:bb_middleband/close > 1.01016 AND base:atr_pct <= 0.00991607 -> p1=0.565 n=15658",
+    "base:atr_pct_roll > 0.00652467 AND base:bb_middleband/close > 1.01016 AND base:atr_pct > 0.00991607 -> p1=0.644 n=19785"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:spread_ma",
-    "base:macdhist_norm",
-    "CCI:cci",
-    "base:atr_pct",
-    "base:fisher_wr"
+    "SAR:sar/close",
+    "base:bb_middleband/close",
+    "base:fisher_wr",
+    "base:atr_pct"
    ]
   },
   {
@@ -79,7 +79,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.672380522002516,
+   "auc": 0.650517429612902,
    "width_sort_auc": 0.5518616854645287,
    "aro_auc": 0.6464415105394867
   },

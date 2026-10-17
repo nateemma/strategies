@@ -15,23 +15,24 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.967710493691272,
+   "auc": 0.9621380279302457,
    "width_sort_auc": 0.8667937523744246,
    "aro_auc": null,
    "rules": [
-    "base:bb_width <= 0.0350004 AND raw_buy:WTO <= 0.5 -> p1=0.000 n=231340",
-    "base:bb_width <= 0.0350004 AND raw_buy:WTO > 0.5 -> p1=0.000 n=18154",
-    "base:bb_width > 0.0350004 AND base:guard_metric_pos <= 0.340293 AND Ehlers_Ichimoku:cloud_bottom <= 0.610775 -> p1=0.000 n=500",
-    "base:bb_width > 0.0350004 AND base:guard_metric_pos <= 0.340293 AND Ehlers_Ichimoku:cloud_bottom > 0.610775 -> p1=0.000 n=67591",
-    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll <= 0.00613735 -> p1=0.926 n=24161",
-    "base:bb_width > 0.0350004 AND base:guard_metric_pos > 0.340293 AND base:atr_pct_roll > 0.00613735 -> p1=0.946 n=20021"
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=19229",
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350004 -> p1=0.000 n=12856",
+    "base:bb_lowerband/close <= 0.976103 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350004 -> p1=0.936 n=42287",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp <= 2.30278 AND EhlersBase:cg <= 5.51842 -> p1=0.015 n=279434",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp <= 2.30278 AND EhlersBase:cg > 5.51842 -> p1=0.505 n=1211",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp > 2.30278 AND base:bb_width <= 0.0350213 -> p1=0.000 n=4173",
+    "base:bb_lowerband/close > 0.976103 AND COPP:copp > 2.30278 AND base:bb_width > 0.0350213 -> p1=0.784 n=2577"
    ],
    "top_splits": [
     "base:bb_width",
-    "raw_buy:WTO",
+    "base:bb_lowerband/close",
     "base:guard_metric_pos",
-    "Ehlers_Ichimoku:cloud_bottom",
-    "base:atr_pct_roll"
+    "COPP:copp",
+    "EhlersBase:cg"
    ]
   },
   {
@@ -74,7 +75,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9759565310320141,
+   "auc": 0.9746213269214469,
    "width_sort_auc": 0.8667937523744246,
    "aro_auc": null
   },

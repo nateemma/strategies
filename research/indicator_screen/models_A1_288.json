@@ -1,0 +1,311 @@
+{
+ "target": "A1:288",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5948873583044073,
+      "median_auc_restricted": 0.5118785160496153,
+      "median_width_sort_auc": 0.5600409001835476,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5579812941475727,
+      "median_auc_restricted": 0.508500640447839,
+      "median_width_sort_auc": 0.5119606638518589,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "ni:ni_ms_br",
+      13
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      8
+     ],
+     [
+      "btc:base:doy_cos",
+      7
+     ],
+     [
+      "btc:base:doy_sin",
+      4
+     ],
+     [
+      "base:doy_sin",
+      3
+     ],
+     [
+      "ni:ni_ms_vr",
+      3
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ichimoku:senkou_span_b",
+      1
+     ],
+     [
+      "ni:ni_ms_bv",
+      1
+     ],
+     [
+      "btc:Ehlers_KC:kc_lower",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.535028179974709,
+      "median_auc_restricted": 0.5158950702150725,
+      "median_width_sort_auc": 0.5600409001835476,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5503206423638362,
+      "median_auc_restricted": 0.5116510508088619,
+      "median_width_sort_auc": 0.5119606638518589,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "ni:ni_ms_br",
+      13
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      8
+     ],
+     [
+      "btc:base:doy_cos",
+      7
+     ],
+     [
+      "btc:base:doy_sin",
+      4
+     ],
+     [
+      "base:doy_sin",
+      3
+     ],
+     [
+      "ni:ni_ms_vr",
+      3
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:Ichimoku:senkou_span_b",
+      1
+     ],
+     [
+      "ni:ni_ms_bv",
+      1
+     ],
+     [
+      "btc:Ehlers_KC:kc_lower",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5396510274102317,
+      "median_auc_restricted": 0.5325004580079231,
+      "median_width_sort_auc": 0.5413521116119973,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5637670577154735,
+      "median_auc_restricted": 0.547825747405534,
+      "median_width_sort_auc": 0.5575242698651601,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:WOBV:wobv_raw",
+      10
+     ],
+     [
+      "ni:ni_ms_br",
+      8
+     ],
+     [
+      "base:doy_cos",
+      8
+     ],
+     [
+      "btc:base:doy_cos",
+      4
+     ],
+     [
+      "btc:base:doy_sin",
+      4
+     ],
+     [
+      "btc:base:ema200",
+      3
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "base:doy_sin",
+      1
+     ],
+     [
+      "btc:LWRevert:atr",
+      1
+     ],
+     [
+      "btc:KCBreakout:kc_lower",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5517886706923262,
+      "median_auc_restricted": 0.5113038716469016,
+      "median_width_sort_auc": 0.5413521116119973,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.6051375762628229,
+      "median_auc_restricted": 0.5301847203797425,
+      "median_width_sort_auc": 0.5575242698651601,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:WOBV:wobv_raw",
+      10
+     ],
+     [
+      "ni:ni_ms_br",
+      8
+     ],
+     [
+      "base:doy_cos",
+      8
+     ],
+     [
+      "btc:base:doy_cos",
+      4
+     ],
+     [
+      "btc:base:doy_sin",
+      4
+     ],
+     [
+      "btc:base:ema200",
+      3
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "base:doy_sin",
+      1
+     ],
+     [
+      "btc:LWRevert:atr",
+      1
+     ],
+     [
+      "btc:KCBreakout:kc_lower",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

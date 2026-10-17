@@ -15,21 +15,23 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.9716407906368151,
+   "auc": 0.9642134098982375,
    "width_sort_auc": 0.9101908806674395,
    "aro_auc": null,
    "rules": [
-    "base:guard_metric <= 0.300034 AND raw_buy:WTO <= 0.5 -> p1=0.000 n=66187",
-    "base:guard_metric <= 0.300034 AND raw_buy:WTO > 0.5 -> p1=0.000 n=4170",
-    "base:guard_metric > 0.300034 AND base:bb_width <= 0.0350012 -> p1=0.000 n=21299",
-    "base:guard_metric > 0.300034 AND base:bb_width > 0.0350012 AND base:atr_pct_roll <= 0.00714811 -> p1=0.909 n=8403",
-    "base:guard_metric > 0.300034 AND base:bb_width > 0.0350012 AND base:atr_pct_roll > 0.00714811 -> p1=0.938 n=7490"
+    "base:bb_lowerband/close <= 0.976145 AND base:guard_metric_pos <= 0.340302 -> p1=0.000 n=7561",
+    "base:bb_lowerband/close <= 0.976145 AND base:guard_metric_pos > 0.340302 AND base:bb_width <= 0.0350012 -> p1=0.000 n=4094",
+    "base:bb_lowerband/close <= 0.976145 AND base:guard_metric_pos > 0.340302 AND base:bb_width > 0.0350012 -> p1=0.924 n=15252",
+    "base:bb_lowerband/close > 0.976145 AND AO:aosc/close <= 0.0130114 AND base:bb_lowerband/close <= 0.981072 -> p1=0.122 n=8403",
+    "base:bb_lowerband/close > 0.976145 AND AO:aosc/close <= 0.0130114 AND base:bb_lowerband/close > 0.981072 -> p1=0.004 n=69658",
+    "base:bb_lowerband/close > 0.976145 AND AO:aosc/close > 0.0130114 AND base:bb_width <= 0.0350614 -> p1=0.000 n=1700",
+    "base:bb_lowerband/close > 0.976145 AND AO:aosc/close > 0.0130114 AND base:bb_width > 0.0350614 -> p1=0.748 n=881"
    ],
    "top_splits": [
-    "base:guard_metric",
-    "raw_buy:WTO",
+    "base:bb_lowerband/close",
     "base:bb_width",
-    "base:atr_pct_roll"
+    "base:guard_metric_pos",
+    "AO:aosc/close"
    ]
   },
   {
@@ -71,7 +73,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.9742922187650878,
+   "auc": 0.9745580394315476,
    "width_sort_auc": 0.9101908806674395,
    "aro_auc": null
   },

@@ -15,25 +15,26 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.607930232382506,
+   "auc": 0.615954558842612,
    "width_sort_auc": 0.5562842554278311,
    "aro_auc": 0.6389843332159303,
    "rules": [
-    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled <= -0.904829 AND base:log_volume <= 0.0816906 -> p1=0.552 n=22310",
-    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled <= -0.904829 AND base:log_volume > 0.0816906 -> p1=0.477 n=17663",
-    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled > -0.904829 AND base:atr_pct_roll <= 0.00323835 -> p1=0.335 n=30150",
-    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled > -0.904829 AND base:atr_pct_roll > 0.00323835 -> p1=0.408 n=59966",
-    "base:atr_pct_roll > 0.00539776 AND CCI:cci <= -32.8112 AND base:atr_pct_roll <= 0.00860249 -> p1=0.550 n=57221",
-    "base:atr_pct_roll > 0.00539776 AND CCI:cci <= -32.8112 AND base:atr_pct_roll > 0.00860249 -> p1=0.644 n=50832",
-    "base:atr_pct_roll > 0.00539776 AND CCI:cci > -32.8112 AND base:fisher_wr <= 0.405182 -> p1=0.517 n=49395",
-    "base:atr_pct_roll > 0.00539776 AND CCI:cci > -32.8112 AND base:fisher_wr > 0.405182 -> p1=0.410 n=13619"
+    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled <= -0.904829 AND ni:ni_ms_bv <= -0.0991696 -> p1=0.454 n=12510",
+    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled <= -0.904829 AND ni:ni_ms_bv > -0.0991696 -> p1=0.548 n=27463",
+    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled > -0.904829 AND SMACross:sma_short/close <= 1.0044 -> p1=0.364 n=69620",
+    "base:atr_pct_roll <= 0.00539776 AND base:fastk_scaled > -0.904829 AND SMACross:sma_short/close > 1.0044 -> p1=0.449 n=20496",
+    "base:atr_pct_roll > 0.00539776 AND Ehlers_KC:kc_upper/close <= 1.02634 AND ZScore:zscore <= 0.358559 -> p1=0.520 n=62331",
+    "base:atr_pct_roll > 0.00539776 AND Ehlers_KC:kc_upper/close <= 1.02634 AND ZScore:zscore > 0.358559 -> p1=0.429 n=19134",
+    "base:atr_pct_roll > 0.00539776 AND Ehlers_KC:kc_upper/close > 1.02634 AND base:atr_pct_roll <= 0.00860275 -> p1=0.566 n=35224",
+    "base:atr_pct_roll > 0.00539776 AND Ehlers_KC:kc_upper/close > 1.02634 AND base:atr_pct_roll > 0.00860275 -> p1=0.640 n=54378"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:fastk_scaled",
-    "base:log_volume",
-    "CCI:cci",
-    "base:fisher_wr"
+    "ni:ni_ms_bv",
+    "SMACross:sma_short/close",
+    "Ehlers_KC:kc_upper/close",
+    "ZScore:zscore"
    ]
   },
   {
@@ -78,7 +79,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6134368127888303,
+   "auc": 0.6249434783295263,
    "width_sort_auc": 0.5562842554278311,
    "aro_auc": 0.6389843332159303
   },

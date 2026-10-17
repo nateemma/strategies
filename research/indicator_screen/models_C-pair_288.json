@@ -1,0 +1,303 @@
+{
+ "target": "C-pair:288",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8056872494985864,
+      "median_auc_restricted": 0.753525921320801,
+      "median_width_sort_auc": 0.7570276724040251,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.7974126792463804,
+      "median_auc_restricted": 0.763837719264901,
+      "median_width_sort_auc": 0.7544740614960106,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      5
+     ],
+     [
+      "base:atr_pct_roll",
+      5
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "Ehlers_KC:ema_slow",
+      1
+     ],
+     [
+      "btc:Ehlers_DC:dc_lower",
+      1
+     ],
+     [
+      "EhlersBase:ema_fast",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.9095878260590845,
+      "median_auc_restricted": 0.7706567372993613,
+      "median_width_sort_auc": 0.7570276724040251,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.8822976561756953,
+      "median_auc_restricted": 0.796979642021844,
+      "median_width_sort_auc": 0.7544740614960106,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      5
+     ],
+     [
+      "base:atr_pct_roll",
+      5
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "Ehlers_KC:ema_slow",
+      1
+     ],
+     [
+      "btc:Ehlers_DC:dc_lower",
+      1
+     ],
+     [
+      "EhlersBase:ema_fast",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8438063177745689,
+      "median_auc_restricted": 0.6805658279562404,
+      "median_width_sort_auc": 0.614450730026968,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.8284544521013638,
+      "median_auc_restricted": 0.6480667613131923,
+      "median_width_sort_auc": 0.6554128781958758,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      5
+     ],
+     [
+      "btc:base:dow_cos",
+      5
+     ],
+     [
+      "base:atr_pct",
+      1
+     ],
+     [
+      "btc:base:doy_sin",
+      1
+     ],
+     [
+      "base:dow_cos",
+      1
+     ],
+     [
+      "btc:Ehlers_DC:dc_mid",
+      1
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "base:bb_upperband",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.9258966548210334,
+      "median_auc_restricted": 0.6962187821098121,
+      "median_width_sort_auc": 0.614450730026968,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.9042566779051315,
+      "median_auc_restricted": 0.6617403661243997,
+      "median_width_sort_auc": 0.6554128781958758,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      5
+     ],
+     [
+      "btc:base:dow_cos",
+      5
+     ],
+     [
+      "base:atr_pct",
+      1
+     ],
+     [
+      "btc:base:doy_sin",
+      1
+     ],
+     [
+      "base:dow_cos",
+      1
+     ],
+     [
+      "btc:Ehlers_DC:dc_mid",
+      1
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "base:bb_upperband",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

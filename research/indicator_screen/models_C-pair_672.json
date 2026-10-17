@@ -1,0 +1,303 @@
+{
+ "target": "C-pair:672",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8292702255841833,
+      "median_auc_restricted": 0.7303642114277573,
+      "median_width_sort_auc": 0.7353553510404651,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.7732018449509536,
+      "median_auc_restricted": 0.7471671290488401,
+      "median_width_sort_auc": 0.7136605773118927,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "base:atr_pct_roll",
+      13
+     ],
+     [
+      "base:atr_pct",
+      4
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      4
+     ],
+     [
+      "EMACross:ema_long",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "Ehlers_Ichimoku:senkou_span_b",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "btc:BBRevert:bb_upperband",
+      1
+     ],
+     [
+      "btc:Ehlers_KC:kc_upper",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8441005434484761,
+      "median_auc_restricted": 0.7513478466550005,
+      "median_width_sort_auc": 0.7353553510404651,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.8323962587020615,
+      "median_auc_restricted": 0.7651733291740664,
+      "median_width_sort_auc": 0.7136605773118927,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "WOBV:wobv_raw",
+      14
+     ],
+     [
+      "base:atr_pct_roll",
+      13
+     ],
+     [
+      "base:atr_pct",
+      4
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      4
+     ],
+     [
+      "EMACross:ema_long",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "Ehlers_Ichimoku:senkou_span_b",
+      2
+     ],
+     [
+      "btc:PSAR:ema200",
+      1
+     ],
+     [
+      "btc:BBRevert:bb_upperband",
+      1
+     ],
+     [
+      "btc:Ehlers_KC:kc_upper",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.8243404180950069,
+      "median_auc_restricted": 0.6731385220209528,
+      "median_width_sort_auc": 0.6157301083878868,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.7626612365304581,
+      "median_auc_restricted": 0.6704256837500447,
+      "median_width_sort_auc": 0.6585772543612953,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      7
+     ],
+     [
+      "btc:TEMACross:tema_short",
+      2
+     ],
+     [
+      "btc:Ehlers_Ichimoku:cloud_top",
+      2
+     ],
+     [
+      "ni:ni_po_tt",
+      1
+     ],
+     [
+      "LWBreakout:atr",
+      1
+     ],
+     [
+      "LWRevert:sell_level",
+      1
+     ],
+     [
+      "btc:base:doy_cos",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.894479078638031,
+      "median_auc_restricted": 0.6817111629539871,
+      "median_width_sort_auc": 0.6157301083878868,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.8932725011442425,
+      "median_auc_restricted": 0.6750780782837945,
+      "median_width_sort_auc": 0.6585772543612953,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "base:atr_pct_roll",
+      15
+     ],
+     [
+      "WOBV:wobv_raw",
+      15
+     ],
+     [
+      "btc:WOBV:wobv_raw",
+      7
+     ],
+     [
+      "btc:TEMACross:tema_short",
+      2
+     ],
+     [
+      "btc:Ehlers_Ichimoku:cloud_top",
+      2
+     ],
+     [
+      "ni:ni_po_tt",
+      1
+     ],
+     [
+      "LWBreakout:atr",
+      1
+     ],
+     [
+      "LWRevert:sell_level",
+      1
+     ],
+     [
+      "btc:base:doy_cos",
+      1
+     ]
+    ]
+   }
+  }
+ }
+}

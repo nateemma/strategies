@@ -15,7 +15,7 @@
    "computable": true,
    "model": "tree",
    "inputs": "all",
-   "auc": 0.5812481653908759,
+   "auc": 0.583658458344573,
    "width_sort_auc": 0.5440231666884402,
    "aro_auc": 0.5860937842210235,
    "rules": [
@@ -23,17 +23,17 @@
     "base:atr_pct_roll <= 0.00539509 AND base:fastk_scaled <= -0.799076 AND WOBV:wobv_raw > -22242.6 -> p1=0.522 n=15189",
     "base:atr_pct_roll <= 0.00539509 AND base:fastk_scaled > -0.799076 AND base:atr_pct_roll <= 0.00370061 -> p1=0.327 n=22124",
     "base:atr_pct_roll <= 0.00539509 AND base:fastk_scaled > -0.799076 AND base:atr_pct_roll > 0.00370061 -> p1=0.412 n=28054",
-    "base:atr_pct_roll > 0.00539509 AND CCI:cci <= -14.8746 AND base:atr_pct_roll <= 0.00859792 -> p1=0.535 n=45478",
-    "base:atr_pct_roll > 0.00539509 AND CCI:cci <= -14.8746 AND base:atr_pct_roll > 0.00859792 -> p1=0.631 n=46190",
-    "base:atr_pct_roll > 0.00539509 AND CCI:cci > -14.8746 AND base:fisher_wr <= 0.407532 -> p1=0.505 n=28978",
-    "base:atr_pct_roll > 0.00539509 AND CCI:cci > -14.8746 AND base:fisher_wr > 0.407532 -> p1=0.400 n=10047"
+    "base:atr_pct_roll > 0.00539509 AND Ehlers_KC:kc_upper/close <= 1.02635 AND ZScore:zscore <= 0.358986 -> p1=0.518 n=46474",
+    "base:atr_pct_roll > 0.00539509 AND Ehlers_KC:kc_upper/close <= 1.02635 AND ZScore:zscore > 0.358986 -> p1=0.421 n=14244",
+    "base:atr_pct_roll > 0.00539509 AND Ehlers_KC:kc_upper/close > 1.02635 AND base:atr_pct_roll <= 0.0077082 -> p1=0.537 n=18606",
+    "base:atr_pct_roll > 0.00539509 AND Ehlers_KC:kc_upper/close > 1.02635 AND base:atr_pct_roll > 0.0077082 -> p1=0.624 n=51369"
    ],
    "top_splits": [
     "base:atr_pct_roll",
     "base:fastk_scaled",
     "WOBV:wobv_raw",
-    "CCI:cci",
-    "base:fisher_wr"
+    "Ehlers_KC:kc_upper/close",
+    "ZScore:zscore"
    ]
   },
   {
@@ -78,7 +78,7 @@
    "computable": true,
    "model": "hgb",
    "inputs": "all",
-   "auc": 0.6083145511137016,
+   "auc": 0.5955616639249387,
    "width_sort_auc": 0.5440231666884402,
    "aro_auc": 0.5860937842210235
   },

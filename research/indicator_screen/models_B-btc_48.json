@@ -1,0 +1,311 @@
+{
+ "target": "B-btc:48",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "label": "SCREEN (descriptive); persistence: distant era not tested (models cannot be scored on E0) -- a later backtest must cover 2022",
+ "populations": {
+  "all": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.4912684586726497,
+      "median_auc_restricted": 0.5033230638788998,
+      "median_width_sort_auc": 0.5016347001902131,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.514035546970203,
+      "median_auc_restricted": 0.5079754932552446,
+      "median_width_sort_auc": 0.5036663439638572,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": false,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:WOBV:wobv_raw",
+      9
+     ],
+     [
+      "ni:ni_ms_vr",
+      7
+     ],
+     [
+      "btc:LWRevert:buy_level",
+      5
+     ],
+     [
+      "base:doy_cos",
+      4
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:base:ema200",
+      3
+     ],
+     [
+      "btc:base:dow_sin",
+      2
+     ],
+     [
+      "base:dow_sin",
+      2
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      2
+     ],
+     [
+      "ni:ni_ms_bv",
+      1
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5354125050336996,
+      "median_auc_restricted": 0.5003546034990388,
+      "median_width_sort_auc": 0.5016347001902131,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5386933193721058,
+      "median_auc_restricted": 0.5032841516177229,
+      "median_width_sort_auc": 0.5036663439638572,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:WOBV:wobv_raw",
+      9
+     ],
+     [
+      "ni:ni_ms_vr",
+      7
+     ],
+     [
+      "btc:LWRevert:buy_level",
+      5
+     ],
+     [
+      "base:doy_cos",
+      4
+     ],
+     [
+      "btc:base:doy_cos",
+      3
+     ],
+     [
+      "btc:base:ema200",
+      3
+     ],
+     [
+      "btc:base:dow_sin",
+      2
+     ],
+     [
+      "base:dow_sin",
+      2
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      2
+     ],
+     [
+      "ni:ni_ms_bv",
+      1
+     ]
+    ]
+   }
+  },
+  "candidate": {
+   "computable_folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+   ],
+   "not_computable": [],
+   "tree": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5,
+      "median_auc_restricted": 0.5006772790670895,
+      "median_width_sort_auc": 0.5129646822390522,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5037467025693072,
+      "median_auc_restricted": 0.5040616593228523,
+      "median_width_sort_auc": 0.5254275256853649,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": false,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      10
+     ],
+     [
+      "ni:ni_ms_bv",
+      8
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      4
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "base:doy_sin",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "ni:ni_ms_vr",
+      2
+     ],
+     [
+      "btc:Ehlers_DC:dc_upper",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:TSI:tsi",
+      2
+     ]
+    ]
+   },
+   "hgb": {
+    "halves": {
+     "early": {
+      "median_auc_all": 0.5269499268179543,
+      "median_auc_restricted": 0.506632958896365,
+      "median_width_sort_auc": 0.5129646822390522,
+      "median_aro_auc": null,
+      "n_folds": 8
+     },
+     "late": {
+      "median_auc_all": 0.5643057202035827,
+      "median_auc_restricted": 0.5083547982647167,
+      "median_width_sort_auc": 0.5254275256853649,
+      "median_aro_auc": null,
+      "n_folds": 7
+     }
+    },
+    "candidate": true,
+    "persistence": "distant era not tested",
+    "recurring_top_splits": [
+     [
+      "btc:base:atr_pct",
+      10
+     ],
+     [
+      "ni:ni_ms_bv",
+      8
+     ],
+     [
+      "btc:base:atr_pct_roll",
+      4
+     ],
+     [
+      "btc:PSAR:ema200",
+      3
+     ],
+     [
+      "base:doy_sin",
+      3
+     ],
+     [
+      "btc:base:doy_cos",
+      2
+     ],
+     [
+      "ni:ni_ms_vr",
+      2
+     ],
+     [
+      "btc:Ehlers_DC:dc_upper",
+      2
+     ],
+     [
+      "base:doy_cos",
+      2
+     ],
+     [
+      "btc:TSI:tsi",
+      2
+     ]
+    ]
+   }
+  }
+ }
+}
