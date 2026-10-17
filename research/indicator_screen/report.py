@@ -35,15 +35,25 @@ def _names(items):
     return ", ".join(f"`{x}`" for x in items) if items else "none"
 
 
-def _top_table(results, target, pop, key="median_strength", n=TOP):
+def _tags(d: Path = HERE) -> dict:
+    t = _load("tags.json", d)
+    return t["tags"] if t else {}
+
+
+def _tag(col, tags):
+    return tags.get(col[4:] if col.startswith("btc:") else col, "indicator")
+
+
+def _top_table(results, target, pop, key="median_strength", n=TOP, tags=None):
+    tags = tags or {}
     rows = sorted((r for r in results if r["target"] == target and r["population"] == pop
                    and r.get(key) is not None), key=lambda r: (-r[key], r["column"]))[:n]
-    out = ["| column | median AUC | early | late | E0 | same-dir share | group | ρ guard | ρ width |",
-           "|---|---|---|---|---|---|---|---|---|"]
+    out = ["| column | tag | median AUC | early | late | E0 | same-dir share | group | ρ guard | ρ width |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         h = r["halves"]
         rg, rw = r.get("rho_guard") or {}, r.get("rho_width") or {}
-        out.append(f"| `{r['column']}` | {_f(r['median_auc'])} | {_f(h['early']['median_auc'])} | "
+        out.append(f"| `{r['column']}` | {_tag(r['column'], tags)} | {_f(r['median_auc'])} | {_f(h['early']['median_auc'])} | "
                    f"{_f(h['late']['median_auc'])} | {_f(h['e0']['median_auc'])} | "
                    f"{_f(r['same_direction_share'], 2)} | {r.get('redundancy_group', '–')} | "
                    f"{_f(rg.get(pop), 2)} | {_f(rw.get(pop), 2)} |")
@@ -63,8 +73,10 @@ def grouped(cols, groups: dict) -> list[str]:
     return sorted(out)
 
 
-def sc004(single_labels, single_regime, pairs, models) -> dict:
-    """The SC-004 answer lists. A flag counts only with E0 agreement (Principle II)."""
+def sc004(single_labels, single_regime, pairs, models, tags=None) -> dict:
+    """The SC-004 answer lists. A flag counts only with E0 agreement (Principle II). Columns tagged
+    price_level / price_scaled / non_stationary / calendar are split out of (a), (b), (e)."""
+    tags = tags or {}
     res = (single_labels or {}).get("results", [])
     groups = {r["column"]: r.get("redundancy_group") for r in res}
     a = sorted({r["column"] for r in res if r["population"] == "candidate"
@@ -99,9 +111,28 @@ def sc004(single_labels, single_regime, pairs, models) -> dict:
             for model in ("tree", "hgb"):
                 if blk[model]["candidate"]:
                     e.setdefault(f"{t} [{pop}]", []).append(f"{model} model (distant era not tested)")
+    def split(cols):
+        keep = [c for c in cols if _tag(c.split(" (")[0], tags) == "indicator"]
+        out = {}
+        for c in cols:
+            t = _tag(c.split(" (")[0], tags)
+            if t != "indicator":
+                out.setdefault(t, []).append(c)
+        return keep, out
+
+    a, a_t = split(a)
+    b, b_t = split(b)
+    e2, e_t = {}, {}
+    for k, v in sorted(e.items()):
+        keep, tagged = split(v)
+        if keep:
+            e2[k] = grouped(keep, groups)
+        if tagged:
+            e_t[k] = {t: len(x) for t, x in sorted(tagged.items())}
     return {"a": grouped(a, groups), "b": grouped(b, groups), "c": c, "c_partial": c_partial, "d": d,
-            "e": {k: grouped(v, groups) for k, v in sorted(e.items())},
-            "n": {"a": len(a), "b": len(b)}}
+            "e": e2, "n": {"a": len(a), "b": len(b)},
+            "tagged": {"a": {t: grouped(x, groups) for t, x in sorted(a_t.items())},
+                       "b": {t: grouped(x, groups) for t, x in sorted(b_t.items())}, "e": e_t}}
 
 
 def build(d: Path = HERE) -> str:
@@ -128,7 +159,10 @@ def build(d: Path = HERE) -> str:
     L += ["## Harvest", "",
           f"- In-scope classes: {len(man.get('classes', []))}; columns: {len(man.get('columns', []))}.",
           "- Excluded classes: " + _names(sorted({f"{e['class']} ({e['reason']})" for e in man.get("excluded", [])})),
-          f"- Lookahead (truncation test) FAIL, excluded: {_names(caus.get('fails', []))}."]
+          f"- Lookahead (truncation test) FAIL, excluded: {_names(caus.get('fails', []))}.",
+          "- Column tags (added after the lock at the user's request; no score changed): "
+          + ", ".join(f"{k} {v}" for k, v in sorted(((_load('tags.json', d) or {}).get('counts') or {}).items()))
+          + ". Tagged columns are listed apart from candidates."]
     never = sorted({c for v in man.get("excluded_columns", {}).values() for c, why in v.items() if why == "constant"})
     L += [f"- Constant on some pair (never fires / never varies): {_names(never)}.", ""]
     if sl is None:
@@ -148,7 +182,7 @@ def build(d: Path = HERE) -> str:
         for t in ("label:buy", "label:sell"):
             for pop in ("all", "candidate"):
                 L += [f"### {t}, {pop} bars: top {TOP} by median strength", ""]
-                L += _top_table(sl["results"], t, pop) + [""]
+                L += _top_table(sl["results"], t, pop, tags=_tags(d)) + [""]
         L += ["### Residual beyond bb_width + guard_metric (label:buy, candidate bars)", "",
               "| column | strat AUC early | late | E0 | AUC | width-sort AUC | persistence |", "|---|---|---|---|---|---|---|"]
         rr = sorted((r for r in sl["results"] if r["target"] == "label:buy" and r["population"] == "candidate"
@@ -205,13 +239,19 @@ def build(d: Path = HERE) -> str:
                 continue
             bl = rs[0].get("baseline_auc")
             L += [f"### {t} (all bars): persistence baseline AUC {_f(bl)}", ""]
-            L += _top_table(sr["results"], t, "all", n=8) + [""]
-    ans = sc004(sl, sr, pairs, models)
+            L += _top_table(sr["results"], t, "all", n=8, tags=_tags(d)) + [""]
+    tags = _tags(d)
+    ans = sc004(sl, sr, pairs, models, tags)
     L += ["## SC-004 answers", "",
           f"**(a) Columns that beat the width sort on candidate bars in both halves (E0 agrees):** "
           f"{ans['n']['a']} columns in {len(ans['a'])} redundancy groups: " + _names(ans["a"]), "",
           f"**(b) Columns with residual strength beyond bb_width + guard_metric in both halves (E0 agrees):** "
           f"{ans['n']['b']} columns in {len(ans['b'])} redundancy groups: " + _names(ans["b"]), "",
+          "*Tagged columns that met (a) or (b) but are not comparable across time or pairs (tags.json):*"]
+    for q in ("a", "b"):
+        for t, v in ans["tagged"][q].items():
+            L.append(f"  - ({q}) {t}: {_names(v)}")
+    L += ["",
           "**(c) Signal pairs that survive late confirmation (E0 agrees), per target:**"]
     L += [f"  - {k}: {_names(v)}" for k, v in ans["c"].items()] or ["  none"]
     L += ["", "  Early + late only (E0 fails or not computable): "
@@ -223,6 +263,9 @@ def build(d: Path = HERE) -> str:
             L.append(f"  - {k}: {_names(v)}")
     else:
         L.append("  none")
+    if ans["tagged"]["e"]:
+        L += ["", "  *Tagged columns that also beat the baseline (not counted):* " + "; ".join(
+            f"{k}: " + ", ".join(f"{t} {n}" for t, n in v.items()) for k, v in ans["tagged"]["e"].items())]
     L += ["", SCREEN, ""]
     return "\n".join(L)
 
