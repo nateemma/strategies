@@ -1,0 +1,90 @@
+{
+ "title": "Mixed sizer: mean of the ARO p_buy and 037 composite percentiles as the capital-neutral stake sizer on the width book (cs_aro's design), all 15 folds",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26), and the late half is NOT blind (cs_aro and cs_cmp results, both halves, were read before this design). A pass is PASS (PROVISIONAL) with the forward window as confirmation. Nothing is adopted or promoted.",
+ "arm": "cs_mix",
+ "arm_class": "NNNC_CS_MIX = NNNC_CS_CMP with sizer_score = 0.5 x (percentile of ARO %predict_prob_buy + percentile of the composite); percentiles = share of the fold's validation-tail width-book run starts <= x (user_data/data/mix_sizer/MIX_fNN.json, research/mix_sizer/knots.py, built from the cs_cmp fold strategy's tail frames); a bar missing either score reads 0 (disagree). Entries, ARO weights (model keys = cs_aro's), AGREE_SHARE 0.5, STAKE_WEIGHTS, HELD_PAIR_ADD off: all cs_aro's.",
+ "thresholds": "per fold, research/mix_sizer/pick.py (= research/hgb_sizer/pick.py on plan_cs_mix.json, plan passed explicitly): first bar of each width-book run in the validation tail, (1 - 0.5) quantile of the mixed score, 4 decimals; verify every fold (tag mismatches 0, loaded == stored)",
+ "comparators": {
+  "width": "w_aro",
+  "control": "wf_aro_g24",
+  "incumbent_sizer": "cs_aro"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": {
+  "per_half": "trade set == w_aro on (pair, open_date, close_date) in all but <= 2 folds; 0 entry violations; 0 tag mismatches; thresholds loaded at 4 dp; mean capital ratio vs w_aro within +-10%; no zero-trade fold; width-book entries without an mixed score <= 1%",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "pass": "judge_one(cs_hgb, w_aro) PASS AND judge_one(cs_hgb, wf_aro_g24) PASS -- cs_aro's own bar",
+ "secondary": "judge_one(cs_mix, cs_aro): PASS = the mixed sizer beats the ARO sizer in both halves (reported; replacing cs_aro needs this AND the primary PASS). cs_mix vs cs_cmp reported descriptively (vs_cs_cmp.json)",
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE (deterministic; the repeat would be the forward window)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "confirmation_route": "post-2026-09-07 forward window (planned next, beside the ARO volume-filter retrain); live use needs ARO plus the 7 composite columns at runtime",
+ "seen_before": [
+  "cs_aro 59.95, cs_cmp 60.92, cs_hgb 58.67, w_aro 51.44, wf_aro_g24 49.97 on all 15 folds, both halves",
+  "037 composite screen (all halves)",
+  "knots step smoke-run on f00 tail only (93 run starts, no missing) before this file was committed",
+  "no backtest of any mixed score"
+ ],
+ "question": "does mixing the ARO and composite rankings beat both the ARO sizer (cs_aro) in both halves and the composite sizer alone?",
+ "score": "equal weights, no fit; knots and threshold both read only the validation tail (the rows cs_aro's threshold rule already reads)",
+ "why": "cs_hgb and cs_cmp both trail cs_aro early and lead it late (cs_cmp \u22122.12 / +3.09, late IMPROVED p 0.012): the scores look complementary, so the mix is the one design tested -- no weights or alternatives are tried"
+}
