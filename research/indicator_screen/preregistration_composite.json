@@ -1,0 +1,19 @@
+{
+ "title": "037 addendum 4: continuous composite of the tbatr-direction columns, and an 'extreme within k bars, then turns' event, on tradeable bars",
+ "date": "2026-10-17",
+ "status": "ADDED AFTER the 037 lock at the user's request (option 2), after the tradeable-bars (vol/) screens were read; committed before any composite score",
+ "bars": "Panel(tradeable_only=True): data_ok AND volume > 0, as vol/",
+ "labels": {"primary": "label:tbatr_buy (volatility-neutral direction)", "secondary": "label:tb_buy (fixed +2%/-5%)"},
+ "pool": "vol/single_tbatr.json, label:tbatr_buy, population all; continuous columns only (no raw_*, cmp:*, base:gbb_candidate); tag 'indicator' only (no price_level / price_scaled / calendar / non_stationary); early median strength >= 0.02 AND the E0 direction equals the early direction with E0 strength >= 0.01 (late NOT used)",
+ "members": "one per redundancy_group (highest early strength), then greedy by early strength keeping a column only if |Spearman rho| < 0.7 with every member already kept (early test windows, all bars, every 16th row); N <= 8",
+ "orientation": "each member signed by its EARLY direction (high composite = predicted up-first)",
+ "composite": "per fold: each member z-scored with the mean / sd of its training rows (train_start to 48 bars before the fold start, data_ok and tradeable, per-pair warm-up excluded, all pairs pooled), signed, missing -> 0, composite = mean of the signed z. E0 uses f00's mean / sd (normalisation only; f00's training span covers E0 -- declared, no label is used)",
+ "benchmark": "per fold: logistic regression on the signed member z (training rows hourly, as above) vs the composite; test-window AUC; descriptive",
+ "composite_confirm": "per population and label: yes = composite late median AUC on the early-direction side AND late median strength > the best single member's late median strength, AND E0 strength >= 0.01 on the same side; else no. ARO p_buy AUC on the same rows (folds only) reported",
+ "event": "extreme = composite >= its fold's training-row 90th percentile (E0: f00's); event_k at bar t = an extreme in bars t-k..t-1 (same pair) AND composite[t] < composite[t-1] (the oscillators turning back); k in {4, 12, 24}",
+ "choice_of_k": "early windows, primary label, all bars: k with the highest early median lift (computable in >= 6 early windows)",
+ "event_confirm": "per population and label, at k_best: yes = late median lift > width book's late median AND > mofn 4-of-8's late median (same rows), AND E0 lift >= width book's E0 lift and >= 1; early+late only = E0 fails; else no",
+ "rules": "037 locked min_fires 20, max_fire_rate 0.95, min_windows 6",
+ "seen_before": ["tb and tbatr single, pair and M-of-N screens on all bars and on tradeable bars (all halves)", "4-of-8 trigger backtest was RUNNING when this file was committed; its result was not read"],
+ "label_note": "SCREEN (descriptive); a survivor needs a backtest as a trigger or sizer"
+}
