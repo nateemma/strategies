@@ -47,7 +47,7 @@ def _adds(tag: str) -> tuple[list[dict], dict]:
             add = pd.Timestamp(ts, unit="ms", tz="UTC")
             rows.append({"fold": t["fold"], "pair": t["pair"],
                          "in_profit": px * (1 - FEE) / (first * (1 + FEE)) - 1 > 0,
-                         "exit_on_add_candle": bool(close == add)})
+                         "exit_on_add_candle": bool(close == add), "exit_reason": t["exit_reason"]})
     return rows, single
 
 

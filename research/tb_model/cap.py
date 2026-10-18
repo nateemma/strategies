@@ -26,6 +26,7 @@ from research.tb_model.stack import _agree  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 PREREG = HERE / "preregistration_cap.json"
+AMEND = HERE / "preregistration_cap_amend.json"
 K = 1.7432
 ARMS = {"cs_aro_hpany_lev2": None, "cs_aro_hpany_m2": 2, "cs_aro_hpany_m3": 3}
 QUESTIONS = {"Q1": ("cs_aro_hpany_lev2", ("cs_aro_hpany", "cs_aro_lev2")),
@@ -67,6 +68,13 @@ def instrument(pr: dict, tag: str, max_adds: int | None) -> dict:
            "in_profit_share": round(float(a["in_profit"].mean()), 4) if len(a) else None,
            "exits_on_add_candle": int(a["exit_on_add_candle"].sum()) if len(a) else 0,
            "agree_share": round(share, 4), "adds_per_trade": dict(sorted(Counter(n["n"]).items()))}
+    on_add = a[a["exit_on_add_candle"]] if len(a) else a
+    if max_adds is not None and AMEND.is_file():  # preregistration_cap_amend.json: stops inside the candle allowed
+        from research.exit_coupling.feasibility import STOP_REASONS
+
+        stops = on_add["exit_reason"].isin(STOP_REASONS)
+        out["stop_exits_on_add_candle"] = int(stops.sum())
+        out["exits_on_add_candle"] = int((~stops).sum())
     ok = (all(out["adds"].values()) and out["adds_not_in_profit"] > 0 and out["exits_on_add_candle"] == 0
           and abs(share - ctl) <= 0.05)
     if max_adds is None:

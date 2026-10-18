@@ -1,0 +1,8 @@
+{
+ "amends": "research/tb_model/preregistration_cap.json (441ca595), instrument 'common' condition '0 exits on an add candle', for cs_aro_hpany_m2 and cs_aro_hpany_m3 only",
+ "date": "2026-10-18",
+ "decided_by": "user, after the instrument failed and before any P&L of these arms was read",
+ "seen": "instrument output only: 2 exits on an add candle per arm, both 2025-10-10 21:15 (LTC, AAVE), trailing_stop_loss; exit-reason counts of cs_aro_hpany_m2 (no profit figures)",
+ "new_condition": "0 exits on an add candle whose exit reason is NOT a stop (research.exit_coupling.feasibility.STOP_REASONS). The original rule targets the 031 exit-due bug (an add at the open restarting the clock and vetoing a discretionary exit already due); a stop hit inside the add candle is a genuine outcome. Stop exits on an add candle are reported.",
+ "unchanged": "every other instrument condition, the decision rules (Q2, Q3), the returns-only secondary, Q1"
+}
