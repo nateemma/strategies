@@ -30,7 +30,7 @@ class WidthSizerMixin:
     STAKE_WEIGHTS = (1.0, 0.5)
     AGREE_RULE = "decision"
     MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS", "AGREE_RULE")
-    MODEL_KEY_METHODS_IGNORED = ("sizer_score",)
+    MODEL_KEY_METHODS_IGNORED = ("sizer_score", "stake_weight")
 
     def sizer_score(self, dataframe):
         """The AGREE_RULE "p_buy" score: the model's p_buy. A subclass may supply another source."""

@@ -1,0 +1,84 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Backtested leverage control: does cs_aro_hp's in-profit add beat cs_aro levered to the same committed capital?",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1; follows cs_aro_hp PASS (b04bf147) and the computed 031 leverage control (771de6d7: add explained by capital early, beats it late). Nothing adopted.",
+ "why": "cs_aro_hp commits 1.3187x cs_aro's capital (time-weighted average committed stake, pooled; 1.327 early / 1.312 late). The computed control assumes linear returns with no wallet or liquidity cap; a backtest applies both.",
+ "arms": {
+  "cs_aro_lev": {
+   "class": "NNNC_CS_ARO_LEV = NNNC_CS_ARO with stake_weight x STAKE_SCALE 1.3187 (add off)",
+   "plan": "evaluation/folds/plan_cs_aro_lev.json",
+   "thresholds": "cs_aro's, unchanged"
+  }
+ },
+ "k_rule": "STAKE_SCALE fixed at the pooled ratio 1.3187 computed from the already-seen cs_aro_hp and cs_aro records (research.held_pair.exposure.exposure avg_stake); not tuned on any lev result",
+ "instrument": "research/tb_model/lev.py: on trades shared with cs_aro (pair + open date), median first-fill stake ratio lev/cs_aro within 0.02 of 1.3187; time-weighted average committed stake lev / cs_aro_hp within [0.90, 1.10] in each half; 0 adds. Fail -> INCONCLUSIVE, no P&L read",
+ "pass": "primary judge_one(cs_aro_hp, cs_aro_lev) PASS (both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule) -> the add beats matched leverage. FAIL -> the add's gain over cs_aro is not shown to beat leverage",
+ "reported": "judge_one(cs_aro_lev, cs_aro); trade counts; share of lev entries capped below k x proposed; exposure (avg / peak committed stake) for cs_aro_lev, cs_aro_hp, cs_aro",
+ "seen_before": [
+  "cs_aro, cs_aro_hp, w_aro_hp, w_aro results (all halves)",
+  "771de6d7 computed leverage control",
+  "no backtest of cs_aro_lev"
+ ],
+ "question": "at equal committed capital, does the in-profit add (cs_aro_hp) beat simply staking more (cs_aro_lev) in both halves?"
+}
