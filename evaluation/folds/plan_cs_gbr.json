@@ -236,7 +236,14 @@
   "f04": 0.7483,
   "f05": 0.7606,
   "f06": 0.7625,
-  "f07": 0.7605
+  "f07": 0.7605,
+  "f08": 0.7605,
+  "f09": 0.765,
+  "f10": 0.7659,
+  "f11": 0.759,
+  "f12": 0.7573,
+  "f13": 0.7515,
+  "f14": 0.7551
  },
  "threshold_picks": {
   "f00": {
@@ -286,6 +293,48 @@
    "achieved_share": 0.503,
    "run_starts": 501,
    "buy_argmax_share": 0.9381
+  },
+  "f08": {
+   "target_share": 0.5,
+   "achieved_share": 0.499,
+   "run_starts": 489,
+   "buy_argmax_share": 0.9366
+  },
+  "f09": {
+   "target_share": 0.5,
+   "achieved_share": 0.5018,
+   "run_starts": 821,
+   "buy_argmax_share": 0.9513
+  },
+  "f10": {
+   "target_share": 0.5,
+   "achieved_share": 0.501,
+   "run_starts": 501,
+   "buy_argmax_share": 0.9481
+  },
+  "f11": {
+   "target_share": 0.5,
+   "achieved_share": 0.5012,
+   "run_starts": 866,
+   "buy_argmax_share": 0.9423
+  },
+  "f12": {
+   "target_share": 0.5,
+   "achieved_share": 0.4988,
+   "run_starts": 832,
+   "buy_argmax_share": 0.9507
+  },
+  "f13": {
+   "target_share": 0.5,
+   "achieved_share": 0.5011,
+   "run_starts": 932,
+   "buy_argmax_share": 0.9624
+  },
+  "f14": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 564,
+   "buy_argmax_share": 0.9628
   }
  }
 }

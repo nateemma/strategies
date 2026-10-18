@@ -1,0 +1,1466 @@
+{
+ "cs_gbr": {
+  "folds": {
+   "f00": {
+    "n_trades": 21,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 21,
+     "agree_share": 0.4762,
+     "mean_stake": 656.56,
+     "width_book_mean_stake": 645.48,
+     "capital_ratio_vs_width": 1.0172,
+     "agree_disagree_stake_ratio": 2.11,
+     "uncapped_matched": 12,
+     "wallet_short": 1,
+     "wallet_short_share": 0.0833,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f01": {
+    "n_trades": 20,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 20,
+     "agree_share": 0.8,
+     "mean_stake": 540.59,
+     "width_book_mean_stake": 521.88,
+     "capital_ratio_vs_width": 1.0359,
+     "agree_disagree_stake_ratio": 2.284,
+     "uncapped_matched": 3,
+     "wallet_short": 2,
+     "wallet_short_share": 0.6667,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f02": {
+    "n_trades": 6,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 6,
+     "agree_share": 0.6667,
+     "mean_stake": 370.95,
+     "width_book_mean_stake": 400.7,
+     "capital_ratio_vs_width": 0.9258,
+     "agree_disagree_stake_ratio": 0.637,
+     "uncapped_matched": 0,
+     "wallet_short": 0,
+     "wallet_short_share": null,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f03": {
+    "n_trades": 28,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 28,
+     "agree_share": 0.7857,
+     "mean_stake": 526.65,
+     "width_book_mean_stake": 506.23,
+     "capital_ratio_vs_width": 1.0403,
+     "agree_disagree_stake_ratio": 1.287,
+     "uncapped_matched": 9,
+     "wallet_short": 2,
+     "wallet_short_share": 0.2222,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f04": {
+    "n_trades": 152,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 152,
+     "agree_share": 0.6447,
+     "mean_stake": 520.18,
+     "width_book_mean_stake": 503.33,
+     "capital_ratio_vs_width": 1.0335,
+     "agree_disagree_stake_ratio": 1.499,
+     "uncapped_matched": 48,
+     "wallet_short": 3,
+     "wallet_short_share": 0.0625,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 2,
+    "trades_only_width": 2
+   },
+   "f05": {
+    "n_trades": 65,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 65,
+     "agree_share": 0.6615,
+     "mean_stake": 625.94,
+     "width_book_mean_stake": 539.01,
+     "capital_ratio_vs_width": 1.1613,
+     "agree_disagree_stake_ratio": 3.044,
+     "uncapped_matched": 27,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0741,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f06": {
+    "n_trades": 41,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 41,
+     "agree_share": 0.5366,
+     "mean_stake": 419.32,
+     "width_book_mean_stake": 416.78,
+     "capital_ratio_vs_width": 1.0061,
+     "agree_disagree_stake_ratio": 1.707,
+     "uncapped_matched": 9,
+     "wallet_short": 1,
+     "wallet_short_share": 0.1111,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f07": {
+    "n_trades": 160,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 160,
+     "agree_share": 0.6062,
+     "mean_stake": 519.63,
+     "width_book_mean_stake": 489.81,
+     "capital_ratio_vs_width": 1.0609,
+     "agree_disagree_stake_ratio": 1.906,
+     "uncapped_matched": 49,
+     "wallet_short": 5,
+     "wallet_short_share": 0.102,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f08": {
+    "n_trades": 99,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 99,
+     "agree_share": 0.697,
+     "mean_stake": 527.01,
+     "width_book_mean_stake": 482.72,
+     "capital_ratio_vs_width": 1.0918,
+     "agree_disagree_stake_ratio": 1.807,
+     "uncapped_matched": 36,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0556,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f09": {
+    "n_trades": 40,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 40,
+     "agree_share": 0.65,
+     "mean_stake": 454.47,
+     "width_book_mean_stake": 425.28,
+     "capital_ratio_vs_width": 1.0686,
+     "agree_disagree_stake_ratio": 1.967,
+     "uncapped_matched": 9,
+     "wallet_short": 2,
+     "wallet_short_share": 0.2222,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f10": {
+    "n_trades": 3,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 3,
+     "agree_share": 0.3333,
+     "mean_stake": 539.13,
+     "width_book_mean_stake": 439.16,
+     "capital_ratio_vs_width": 1.2277,
+     "agree_disagree_stake_ratio": 5.745,
+     "uncapped_matched": 1,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f11": {
+    "n_trades": 180,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 180,
+     "agree_share": 0.6111,
+     "mean_stake": 483.83,
+     "width_book_mean_stake": 468.45,
+     "capital_ratio_vs_width": 1.0328,
+     "agree_disagree_stake_ratio": 1.569,
+     "uncapped_matched": 43,
+     "wallet_short": 6,
+     "wallet_short_share": 0.1395,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f12": {
+    "n_trades": 49,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 49,
+     "agree_share": 0.7959,
+     "mean_stake": 528.16,
+     "width_book_mean_stake": 461.87,
+     "capital_ratio_vs_width": 1.1435,
+     "agree_disagree_stake_ratio": 2.288,
+     "uncapped_matched": 13,
+     "wallet_short": 3,
+     "wallet_short_share": 0.2308,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f13": {
+    "n_trades": 52,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 52,
+     "agree_share": 0.5962,
+     "mean_stake": 467.54,
+     "width_book_mean_stake": 464.56,
+     "capital_ratio_vs_width": 1.0064,
+     "agree_disagree_stake_ratio": 1.423,
+     "uncapped_matched": 13,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f14": {
+    "n_trades": 12,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 12,
+     "agree_share": 0.3333,
+     "mean_stake": 540.25,
+     "width_book_mean_stake": 590.26,
+     "capital_ratio_vs_width": 0.9153,
+     "agree_disagree_stake_ratio": 1.738,
+     "uncapped_matched": 6,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   }
+  },
+  "halves": {
+   "early": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [
+     "f04"
+    ],
+    "capital_ratio_mean": 1.0351,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   },
+   "late": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [],
+    "capital_ratio_mean": 1.0694,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   }
+  },
+  "pass": true
+ },
+ "cs_mlx": {
+  "folds": {
+   "f00": {
+    "n_trades": 10,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 10,
+     "agree_share": 0.2,
+     "mean_stake": 690.65,
+     "width_book_mean_stake": 821.57,
+     "capital_ratio_vs_width": 0.8406,
+     "agree_disagree_stake_ratio": 1.834,
+     "uncapped_matched": 6,
+     "wallet_short": 1,
+     "wallet_short_share": 0.1667,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f01": {
+    "n_trades": 6,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 6,
+     "agree_share": 0.5,
+     "mean_stake": 601.28,
+     "width_book_mean_stake": 651.28,
+     "capital_ratio_vs_width": 0.9232,
+     "agree_disagree_stake_ratio": 1.417,
+     "uncapped_matched": 3,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f02": {
+    "n_trades": 8,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 8,
+     "agree_share": 0.5,
+     "mean_stake": 513.39,
+     "width_book_mean_stake": 475.9,
+     "capital_ratio_vs_width": 1.0788,
+     "agree_disagree_stake_ratio": 2.021,
+     "uncapped_matched": 3,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f03": {
+    "n_trades": 19,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 19,
+     "agree_share": 0.2632,
+     "mean_stake": 516.25,
+     "width_book_mean_stake": 656.56,
+     "capital_ratio_vs_width": 0.7863,
+     "agree_disagree_stake_ratio": 1.052,
+     "uncapped_matched": 10,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f04": {
+    "n_trades": 39,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 39,
+     "agree_share": 0.4615,
+     "mean_stake": 753.51,
+     "width_book_mean_stake": 766.84,
+     "capital_ratio_vs_width": 0.9826,
+     "agree_disagree_stake_ratio": 1.762,
+     "uncapped_matched": 26,
+     "wallet_short": 1,
+     "wallet_short_share": 0.0385,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f05": {
+    "n_trades": 25,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 25,
+     "agree_share": 0.52,
+     "mean_stake": 712.95,
+     "width_book_mean_stake": 671.61,
+     "capital_ratio_vs_width": 1.0616,
+     "agree_disagree_stake_ratio": 2.128,
+     "uncapped_matched": 14,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 1,
+    "trades_only_width": 1
+   },
+   "f06": {
+    "n_trades": 20,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 20,
+     "agree_share": 0.65,
+     "mean_stake": 489.03,
+     "width_book_mean_stake": 545.18,
+     "capital_ratio_vs_width": 0.897,
+     "agree_disagree_stake_ratio": 1.047,
+     "uncapped_matched": 8,
+     "wallet_short": 2,
+     "wallet_short_share": 0.25,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f07": {
+    "n_trades": 57,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 57,
+     "agree_share": 0.5088,
+     "mean_stake": 719.92,
+     "width_book_mean_stake": 715.38,
+     "capital_ratio_vs_width": 1.0064,
+     "agree_disagree_stake_ratio": 1.741,
+     "uncapped_matched": 33,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0606,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f08": {
+    "n_trades": 66,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 66,
+     "agree_share": 0.2727,
+     "mean_stake": 614.38,
+     "width_book_mean_stake": 704.66,
+     "capital_ratio_vs_width": 0.8719,
+     "agree_disagree_stake_ratio": 1.618,
+     "uncapped_matched": 41,
+     "wallet_short": 3,
+     "wallet_short_share": 0.0732,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f09": {
+    "n_trades": 9,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 9,
+     "agree_share": 0.4444,
+     "mean_stake": 606.45,
+     "width_book_mean_stake": 655.43,
+     "capital_ratio_vs_width": 0.9253,
+     "agree_disagree_stake_ratio": 1.455,
+     "uncapped_matched": 5,
+     "wallet_short": 1,
+     "wallet_short_share": 0.2,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f10": {
+    "n_trades": 7,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 7,
+     "agree_share": 0.1429,
+     "mean_stake": 654.15,
+     "width_book_mean_stake": 825.56,
+     "capital_ratio_vs_width": 0.7924,
+     "agree_disagree_stake_ratio": 2.131,
+     "uncapped_matched": 6,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 1,
+    "trades_only_width": 1
+   },
+   "f11": {
+    "n_trades": 45,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 45,
+     "agree_share": 0.5111,
+     "mean_stake": 710.93,
+     "width_book_mean_stake": 694.3,
+     "capital_ratio_vs_width": 1.024,
+     "agree_disagree_stake_ratio": 1.739,
+     "uncapped_matched": 25,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 4,
+    "trades_only_width": 4
+   },
+   "f12": {
+    "n_trades": 21,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 21,
+     "agree_share": 0.3333,
+     "mean_stake": 576.86,
+     "width_book_mean_stake": 617.46,
+     "capital_ratio_vs_width": 0.9343,
+     "agree_disagree_stake_ratio": 1.803,
+     "uncapped_matched": 9,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 1,
+    "trades_only_width": 1
+   },
+   "f13": {
+    "n_trades": 16,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 16,
+     "agree_share": 0.375,
+     "mean_stake": 634.81,
+     "width_book_mean_stake": 658.64,
+     "capital_ratio_vs_width": 0.9638,
+     "agree_disagree_stake_ratio": 1.664,
+     "uncapped_matched": 9,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f14": {
+    "n_trades": 3,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 3,
+     "agree_share": 0.6667,
+     "mean_stake": 769.77,
+     "width_book_mean_stake": 769.81,
+     "capital_ratio_vs_width": 1.0,
+     "agree_disagree_stake_ratio": 1.427,
+     "uncapped_matched": 2,
+     "wallet_short": 1,
+     "wallet_short_share": 0.5,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   }
+  },
+  "halves": {
+   "early": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [
+     "f05"
+    ],
+    "capital_ratio_mean": 0.9471,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   },
+   "late": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [
+     "f10",
+     "f11",
+     "f12"
+    ],
+    "capital_ratio_mean": 0.9302,
+    "capital_ok": true,
+    "S0_pass": false,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   }
+  },
+  "pass": false
+ },
+ "cs_gbr_mix": {
+  "folds": {
+   "f00": {
+    "n_trades": 21,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 21,
+     "agree_share": 0.2381,
+     "mean_stake": 542.27,
+     "width_book_mean_stake": 645.48,
+     "capital_ratio_vs_width": 0.8401,
+     "agree_disagree_stake_ratio": 1.683,
+     "uncapped_matched": 12,
+     "wallet_short": 1,
+     "wallet_short_share": 0.0833,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f01": {
+    "n_trades": 20,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 20,
+     "agree_share": 0.8,
+     "mean_stake": 538.82,
+     "width_book_mean_stake": 521.88,
+     "capital_ratio_vs_width": 1.0325,
+     "agree_disagree_stake_ratio": 1.562,
+     "uncapped_matched": 3,
+     "wallet_short": 2,
+     "wallet_short_share": 0.6667,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f02": {
+    "n_trades": 6,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 6,
+     "agree_share": 0.8333,
+     "mean_stake": 400.7,
+     "width_book_mean_stake": 400.7,
+     "capital_ratio_vs_width": 1.0,
+     "agree_disagree_stake_ratio": 1.07,
+     "uncapped_matched": 0,
+     "wallet_short": 0,
+     "wallet_short_share": null,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f03": {
+    "n_trades": 28,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 28,
+     "agree_share": 0.6786,
+     "mean_stake": 547.98,
+     "width_book_mean_stake": 506.23,
+     "capital_ratio_vs_width": 1.0825,
+     "agree_disagree_stake_ratio": 1.929,
+     "uncapped_matched": 9,
+     "wallet_short": 2,
+     "wallet_short_share": 0.2222,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f04": {
+    "n_trades": 152,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 152,
+     "agree_share": 0.5724,
+     "mean_stake": 517.16,
+     "width_book_mean_stake": 503.33,
+     "capital_ratio_vs_width": 1.0275,
+     "agree_disagree_stake_ratio": 1.575,
+     "uncapped_matched": 48,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0417,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 2,
+    "trades_only_width": 2
+   },
+   "f05": {
+    "n_trades": 65,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 65,
+     "agree_share": 0.6154,
+     "mean_stake": 607.48,
+     "width_book_mean_stake": 539.01,
+     "capital_ratio_vs_width": 1.127,
+     "agree_disagree_stake_ratio": 2.688,
+     "uncapped_matched": 27,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0741,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f06": {
+    "n_trades": 41,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 41,
+     "agree_share": 0.5854,
+     "mean_stake": 433.95,
+     "width_book_mean_stake": 416.78,
+     "capital_ratio_vs_width": 1.0412,
+     "agree_disagree_stake_ratio": 1.842,
+     "uncapped_matched": 9,
+     "wallet_short": 1,
+     "wallet_short_share": 0.1111,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f07": {
+    "n_trades": 160,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 160,
+     "agree_share": 0.6188,
+     "mean_stake": 523.68,
+     "width_book_mean_stake": 489.81,
+     "capital_ratio_vs_width": 1.0691,
+     "agree_disagree_stake_ratio": 1.914,
+     "uncapped_matched": 49,
+     "wallet_short": 4,
+     "wallet_short_share": 0.0816,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f08": {
+    "n_trades": 99,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 99,
+     "agree_share": 0.6364,
+     "mean_stake": 498.89,
+     "width_book_mean_stake": 482.72,
+     "capital_ratio_vs_width": 1.0335,
+     "agree_disagree_stake_ratio": 1.511,
+     "uncapped_matched": 36,
+     "wallet_short": 3,
+     "wallet_short_share": 0.0833,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f09": {
+    "n_trades": 40,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 40,
+     "agree_share": 0.625,
+     "mean_stake": 446.08,
+     "width_book_mean_stake": 425.28,
+     "capital_ratio_vs_width": 1.0489,
+     "agree_disagree_stake_ratio": 1.775,
+     "uncapped_matched": 9,
+     "wallet_short": 1,
+     "wallet_short_share": 0.1111,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f10": {
+    "n_trades": 3,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 3,
+     "agree_share": 0.3333,
+     "mean_stake": 539.13,
+     "width_book_mean_stake": 439.16,
+     "capital_ratio_vs_width": 1.2277,
+     "agree_disagree_stake_ratio": 5.745,
+     "uncapped_matched": 1,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f11": {
+    "n_trades": 180,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 180,
+     "agree_share": 0.6389,
+     "mean_stake": 494.98,
+     "width_book_mean_stake": 468.45,
+     "capital_ratio_vs_width": 1.0566,
+     "agree_disagree_stake_ratio": 1.607,
+     "uncapped_matched": 43,
+     "wallet_short": 7,
+     "wallet_short_share": 0.1628,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f12": {
+    "n_trades": 49,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 49,
+     "agree_share": 0.7347,
+     "mean_stake": 503.67,
+     "width_book_mean_stake": 461.87,
+     "capital_ratio_vs_width": 1.0905,
+     "agree_disagree_stake_ratio": 1.904,
+     "uncapped_matched": 13,
+     "wallet_short": 3,
+     "wallet_short_share": 0.2308,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f13": {
+    "n_trades": 52,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 52,
+     "agree_share": 0.6154,
+     "mean_stake": 456.0,
+     "width_book_mean_stake": 464.56,
+     "capital_ratio_vs_width": 0.9816,
+     "agree_disagree_stake_ratio": 1.182,
+     "uncapped_matched": 13,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f14": {
+    "n_trades": 12,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 12,
+     "agree_share": 0.5,
+     "mean_stake": 540.25,
+     "width_book_mean_stake": 590.26,
+     "capital_ratio_vs_width": 0.9153,
+     "agree_disagree_stake_ratio": 1.163,
+     "uncapped_matched": 6,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   }
+  },
+  "halves": {
+   "early": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [
+     "f04"
+    ],
+    "capital_ratio_mean": 1.0275,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   },
+   "late": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [],
+    "capital_ratio_mean": 1.0506,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   }
+  },
+  "pass": true
+ },
+ "cs_mlx_mix": {
+  "folds": {
+   "f00": {
+    "n_trades": 10,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 10,
+     "agree_share": 0.1,
+     "mean_stake": 653.51,
+     "width_book_mean_stake": 821.57,
+     "capital_ratio_vs_width": 0.7954,
+     "agree_disagree_stake_ratio": 2.024,
+     "uncapped_matched": 6,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f01": {
+    "n_trades": 6,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 6,
+     "agree_share": 0.3333,
+     "mean_stake": 501.28,
+     "width_book_mean_stake": 651.28,
+     "capital_ratio_vs_width": 0.7697,
+     "agree_disagree_stake_ratio": 0.568,
+     "uncapped_matched": 3,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f02": {
+    "n_trades": 8,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 8,
+     "agree_share": 0.375,
+     "mean_stake": 513.39,
+     "width_book_mean_stake": 475.9,
+     "capital_ratio_vs_width": 1.0788,
+     "agree_disagree_stake_ratio": 3.02,
+     "uncapped_matched": 3,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f03": {
+    "n_trades": 19,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 19,
+     "agree_share": 0.6316,
+     "mean_stake": 719.72,
+     "width_book_mean_stake": 656.56,
+     "capital_ratio_vs_width": 1.0962,
+     "agree_disagree_stake_ratio": 2.238,
+     "uncapped_matched": 10,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f04": {
+    "n_trades": 39,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 39,
+     "agree_share": 0.5128,
+     "mean_stake": 777.7,
+     "width_book_mean_stake": 766.84,
+     "capital_ratio_vs_width": 1.0142,
+     "agree_disagree_stake_ratio": 1.792,
+     "uncapped_matched": 26,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0769,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": false,
+    "trades_only_arm": 1,
+    "trades_only_width": 1
+   },
+   "f05": {
+    "n_trades": 25,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 25,
+     "agree_share": 0.64,
+     "mean_stake": 756.35,
+     "width_book_mean_stake": 671.61,
+     "capital_ratio_vs_width": 1.1262,
+     "agree_disagree_stake_ratio": 2.081,
+     "uncapped_matched": 14,
+     "wallet_short": 1,
+     "wallet_short_share": 0.0714,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f06": {
+    "n_trades": 20,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 20,
+     "agree_share": 0.75,
+     "mean_stake": 549.03,
+     "width_book_mean_stake": 545.18,
+     "capital_ratio_vs_width": 1.0071,
+     "agree_disagree_stake_ratio": 1.349,
+     "uncapped_matched": 8,
+     "wallet_short": 2,
+     "wallet_short_share": 0.25,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f07": {
+    "n_trades": 57,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 57,
+     "agree_share": 0.4737,
+     "mean_stake": 692.65,
+     "width_book_mean_stake": 715.38,
+     "capital_ratio_vs_width": 0.9682,
+     "agree_disagree_stake_ratio": 1.641,
+     "uncapped_matched": 33,
+     "wallet_short": 2,
+     "wallet_short_share": 0.0606,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f08": {
+    "n_trades": 66,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 66,
+     "agree_share": 0.4545,
+     "mean_stake": 692.35,
+     "width_book_mean_stake": 704.66,
+     "capital_ratio_vs_width": 0.9825,
+     "agree_disagree_stake_ratio": 1.784,
+     "uncapped_matched": 41,
+     "wallet_short": 5,
+     "wallet_short_share": 0.122,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f09": {
+    "n_trades": 9,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 9,
+     "agree_share": 0.4444,
+     "mean_stake": 606.45,
+     "width_book_mean_stake": 655.43,
+     "capital_ratio_vs_width": 0.9253,
+     "agree_disagree_stake_ratio": 1.501,
+     "uncapped_matched": 5,
+     "wallet_short": 1,
+     "wallet_short_share": 0.2,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f10": {
+    "n_trades": 7,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 7,
+     "agree_share": 0.1429,
+     "mean_stake": 654.15,
+     "width_book_mean_stake": 825.56,
+     "capital_ratio_vs_width": 0.7924,
+     "agree_disagree_stake_ratio": 2.131,
+     "uncapped_matched": 6,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f11": {
+    "n_trades": 45,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 45,
+     "agree_share": 0.5111,
+     "mean_stake": 712.71,
+     "width_book_mean_stake": 694.3,
+     "capital_ratio_vs_width": 1.0265,
+     "agree_disagree_stake_ratio": 1.746,
+     "uncapped_matched": 25,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f12": {
+    "n_trades": 21,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 21,
+     "agree_share": 0.381,
+     "mean_stake": 576.86,
+     "width_book_mean_stake": 617.46,
+     "capital_ratio_vs_width": 0.9343,
+     "agree_disagree_stake_ratio": 1.539,
+     "uncapped_matched": 9,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f13": {
+    "n_trades": 16,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 16,
+     "agree_share": 0.4375,
+     "mean_stake": 672.3,
+     "width_book_mean_stake": 658.64,
+     "capital_ratio_vs_width": 1.0207,
+     "agree_disagree_stake_ratio": 1.799,
+     "uncapped_matched": 9,
+     "wallet_short": 0,
+     "wallet_short_share": 0.0,
+     "flag": false
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   },
+   "f14": {
+    "n_trades": 3,
+    "threshold_loaded_ok": true,
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "stakes": {
+     "trades": 3,
+     "agree_share": 0.3333,
+     "mean_stake": 569.69,
+     "width_book_mean_stake": 769.81,
+     "capital_ratio_vs_width": 0.74,
+     "agree_disagree_stake_ratio": 0.851,
+     "uncapped_matched": 2,
+     "wallet_short": 1,
+     "wallet_short_share": 0.5,
+     "flag": true
+    },
+    "entries_without_hgb_p": 0,
+    "trades_equal_width_book": true,
+    "trades_only_arm": 0,
+    "trades_only_width": 0
+   }
+  },
+  "halves": {
+   "early": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [
+     "f04"
+    ],
+    "capital_ratio_mean": 0.982,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   },
+   "late": {
+    "entry_violations": 0,
+    "tag_mismatches": 0,
+    "thresholds_loaded_ok": true,
+    "zero_trade_folds": [],
+    "hash_diff_folds": [],
+    "capital_ratio_mean": 0.9174,
+    "capital_ok": true,
+    "S0_pass": true,
+    "S0_inconclusive": false,
+    "missing_score_share": 0.0,
+    "missing_score_ok": true
+   }
+  },
+  "pass": true
+ }
+}
