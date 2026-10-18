@@ -1,0 +1,195 @@
+{
+ "label": "S1 (preregistration_dironly.json); cs_tbd_dir and cs_tba_d reported only",
+ "summary": {
+  "early": {
+   "ARO_cand_auc": 0.5413501890689202,
+   "cs_tbd_cand_auc": 0.559579479660369,
+   "cs_tbd_dir_cand_auc": 0.5596150622710276,
+   "cs_tba_d_cand_auc": 0.5418527432427458,
+   "ARO_all_auc": 0.517842654063301,
+   "cs_tbd_all_auc": 0.5305684509696224,
+   "cs_tbd_dir_all_auc": 0.5306030911196288,
+   "cs_tba_d_all_auc": 0.5269391777105208
+  },
+  "late": {
+   "ARO_cand_auc": 0.539353207951981,
+   "cs_tbd_cand_auc": 0.5543283945641841,
+   "cs_tbd_dir_cand_auc": 0.554327710615599,
+   "cs_tba_d_cand_auc": 0.5628804640888314,
+   "ARO_all_auc": 0.4974126836333842,
+   "cs_tbd_all_auc": 0.5230816952885151,
+   "cs_tbd_dir_all_auc": 0.5230835877573421,
+   "cs_tba_d_all_auc": 0.5269984211266671
+  }
+ },
+ "s1_pass": {
+  "cs_tbd": true
+ },
+ "folds": {
+  "f00": {
+   "half": "early",
+   "ARO_cand_auc": 0.5293277803571165,
+   "cs_tbd_cand_auc": 0.5259112563538708,
+   "cs_tbd_dir_cand_auc": 0.5259248528677247,
+   "cs_tba_d_cand_auc": 0.5285055911664249,
+   "ARO_all_auc": 0.5073701836847254,
+   "cs_tbd_all_auc": 0.5180880126661174,
+   "cs_tbd_dir_all_auc": 0.5179846029892987,
+   "cs_tba_d_all_auc": 0.5174388853160129
+  },
+  "f01": {
+   "half": "early",
+   "ARO_cand_auc": 0.502928079628798,
+   "cs_tbd_cand_auc": 0.4868245078636487,
+   "cs_tbd_dir_cand_auc": 0.48643506738290454,
+   "cs_tba_d_cand_auc": 0.4810951592964016,
+   "ARO_all_auc": 0.5135201920765702,
+   "cs_tbd_all_auc": 0.5074998467212003,
+   "cs_tbd_dir_all_auc": 0.507561791457391,
+   "cs_tba_d_all_auc": 0.503716626606322
+  },
+  "f02": {
+   "half": "early",
+   "ARO_cand_auc": 0.5830287513374541,
+   "cs_tbd_cand_auc": 0.5848398697331374,
+   "cs_tbd_dir_cand_auc": 0.5849147203827006,
+   "cs_tba_d_cand_auc": 0.5579404175463288,
+   "ARO_all_auc": 0.5179469178355179,
+   "cs_tbd_all_auc": 0.5241629642856004,
+   "cs_tbd_dir_all_auc": 0.5242052667659354,
+   "cs_tba_d_all_auc": 0.5280376727768974
+  },
+  "f03": {
+   "half": "early",
+   "ARO_cand_auc": 0.5184645978663488,
+   "cs_tbd_cand_auc": 0.5802428766314953,
+   "cs_tbd_dir_cand_auc": 0.580263020802904,
+   "cs_tba_d_cand_auc": 0.5527649488009411,
+   "ARO_all_auc": 0.5188022457249604,
+   "cs_tbd_all_auc": 0.5330106545551573,
+   "cs_tbd_dir_all_auc": 0.5330608649286994,
+   "cs_tba_d_all_auc": 0.5260553565449265
+  },
+  "f04": {
+   "half": "early",
+   "ARO_cand_auc": 0.5381144333337319,
+   "cs_tbd_cand_auc": 0.5422860414834558,
+   "cs_tbd_dir_cand_auc": 0.5422969661921031,
+   "cs_tba_d_cand_auc": 0.5026793799113631,
+   "ARO_all_auc": 0.5279994222472554,
+   "cs_tbd_all_auc": 0.5422147363898887,
+   "cs_tbd_dir_all_auc": 0.542235516811498,
+   "cs_tba_d_all_auc": 0.5281811656652904
+  },
+  "f05": {
+   "half": "early",
+   "ARO_cand_auc": 0.5901128210843135,
+   "cs_tbd_cand_auc": 0.5563296602743281,
+   "cs_tbd_dir_cand_auc": 0.5564071902165135,
+   "cs_tba_d_cand_auc": 0.5355273886165498,
+   "ARO_all_auc": 0.526673372227817,
+   "cs_tbd_all_auc": 0.540858665727568,
+   "cs_tbd_dir_all_auc": 0.5409121433343755,
+   "cs_tba_d_all_auc": 0.5329431017400784
+  },
+  "f06": {
+   "half": "early",
+   "ARO_cand_auc": 0.5445859448041085,
+   "cs_tbd_cand_auc": 0.56282929904641,
+   "cs_tbd_dir_cand_auc": 0.5628229343255418,
+   "cs_tba_d_cand_auc": 0.5490306272088377,
+   "ARO_all_auc": 0.5125741067682892,
+   "cs_tbd_all_auc": 0.5281262473840874,
+   "cs_tbd_dir_all_auc": 0.5281453173105581,
+   "cs_tba_d_all_auc": 0.5261291198573184
+  },
+  "f07": {
+   "half": "early",
+   "ARO_cand_auc": 0.5531861131128516,
+   "cs_tbd_cand_auc": 0.5630763285835563,
+   "cs_tbd_dir_cand_auc": 0.5630747871154496,
+   "cs_tba_d_cand_auc": 0.5481780978689418,
+   "ARO_all_auc": 0.5177383902910841,
+   "cs_tbd_all_auc": 0.5342643888907631,
+   "cs_tbd_dir_all_auc": 0.5342654191096425,
+   "cs_tba_d_all_auc": 0.5277492355637231
+  },
+  "f08": {
+   "half": "late",
+   "ARO_cand_auc": 0.5417996640447991,
+   "cs_tbd_cand_auc": 0.509147279239745,
+   "cs_tbd_dir_cand_auc": 0.5094937495127375,
+   "cs_tba_d_cand_auc": 0.5481763974971156,
+   "ARO_all_auc": 0.4974126836333842,
+   "cs_tbd_all_auc": 0.5093373127324364,
+   "cs_tbd_dir_all_auc": 0.5093623436363199,
+   "cs_tba_d_all_auc": 0.5269984211266671
+  },
+  "f09": {
+   "half": "late",
+   "ARO_cand_auc": 0.5466604004831613,
+   "cs_tbd_cand_auc": 0.5848455374142032,
+   "cs_tbd_dir_cand_auc": 0.5848544341787406,
+   "cs_tba_d_cand_auc": 0.548994929380702,
+   "ARO_all_auc": 0.4910176080100713,
+   "cs_tbd_all_auc": 0.5029014168874492,
+   "cs_tbd_dir_all_auc": 0.5028984003432809,
+   "cs_tba_d_all_auc": 0.5036871812704474
+  },
+  "f10": {
+   "half": "late",
+   "ARO_cand_auc": 0.4910156231486353,
+   "cs_tbd_cand_auc": 0.5102413794533468,
+   "cs_tbd_dir_cand_auc": 0.5102199036223951,
+   "cs_tba_d_cand_auc": 0.5139181157668737,
+   "ARO_all_auc": 0.4903878886323381,
+   "cs_tbd_all_auc": 0.5214409853555616,
+   "cs_tbd_dir_all_auc": 0.5214871495427795,
+   "cs_tba_d_all_auc": 0.5229234916556705
+  },
+  "f11": {
+   "half": "late",
+   "ARO_cand_auc": 0.5391341229779179,
+   "cs_tbd_cand_auc": 0.5543283945641841,
+   "cs_tbd_dir_cand_auc": 0.554327710615599,
+   "cs_tba_d_cand_auc": 0.5628804640888314,
+   "ARO_all_auc": 0.5120074184390487,
+   "cs_tbd_all_auc": 0.527665111985193,
+   "cs_tbd_dir_all_auc": 0.5276643494015659,
+   "cs_tba_d_all_auc": 0.53063108474862
+  },
+  "f12": {
+   "half": "late",
+   "ARO_cand_auc": 0.539353207951981,
+   "cs_tbd_cand_auc": 0.5827388390486734,
+   "cs_tbd_dir_cand_auc": 0.5827366050192303,
+   "cs_tba_d_cand_auc": 0.5716326993746588,
+   "ARO_all_auc": 0.5085816759602448,
+   "cs_tbd_all_auc": 0.5374624664823948,
+   "cs_tbd_dir_all_auc": 0.5374581026977434,
+   "cs_tba_d_all_auc": 0.5444387571852964
+  },
+  "f13": {
+   "half": "late",
+   "ARO_cand_auc": 0.5393486319315519,
+   "cs_tbd_cand_auc": 0.5541320685589022,
+   "cs_tbd_dir_cand_auc": 0.5541322994695214,
+   "cs_tba_d_cand_auc": 0.5666204075726368,
+   "ARO_all_auc": 0.4937136070437355,
+   "cs_tbd_all_auc": 0.5230816952885151,
+   "cs_tbd_dir_all_auc": 0.5230835877573421,
+   "cs_tba_d_all_auc": 0.5261097778220611
+  },
+  "f14": {
+   "half": "late",
+   "ARO_cand_auc": 0.5659921570078055,
+   "cs_tbd_cand_auc": 0.5828438527350547,
+   "cs_tbd_dir_cand_auc": 0.5828428252239589,
+   "cs_tba_d_cand_auc": 0.580924975763582,
+   "ARO_all_auc": 0.5215609265201901,
+   "cs_tbd_all_auc": 0.5379096840771156,
+   "cs_tbd_dir_all_auc": 0.5379182372298446,
+   "cs_tba_d_all_auc": 0.5363419329670038
+  }
+ }
+}

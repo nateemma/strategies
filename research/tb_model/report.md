@@ -94,3 +94,19 @@ pp of wallet, early / late, by stake source:
   rank outcomes, even outcomes defined by its own barriers.
 - Side result: TP 2×ATR14 with today's stop (+3.5 / +3.5 vs null) and C2 (−0.1 / +6.1) are the
   only exits better than today's; both are picked after seeing 9 variants.
+
+## Direction-only training: cs_tbd (preregistration_dironly.json, 7cd06148)
+
+Arm A retrained on windows whose last bar hit a barrier (HOLD dropped; kept share 0.60 on f00 vs
+0.83, 0.50 on f14). S1 (`screen_dironly.json`) PASS: candidate AUC 0.560 / 0.554 vs ARO 0.541 /
+0.539 (cs_tba_d's readout 0.542 / 0.563). S2 (`verdicts_dironly.json`), instrument PASS:
+
+| vs | cs_tbd | comparator | early / late gain | paired | |
+|---|---|---|---|---|---|
+| w_aro | 54.34 | 51.44 | −0.78 / +3.68 | UNCHANGED (p 0.26) | FAIL (early) |
+| wf_aro_g24 | 54.34 | 49.97 | −0.22 / +4.59 | UNCHANGED | FAIL (early) |
+| cs_aro (question) | 54.34 | 59.95 | −5.63 / +0.03 | UNCHANGED (p 0.11) | FAIL |
+| cs_tba_d | 54.34 | 48.06 | +2.51 / +3.78 | | PASS |
+
+**FAIL** (early half). Direction-only training is the best tbatr sizer (+6.3 pp over the 3-class
+readout, +2.9 over equal stakes) but does not beat equal stakes early, nor cs_aro.
