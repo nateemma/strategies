@@ -110,3 +110,18 @@ Arm A retrained on windows whose last bar hit a barrier (HOLD dropped; kept shar
 
 **FAIL** (early half). Direction-only training is the best tbatr sizer (+6.3 pp over the 3-class
 readout, +2.9 over equal stakes) but does not beat equal stakes early, nor cs_aro.
+
+## TP 2×ATR(14) on the width book: w_aro_tp2 (preregistration_tp2.json, 40f88e46)
+
+Instrument PASS: replaying the arm's own 873 trades under its exit reproduces 99.9% of exits. TP
+levels: median 2.57% (5–95%: 1.28–5.93%); 37% below the fixed 2.2%.
+
+| vs | w_aro_tp2 | comparator | early / late gain | paired | |
+|---|---|---|---|---|---|
+| w_aro | 50.99 | 51.44 | −1.96 / +1.50 | UNCHANGED (p 0.94) | **FAIL** (early) |
+| wf_aro_g24 | 50.99 | 49.97 | −1.39 / +2.41 | UNCHANGED | FAIL (early) |
+
+The replay's +3.53 / +3.51 did not survive: the exit runs faithfully, but the arm takes 57 fewer
+trades (873 vs 930). Higher targets hold trades longer (ROI 5% exits 18 → 81, take-profit 557 →
+426), and a held pair cannot re-enter -- the one-trade-per-pair blocking also seen in the
+SimpleTrigger grace study. Replays fix the trade list, so they cannot see it.
