@@ -1,0 +1,102 @@
+{
+ "title": "ATR-barrier study, direction-only training: arm A's model (ARO inputs, tbatr, volume > 0) trained only on windows whose last bar hit a barrier -- S1, then S2 as a width-book sizer on p_buy",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26). Expected ceiling ~0.55 (reference.json). Nothing is adopted or promoted.",
+ "why": "034's fixed-% triple-barrier model learned volatility (all-bar AUC 0.617 on its own label) but not direction where we trade (candidate AUC 0.525; 0.51 on tbatr) -- research/tb_model/check.json. The ATR-scaled label removes the volatility shortcut; 037 found direction signal on it (composite candidate AUC 0.554 / 0.552 vs ARO 0.541 / 0.539). Arm B asks whether those indicators help a model learn it.",
+ "label_definition": "framework labels_triple_barrier / _sell with pt = sl = 1e-9, atr_scale 4.0 (ATR(14) Wilder), horizon 48, min_gain / min_loss None, post-label peak filter OFF (LABEL_PEAK_FILTER False, model-key attribute): BUY = up 4xATR first, SELL = down first, HOLD = timeout / tie. Checked before this file: equal to 037's label:tbatr_buy on SOL, 199,152 rows, 0 mismatches",
+ "training": "per fold f00-f14, research.candidate_training.train --model TBD (seed 1, cs_aro's params snapshot); NNNC_CS_TBD = DirOnlyMixin + NNNC_CS_TBA; TRAIN_ROW_FILTER volume > 0 AND %tb_dir_keep (last bar labelled BUY or SELL), train and validation alike; everything else arm A's. Focal-loss class weights are computed by the trainer as before (HOLD count 0 -> weight 0, gamma 2.0 by its own rule).",
+ "arms": {
+  "cs_tbd": {
+   "model": "TBD",
+   "class": "NNNC_CS_TBD",
+   "inputs": "ARO's 24",
+   "score": "p_buy",
+   "width": "w_aro",
+   "control": "wf_aro_g24",
+   "secondary": "cs_aro"
+  }
+ },
+ "s1": {
+  "rows": "test windows f00-f14, tradeable bars (data_ok AND volume > 0), label:tbatr_buy defined (timeouts / ties excluded)",
+  "pass": "median gbb-candidate AUC of p_buy above ARO's in BOTH halves (research/tb_model/dironly.py screen)",
+  "reported": "all-bar AUC; p_buy - p_sell readout; cs_tba_d's direction readout",
+  "fail": "no S2"
+ },
+ "s2": {
+  "design": "cs_aro's: p_buy as the capital-neutral width-book sizer, research/control_sizer/pick.py --plan plan_cs_tbd.json, 15-fold backtest",
+  "instrument": "research/xmodel_sizer/instrument.arm_check (cs_aro's checks; tag check against the arm's own test-window table signals/CS_TB?_fNN; entries without a score <= 1%)",
+  "pass": "cs_aro's bar: judge_one PASS vs w_aro AND wf_aro_g24 (small-margin rule)",
+  "question": "judge_one(cs_tbd, cs_aro); also reported: judge_one(cs_tbd, cs_tba_d) if cs_tba_d was backtested"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "seen_before": [
+  "037 tbatr screens (all halves, all and tradeable bars), composite and its members",
+  "034 TB model check (research/tb_model/check.json, f00-f07)",
+  "cs_aro, w_aro, wf_aro_g24, cs_arov, cs_cmp, cs_mix results",
+  "S1 on p_buy for TBA/TBB (both FAIL); direction readout S1 (cs_tba_d PASS 0.542/0.563, cs_tbb_d FAIL)",
+  "reference.json ceiling",
+  "no TBD weights; cs_tba_d backtest may finish before or after this commit"
+ ],
+ "question": "trained on direction only, does the tbatr model beat ARO where we trade, and is it a better width-book sizer than cs_aro?",
+ "amends": "Follows preregistration.json (69d250ae) and preregistration_dir.json (32c4d02a). Diagnostics (report.md, 3f3196a8): the 3-class model's p_buy tracks barrier hit; direction is learnable only to ~0.55-0.57 on these inputs (reference.json). User decision 2026-10-17: retrain on direction only."
+}
