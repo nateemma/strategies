@@ -282,3 +282,27 @@ cs_aro_all3k_hpany 109.13 vs cs_aro_all3k 114.17: -1.09 / -3.96 (p 0.73), Sharpe
 maxDD 19.91 vs 8.22. Instrument PASS (adds 168 / 241, 71% not in profit, first fills 98.5% on the cap
 model). With 3,000 first fills the any-signal add averages down on large positions: no return gain,
 drawdown 2.4x. Returns-only also FAIL.
+
+## Slippage sensitivity (informal, 2026-10-18)
+
+`slippage_rescore.py` re-scores the seed-1 records with a cost of s x (entry + exit notional) per trade
+(same trades; maxDD not recomputed). Flat per side: all3k 114.2 / 106.2 / 98.2 / 82.2 / 66.2 at 0 / 0.05 /
+0.1 / 0.2 / 0.3%; cs_aro 60.0 / 55.5 / 51.0 / 42.0 / 33.0. Ranking unchanged at every level; all3k beats
+cs_aro up to 0.77% per side; break-even 0.6-0.7% per side for every book. Median participation (stake /
+candle quote volume) is 10% for EVERY book, cs_aro included (most entries sit on the cap).
+
+`depth_early.py` (036 depth, 2026-10-16 15:45 -> 10-18 19:15, 2,070 scheduled snapshots, 10 pairs; NOT
+the gated cost_model fit): walking the recorded book for a cap-sized order costs 2.5 bps per side median
+(mean 5.4, p90 16.1), about half the spread (6.1 median); a 3,000 USDT order costs 7.2 median / 11.4 mean /
+28.9 p90, none past the recorded 20 levels. On these 2 days the visible book is far deeper than 10% of a
+15m candle's volume; the cap, not depth, binds (98% of snapshots). Caveats: 2 days incl. a weekend;
+scheduled snapshots, not signal moments (reversion entries fire in drops); exits in crashes untested.
+
+## All-available at 5% participation (preregistration_p5.json) -- PASS (PROVISIONAL)
+
+cs_aro_all3k_p5 (HEADROOM 20) 85.37 vs cs_aro 59.95: +17.30 / +8.12 (paired UNCHANGED p 0.076), Sharpe
+2.31 vs 2.59, maxDD 6.63 vs 4.49, both UNCHANGED; returns-only PASS. Instrument PASS (99.7% of stakes on
+min(3000 x w, qv / 20); median stake ratio vs all3k 0.50; 0 adds; agree 0.482). Reported: vs all3k
+-22.36 / -6.45 (WORSENED p 0.0013): halving participation costs ~29 pp. Re-scored: flat break-even 0.77%
+per side; under k x sqrt(participation) impact p5 overtakes all3k at k ~0.02 (41.3 vs 29.0) and loses
+least at k = 0.05 (-24.8 vs -98.9).
