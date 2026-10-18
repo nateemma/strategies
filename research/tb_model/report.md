@@ -67,3 +67,30 @@ S2 (`verdicts_dir.json`), cs_tba_d; instrument PASS (trades = w_aro's in every f
 **FAIL.** A direction score at ARO's AUC level on tbatr sizes the width book worse than equal stakes:
 the trades are paid by the fixed take-profit / stop exits (gbb_path's outcome, which ARO's label is),
 not by which 4×ATR barrier is hit first.
+
+## Exit replay: do label-matched exits let the direction score pay? (`replay.py`, `replay.json`)
+
+Descriptive (replays choose, backtests judge; no re-sequencing or wallet effects). The width book's
+930 trades re-exited from their recorded entries. Fidelity: the null replay reproduces 99.8% of
+recorded exits (reason and bar) and the recorded P&L (35.66 / 15.60 vs 35.85 / 15.59). (First run
+read the class-default exit params, 62% fidelity; fixed to the folds' own params JSON before reading.)
+
+pp of wallet, early / late, by stake source:
+
+| Exit | equal (w_aro) | cs_aro | cs_tba_d |
+|---|---|---|---|
+| today's (null) | 35.66 / 15.60 | 40.63 / 19.25 | 32.43 / 15.50 |
+| C2: TP 2.897×atr_pct_roll, today's stop | 35.52 / 21.69 | 41.07 / 25.59 | 32.11 / 21.37 |
+| label barriers 4×ATR14 on closes, 48-bar timeout | 19.64 / 15.60 | 25.09 / 18.22 | 17.10 / 13.71 |
+| same, intrabar TP/stop orders | 18.50 / 18.79 | 22.66 / 22.33 | 14.58 / 16.16 |
+| 3×ATR14 on closes | 17.28 / 20.77 | 22.62 / 24.19 | 14.95 / 17.14 |
+| TP 2×ATR14, today's stop + grace | 39.17 / 19.11 | 44.64 / 23.38 | 35.13 / 18.99 |
+| TP 4×ATR14, today's stop + grace | 38.66 / 12.55 | 44.24 / 15.78 | 34.43 / 13.88 |
+
+- Exits matching the label cost the width book ~16 pp early (the 24 h grace's recoveries are cut;
+  at 4×ATR 40–54% of trades time out at 12 h); late is flat to +3.
+- **Under every exit, cs_tba_d's stakes do worse than equal stakes, and cs_aro's do better.** The
+  direction score's failure is not an exit mismatch: on the width book's own trades it does not
+  rank outcomes, even outcomes defined by its own barriers.
+- Side result: TP 2×ATR14 with today's stop (+3.5 / +3.5 vs null) and C2 (−0.1 / +6.1) are the
+  only exits better than today's; both are picked after seeing 9 variants.
