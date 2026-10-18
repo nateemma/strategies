@@ -143,3 +143,20 @@ trades in profit, no exit on an add candle; w_aro_tp2_hp's 619 single-fill trade
   (+3.5 / +7.1 vs w_aro; maxDD 4.9 → 4.2, Sharpe 2.41 → 2.50) -- above cs_aro's 59.95, which runs
   with the add OFF. cs_aro and all its comparators have the add off, so the like-for-like test is
   cs_aro + add vs w_aro_hp; no leverage control was run here.
+
+## Sizer x add stack (preregistration_stack.json, 49713c6b) -- PASS (PROVISIONAL)
+
+cs_aro_hp = cs_aro + 031's in-profit add (cs_aro's thresholds unchanged; add stake 1x, sizer weights
+on the first fill only). Instrument PASS: adds 89 / 113, 100% in profit, 0 exits on an add candle,
+agree share 0.489 vs cs_aro 0.489.
+
+| comparison | arm | ctl | early | late | paired p | trades |
+|---|---|---|---|---|---|---|
+| vs w_aro_hp (co-primary) | 69.93 | 62.06 | +4.45 | +3.42 | 0.002 IMPROVED | 915 / 915 |
+| vs cs_aro (co-primary) | 69.93 | 59.95 | +3.14 | +6.84 | 0.046 IMPROVED | 915 / 930 |
+| vs w_aro (reported) | 69.93 | 51.44 | +7.99 | +10.49 | 0.002 IMPROVED | 915 / 930 |
+
+Sharpe 2.67 (cs_aro 2.59, w_aro_hp 2.50, w_aro 2.41; all UNCHANGED); maxDD 4.03 (4.49 / 4.18 / 4.88).
+The sizer and the add stack. Capital deployed (stake x hours, descriptive): cs_aro_hp 24.3k / 30.1k
+vs cs_aro 17.8k / 22.2k (+36% / +35%), so part of the add's gain may be more capital at work; daily
+SD 0.37 vs 0.33. No leverage control was run. One era, seed 1. Nothing adopted.
