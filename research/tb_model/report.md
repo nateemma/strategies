@@ -306,3 +306,21 @@ min(3000 x w, qv / 20); median stake ratio vs all3k 0.50; 0 adds; agree 0.482). 
 -22.36 / -6.45 (WORSENED p 0.0013): halving participation costs ~29 pp. Re-scored: flat break-even 0.77%
 per side; under k x sqrt(participation) impact p5 overtakes all3k at k ~0.02 (41.3 vs 29.0) and loses
 least at k = 0.05 (-24.8 vs -98.9).
+
+## Momentum book + pair-relative liquidity guard (preregistration_liq.json)
+
+QL1 st_g24_mom_liq vs st_g24_mom_s4k: PASS (PROVISIONAL), 38.90 vs 35.13, +2.58 / +1.19, paired UNCHANGED
+(p 0.72), maxDD 22.0 vs 24.1. QL2 st_g24_mom_liq3k vs liq: FAIL, 65.82 vs 38.90, +32.82 / -5.90, maxDD
+55.0 vs 22.0 (WORSENED). Returns-only: same decisions. Warm-up null s4k vs st_g24_mom +0.28 / 0.00.
+Instrument PASS (guard holds on 99.98% of liq trades; liq3k stakes 99.5% on min(3000, cap); median
+ratio 2.47 where cap > 900).
+
+The guard is nearly inert: it refused only 2.8% of s4k's trades. On binance.us 46-63% of a thin pair's
+15m candles have zero volume, so the 30-day median is near 0 and "above the median" passes almost every
+traded candle (median signal candle is 40x it). The within-pair top tercile seen offline is a tercile of
+SIGNAL candles, not of all candles. Slippage: break-even 0.080% per side for liq and liq3k (0.074% for
+st_g24_mom); at 2.5 bps per side the late half of every momentum arm is negative.
+
+Offline (`liquidity_offline.py`, informal): on cs_aro the bottom quartile of qv / 30-day median (median
+3.6x) earns 184 of 5,995 USDT (late -312); the within-pair top tercile holds 4,593 (2,592 / 2,001). On
+st_g24_mom the bottom quartile (median 3.8x) loses 490.
