@@ -238,3 +238,20 @@ Both arms then PASS the instrument (2 stop exits on an add candle each, reported
 Descriptive: 2025-10-10 trades -4.33 pp (1 add), -13.27 (2 adds), -17.21 (3 adds); the crash day is more
 than m2's whole late shortfall (-8.94 of -6.64), but m2 also loses early (-3.29). More adds per trade =
 averaging down into moves the any-signal add cannot tell from dips (72-78% of adds not in profit).
+
+### All-available after the instrument amendment (preregistration_all_amend.json, 2603dea6)
+
+Amendment (user, before any P&L read): the stakes-up test applies to entries whose fillable cap exceeds
+cs_aro's intended stake (281 / 270 trades): median stake ratio vs cs_aro 2.22 (2k) / 2.86 (3k). Both PASS.
+
+| comparison | arm | ctl | early | late | paired | maxDD | verdict / returns-only |
+|---|---|---|---|---|---|---|---|
+| all2k vs cs_aro (Q4) | 95.50 | 59.95 | +25.76 | +9.79 | IMPROVED p 0.0003 | 7.70 / 4.49 WORSENED | FAIL (risk) / PASS |
+| all3k vs all2k (Q5) | 114.17 | 95.50 | +13.90 | +4.77 | IMPROVED p 0.028 | 8.22 / 7.70 | PASS / PASS |
+| all3k vs cs_aro_lev2 | 114.17 | 82.66 | +22.80 | +8.73 | IMPROVED p 0.004 | 8.22 / 6.60 | PASS |
+| all3k vs cs_aro_hpany | 114.17 | 82.96 | +19.18 | +12.04 | p 0.084 | 8.22 / 5.71 | PASS |
+
+Sharpe 2.48 (2k) / 2.51 (3k) vs cs_aro 2.59, all UNCHANGED. Backtest vs replay upper bound: 2k 95.50 vs
+106.07, 3k 114.17 vs 134.24 (wallet and re-sequencing cost ~10-20 pp). The gain comes from the ~30% of
+entries with spare liquidity. Not modelled: slippage at up to 10% of a 15 m candle's volume on a 3,000
+USDT order -- live depth (036) is the calibration. all3k (no add) > the stacked arm 97.56, not judged head to head.
