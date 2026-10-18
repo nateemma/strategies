@@ -1,0 +1,88 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Held-pair re-entry with the 2xATR(14) take-profit: does 031's in-profit add recover the trades w_aro_tp2 lost to one-trade-per-pair blocking?",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26); follows w_aro_tp2's FAIL (40f88e46 -> 92cbabd2). Nothing is adopted or promoted.",
+ "why": "w_aro_tp2 ran its exit faithfully (99.9%) but took 873 trades vs w_aro's 930 (ROI exits 18 -> 81): longer holds block re-entry on a held pair, so the replay's +3.5 / +3.5 became -1.96 / +1.50. The deployable re-entry is 031's held-pair add (NNNC default {'in_profit_only': True}), which the width book turns off.",
+ "arms": {
+  "w_aro_hp": {
+   "class": "NNNC_W_ARO_HP = NNNC_W_ARO + HELD_PAIR_ADD {'in_profit_only': True}",
+   "plan": "evaluation/folds/plan_w_aro_hp.json"
+  },
+  "w_aro_tp2_hp": {
+   "class": "NNNC_W_ARO_TP2_HP = NNNC_W_ARO_TP2 + HELD_PAIR_ADD {'in_profit_only': True}",
+   "plan": "evaluation/folds/plan_w_aro_tp2_hp.json"
+  }
+ },
+ "add_rule": "031 as promoted: a fresh width-book entry signal on a pair holding a trade in profit adds one stake (sized as a fresh entry, no extra slot), max 1 add, last fill >= 1 h old; every age-based rule restarts from the add; stop and take-profit from the averaged entry; with TP2 the take-profit re-resolves from the add's signal bar (2 x ATR14/close there). Weights: ARO's (same model key, checked).",
+ "instrument": "research/tb_model/reentry.py per arm: adds in both halves; >= 95% of adds on a trade in profit; 0 exits on an add candle; w_aro_tp2_hp's single-fill trades replay under TP2 to >= 90%. Fail -> INCONCLUSIVE, no P&L read",
+ "pass": "primary judge_one(w_aro_tp2_hp, w_aro_hp) PASS: both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule",
+ "reported": "judge_one(w_aro_hp, w_aro) (the add on the width book); judge_one(w_aro_tp2_hp, w_aro); trade and add counts",
+ "seen_before": [
+  "w_aro, wf_aro_g24, cs_aro, w_aro_tp2 results (all halves)",
+  "031: the in-profit add on ARO's model book +3.19 / +3.31 (not on the width book)",
+  "replay.json",
+  "no backtest of either arm"
+ ],
+ "question": "with re-entry on a held pair allowed (in-profit add), does the 2xATR(14) take-profit beat today's fixed 2.2% in both halves?"
+}
