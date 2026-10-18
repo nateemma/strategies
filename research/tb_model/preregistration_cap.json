@@ -1,0 +1,104 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Getting more capital through the liquidity cap: stack the two routes (any-signal add + x1.7432 stakes), and allow 2 / 3 adds per trade",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1; follows controls v2 (2313e2ef). Nothing adopted.",
+ "why": "68% of cs_aro entries are fillable-capped (quote volume / 10 of the entry candle). Two routes past it each beat cs_aro: cs_aro_hpany 82.96 (adds on later candles) and cs_aro_lev2 82.66 (bigger stakes on the uncapped entries). User 2026-10-18: returns matter more than these small drawdowns.",
+ "arms": {
+  "cs_aro_hpany_lev2": {
+   "class": "NNNC_CS_ARO_HPANY_LEV2 = NNNC_CS_ARO_HPANY + first-fill stake_weight x1.7432; add 1x (add_fraction capped at 1)",
+   "plan": "evaluation/folds/plan_cs_aro_hpany_lev2.json",
+   "question": "Q1 do the routes stack?"
+  },
+  "cs_aro_hpany_m2": {
+   "class": "NNNC_CS_ARO_HPANY_M2 = NNNC_CS_ARO_HPANY + HELD_PAIR_ADD max_adds 2",
+   "plan": "evaluation/folds/plan_cs_aro_hpany_m2.json",
+   "question": "Q2 does a 2nd add pay?"
+  },
+  "cs_aro_hpany_m3": {
+   "class": "NNNC_CS_ARO_HPANY_M3 = NNNC_CS_ARO_HPANY + HELD_PAIR_ADD max_adds 3",
+   "plan": "evaluation/folds/plan_cs_aro_hpany_m3.json",
+   "question": "Q3 does a 3rd add pay?"
+  }
+ },
+ "instrument": {
+  "common": "adds in both halves; > 0 adds on a trade not in profit; 0 exits on an add candle; agree share within 0.05 of cs_aro's",
+  "cs_aro_hpany_lev2": ">= 95% of first fills on trades shared with cs_aro within 1% of min(1.7432 x intended, fillable cap)",
+  "cs_aro_hpany_m2": "trades with 2 adds in both halves; no trade with > 2 adds",
+  "cs_aro_hpany_m3": "trades with 3 adds in both halves; no trade with > 3 adds",
+  "fail": "that arm INCONCLUSIVE, no P&L read for it"
+ },
+ "pass": {
+  "Q1": "judge_one(cs_aro_hpany_lev2, cs_aro_hpany) AND judge_one(cs_aro_hpany_lev2, cs_aro_lev2) PASS",
+  "Q2": "judge_one(cs_aro_hpany_m2, cs_aro_hpany) PASS",
+  "Q3": "judge_one(cs_aro_hpany_m3, cs_aro_hpany_m2) PASS",
+  "rule": "judge_one unchanged (both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule); three separate decisions"
+ },
+ "returns_reading": "pre-registered SECONDARY, not the decision: the same comparisons with Sharpe / maxDD ignored (both half gains > 0, paired not WORSENED, small-margin rule), labelled RETURNS-ONLY. Whether it replaces the decision rule is the user's call.",
+ "reported": "each arm vs cs_aro; exposure (avg / peak committed stake) per half; adds per trade distribution; in-profit share of adds",
+ "seen_before": [
+  "cs_aro, cs_aro_hp, cs_aro_lev, cs_aro_lev2, cs_aro_hpany, w_aro_hp, w_aro results (all halves)",
+  "no backtest of any arm here"
+ ],
+ "question": "Can more capital get through the liquidity cap profitably -- by stacking the two routes, or by allowing more adds per trade?"
+}
