@@ -1,0 +1,96 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Two controls for cs_aro_hp's in-profit add: capital-matched leverage (cs_aro_lev2) and the unconditional add (cs_aro_hpany)",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1; follows cs_aro_lev INCONCLUSIVE (62ec301a). Nothing adopted.",
+ "why": "cs_aro_lev (x1.3187) failed its instrument: 68% of cs_aro entries are already at the fillable cap (quote volume / 10 of the entry candle), so stake scaling reached only 0.86 of cs_aro_hp's capital. The add gets capital by filling on a later candle.",
+ "arms": {
+  "cs_aro_lev2": {
+   "class": "NNNC_CS_ARO_LEV2 = NNNC_CS_ARO_LEV with STAKE_SCALE 1.7432 (add off)",
+   "plan": "evaluation/folds/plan_cs_aro_lev2.json"
+  },
+  "cs_aro_hpany": {
+   "class": "NNNC_CS_ARO_HPANY = NNNC_CS_ARO + HELD_PAIR_ADD {'in_profit_only': False}",
+   "plan": "evaluation/folds/plan_cs_aro_hpany.json"
+  }
+ },
+ "k_rule": "1.7432 solved on cs_aro's own trades (timings fixed): sum min(k x 900 x w, quote_volume/10 of the candle before entry) x hours = 1.3187 x cs_aro's stake-hours; the cap model reproduces cs_aro and cs_aro_lev stakes to <= 0.3% (2nd-98th pct). Exposure only; no P&L used. Wallet cap ignored in the solve (applies in the backtest)",
+ "instrument": {
+  "cs_aro_lev2": "time-weighted average committed stake / cs_aro_hp's within [0.90, 1.10] in each half; 0 adds; >= 95% of trades shared with cs_aro have stake within 1% of min(k x intended, fillable cap)",
+  "cs_aro_hpany": "adds in both halves; > 0 adds on a trade NOT in profit (the condition is really off); 0 exits on an add candle; agree share within 0.05 of cs_aro's",
+  "fail": "that arm INCONCLUSIVE, no P&L read for it"
+ },
+ "pass": {
+  "lev2": "judge_one(cs_aro_hp, cs_aro_lev2) PASS -> the in-profit add beats capital-matched leverage",
+  "hpany": "judge_one(cs_aro_hp, cs_aro_hpany) PASS -> the in-profit condition beats the unconditional add",
+  "rule": "each: both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule. Two separate decisions"
+ },
+ "reported": "judge_one(cs_aro_lev2, cs_aro); judge_one(cs_aro_hpany, cs_aro); exposure (avg / peak committed stake) for cs_aro_lev2, cs_aro_hpany, cs_aro_hp, cs_aro; add counts and in-profit share",
+ "seen_before": [
+  "cs_aro, cs_aro_hp, w_aro_hp, w_aro results (all halves)",
+  "771de6d7 computed leverage control",
+  "cs_aro_lev records (instrument only; its P&L was not read or printed)",
+  "no backtest of either arm"
+ ],
+ "question": "(1) at matched committed capital, does the in-profit add beat staking more? (2) does the in-profit condition beat adding on any signal?"
+}
