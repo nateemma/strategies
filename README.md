@@ -10,15 +10,15 @@
 Having said that, most of the strategies here are profitable, just nowhere near market returns (buy & hold). There is one strategy that is consisently profitable over long periods (years): MomentumRegimeBasket15mFast (in the Basket directory). However, it is a wild ride, since it really only trades during bull and sideways markets and can have a month with scary losses. Over the timeframe of years it is consistently above market returns.
 
 
-_**The directory structure and code architecture have completely changed. The older code is available on branch v1, but I will not be maintaining that**_
-
-Note that, like the rest of the software world, I have been playing with agent-assisted coding, so some of the code might look a little strange. I added a file AGENT_GUIDE.md that should be useful for agents (or humans) looking at the code.
-
 All strategies share a common framework for entry/exit processing, custom exits, and stop-loss logic. There is also a consistent approach to normalization of data. The base framework lives in the _Framework_ directory.
 
-Many of the strategies use Neural Networks (Machine Learning), which requires training the underlying models on lots of data. Even then, I had to implement Generative Adversarial Network (GAN) models to artificially enhance the data because there are simply not enough buy/sell signals to train the stategy models. Look in the GANs directory for more info.
+Many of the strategies use Neural Networks (Machine Learning), which requires training the underlying models on lots of data. Even then, I had to implement Generative Adversarial Network (GAN) models to artificially enhance the data because there are simply not enough buy/sell signals to train the stategy models. Even then, many GAN variants do not result in realised improvements. Look in the GANs directory for more info.
 
-I have done a lot of satistical studies on indicators, coins, timeframes etc. Those findings are summarised [here](us_spot_market_study.md). The quick summary is that it is unlikely that I can do any better through improved algorithms/models because there just isn't any more information to extract from the data. However, there are approaches using leverage (shorting) that might work, but I can't run those in the USA.
+I have done a lot of satistical studies on indicators, coins, timeframes, order books, filling problems etc. Those findings are summarised [here](us_spot_market_study.md). The quick summary is that it is unlikely that I can do any better through improved algorithms/models because there just isn't any more information to extract from the data. However, there are approaches using leverage (shorting) that might work, but I can't run those in the USA.
+
+Note that, like the rest of the software world, I have been playing with agent-assisted coding, so some of the code might look a little strange. I added a file [AGENT_GUIDE.md](AGENT_GUIDE.md) that should be useful for agents (or humans) looking at the code.
+
+If you use a coding agent (Codex, Claude Code etc) then ask it to read AGENT_GUIDE.md, which will point it to all of the research and testing that I have been doing with Binance US. All of the test code should be in the repo, so your agent should be able to rerun tests and studies if you want to try them on another exchange (or your own strategies). If you are a glutten for punishment, take a look at the research and specs directories, which contain documents for various features and studies.
 
 ## Quickstart
 
@@ -318,6 +318,8 @@ Config files are now kept in the `config/` directory:
 Do **not** put API keys or passwords in any of these files. Keep those in a separate config at the project root that is not committed to git.
 
 ### Configuration for Short Strategies
+
+*_Note_*: I can no longer access short data from the US, so I can no longer verify these work. Sorry!
 
 Short trading requires futures mode. Add to your config:
 

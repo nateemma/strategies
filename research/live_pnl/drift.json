@@ -11,9 +11,9 @@
    "weeks": [
     {
      "week": "2026-10-12/2026-10-18",
-     "n": 30,
-     "buy_rate": 0.0,
-     "ratio_to_target": 0.0,
+     "n": 1320,
+     "buy_rate": 0.00303,
+     "ratio_to_target": 0.206,
      "flag": true
     }
    ]
