@@ -50,3 +50,20 @@ hourly training rows to 48 bars before each test window):
 Direction tops out near 0.55–0.57 for every model on these inputs; the trained LSTM, read as
 p_buy − p_sell, is at that level. The composite's members add ≤ 0.01 (B ≈ A). Barrier-hit (volatility)
 is far more learnable (≈ 0.68 on candidates, 0.73 on all bars).
+
+## Direction readout arms (preregistration_dir.json, 32c4d02a)
+
+S1 (`screen_dir.json`), candidate AUC of (1 + p_buy − p_sell)/2 vs ARO's p_buy 0.541 / 0.539:
+cs_tba_d 0.542 / 0.563 **PASS**; cs_tbb_d 0.537 / 0.539 FAIL.
+
+S2 (`verdicts_dir.json`), cs_tba_d; instrument PASS (trades = w_aro's in every fold):
+
+| vs | arm | comparator | early / late gain | paired | Decision |
+|---|---|---|---|---|---|
+| w_aro | 48.06 | 51.44 | −3.29 / −0.10 | UNCHANGED (p 0.18) | FAIL |
+| wf_aro_g24 | 48.06 | 49.97 | −2.72 / +0.81 | UNCHANGED | FAIL |
+| cs_aro (question) | 48.06 | 59.95 | −8.14 / −3.75 | **WORSENED** (p 0.003) | FAIL |
+
+**FAIL.** A direction score at ARO's AUC level on tbatr sizes the width book worse than equal stakes:
+the trades are paid by the fixed take-profit / stop exits (gbb_path's outcome, which ARO's label is),
+not by which 4×ATR barrier is hit first.
