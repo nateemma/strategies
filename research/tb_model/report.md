@@ -224,3 +224,17 @@ cs_aro_all2k / all3k: stakes match min(L x w, fillable cap) for 99.9% / 99.0% of
 wallet-limited 0.1% / 1.0%, 0 adds, agree share 0.484 / 0.476; trades 921 / 911 vs 930. FAILED only on
 "median stake > cs_aro's": the median entry (367.7) is liquidity-capped, so the condition could never
 pass -- my pre-registration error. Avg stake 155 / 212 (2k), 185 / 246 (3k) vs cs_aro 103 / 149. No P&L read.
+
+### Q2 / Q3 after the instrument amendment (preregistration_cap_amend.json, e5309bba) -- both FAIL
+
+Amendment (user, before any P&L read): stops hit inside an add candle no longer fail the instrument.
+Both arms then PASS the instrument (2 stop exits on an add candle each, reported).
+
+| comparison | arm | ctl | early | late | Sharpe | maxDD | verdict / returns-only |
+|---|---|---|---|---|---|---|---|
+| m2 vs cs_aro_hpany (Q2) | 73.02 | 82.96 | -3.29 | -6.64 | 1.88 / 2.66 WORSENED | 12.49 / 5.71 WORSENED | FAIL / FAIL |
+| m3 vs m2 (Q3) | 64.27 | 73.02 | +1.92 | -10.67 | 1.37 / 1.88 WORSENED | 16.92 / 12.49 WORSENED | FAIL / FAIL |
+
+Descriptive: 2025-10-10 trades -4.33 pp (1 add), -13.27 (2 adds), -17.21 (3 adds); the crash day is more
+than m2's whole late shortfall (-8.94 of -6.64), but m2 also loses early (-3.29). More adds per trade =
+averaging down into moves the any-signal add cannot tell from dips (72-78% of adds not in profit).
