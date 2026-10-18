@@ -226,7 +226,23 @@
   ],
   "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
   "cs_note": "control-sizer study (research/control_sizer/): the control ARO weights as a width-book sizer, thresholds at the 0.5 agree share picked per fold by research/control_sizer/pick.py; comparators w_aro and wf_aro_g24",
-  "thresholds": "PENDING seed-2 pick",
+  "thresholds": {
+    "f00": 0.7153,
+    "f01": 0.7266,
+    "f02": 0.728,
+    "f03": 0.7473,
+    "f04": 0.7506,
+    "f05": 0.7624,
+    "f06": 0.7679,
+    "f07": 0.7577,
+    "f08": 0.7679,
+    "f09": 0.7695,
+    "f10": 0.7754,
+    "f11": 0.7661,
+    "f12": 0.7744,
+    "f13": 0.752,
+    "f14": 0.7512
+  },
   "lev2_note": "research/tb_model/preregistration_lev2.json: cs_aro + stakes x1.7432 (capital-matched to cs_aro_hp); thresholds = cs_aro's, copied unchanged",
   "s2_note": "seed-2 run plan: run with run_folds --seed 2 (classes / tags get _s2); thresholds filled from plan_cs_aro_s2train.json's seed-2 picks before the run"
 }

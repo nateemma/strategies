@@ -226,5 +226,114 @@
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
  "cs_note": "control-sizer study (research/control_sizer/): the control ARO weights as a width-book sizer, thresholds at the 0.5 agree share picked per fold by research/control_sizer/pick.py; comparators w_aro and wf_aro_g24",
- "s2_note": "seed-2 repeat (preregistration_seed2.json): train ARO seed 2 (research.candidate_training.train --model AROS2 --seed 2) and pick the 0.5-share thresholds (research.control_sizer.pick --plan plan_cs_aro_s2train.json --seed 2); classes pre-suffixed _s2"
+ "s2_note": "seed-2 repeat (preregistration_seed2.json): train ARO seed 2 (research.candidate_training.train --model AROS2 --seed 2) and pick the 0.5-share thresholds (research.control_sizer.pick --plan plan_cs_aro_s2train.json --seed 2); classes pre-suffixed _s2",
+ "thresholds": {
+  "f00": 0.7153,
+  "f01": 0.7266,
+  "f02": 0.728,
+  "f03": 0.7473,
+  "f04": 0.7506,
+  "f05": 0.7624,
+  "f06": 0.7679,
+  "f07": 0.7577,
+  "f08": 0.7679,
+  "f09": 0.7695,
+  "f10": 0.7754,
+  "f11": 0.7661,
+  "f12": 0.7744,
+  "f13": 0.752,
+  "f14": 0.7512
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.4946,
+   "run_starts": 93,
+   "buy_argmax_share": 0.9892
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5052,
+   "run_starts": 97,
+   "buy_argmax_share": 0.9897
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 66,
+   "buy_argmax_share": 1.0
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.4944,
+   "run_starts": 89,
+   "buy_argmax_share": 1.0
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.5021,
+   "run_starts": 237,
+   "buy_argmax_share": 0.9873
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.4913,
+   "run_starts": 173,
+   "buy_argmax_share": 0.9884
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.4961,
+   "run_starts": 254,
+   "buy_argmax_share": 0.9882
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.5018,
+   "run_starts": 273,
+   "buy_argmax_share": 0.989
+  },
+  "f08": {
+   "target_share": 0.5,
+   "achieved_share": 0.4993,
+   "run_starts": 695,
+   "buy_argmax_share": 0.9928
+  },
+  "f09": {
+   "target_share": 0.5,
+   "achieved_share": 0.5006,
+   "run_starts": 795,
+   "buy_argmax_share": 0.9836
+  },
+  "f10": {
+   "target_share": 0.5,
+   "achieved_share": 0.4991,
+   "run_starts": 531,
+   "buy_argmax_share": 0.9944
+  },
+  "f11": {
+   "target_share": 0.5,
+   "achieved_share": 0.499,
+   "run_starts": 972,
+   "buy_argmax_share": 0.9938
+  },
+  "f12": {
+   "target_share": 0.5,
+   "achieved_share": 0.4991,
+   "run_starts": 565,
+   "buy_argmax_share": 0.9982
+  },
+  "f13": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 520,
+   "buy_argmax_share": 1.0
+  },
+  "f14": {
+   "target_share": 0.5,
+   "achieved_share": 0.5004,
+   "run_starts": 1245,
+   "buy_argmax_share": 0.9936
+  }
+ }
 }

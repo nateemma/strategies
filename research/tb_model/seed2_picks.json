@@ -1,0 +1,154 @@
+{
+ "folds": {
+  "f00": {
+   "threshold": 0.7153,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4946,
+    "run_starts": 93,
+    "buy_argmax_share": 0.9892
+   },
+   "verify": true
+  },
+  "f01": {
+   "threshold": 0.7266,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5052,
+    "run_starts": 97,
+    "buy_argmax_share": 0.9897
+   },
+   "verify": true
+  },
+  "f02": {
+   "threshold": 0.728,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5,
+    "run_starts": 66,
+    "buy_argmax_share": 1.0
+   },
+   "verify": true
+  },
+  "f03": {
+   "threshold": 0.7473,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4944,
+    "run_starts": 89,
+    "buy_argmax_share": 1.0
+   },
+   "verify": true
+  },
+  "f04": {
+   "threshold": 0.7506,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5021,
+    "run_starts": 237,
+    "buy_argmax_share": 0.9873
+   },
+   "verify": true
+  },
+  "f05": {
+   "threshold": 0.7624,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4913,
+    "run_starts": 173,
+    "buy_argmax_share": 0.9884
+   },
+   "verify": true
+  },
+  "f06": {
+   "threshold": 0.7679,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4961,
+    "run_starts": 254,
+    "buy_argmax_share": 0.9882
+   },
+   "verify": true
+  },
+  "f07": {
+   "threshold": 0.7577,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5018,
+    "run_starts": 273,
+    "buy_argmax_share": 0.989
+   },
+   "verify": true
+  },
+  "f08": {
+   "threshold": 0.7679,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4993,
+    "run_starts": 695,
+    "buy_argmax_share": 0.9928
+   },
+   "verify": true
+  },
+  "f09": {
+   "threshold": 0.7695,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5006,
+    "run_starts": 795,
+    "buy_argmax_share": 0.9836
+   },
+   "verify": true
+  },
+  "f10": {
+   "threshold": 0.7754,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4991,
+    "run_starts": 531,
+    "buy_argmax_share": 0.9944
+   },
+   "verify": true
+  },
+  "f11": {
+   "threshold": 0.7661,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.499,
+    "run_starts": 972,
+    "buy_argmax_share": 0.9938
+   },
+   "verify": true
+  },
+  "f12": {
+   "threshold": 0.7744,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.4991,
+    "run_starts": 565,
+    "buy_argmax_share": 0.9982
+   },
+   "verify": true
+  },
+  "f13": {
+   "threshold": 0.752,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5,
+    "run_starts": 520,
+    "buy_argmax_share": 1.0
+   },
+   "verify": true
+  },
+  "f14": {
+   "threshold": 0.7512,
+   "pick": {
+    "target_share": 0.5,
+    "achieved_share": 0.5004,
+    "run_starts": 1245,
+    "buy_argmax_share": 0.9936
+   },
+   "verify": true
+  }
+ }
+}

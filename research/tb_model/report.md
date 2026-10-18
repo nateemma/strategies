@@ -255,3 +255,30 @@ Sharpe 2.48 (2k) / 2.51 (3k) vs cs_aro 2.59, all UNCHANGED. Backtest vs replay u
 106.07, 3k 114.17 vs 134.24 (wallet and re-sequencing cost ~10-20 pp). The gain comes from the ~30% of
 entries with spare liquidity. Not modelled: slippage at up to 10% of a 15 m candle's volume on a 3,000
 USDT order -- live depth (036) is the calibration. all3k (no add) > the stacked arm 97.56, not judged head to head.
+
+## Seed-2 repeat (preregistration_seed2.json, 75659ed2) -- all three questions REPLICATE
+
+ARO seed 2 trained f00-f14; 0.5-share thresholds picked and verified (0 tag mismatches, all folds).
+Instrument PASS: model seed 2 everywhere, cs_aro_s2 agree share 0.532, sizer tags changed in 6 folds,
+all-available stakes on the cap model 99.5% / 99.1%.
+
+| book | seed 1 | seed 2 |
+|---|---|---|
+| cs_aro | 59.95 | 57.16 |
+| cs_aro_hpany (any-signal add) | 82.96 | 77.14 |
+| cs_aro_lev2 (x1.7432) | 82.66 | 82.60 |
+| cs_aro_hpany_lev2 (stacked) | 97.56 | 92.03 |
+| cs_aro_all2k | 95.50 | 94.38 |
+| cs_aro_all3k | 114.17 | 113.83 |
+
+Seed-2 decisions = seed 1's under both readings: Q1s2 stacked PASS (vs hpany +6.92 / +7.98, vs lev2
++8.24 / +1.19); Q4s2 all2k vs cs_aro FAIL on maxDD only (+23.69 / +13.53, maxDD 8.53 vs 4.95),
+returns-only PASS; Q5s2 all3k vs all2k PASS (+14.62 / +4.83, p 0.016). all3k_s2 vs cs_aro_s2 +38.31 /
++18.36 (p 0.0006). Every book's seed-2 vs seed-1 difference is UNCHANGED (|p| >= 0.07).
+
+## All-available + any-signal add (Q6, same pre-registration) -- FAIL
+
+cs_aro_all3k_hpany 109.13 vs cs_aro_all3k 114.17: -1.09 / -3.96 (p 0.73), Sharpe 2.00 vs 2.51,
+maxDD 19.91 vs 8.22. Instrument PASS (adds 168 / 241, 71% not in profit, first fills 98.5% on the cap
+model). With 3,000 first fills the any-signal add averages down on large positions: no return gain,
+drawdown 2.4x. Returns-only also FAIL.
