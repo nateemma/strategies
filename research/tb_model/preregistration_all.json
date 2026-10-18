@@ -1,0 +1,93 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "All-available entry: stake as much as the candle's liquidity allows, up to 2,000 / 3,000 x sizer weight",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1. Nothing adopted.",
+ "why": "User 2026-10-18: buy as much as the book allows on a signal -- whatever is available on a thin candle, more on a liquid one up to a realistic limit. Today's stake is min(900 x w, fillable cap); fillable cap (quote volume / 10 of the signal candle) quantiles 10/25/50/75/90 = 125/172/368/1257/3910 USDT.",
+ "arms": {
+  "cs_aro_all2k": {
+   "class": "NNNC_CS_ARO_ALL2K: stake_weight x 2000/900 (add off)",
+   "plan": "evaluation/folds/plan_cs_aro_all2k.json"
+  },
+  "cs_aro_all3k": {
+   "class": "NNNC_CS_ARO_ALL3K: stake_weight x 3000/900 (add off)",
+   "plan": "evaluation/folds/plan_cs_aro_all3k.json"
+  }
+ },
+ "replay_upper_bound": "cs_aro's trades re-staked at min(L x w, cap), no wallet limit, no re-sequencing (seen before registration): L 2000 -> 69.18 / 36.89 (peak committed 17,735 > 10,000 wallet); L 3000 -> 88.61 / 45.63 (peak 23,266). The backtest applies the wallet (max_stake = available balance), which shrinks or skips entries at peaks.",
+ "instrument": "per arm: 0 adds; agree share within 0.05 of cs_aro's; on trades shared with cs_aro, >= 80% of stakes within 1% of min(L x w, fillable cap) (the rest wallet-limited: reported); median stake > cs_aro's. Fail -> that arm INCONCLUSIVE, no P&L read",
+ "pass": {
+  "Q4": "judge_one(cs_aro_all2k, cs_aro) PASS",
+  "Q5": "judge_one(cs_aro_all3k, cs_aro_all2k) PASS",
+  "rule": "judge_one unchanged; small-margin rule; two separate decisions"
+ },
+ "returns_reading": "pre-registered SECONDARY: the same comparisons with Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "each arm vs cs_aro_lev2 and vs cs_aro_hpany; trade counts vs cs_aro (entries skipped by the wallet); wallet-limited share of stakes; exposure (avg / peak committed); backtest vs replay upper bound",
+ "caveat": "no slippage beyond the 10%-of-candle fillable cap is modelled; live depth (036) is the calibration and is not yet gated",
+ "seen_before": [
+  "cs_aro, cs_aro_hp, cs_aro_lev, cs_aro_lev2, cs_aro_hpany results",
+  "the replay upper bound above",
+  "no backtest of either arm; the cap chain (preregistration_cap.json) results NOT yet read"
+ ],
+ "question": "Does staking up to what the candle's liquidity allows (limit 2,000 / 3,000 x w) beat cs_aro, and does the higher limit beat the lower, with the real wallet?"
+}
