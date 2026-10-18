@@ -324,3 +324,23 @@ st_g24_mom); at 2.5 bps per side the late half of every momentum arm is negative
 Offline (`liquidity_offline.py`, informal): on cs_aro the bottom quartile of qv / 30-day median (median
 3.6x) earns 184 of 5,995 USDT (late -312); the within-pair top tercile holds 4,593 (2,592 / 2,001). On
 st_g24_mom the bottom quartile (median 3.8x) loses 490.
+
+## Liquidity guard on traded candles (preregistration_liqnz.json)
+
+Guard: signal candle quote volume > 5x the median of the pair's NON-ZERO-volume candles over 2880 bars
+(5x chosen from refusal shares only: 1x refused 2-3%, 5x refuses 22-26% of existing trades).
+
+| Q | arm vs control | total | early / late | maxDD | decision |
+|---|---|---|---|---|---|
+| QN1 | st_g24_mom_liqnz vs st_g24_mom_s4k | 49.22 vs 35.13 | +10.77 / +3.32 (p 0.44) | 22.7 vs 24.1 | PASS (PROVISIONAL) |
+| QN2 | cs_aro_liqnz vs cs_aro_s4k | 65.29 vs 59.90 | +6.78 / -1.39 (p 0.48) | 4.19 vs 4.49 | FAIL (late) |
+| QN3 | cs_aro_all3k_liqnz vs cs_aro_all3k_s4k | 110.36 vs 114.10 | +0.34 / -4.09 (p 0.88) | 10.19 vs 8.22 | FAIL (late) |
+
+Returns-only: same decisions. Instrument PASS on all three (guard holds on >= 99.98% of guarded trades;
+controls fail it on 22.2 / 25.6 / 25.7%; 0 adds; null agree shares 0.492 / 0.479 vs 0.489). Warm-up
+nulls: cs_aro_s4k -0.05 / 0.00, cs_aro_all3k_s4k -0.07 / 0.00 (inert).
+
+Momentum keeps nearly all its trades (5,233 vs 5,284): refused signals are replaced by later ones on the
+same pair; median stake 479 vs 313 (more liquid candles, bigger cap); late half turns positive (+2.62)
+and break-even rises 0.075% -> 0.089% per side, still negative late at 2.5 bps. Reversion loses 9-10% of
+trades; early gains, late loses in both books; on all3k break-even falls 0.714% -> 0.603% per side.
