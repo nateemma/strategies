@@ -47,7 +47,7 @@ def store(plan_path: Path, fid: str, threshold: float, extra: dict) -> float:
     return t
 
 
-def pick(fid: str, plan_path: Path = PLAN) -> tuple[float, dict]:
+def pick(fid: str, plan_path: Path = PLAN, seed: int = 1) -> tuple[float, dict]:
     import run_folds as rf
     from research.label_screen.pick import p_buy
     from research.width_relative import pick as WP
@@ -55,7 +55,7 @@ def pick(fid: str, plan_path: Path = PLAN) -> tuple[float, dict]:
     plan = json.loads(plan_path.read_text())
     f = _fold(plan, fid)
     if not (STRAT / "NNNC" / f"{f['strategy_class']}.py").is_file():
-        rf.generate_fold(f, plan["base_strategy"], plan["family"], _snapshot(plan))
+        rf.generate_fold(f, plan["base_strategy"], plan["family"], _snapshot(plan), seed=seed)
     frames, strat = WP._frames(plan, fid, 0.0)
     pb, effs = [], []
     for s in frames.values():
@@ -71,7 +71,7 @@ def pick(fid: str, plan_path: Path = PLAN) -> tuple[float, dict]:
                "run_starts": len(score), "buy_argmax_share": round(float(np.mean(eff > 0)), 4)}
 
 
-def verify(fid: str, plan_path: Path = PLAN) -> bool:
+def verify(fid: str, plan_path: Path = PLAN, seed: int = 1) -> bool:
     import run_folds as rf
     from research.label_screen.pick import p_buy
     from research.width_relative import pick as WP
@@ -79,7 +79,7 @@ def verify(fid: str, plan_path: Path = PLAN) -> bool:
     plan = json.loads(plan_path.read_text())
     t = float(plan["thresholds"][fid])
     rf.generate_fold(_fold(plan, fid), plan["base_strategy"], plan["family"], _snapshot(plan),
-                     threshold=t)
+                     threshold=t, seed=seed)
     frames, strat = WP._frames(plan, fid, None)
     loaded = float(strat.prediction_threshold.value)
     bad = n = 0
@@ -99,11 +99,12 @@ def main(argv=None) -> int:
     ap.add_argument("--fold", required=True, help="exactly one fold id")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--plan", default=PLAN.name, help="plan file in evaluation/folds")
+    ap.add_argument("--seed", type=int, default=1, help="MODEL_SEED of the fold class; a seed-2 plan's classes are pre-suffixed _s2")
     a = ap.parse_args(argv)
     plan_path = FOLDS / a.plan
     if a.verify:
-        return 0 if verify(a.fold, plan_path) else 1
-    t, extra = pick(a.fold, plan_path)
+        return 0 if verify(a.fold, plan_path, a.seed) else 1
+    t, extra = pick(a.fold, plan_path, a.seed)
     run_id = json.loads(plan_path.read_text())["run_id"]
     print(f"{run_id} {a.fold}: threshold {store(plan_path, a.fold, t, extra)} {json.dumps(extra)}")
     return 0

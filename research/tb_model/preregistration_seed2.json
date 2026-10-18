@@ -1,0 +1,99 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Seed-2 repeat of the capital-through-the-cap results, then all-available + any-signal add",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26). Nothing adopted.",
+ "why": "Seed 1: stacked (any-signal add + x1.7432) 97.56 PASS; all-available 2,000 95.50 (FAIL vs cs_aro on maxDD only, returns-only PASS); 3,000 114.17 PASS vs 2,000. Training is deterministic per seed; the variance needs another seed. Entries and exits are model-free (width book); the seed changes only the ARO sizer's agree / disagree tags and thresholds.",
+ "seed2": {
+  "procedure": "033 T025a convention: train ARO seed 2 for f00-f14 (research.candidate_training.train --model AROS2 --seed 2; weights by model key, one chain); pick each fold's 0.5-share threshold on the seed-2 model (research.control_sizer.pick --plan plan_cs_aro_s2train.json --seed 2, then --verify --seed 2); copy those thresholds unchanged into the six run plans plan_<arm>_r2.json; run each with run_folds --seed 2. Judge plans plan_<arm>_s2.json carry the _s2 arm tags.",
+  "books": [
+   "cs_aro",
+   "cs_aro_all2k",
+   "cs_aro_all3k",
+   "cs_aro_hpany_lev2",
+   "cs_aro_hpany",
+   "cs_aro_lev2"
+  ],
+  "instrument": "all 15 fold records per book; every fold class MODEL_SEED 2; every fold's pick --verify --seed 2 passes; cs_aro_s2 agree share within [0.45, 0.55]; cs_aro_s2 trades_hash differs from cs_aro (seed 1) in >= 1 fold (the seed reached the sizer); all-available books: >= 80% of stakes on min(L x w, fillable cap). Fail -> seed-2 INCONCLUSIVE, no P&L read",
+  "questions": {
+   "Q1s2": "judge_one(cs_aro_hpany_lev2_s2, cs_aro_hpany_s2) AND judge_one(cs_aro_hpany_lev2_s2, cs_aro_lev2_s2) PASS",
+   "Q4s2": "judge_one(cs_aro_all2k_s2, cs_aro_s2) PASS",
+   "Q5s2": "judge_one(cs_aro_all3k_s2, cs_aro_all2k_s2) PASS"
+  },
+  "replicates": "a question replicates when its seed-2 decision equals seed 1's (Q1 PASS, Q4 FAIL-on-risk / returns-only PASS, Q5 PASS), under both the standard and the returns-only reading. Reported: per-book seed-1 vs seed-2 totals and the two-seed mean gains."
+ },
+ "combo": {
+  "arm": "cs_aro_all3k_hpany = NNNC_CS_ARO_ALL3K + HELD_PAIR_ADD {'in_profit_only': False}; first fill min(3000 x w, cap, wallet), add min(900, its candle's cap), max 1 add; seed 1, cs_aro's thresholds",
+  "plan": "evaluation/folds/plan_cs_aro_all3k_hpany.json",
+  "instrument": "adds in both halves; > 0 adds not in profit; 0 NON-stop exits on an add candle (the amended cap-study rule, adopted here before any run); >= 80% of first fills on min(3000 x w, fillable cap); agree share within 0.05 of cs_aro's. Fail -> INCONCLUSIVE, no P&L read",
+  "Q6": "judge_one(cs_aro_all3k_hpany, cs_aro_all3k) PASS",
+  "reported": "vs cs_aro_hpany_lev2 and cs_aro; exposure; adds and in-profit share"
+ },
+ "returns_reading": "pre-registered SECONDARY for every question: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "order": "seed-2 training -> picks -> six seed-2 backtests -> seed-2 judge; then the Q6 backtest and judge (one chain at a time)",
+ "seen_before": [
+  "all seed-1 results of every book named here",
+  "no seed-2 ARO model, pick or backtest; no cs_aro_all3k_hpany backtest"
+ ],
+ "question": "Do the seed-1 capital results hold on a second ARO seed, and does the any-signal add stack on all-available entry?"
+}
