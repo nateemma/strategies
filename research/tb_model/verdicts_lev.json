@@ -1,0 +1,56 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26), seed 1; follows cs_aro_hp PASS (b04bf147) and the computed 031 leverage control (771de6d7: add explained by capital early, beats it late). Nothing adopted.",
+ "instrument": {
+  "shared_trades": 925,
+  "median_stake_ratio": 1.0,
+  "capped_share": 0.7286,
+  "avg_stake_vs_cs_aro_hp": {
+   "early": 0.8651,
+   "late": 0.8621
+  },
+  "adds": 0,
+  "exposure": {
+   "cs_aro_lev": {
+    "early": {
+     "avg_stake": 118.4,
+     "peak_stake": 9972.8,
+     "stake_hours": 2041949.1
+    },
+    "late": {
+     "avg_stake": 168.1,
+     "peak_stake": 8674.4,
+     "stake_hours": 2514262.0
+    }
+   },
+   "cs_aro_hp": {
+    "early": {
+     "avg_stake": 136.9,
+     "peak_stake": 9207.0,
+     "stake_hours": 2360360.3
+    },
+    "late": {
+     "avg_stake": 195.0,
+     "peak_stake": 9331.1,
+     "stake_hours": 2916387.9
+    }
+   },
+   "cs_aro": {
+    "early": {
+     "avg_stake": 103.1,
+     "peak_stake": 9207.0,
+     "stake_hours": 1778575.6
+    },
+    "late": {
+     "avg_stake": 148.6,
+     "peak_stake": 8153.4,
+     "stake_hours": 2222849.8
+    }
+   }
+  },
+  "pass": false
+ },
+ "decision": {
+  "decision": "INCONCLUSIVE",
+  "reason": "instrument failed; no P&L read"
+ }
+}

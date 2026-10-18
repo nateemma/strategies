@@ -176,3 +176,13 @@ The adds' extra stake-hours x the comparator's pp per stake-hour, per fold. A ga
 The add's gain is explained by extra capital early and beats it late, on both books. The sizer's part
 (cs_aro_hp vs w_aro_hp, +4.45 / +3.42) is not leverage: average committed stake 137 / 138 and 195 / 202.
 The 031 control assumes the extra capital would earn the base book's rate linearly (no wallet or liquidity cap).
+
+## Backtested leverage control (preregistration_lev.json, 56e298cd) -- INCONCLUSIVE (instrument failed)
+
+cs_aro_lev = cs_aro with stakes x1.3187. Instrument FAILED, no P&L read: median stake ratio vs cs_aro
+1.00 (needed 1.3187 +- 0.02); average committed stake 0.865 / 0.862 of cs_aro_hp's (needed 0.90-1.10).
+Cause: 68% of cs_aro's entries are already held below their intended stake by the fillable cap
+(<= 1/QUOTE_VOLUME_HEADROOM_MULT of the entry candle's quote volume; median stake 0.46 of intended), so
+a bigger stake cannot lever them; only the ~27% uncapped entries scale. The in-profit add reaches more
+capital because it fills on a LATER candle with its own liquidity headroom -- it buys capacity a bigger
+first stake cannot.
