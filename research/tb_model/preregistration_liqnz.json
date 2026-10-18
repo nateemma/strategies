@@ -1,0 +1,47 @@
+{
+ "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "rule": {
+  "paired_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "INCONCLUSIVE_UNDERPOWERED": "pass",
+                 "INCONCLUSIVE_ARM_LOSES": "pass", "INCONCLUSIVE_ABSORBED": "inconclusive", "UNRESOLVABLE": "inconclusive"},
+  "risk_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "UNRESOLVABLE": "inconclusive"}
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": ["PASS (PROVISIONAL)", "FAIL", "INCONCLUSIVE"],
+ "title": "Liquidity guard on the pair's TRADED candles (non-zero-volume median), momentum and reversion books",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1 weights for the reversion arms, momentum model-free. Nothing adopted.",
+ "why": "preregistration_liq.json's guard (signal candle quote volume > the pair's 30-day median over ALL candles) refused 2.8% of momentum signals: binance.us thin pairs have 46-63% zero-volume 15m candles, so that median is ~0. Offline (full-sample, seen): the bottom quartile of signal-candle liquidity earns ~0 in both books (momentum -490 USDT; cs_aro 184, late -312) and cs_aro's within-pair top third holds 77% of its P&L with both halves positive. This replaces the baseline with the median of the pair's NON-ZERO-volume candles (its typical traded candle).",
+ "threshold_choice": "min_ratio 5.0, chosen from the REFUSAL distribution only (no P&L read under this measure): at 1.0 the non-zero guard still refuses only 3.1% (st_g24_mom_s4k), 2.4% (cs_aro), 2.4% (cs_aro_all3k) of existing trades' signal candles -- inert again. At 5.0 it refuses 22.2% / 25.6% / 25.7% (late 20.0% / 24.7% / 24.8%) -- the bottom quartile the offline tables flagged. Per pair at 5.0 the refusals are uneven (SOL 45-49%, XRP 16-34%, DOT 9-10%): the liquid pairs' signals sit closer to their own typical traded candle.",
+ "guard": {"window": 2880, "min_ratio": 5.0, "nonzero": true},
+ "arms": {
+  "st_g24_mom_liqnz": "SimpleTrigger_BreakoutGbb_MomExit_G24 (startup 4096) + LIQUIDITY_GUARD {window 2880, min_ratio 5, nonzero}: keep a signal only where the signal candle's quote volume > 5 x the median quote volume of the pair's non-zero-volume candles in the trailing 2880 bars (current included)",
+  "cs_aro_s4k": "NNNC_CS_ARO with startup_candle_count 4096 (MODEL_TRAINED_WITH 64: cs_aro's own weights, same model key verified), no guard: the warm-up null",
+  "cs_aro_liqnz": "cs_aro_s4k + the same guard",
+  "cs_aro_all3k_s4k": "NNNC_CS_ARO_ALL3K with startup 4096 (same weights), no guard: the warm-up null",
+  "cs_aro_all3k_liqnz": "cs_aro_all3k_s4k + the same guard"
+ },
+ "controls": {"st_g24_mom_liqnz": "st_g24_mom_s4k (records from preregistration_liq.json, already run)",
+              "cs_aro_liqnz": "cs_aro_s4k", "cs_aro_all3k_liqnz": "cs_aro_all3k_s4k"},
+ "plans": ["evaluation/folds/plan_st_g24_mom_liqnz.json", "evaluation/folds/plan_cs_aro_s4k.json", "evaluation/folds/plan_cs_aro_liqnz.json",
+           "evaluation/folds/plan_cs_aro_all3k_s4k.json", "evaluation/folds/plan_cs_aro_all3k_liqnz.json"],
+ "code": "utils/LiquidityGuardMixin.py ('nonzero' option, default off; utils/tests/test_liquidity_guard.py); SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24_LiqNZ.py; NNNC/NNNC_CS_ARO_{S4K,LIQNZ}.py, NNNC/NNNC_CS_ARO_ALL3K_{S4K,LIQNZ}.py",
+ "instrument": "all 15 records per arm; each guarded arm: >= 99% of its trades' signal candles pass the guard offline (load_pair, same non-zero rolling median), >= 10% of its control's trades fail it (the guard binds), trades in both halves, 0 position adds; each reversion null (s4k): agree share within 0.05 of cs_aro's. Fail -> that question INCONCLUSIVE, no P&L read",
+ "questions": {
+  "QN1": "judge_one(st_g24_mom_liqnz, st_g24_mom_s4k) PASS: the guard improves the momentum book",
+  "QN2": "judge_one(cs_aro_liqnz, cs_aro_s4k) PASS: the guard improves the reversion book",
+  "QN3": "judge_one(cs_aro_all3k_liqnz, cs_aro_all3k_s4k) PASS: the guard improves the all-available reversion book"
+ },
+ "returns_reading": "pre-registered SECONDARY for all three: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "warm-up nulls vs their 64-bar parents (cs_aro_s4k vs cs_aro, cs_aro_all3k_s4k vs cs_aro_all3k); each guarded arm vs its 64-bar parent; slippage re-score at 0 / 2.5 / 5 / 10 bps per side and break-even per side for every arm and control; trades and median stakes",
+ "order": "one chain: st_g24_mom_liqnz, cs_aro_s4k, cs_aro_liqnz, cs_aro_all3k_s4k, cs_aro_all3k_liqnz backtests, then research.tb_model.liqnz",
+ "seen_before": [
+  "all results of st_g24_mom, st_g24_mom_s4k/liq/liq3k, cs_aro, cs_aro_all3k",
+  "offline full-sample buckets on st_g24_mom and cs_aro by rvol, by quote volume / 30-day all-candle median, and within-pair terciles (research/tb_model/liquidity_offline.py)",
+  "refusal shares of the non-zero guard at 1-5x on st_g24_mom_s4k, cs_aro, cs_aro_all3k trades (no P&L split by it); no backtest of any arm here"
+ ],
+ "question": "Does refusing signals on candles that are thin relative to the pair's typical TRADED candle raise the momentum, reversion and all-available reversion books?"
+}
