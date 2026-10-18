@@ -25,6 +25,7 @@ from research.tb_model.stack import _agree  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 PREREG = HERE / "preregistration_all.json"
+AMEND = HERE / "preregistration_all_amend.json"
 ARMS = {"cs_aro_all2k": 2000.0, "cs_aro_all3k": 3000.0}
 QUESTIONS = {"Q4": ("cs_aro_all2k", "cs_aro"), "Q5": ("cs_aro_all3k", "cs_aro_all2k")}
 REPORTED = ("cs_aro_lev2", "cs_aro_hpany")
@@ -36,12 +37,15 @@ def instrument(tag: str, limit: float) -> dict:
 
     ctl = {(t["pair"], str(pd.Timestamp(t["open_date"]))): float(t["stake_amount"]) for t in F.archive_trades("cs_aro")}
     trades = F.archive_trades(tag)
-    ok, stakes, ctl_stakes = [], [], []
+    ok, stakes, ctl_stakes, room = [], [], [], []
     for t in trades:
         k = (t["pair"], str(pd.Timestamp(t["open_date"])))
         if k not in ctl:
             continue
-        model = min(limit * WEIGHTS[str(t["enter_tag"]).rsplit(":", 1)[-1]], _cap(t["pair"], pd.Timestamp(t["open_date"])))
+        w, cap = WEIGHTS[str(t["enter_tag"]).rsplit(":", 1)[-1]], _cap(t["pair"], pd.Timestamp(t["open_date"]))
+        model = min(limit * w, cap)
+        if cap > 900.0 * w:
+            room.append(float(t["stake_amount"]) / ctl[k])
         ok.append(abs(float(t["stake_amount"]) / model - 1) <= 0.01)
         stakes.append(float(t["stake_amount"]))
         ctl_stakes.append(ctl[k])
@@ -54,8 +58,13 @@ def instrument(tag: str, limit: float) -> dict:
            "median_stake": round(float(np.median(stakes)), 1) if stakes else None,
            "cs_aro_median_stake": round(float(np.median(ctl_stakes)), 1) if ctl_stakes else None,
            "adds": int(adds), "agree_share": round(share, 4)}
-    out["pass"] = bool(adds == 0 and abs(share - cshare) <= 0.05 and (out["model_share"] or 0) >= 0.80
-                       and (out["median_stake"] or 0) > (out["cs_aro_median_stake"] or 0))
+    if AMEND.is_file():  # preregistration_all_amend.json: test the entries with unused liquidity
+        out["uncapped_trades"] = len(room)
+        out["uncapped_median_ratio"] = round(float(np.median(room)), 4) if room else None
+        stakes_up = (out["uncapped_median_ratio"] or 0) > 1
+    else:
+        stakes_up = (out["median_stake"] or 0) > (out["cs_aro_median_stake"] or 0)
+    out["pass"] = bool(adds == 0 and abs(share - cshare) <= 0.05 and (out["model_share"] or 0) >= 0.80 and stakes_up)
     return out
 
 

@@ -1,0 +1,9 @@
+{
+ "amends": "research/tb_model/preregistration_all.json (e40e4e31), instrument condition 'median stake > cs_aro's', both arms",
+ "date": "2026-10-18",
+ "decided_by": "user, after the instrument failed and before any P&L of these arms was read",
+ "seen": "instrument output only (stake matching, wallet-limited share, trade counts, agree share, avg / peak committed stake); no profit figures",
+ "why": "the median entry is liquidity-capped (median stake 367.7 in all three books), so the condition could never pass; it was meant to show the arm stakes more where liquidity allows",
+ "new_condition": "on trades shared with cs_aro whose fillable cap exceeds cs_aro's intended stake (900 x w) -- the entries cs_aro left liquidity unused on -- the median stake ratio arm / cs_aro is > 1",
+ "unchanged": "every other instrument condition, Q4 / Q5 decision rules, the returns-only secondary, the reported comparisons"
+}
