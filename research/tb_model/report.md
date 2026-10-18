@@ -125,3 +125,21 @@ The replay's +3.53 / +3.51 did not survive: the exit runs faithfully, but the ar
 trades (873 vs 930). Higher targets hold trades longer (ROI 5% exits 18 → 81, take-profit 557 →
 426), and a held pair cannot re-enter -- the one-trade-per-pair blocking also seen in the
 SimpleTrigger grace study. Replays fix the trade list, so they cannot see it.
+
+## Held-pair re-entry (preregistration_reentry.json, 50dd2754)
+
+Instrument PASS both arms: adds in both halves (w_aro_hp 88 / 113, w_aro_tp2_hp 105 / 127), 100% on
+trades in profit, no exit on an add candle; w_aro_tp2_hp's 619 single-fill trades replay to 99.8%.
+
+| comparison | arm | comparator | early / late gain | paired | trades | |
+|---|---|---|---|---|---|---|
+| **primary** w_aro_tp2_hp vs w_aro_hp | 52.11 | 62.06 | +4.77 / **−14.71** | UNCHANGED (p 0.44) | 851 vs 915 | **FAIL** |
+| w_aro_hp vs w_aro (reported) | 62.06 | 51.44 | +3.54 / +7.07 | UNCHANGED (p 0.053) | 915 vs 930 | PASS |
+| w_aro_tp2_hp vs w_aro (reported) | 52.11 | 51.44 | +8.31 / −7.64 | UNCHANGED | 851 vs 930 | FAIL |
+
+- Re-entry does not rescue the 2×ATR take-profit: it still takes fewer trades (851 vs 915) and loses
+  the late half badly (late Sharpe and maxDD WORSENED vs w_aro_hp).
+- **Side result (reported, not the question):** 031's in-profit add on the width book gives 62.06
+  (+3.5 / +7.1 vs w_aro; maxDD 4.9 → 4.2, Sharpe 2.41 → 2.50) -- above cs_aro's 59.95, which runs
+  with the add OFF. cs_aro and all its comparators have the add off, so the like-for-like test is
+  cs_aro + add vs w_aro_hp; no leverage control was run here.
