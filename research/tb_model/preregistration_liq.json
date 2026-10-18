@@ -1,0 +1,92 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Momentum book (breakout_gbb) with a pair-relative liquidity guard, with and without all-available entry",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), model-free (no seed). Nothing adopted.",
+ "why": "Offline on st_g24_mom's 5,300 trades (seen before registration): edge 0.104%/trade, flat-slippage break-even 0.074%/side vs cs_aro's 0.668%. Relative-volume confirmation (rvol >= 1.5/2.0) cuts P&L to 872/472 (worse). An absolute quote-volume floor raises edge per trade but at 30k USDT is 72% SOL+XRP (a pair filter in disguise). Pair-relative: the top third of each pair's own quote volume (full-sample terciles, lookahead) holds 3,181 of 3,485 USDT (0.261%/trade, break-even 0.117%) but late +33 only. This tests the causal version and whether it makes all-available entry pay on the momentum book.",
+ "arms": {
+  "st_g24_mom_s4k": "SimpleTrigger_BreakoutGbb_MomExit_G24 with startup_candle_count 4096, no guard, STAKE_SCALE 1: the warm-up null the guard needs",
+  "st_g24_mom_liq": "s4k + LIQUIDITY_GUARD {window 2880 (30 days of 15m), min_ratio 1.0}: keep a signal only where the signal candle's quote volume > the pair's trailing 2880-bar median (current candle included)",
+  "st_g24_mom_liq3k": "liq + STAKE_SCALE 3000/900: stake min(3000, fillable cap = quote volume / 10, max_stake = available wallet)"
+ },
+ "plans": [
+  "evaluation/folds/plan_st_g24_mom_s4k.json",
+  "evaluation/folds/plan_st_g24_mom_liq.json",
+  "evaluation/folds/plan_st_g24_mom_liq3k.json"
+ ],
+ "code": "utils/LiquidityGuardMixin.py, utils/StakeScaleMixin.py (both default-off); SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24_{S4K,Liq,Liq3k}.py",
+ "instrument": "all 15 records per arm; liq: >= 99% of its trades' signal candles pass the guard offline (load_pair, same rolling median), >= 1 s4k trade fails it (the guard binds), trades in both halves, 0 position adds; liq3k: >= 80% of stakes equal min(3000, quote volume / 10) within 1%, and on trades shared with liq whose cap > 900 the median stake ratio liq3k / liq > 1. Fail -> that question INCONCLUSIVE, no P&L read",
+ "questions": {
+  "QL1": "judge_one(st_g24_mom_liq, st_g24_mom_s4k) PASS: the pair-relative liquidity guard improves the momentum book",
+  "QL2": "judge_one(st_g24_mom_liq3k, st_g24_mom_liq) PASS: all-available entry pays on the guarded book"
+ },
+ "returns_reading": "pre-registered SECONDARY for both: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "s4k vs st_g24_mom (warm-up effect); liq3k vs st_g24_mom; slippage re-score (research/tb_model/slippage_rescore method) at 0 / 2.5 / 5 bps per side and break-even per side for st_g24_mom, s4k, liq, liq3k; trades and median stakes",
+ "order": "one chain: s4k, liq, liq3k backtests, then research.tb_model.liq",
+ "seen_before": [
+  "all st_g24_mom results",
+  "the offline rvol / quote-volume / within-pair-tercile tables on st_g24_mom (scratchpad bo_filters.py)",
+  "no backtest of any arm here; the causal trailing-median ratio was not computed on any trades"
+ ],
+ "question": "Does keeping only the momentum signals on candles more liquid than the pair's own 30-day median raise the book's edge, and does that make all-available entry pay?"
+}
