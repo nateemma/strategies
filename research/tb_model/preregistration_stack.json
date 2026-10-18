@@ -1,0 +1,84 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Do the ARO sizer and 031's in-profit held-pair add stack on the width book?",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1; follows the re-entry study (50dd2754 -> a7418871). Nothing is adopted or promoted.",
+ "why": "w_aro_hp (width book + in-profit add) scored 62.06 vs w_aro 51.44 (+3.54 / +7.07), above cs_aro's 59.95 -- but cs_aro runs with the add OFF (WidthBookMixin sets HELD_PAIR_ADD None), so the two are not like-for-like.",
+ "arms": {
+  "cs_aro_hp": {
+   "class": "NNNC_CS_ARO_HP = NNNC_CS_ARO + HELD_PAIR_ADD {'in_profit_only': True}",
+   "plan": "evaluation/folds/plan_cs_aro_hp.json",
+   "thresholds": "cs_aro's per-fold agree thresholds (plan_cs_aro.json), copied unchanged; no new pick"
+  }
+ },
+ "add_rule": "031 as promoted: a fresh width-book signal on a pair holding a trade in profit adds one stake, max 1 add, last fill >= 1 h old; every age-based rule restarts from the add; stop / take-profit from the averaged entry. The add stake is 1x proposed (adjust_trade_position does not go through custom_stake_amount), so the sizer weights (1.333x agree / 0.667x disagree) apply to the first fill only. Weights: ARO's (same model key).",
+ "instrument": "research/tb_model/stack.py: adds in both halves; >= 95% of adds on a trade in profit; 0 exits on an add candle; >= 99% of trades tagged :agree / :disagree; agree share of trades within 0.05 of cs_aro's. Fail -> INCONCLUSIVE, no P&L read",
+ "pass": "BOTH judge_one(cs_aro_hp, w_aro_hp) [the sizer on top of the add] AND judge_one(cs_aro_hp, cs_aro) [the add on top of the sizer] PASS: both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule over all four half gains. Either FAIL -> FAIL; either INCONCLUSIVE/MISSING -> INCONCLUSIVE",
+ "reported": "judge_one(cs_aro_hp, w_aro); trade and add counts; capital deployed (sum of stake x hours held, per half) for cs_aro_hp, cs_aro, w_aro_hp, w_aro -- descriptive only, no leverage-control arm is run",
+ "seen_before": [
+  "w_aro, wf_aro_g24, cs_aro, w_aro_hp, w_aro_tp2, w_aro_tp2_hp results (all halves)",
+  "031: the in-profit add on ARO's model book +3.19 / +3.31",
+  "no backtest of cs_aro_hp"
+ ],
+ "question": "with ARO sizing the width book, does 031's in-profit add still pay, and does the sizer still pay with the add on -- i.e. does cs_aro_hp beat both w_aro_hp and cs_aro in both halves?"
+}
