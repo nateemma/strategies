@@ -1,0 +1,102 @@
+{
+ "cs_aro_hp|cs_aro|early": {
+  "n_adds": 89,
+  "trade_gain_pp": 3.142000000000003,
+  "beats_leverage": false,
+  "exposure_arm": {
+   "avg_stake": 136.87215220253466,
+   "peak_stake": 9207.021260000001,
+   "stake_hours": 2360360.26473271
+  },
+  "exposure_ctl": {
+   "avg_stake": 103.1357278654395,
+   "peak_stake": 9207.021260000001,
+   "stake_hours": 1778575.6270395042
+  },
+  "decomposition": {
+   "same_n": 392,
+   "same_entry_pp": 6.601230857393524,
+   "forgone_n": 19,
+   "forgone_pair_held_n": 17,
+   "forgone_pp": 4.731383334242915,
+   "new_n": 7,
+   "new_pp": 1.2721524768493946
+  },
+  "leverage_pp": 11.976553811783546
+ },
+ "cs_aro_hp|cs_aro|late": {
+  "n_adds": 113,
+  "trade_gain_pp": 6.837999999999997,
+  "beats_leverage": true,
+  "exposure_arm": {
+   "avg_stake": 195.00762944534128,
+   "peak_stake": 9331.12635,
+   "stake_hours": 2916387.8502624403
+  },
+  "exposure_ctl": {
+   "avg_stake": 148.63340928887732,
+   "peak_stake": 8153.358469999998,
+   "stake_hours": 2222849.7942674826
+  },
+  "decomposition": {
+   "same_n": 506,
+   "same_entry_pp": 5.110870383214993,
+   "forgone_n": 13,
+   "forgone_pair_held_n": 13,
+   "forgone_pp": -2.2653165717041923,
+   "new_n": 10,
+   "new_pp": -0.5381869549191862
+  },
+  "leverage_pp": 5.015121044960427
+ },
+ "w_aro_hp|w_aro|early": {
+  "n_adds": 88,
+  "trade_gain_pp": 3.5430000000000064,
+  "beats_leverage": false,
+  "exposure_arm": {
+   "avg_stake": 138.43638332478517,
+   "peak_stake": 8269.17801,
+   "stake_hours": 2387335.43043592
+  },
+  "exposure_ctl": {
+   "avg_stake": 107.10151764314168,
+   "peak_stake": 8269.17801,
+   "stake_hours": 1846965.6717559781
+  },
+  "decomposition": {
+   "same_n": 392,
+   "same_entry_pp": 6.832009059320681,
+   "forgone_n": 19,
+   "forgone_pair_held_n": 17,
+   "forgone_pp": 4.371182776563513,
+   "new_n": 7,
+   "new_pp": 1.0821737172428338
+  },
+  "leverage_pp": 9.926258943860352
+ },
+ "w_aro_hp|w_aro|late": {
+  "n_adds": 113,
+  "trade_gain_pp": 7.073,
+  "beats_leverage": true,
+  "exposure_arm": {
+   "avg_stake": 201.62909140151402,
+   "peak_stake": 8430.749950000001,
+   "stake_hours": 3015413.4691824927
+  },
+  "exposure_ctl": {
+   "avg_stake": 156.12123226007685,
+   "peak_stake": 6953.352620000001,
+   "stake_hours": 2334832.058757514
+  },
+  "decomposition": {
+   "same_n": 506,
+   "same_entry_pp": 5.266348471916571,
+   "forgone_n": 13,
+   "forgone_pair_held_n": 13,
+   "forgone_pp": -3.089018914198466,
+   "new_n": 10,
+   "new_pp": -1.2823673861150364
+  },
+  "leverage_pp": 3.9219122267360764
+ }
+}

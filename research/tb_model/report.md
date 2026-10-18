@@ -160,3 +160,19 @@ Sharpe 2.67 (cs_aro 2.59, w_aro_hp 2.50, w_aro 2.41; all UNCHANGED); maxDD 4.03 
 The sizer and the add stack. Capital deployed (stake x hours, descriptive): cs_aro_hp 24.3k / 30.1k
 vs cs_aro 17.8k / 22.2k (+36% / +35%), so part of the add's gain may be more capital at work; daily
 SD 0.37 vs 0.33. No leverage control was run. One era, seed 1. Nothing adopted.
+
+### Leverage control (031's rule, research/held_pair/exposure.py; leverage_stack.json)
+
+The adds' extra stake-hours x the comparator's pp per stake-hour, per fold. A gain no larger than this is
+"explained by extra capital" (031 pre-registration cb158ba, fixed before this arm). Computed, not backtested.
+
+| add on | half | gain pp | leverage pp | beats | avg stake arm / ctl |
+|---|---|---|---|---|---|
+| cs_aro_hp vs cs_aro | early | +3.14 | 11.98 | no | 137 / 103 |
+| cs_aro_hp vs cs_aro | late | +6.84 | 5.02 | yes | 195 / 149 |
+| w_aro_hp vs w_aro | early | +3.54 | 9.93 | no | 138 / 107 |
+| w_aro_hp vs w_aro | late | +7.07 | 3.92 | yes | 202 / 156 |
+
+The add's gain is explained by extra capital early and beats it late, on both books. The sizer's part
+(cs_aro_hp vs w_aro_hp, +4.45 / +3.42) is not leverage: average committed stake 137 / 138 and 195 / 202.
+The 031 control assumes the extra capital would earn the base book's rate linearly (no wallet or liquidity cap).
