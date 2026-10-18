@@ -84,6 +84,7 @@ def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
         probs = sig[PROB_COLS].to_numpy(float)
         out = pd.DataFrame({"date": sig["date"].values, "pair": pair})
         out["p_buy"] = probs[:, 2]
+        out["p_sell"], out["p_hold"] = probs[:, 0], probs[:, 1]
         out["buy_argmax"] = np.argmax(np.nan_to_num(probs, nan=-1.0), axis=1) == 2
         out["enter_long"] = sig.get("enter_long", 0).fillna(0).astype(int).values
         out["enter_tag"] = sig.get("enter_tag", "").fillna("").astype(str).values
