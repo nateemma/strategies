@@ -1,0 +1,82 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "All-available entry at 5% participation (half the fillable cap)",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1. Sensitivity of the lead book to its participation assumption; nothing adopted.",
+ "why": "cs_aro_all3k (114.17 seed 1, 113.83 seed 2) stakes up to 10% of the entry candle's quote volume, and so does every book: median participation is 10% for cs_aro too (68% of its entries are capped). A post-hoc flat-slippage re-score keeps the ranking up to 0.77%/side, but a size-dependent impact model hits every book at 10%. Early 036 depth (2 days, informal, not the gated cost_model fit) prices cap-sized orders at ~2.5 bps/side median (mean 5.4, p90 16), close to half the spread. This arm asks how much of the lead survives at half the participation.",
+ "arm": "cs_aro_all3k_p5 = NNNC_CS_ARO_ALL3K with QUOTE_VOLUME_HEADROOM_MULT 20 (fillable cap = candle quote volume / 20, and confirm_trade_entry's gate at 20x the order); MIN_QUOTE_VOLUME unchanged; seed 1 weights (the multiple is MODEL_KEY_IGNORED); cs_aro's thresholds copied unchanged",
+ "plan": "evaluation/folds/plan_cs_aro_all3k_p5.json",
+ "instrument": "all 15 fold records; >= 80% of stakes on trades shared with cs_aro equal min(3000 x w, quote volume / 20) within 1%; median stake ratio p5 / all3k on shared trades < 1 (the halved cap bit); 0 position adds; agree share within 0.05 of cs_aro's. Fail -> INCONCLUSIVE, no P&L read",
+ "questions": {
+  "Q7": "judge_one(cs_aro_all3k_p5, cs_aro) PASS: the all-available lead survives at half the participation"
+ },
+ "returns_reading": "pre-registered SECONDARY: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "judge_one(cs_aro_all3k_p5, cs_aro_all3k) (the cost of halving participation; descriptive, not a decision); trades and entries refused vs all3k; median stakes",
+ "order": "one backtest chain (15 folds), then research.tb_model.p5",
+ "seen_before": [
+  "all seed-1 and seed-2 results of cs_aro and cs_aro_all3k",
+  "the post-hoc slippage re-score and the informal 2-day 036 depth read",
+  "no cs_aro_all3k_p5 backtest"
+ ],
+ "question": "Does all-available entry still beat cs_aro when it may take only 5% of the entry candle's volume?"
+}
