@@ -206,3 +206,21 @@ loses to it narrowly late (+1.0); the any-signal add (more capital still) beats 
 The in-profit add's gain over cs_aro is not shown to exceed leverage. Descriptive, not pre-registered:
 pp per maxDD point cs_aro_hp 17.4, cs_aro_hpany 14.5, cs_aro 13.4, cs_aro_lev2 12.5 -- the in-profit
 add has the lowest drawdown of the four.
+
+## Capital through the liquidity cap (preregistration_cap.json, 441ca595)
+
+- Q1 stack (cs_aro_hpany_lev2 = any-signal add + first fills x1.7432): **PASS (PROVISIONAL), 97.56** --
+  vs cs_aro_hpany 82.96 +9.33 / +5.27 (IMPROVED p 0.046), vs cs_aro_lev2 82.66 +12.94 / +1.96 (p 0.15),
+  vs cs_aro +29.81 / +7.80; Sharpe 2.51, maxDD 8.48 (UNCHANGED); avg stake 197 / 284. Returns-only: PASS.
+- Q2 / Q3 (max_adds 2 / 3): **INCONCLUSIVE, instrument failed, no P&L read.** Trades did reach 2 / 3 adds
+  in both halves (2 adds: 87 / 128; 3 adds: 28 / 64), but 2 exits fell on an add candle in each arm: LTC
+  and AAVE on 2025-10-10 21:15 (the crash) -- the 2nd add filled at the open, then the stop hit inside
+  the same 15 m candle. The rule targets the exit-due-at-open bug; intrabar stops are genuine. Amending
+  it is the user's call.
+
+## All-available entry (preregistration_all.json, e40e4e31) -- INCONCLUSIVE (instrument mis-specified)
+
+cs_aro_all2k / all3k: stakes match min(L x w, fillable cap) for 99.9% / 99.0% of shared trades,
+wallet-limited 0.1% / 1.0%, 0 adds, agree share 0.484 / 0.476; trades 921 / 911 vs 930. FAILED only on
+"median stake > cs_aro's": the median entry (367.7) is liquidity-capped, so the condition could never
+pass -- my pre-registration error. Avg stake 155 / 212 (2k), 185 / 246 (3k) vs cs_aro 103 / 149. No P&L read.

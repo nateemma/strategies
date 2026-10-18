@@ -1,0 +1,103 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26), seed 1. Nothing adopted.",
+ "instrument": {
+  "cs_aro_all2k": {
+   "trades": 921,
+   "cs_aro_trades": 930,
+   "shared": 911,
+   "model_share": 0.9989,
+   "wallet_limited_share": 0.0011,
+   "median_stake": 367.7,
+   "cs_aro_median_stake": 367.7,
+   "adds": 0,
+   "agree_share": 0.4843,
+   "pass": false
+  },
+  "cs_aro_all3k": {
+   "trades": 911,
+   "cs_aro_trades": 930,
+   "shared": 890,
+   "model_share": 0.9899,
+   "wallet_limited_share": 0.0101,
+   "median_stake": 364.8,
+   "cs_aro_median_stake": 364.8,
+   "adds": 0,
+   "agree_share": 0.4764,
+   "pass": false
+  }
+ },
+ "exposure": {
+  "cs_aro_all2k": {
+   "early": {
+    "avg_stake": 155.2,
+    "peak_stake": 11342.7,
+    "stake_hours": 2675616.6
+   },
+   "late": {
+    "avg_stake": 212.1,
+    "peak_stake": 9250.2,
+    "stake_hours": 3171491.8
+   }
+  },
+  "cs_aro_all3k": {
+   "early": {
+    "avg_stake": 184.8,
+    "peak_stake": 11828.9,
+    "stake_hours": 3186653.3
+   },
+   "late": {
+    "avg_stake": 246.2,
+    "peak_stake": 10365.4,
+    "stake_hours": 3681636.6
+   }
+  },
+  "cs_aro_lev2": {
+   "early": {
+    "avg_stake": 137.0,
+    "peak_stake": 11126.8,
+    "stake_hours": 2363384.0
+   },
+   "late": {
+    "avg_stake": 190.6,
+    "peak_stake": 9552.0,
+    "stake_hours": 2850723.2
+   }
+  },
+  "cs_aro_hpany": {
+   "early": {
+    "avg_stake": 159.1,
+    "peak_stake": 11287.3,
+    "stake_hours": 2743445.3
+   },
+   "late": {
+    "avg_stake": 242.9,
+    "peak_stake": 9937.8,
+    "stake_hours": 3632525.5
+   }
+  },
+  "cs_aro": {
+   "early": {
+    "avg_stake": 103.1,
+    "peak_stake": 9207.0,
+    "stake_hours": 1778575.6
+   },
+   "late": {
+    "avg_stake": 148.6,
+    "peak_stake": 8153.4,
+    "stake_hours": 2222849.8
+   }
+  }
+ },
+ "decisions": {
+  "Q4": {
+   "decision": "INCONCLUSIVE",
+   "reason": "instrument failed; no P&L read"
+  },
+  "Q5": {
+   "decision": "INCONCLUSIVE",
+   "reason": "instrument failed; no P&L read"
+  }
+ },
+ "returns_only": {},
+ "judged": {}
+}
