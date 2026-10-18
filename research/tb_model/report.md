@@ -186,3 +186,23 @@ Cause: 68% of cs_aro's entries are already held below their intended stake by th
 a bigger stake cannot lever them; only the ~27% uncapped entries scale. The in-profit add reaches more
 capital because it fills on a LATER candle with its own liquidity headroom -- it buys capacity a bigger
 first stake cannot.
+
+## Controls v2 (preregistration_lev2.json, 177385f3) -- both primaries FAIL
+
+Instruments PASS. cs_aro_lev2 (stakes x1.7432): avg committed stake 1.001 / 0.977 of cs_aro_hp's, 99.7%
+of stakes on the cap model, 0 adds. cs_aro_hpany (any-signal add): adds 202 / 262, 335 not in profit
+(in-profit share 0.28), 0 exits on an add candle, agree share 0.497.
+
+| comparison | arm | ctl | early | late | paired | Sharpe | maxDD | verdict |
+|---|---|---|---|---|---|---|---|---|
+| cs_aro_hp vs cs_aro_lev2 (primary) | 69.93 | 82.66 | -13.72 | +1.00 | p 0.14 | 2.67 / 2.55 | 4.03 / 6.60 | FAIL |
+| cs_aro_hp vs cs_aro_hpany (primary) | 69.93 | 82.96 | -17.34 | +4.31 | p 0.15 | 2.67 / 2.66 | 4.03 / 5.71 | FAIL |
+| cs_aro_lev2 vs cs_aro (reported) | 82.66 | 59.95 | +16.87 | +5.84 | IMPROVED p 0.001 | 2.55 / 2.59 | 6.60 / 4.49 WORSENED | FAIL (risk) |
+| cs_aro_hpany vs cs_aro (reported) | 82.96 | 59.95 | +20.48 | +2.53 | IMPROVED p 0.014 | 2.66 / 2.59 | 5.71 / 4.49 | PASS |
+
+Avg committed stake early / late: cs_aro 103 / 149, cs_aro_hp 137 / 195, cs_aro_lev2 137 / 191,
+cs_aro_hpany 159 / 243. At matched capital, staking more beats the in-profit add early (-13.7) and
+loses to it narrowly late (+1.0); the any-signal add (more capital still) beats it early, loses late.
+The in-profit add's gain over cs_aro is not shown to exceed leverage. Descriptive, not pre-registered:
+pp per maxDD point cs_aro_hp 17.4, cs_aro_hpany 14.5, cs_aro 13.4, cs_aro_lev2 12.5 -- the in-profit
+add has the lowest drawdown of the four.
