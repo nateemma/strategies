@@ -1,0 +1,83 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Width book (w_aro) with the reversion take-profit at 2 x ATR(14)/close of the signal bar, unclamped; stop, grace and other exits unchanged",
+ "date": "2026-10-17",
+ "label": "PROVISIONAL -- one era (2023-26). Chosen post hoc: the best of 9 exit variants in a replay on w_aro's own trades (research/tb_model/replay.json). Nothing is adopted or promoted.",
+ "why": "replay tp_grace_2: +3.53 / +3.51 pp vs today's exit on the width book's trades (null 35.66 / 15.60 -> 39.17 / 19.11), 99.8% replay fidelity; replays ignore re-sequencing and wallet effects, so a backtest decides.",
+ "arm": {
+  "tag": "w_aro_tp2",
+  "class": "NNNC_W_ARO_TP2 = Atr14TakeProfitMixin + NNNC_W_ARO, FAMILY_EXIT_OVERRIDES reversion take_profit_atr_mult 2.0",
+  "plan": "evaluation/folds/plan_w_aro_tp2.json (w_aro's folds, params snapshot and weights -- same model key, checked)",
+  "exit": "take_profit = 2 x Framework.TrainingSignals._atr / close at the signal bar (entry candle - 1), computed in the resolver from the analysed frame, no clamp; the fixed 2.2% only if the signal bar is not visible. Not 028's C2 (k x atr_pct_roll = 20-bar mean of ATR(30)/close, clamped 1-5%)."
+ },
+ "instrument": "research/tb_model/tp2.py: replaying each recorded trade under the arm's exit must reproduce >= 90% of recorded exits (reason AND bar); else INCONCLUSIVE, no P&L read",
+ "pass": "judge_one(w_aro_tp2, w_aro) PASS: both half gains > 0, paired not WORSENED, Sharpe / maxDD not WORSENED; small-margin rule (any half gain < 1 pp -> INCONCLUSIVE)",
+ "reported": "judge_one vs wf_aro_g24; replay prediction +3.53 / +3.51",
+ "seen_before": [
+  "w_aro, wf_aro_g24, cs_aro results",
+  "replay.json: 9 exit variants x 3 stake sources on w_aro's trades, all halves",
+  "028 C2 results",
+  "no backtest with this exit"
+ ],
+ "question": "does a take-profit at 2 x the label's ATR, with today's stop and grace, beat the width book's fixed 2.2% take-profit in both halves?"
+}
