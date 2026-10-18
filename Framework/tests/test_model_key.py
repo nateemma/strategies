@@ -137,6 +137,31 @@ def test_whitelist_and_its_order_move_the_key(storage):
     assert _h(_cls(), flipped) != _h(_cls())
 
 
+def _with_pairs(pairs, runmode):
+    """A config as freqtrade builds it after `-p`: pair_whitelist overwritten, original_config kept."""
+    return {**CONFIG, "runmode": runmode, "exchange": {"pair_whitelist": list(pairs)},
+            "original_config": CONFIG}
+
+
+def test_plot_of_a_whitelisted_pair_keys_on_the_configured_whitelist(storage):
+    from freqtrade.enums import RunMode
+
+    assert _h(_cls(), _with_pairs(["SOL/USDT"], RunMode.PLOT)) == _h(_cls())
+
+
+def test_pair_override_still_moves_the_key_outside_plot(storage):
+    from freqtrade.enums import RunMode
+
+    for mode in (RunMode.BACKTEST, RunMode.DRY_RUN, RunMode.LIVE, RunMode.HYPEROPT):
+        assert _h(_cls(), _with_pairs(["SOL/USDT"], mode)) != _h(_cls())
+
+
+def test_plot_of_a_pair_outside_the_whitelist_is_not_redirected(storage):
+    from freqtrade.enums import RunMode
+
+    assert _h(_cls(), _with_pairs(["BTC/USDT"], RunMode.PLOT)) != _h(_cls())
+
+
 def test_seed_defaults_to_mlx_seed_then_42(storage, monkeypatch):
     assert MK.resolve(_cls(), CONFIG)["run"]["seed"] == 42
     monkeypatch.setenv("MLX_SEED", "7")

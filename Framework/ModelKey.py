@@ -9,7 +9,8 @@ A model key is the canonical JSON of every input that shapes a model's trained w
   defines it, so a subclass that overrides a label/feature/classifier method gets its own key;
 * ``files`` -- pre-built scaler / PCA / GAN files by content hash (a regenerated scaler re-keys
   every model trained on it);
-* ``run`` -- training timerange (``MODEL_TRAIN_TIMERANGE`` or "unpinned"), whitelist, timeframe,
+* ``run`` -- training timerange (``MODEL_TRAIN_TIMERANGE`` or "unpinned"), whitelist (a plot of
+  whitelisted pairs keys on the configured whitelist, see ``_key_whitelist``), timeframe,
   startup candles and seed;
 * ``code_version`` -- ``MODEL_CODE_VERSION``, bumped by hand when training code changes.
 
@@ -228,6 +229,20 @@ def _file_inputs(cls, attrs: dict, storage: Path) -> dict:
     return files
 
 
+def _key_whitelist(config: dict):
+    """The whitelist the key uses: the run's, except in plot mode. freqtrade's `-p` overwrites
+    exchange.pair_whitelist with the plotted pairs, which would key a model nobody trained; when
+    every plotted pair is in the configured whitelist (kept in `original_config`), a plot keys on
+    that whitelist. Every other run mode keys on the run's whitelist, unchanged."""
+    wl = (config.get("exchange") or {}).get("pair_whitelist")
+    mode = config.get("runmode")
+    if getattr(mode, "value", mode) == "plot":
+        orig = ((config.get("original_config") or {}).get("exchange") or {}).get("pair_whitelist")
+        if orig and wl and set(wl) <= set(orig):
+            return orig
+    return wl
+
+
 def resolve(cls, config: dict, storage: Path | None = None) -> dict:
     """The model key of strategy class `cls` under freqtrade `config`. Never instantiates.
     `storage` overrides the class's storage root (an instance-level override)."""
@@ -251,7 +266,7 @@ def resolve(cls, config: dict, storage: Path | None = None) -> dict:
     seed = declared(cls, "MODEL_SEED", None)
     if seed is None:
         seed = int(os.environ.get("MLX_SEED", "42"))
-    wl = (config.get("exchange") or {}).get("pair_whitelist")
+    wl = _key_whitelist(config)
     if not wl:
         raise ModelKeyError("config has no exchange.pair_whitelist; the model key needs it")
     run = {
