@@ -109,3 +109,25 @@ def test_learned_purge_and_null_permutation(n):
     y = np.arange(m.sum(), dtype=float)
     p = L.null_targets(y, seed=1)
     assert sorted(p) == sorted(y) and not np.array_equal(p, y)
+
+
+@pytest.mark.parametrize("model,w", [("holt_w32", 32), ("holt", 64), ("holt_w128", 128)])
+def test_steps_cover_every_horizon_for_any_window(model, w):
+    """_steps stitches several library calls when the window is shorter than 96: each horizon must
+    equal the library's own direct forecast at that step."""
+    from research.forecast import stat_tier as S
+
+    x = 4.6 + np.cumsum(np.random.default_rng(4).normal(0, 0.01, w))
+    path = S._steps(model, x)
+    assert np.isfinite(path).all()
+    for h in (1, 33, 48, 64, 65, 96):
+        direct = np.asarray(S._forecaster(model).forecast(x.copy(), h), float)[-1]
+        assert abs(path[h - 1] - direct) < 1e-9
+
+
+def test_harm_k_sets_the_number_of_sinusoids():
+    from research.forecast import stat_tier as S
+
+    assert [S._forecaster(f"harm_k{k}").n_harmonics for k in (1, 2, 4, 5)] == [1, 2, 4, 5]
+    f = S._forecaster("harm_sd")
+    assert f.detrend_data and f.smooth_data and not S._forecaster("harm_k1").detrend_data

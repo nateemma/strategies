@@ -125,9 +125,12 @@ def score_method(method: str, pred: pd.DataFrame | None = None, frames: dict | N
             el = fr[f"eligible_{n}"].to_numpy()
             gross_all = fr[f"trade_ret_{n}"].to_numpy()
             half = fr["half"].to_numpy()
-            for sig_fn, sink in ((long_signals, trades), (short_signals, shorts)):
-                t = simulate(r_ok[sig_fn(f_ok, lookback)], el, n)
-                sign = 1.0 if sig_fn is long_signals else -1.0
+            if f"sig_{n}" in p.columns:  # a pre-registered signal of its own (the N-of-M votes)
+                sig_rows = (r_idx[p[f"sig_{n}"].to_numpy(bool)], r_idx[p[f"sigs_{n}"].to_numpy(bool)])
+            else:
+                sig_rows = (r_ok[long_signals(f_ok, lookback)], r_ok[short_signals(f_ok, lookback)])
+            for rows_, sink, sign in ((sig_rows[0], trades, 1.0), (sig_rows[1], shorts, -1.0)):
+                t = simulate(rows_, el, n)
                 sink.append(pd.DataFrame({"pair": pair, "row": t, "date": fr["date"].to_numpy()[t],
                                           "half": half[t], "fold": fr["fold"].to_numpy()[t],
                                           "gross": sign * gross_all[t]}))

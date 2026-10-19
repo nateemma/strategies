@@ -1,0 +1,54 @@
+{
+ "label": "038 post-hoc addition: N-of-M forecast votes (user idea: agreement across forecasts that predict a big enough move)",
+ "date": "2026-10-19",
+ "status": "POST-HOC: added after the 038 verdicts were read; committed before any vote member or vote result exists. Same costs, folds, eligibility, one-position trade simulation, benchmark, bootstrap and decision rule as preregistration.json; only the SIGNAL differs.",
+ "signal": "LONG at a scored candle when at least N of the M members forecast a log return > +0.003 (the 30 bp round trip at verdict_bps) at that horizon; all M members must have a finite forecast (otherwise no signal). Short side (descriptive): at least N forecast < -0.003.",
+ "threshold_log_return": 0.003,
+ "variants": {
+  "vote_A": {
+   "members": [
+    "harm_k1",
+    "harm_k2",
+    "harm",
+    "harm_k4",
+    "harm_k5"
+   ],
+   "N": 3,
+   "why": "the idea as proposed: one 64-candle window, cutoff = number of sinusoids K = 1..5 (harm is K=3); nested members, expected to be highly correlated"
+  },
+  "vote_B": {
+   "members": [
+    "holt",
+    "ar",
+    "theta",
+    "arima",
+    "harm",
+    "lgb_L"
+   ],
+   "N": 4,
+   "why": "independent methods; lgb_L is stride 1, read at the stride-16 candles",
+   "learned_member": "lgb_L is seeded: a vote_B PASS also requires vote_B rebuilt with lgb_L_s2 to PASS (condition e)"
+  },
+  "vote_C": {
+   "members": [
+    "holt_w32",
+    "holt",
+    "holt_w128",
+    "holt_w256"
+   ],
+   "N": 3,
+   "why": "independent windows: damped Holt on 32 / 64 / 128 / 256 log closes"
+  }
+ },
+ "new_members": {
+  "harm_k1": "harmonic_forecaster n_harmonics=1, 64 window, no smoothing/detrending, stride 16",
+  "harm_k2": "n_harmonics=2, otherwise as harm_k1",
+  "harm_k4": "n_harmonics=4",
+  "harm_k5": "n_harmonics=5",
+  "holt_w32": "Holt(damped_trend=True, initialization_method='estimated') on 32 log closes, stride 16",
+  "holt_w128": "as holt_w32 on 128 log closes",
+  "holt_w256": "as holt_w32 on 256 log closes"
+ },
+ "members_scored_alone": "the new members are also scored alone under the 038 rule (top-decile signal), labelled post-hoc",
+ "correlation_report": "before reading vote P&L: pairwise Spearman correlation of members' forecasts per horizon on common rows (late half); reported, not decisive"
+}

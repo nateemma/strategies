@@ -32,43 +32,57 @@ MODELS = {"ar": "AR", "holt": "HOLT", "ses": "SIMPLE_EXPONENTAL", "expsm": "EXPO
           "ss_expsm": "SS_EXPONENTAL", "arima": "ARIMA", "theta": "THETA",
           # post-hoc (preregistration_harmonic.json): harmonic regression, smoothing / detrending variants
           "harm": "HARMONIC", "harm_s": "HARMONIC", "harm_d": "HARMONIC", "harm_sd": "HARMONIC"}
+# post-hoc (preregistration_vote.json): members of the N-of-M votes
+MODELS |= {f"harm_k{k}": "HARMONIC" for k in (1, 2, 4, 5)}
+MODELS |= {f"holt_w{w}": "HOLT" for w in (32, 128, 256)}
+WINDOWS = {f"holt_w{w}": w for w in (32, 128, 256)}
 DEFAULT = ("ar", "holt", "ses", "expsm", "ets", "ss_expsm", "arima", "theta")
 SMOOTH_WINDOW = 4
 
 
-def scored_rows(d: pd.DataFrame, stride: int = STRIDE) -> np.ndarray:
+def window_of(model: str) -> int:
+    return WINDOWS.get(model, WINDOW)
+
+
+def scored_rows(d: pd.DataFrame, stride: int = STRIDE, window: int = WINDOW) -> np.ndarray:
     """Frame rows forecast at this stride: in a fold or the forward window, with a full window."""
     idx = np.arange(len(d))
-    return idx[(d["fold"].to_numpy() != "") & (idx % stride == 0) & (idx >= WINDOW)]
+    return idx[(d["fold"].to_numpy() != "") & (idx % stride == 0) & (idx >= window)]
 
 
 def _forecaster(model: str):
     f = FC.make_forecaster(FC.ForecasterType[MODELS[model]])
     harm = model.startswith("harm")
+    variant = model.split("_")[-1] if harm and model != "harm" else ""
     # only the harmonic variants smooth / detrend, with their own causal implementations (the base
-    # helpers are broken at the window edge: 038 D9/D10)
-    f.set_detrend(harm and "d" in model.split("_")[-1] and model != "harm")
-    f.set_smooth(harm and "s" in model.split("_")[-1] and model != "harm", SMOOTH_WINDOW)
+    # helpers are broken at the window edge: 038 D9/D10); harm_kK sets the number of sinusoids
+    f.set_detrend("d" in variant and not variant.startswith("k"))
+    f.set_smooth("s" in variant and not variant.startswith("k"), SMOOTH_WINDOW)
+    if variant.startswith("k"):
+        f.n_harmonics = int(variant[1:])
     return f
 
 
+def _steps(model: str, x: np.ndarray) -> np.ndarray:
+    """Forecasts 1..96 ahead. The library returns the last len(x) values of [x, forecasts], so a
+    window shorter than 96 needs several calls (steps w, 2w, ... capped at 96)."""
+    w, out, covered = len(x), np.full(96, np.nan), 0
+    while covered < 96:
+        s = min(covered + w, 96)
+        k = min(w, s)  # forecasts in the returned tail: steps s-k+1 .. s
+        tail = np.asarray(_forecaster(model).forecast(x.copy(), s), float)[-k:]
+        out[covered:s] = tail[covered - (s - k):]
+        covered = s
+    return out
+
+
 def _path(model: str, lc: np.ndarray) -> np.ndarray:
-    """Forecast log-close offsets for horizons 1..96 from a WINDOW-long log-close window ending at t
-    (lc has WINDOW + 1 values, so AR has WINDOW returns)."""
-    path = np.full(96, np.nan)
+    """Forecast log-close offsets for horizons 1..96 from a window of log closes ending at t (lc has
+    window + 1 values, so AR gets window one-candle returns and its return path is summed)."""
     if model == "ar":
-        x = np.diff(lc)
-        a = np.asarray(_forecaster(model).forecast(x.copy(), WINDOW), float)  # returns 1..64
-        b = np.asarray(_forecaster(model).forecast(x.copy(), 96), float)      # returns 33..96
-        path[:WINDOW] = np.cumsum(a)
-        path[WINDOW:] = path[WINDOW - 1] + np.cumsum(b[WINDOW - 32:])
-        return path
+        return np.cumsum(_steps(model, np.diff(lc)))
     x = lc[1:]
-    a = np.asarray(_forecaster(model).forecast(x.copy(), WINDOW), float)
-    b = np.asarray(_forecaster(model).forecast(x.copy(), 96), float)
-    path[:WINDOW] = a - x[-1]
-    path[WINDOW:] = b[WINDOW - 32:] - x[-1]
-    return path
+    return _steps(model, x) - x[-1]
 
 
 def forecast_rows(d: pd.DataFrame, rows, model: str) -> pd.DataFrame:
@@ -76,15 +90,16 @@ def forecast_rows(d: pd.DataFrame, rows, model: str) -> pd.DataFrame:
     hd = d["has_data"].to_numpy(bool)
     out = {f"f_{n}": [] for n in C.HORIZONS}
     failed, skipped, kinds = [], [], Counter()
+    w = window_of(model)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for t in rows:
             path = np.full(96, np.nan)
-            gap = (not hd[t]) or hd[t - WINDOW + 1: t + 1].mean() < 0.5
+            gap = (not hd[t]) or hd[t - w + 1: t + 1].mean() < 0.5
             bad = False
             if not gap:
                 try:
-                    path = _path(model, lc[t - WINDOW: t + 1])
+                    path = _path(model, lc[t - w: t + 1])
                     bad = not np.all(np.isfinite(path))
                 except Exception as e:  # ForecastFailed or a statsmodels error: counted, never zero
                     kinds[type(e).__name__] += 1
@@ -104,7 +119,7 @@ def _task(args) -> tuple[str, str, pd.DataFrame, dict, float]:
     pair, model = args
     t0 = time.time()
     d = F.read(pair, ["date", "fold", "lc", "has_data"])
-    p = forecast_rows(d, scored_rows(d), model).assign(pair=pair)
+    p = forecast_rows(d, scored_rows(d, window=window_of(model)), model).assign(pair=pair)
     return pair, model, p, p.attrs["fail_kinds"], time.time() - t0
 
 
@@ -115,8 +130,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     rc = C.refuse_unless_registered()
     models = a.model or list(DEFAULT)
-    if not rc and any(m in C.HARMONIC for m in models):
-        rc = C.refuse_unless_registered(prereg=C.AMEND_HARMONIC)
+    for amend in {C.POST_HOC[m] for m in models if m in C.POST_HOC}:
+        rc = rc or C.refuse_unless_registered(prereg=amend)
     if rc:
         return rc
     tasks = [(p, m) for m in models for p in C.pairs()]

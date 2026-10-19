@@ -72,7 +72,8 @@ def judge(scores: dict, pr: dict) -> dict:
         s2 = scores.get(f"{m}_s2") or (s if _deterministic(m) else None)
         cells[m] = {}
         for n, h in s["n"].items():
-            v, why = decide(h, pr, _learned(m, pr), s2["n"].get(n) if s2 else None)
+            # vote_B has a seeded member (lgb_L): its PASS needs the vote rebuilt on lgb_L_s2 (vote amendment)
+            v, why = decide(h, pr, _learned(m, pr) or m == "vote_B", s2["n"].get(n) if s2 else None)
             cells[m][n] = {"verdict": v, "reasons": why, "numbers": {k: _brief(h[k], pr) for k in ("early", "late")}}
     null_passes = [n for n, c in cells.get("lgb_null", {}).items() if c["verdict"] == PASS]
     if null_passes:

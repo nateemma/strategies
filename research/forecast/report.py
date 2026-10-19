@@ -158,6 +158,16 @@ def main(argv=None) -> int:
                          f"{bp(d('edge_vs_rand', 'early'))} / {bp(d('edge_vs_rand', 'late'))} |")
             L.append("")
 
+    vc = _load("vote_correlations.json")
+    if vc:
+        L += ["## N-of-M votes: member correlation (late half, Spearman, mean off-diagonal)", "",
+              "Votes add information only when members disagree; a mean near 1 means the vote behaves like "
+              "one member with a stricter threshold (`preregistration_vote.json`).", "",
+              "| vote | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |", "|---|" + "---|" * len(C.HORIZONS)]
+        for v, c in sorted(vc.items()):
+            L.append(f"| {v} | " + " | ".join(f"{c[str(n)]['mean_offdiag']:.2f}" for n in C.HORIZONS) + " |")
+        L.append("")
+
     L += ["## Limitations", "",
           "- No distant era (binance.com data is empty): every PASS is PROVISIONAL (constitution gate 2).",
           "- Trade size against candle volume is not modelled; slippage stands in for size (plan, Complexity "

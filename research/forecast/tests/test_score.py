@@ -64,3 +64,37 @@ def test_bootstrap_reproducible_and_brackets_mean():
 def test_zero_forecast_has_exactly_zero_skill():
     r = np.random.default_rng(3).normal(size=1000)
     assert S.r2_oos(np.zeros(1000), r) == 0.0
+
+
+def test_explicit_signal_columns_bypass_the_quantile_rule():
+    """Vote predictions carry sig_/sigs_ columns: the scorer trades exactly those rows."""
+    rng = np.random.default_rng(7)
+    n_rows = 4000
+    dates = pd.date_range("2024-01-01", periods=n_rows, freq="15min", tz="UTC")
+    fr = pd.DataFrame({"date": dates, "fold": "f08", "half": "late", "has_data": True})
+    for n in C.HORIZONS:
+        fr[f"target_{n}"] = rng.normal(0, 0.01, n_rows)
+        fr[f"trade_ret_{n}"] = rng.normal(0, 0.01, n_rows)
+        fr[f"eligible_{n}"] = True
+    pred = pd.DataFrame({"pair": "A", "date": dates[::16]})
+    for n in C.HORIZONS:
+        pred[f"f_{n}"] = 0.0
+        pred[f"sig_{n}"] = False
+        pred[f"sigs_{n}"] = False
+    pred.loc[[10, 20, 30], "sig_16"] = True
+    out = S.score_method("x", pred=pred, frames={"A": fr})
+    assert out["n"]["16"]["late"]["n_trades"] == 3
+    assert out["n"]["1"]["late"]["n_trades"] == 0
+
+
+def test_vote_counts_members_above_threshold():
+    from research.forecast import vote as VT
+
+    df = pd.DataFrame({"pair": "A", "date": pd.date_range("2024-01-01", periods=3, freq="4h", tz="UTC")})
+    for n in C.HORIZONS:
+        df[f"a__f_{n}"] = [0.004, 0.004, np.nan]
+        df[f"b__f_{n}"] = [0.004, 0.001, 0.004]
+        df[f"c__f_{n}"] = [-0.004, 0.004, 0.004]
+    out = VT.vote(df, ["a", "b", "c"], need=2, thr=0.003)
+    assert out["sig_16"].tolist() == [True, True, False]  # row 3: a member is missing -> no signal
+    assert out["sigs_16"].tolist() == [False, False, False]

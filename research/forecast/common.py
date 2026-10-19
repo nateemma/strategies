@@ -25,8 +25,12 @@ PREREG = HERE / "preregistration.json"
 AMEND_HARMONIC = HERE / "preregistration_harmonic.json"  # post-hoc harmonic methods (038 follow-up)
 HARMONIC = ("harm", "harm_s", "harm_d", "harm_sd")
 AMEND_RIDGE = HERE / "preregistration_ridge.json"  # post-hoc linear benchmark (038 follow-up)
+AMEND_VOTE = HERE / "preregistration_vote.json"  # post-hoc N-of-M votes and their new members
+VOTE_MEMBERS = ("harm_k1", "harm_k2", "harm_k4", "harm_k5", "holt_w32", "holt_w128", "holt_w256")
+VOTES = ("vote_A", "vote_B", "vote_C")
 #: post-hoc method -> the amendment that registered it (committed before its results)
-POST_HOC = {**{m: AMEND_HARMONIC for m in HARMONIC}, "ridge_L": AMEND_RIDGE}
+POST_HOC = {**{m: AMEND_HARMONIC for m in HARMONIC}, "ridge_L": AMEND_RIDGE,
+            **{m: AMEND_VOTE for m in VOTE_MEMBERS + VOTES}}
 PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
 CONFIG = STRAT / "config" / "config_wf.json"
 

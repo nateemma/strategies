@@ -99,3 +99,12 @@ def test_ridge_is_learned_and_deterministic():
     assert all(c["verdict"].startswith("PASS") for c in out["cells"]["ridge_L"].values())
     out = V.judge({"ridge_L": {"n": good}, "lgb_null": {"n": good}, "lgb_null_s2": {"n": good}}, PR)
     assert all(c["verdict"] == "INCONCLUSIVE" for c in out["cells"]["ridge_L"].values())  # null downgrade
+
+
+def test_vote_B_pass_needs_its_seed2_rebuild():
+    good = {str(n): halves() for n in C.HORIZONS}
+    out = V.judge({"vote_B": {"n": good}, "vote_A": {"n": good}}, PR)
+    assert all(c["verdict"] == "INCONCLUSIVE" for c in out["cells"]["vote_B"].values())
+    assert all(c["verdict"].startswith("PASS") for c in out["cells"]["vote_A"].values())
+    out = V.judge({"vote_B": {"n": good}, "vote_B_s2": {"n": good}}, PR)
+    assert all(c["verdict"].startswith("PASS") for c in out["cells"]["vote_B"].values())
