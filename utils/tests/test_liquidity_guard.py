@@ -86,3 +86,26 @@ def test_signal_rank_with_no_traded_signal_keeps_everything():
     zero = SR.assign(volume=0)
     keep = _sr({"signals": 2, "quantile": 0.5}).get_entry_conditions(zero)
     assert np.flatnonzero(keep).tolist() == [1, 3, 4, 6, 8, 9]
+
+
+def test_runs_take_one_decision_at_the_first_traded_row():
+    # runs: [1], [3, 4], [6], [8, 9]. r4 inherits r3's keep; r9 inherits r8's refusal (alone it passes)
+    keep = _sr({"signals": 2, "quantile": 0.5, "runs": True}).get_entry_conditions(SR)
+    assert np.flatnonzero(keep).tolist() == [1, 3, 4, 6]
+
+
+class _Sized(_Sparse):
+    def stake_weight(self, entry_tag):
+        assert not str(entry_tag).endswith((":liqhi", ":liqlo"))
+        return 2.0
+
+
+def test_size_mode_refuses_nothing_and_scales_the_parent_weight():
+    g = {"signals": 2, "quantile": 0.5, "size": {"share": 0.5, "weights": (1.0, 0.5)}}
+    s = type("SZ", (LiquidityGuardMixin, _Sized), {"LIQUIDITY_GUARD": g})()
+    mask = s.get_entry_conditions(SR)
+    assert np.flatnonzero(mask).tolist() == [1, 3, 4, 6, 8, 9]
+    assert s._st_tags[[1, 3, 6, 9]].tolist() == ["t:liqhi"] * 4 and s._st_tags[[4, 8]].tolist() == ["t:liqlo"] * 2
+    assert s.stake_weight("t:liqhi") == pytest.approx(2.0 / 0.75)
+    assert s.stake_weight("t:liqlo") == pytest.approx(1.0 / 0.75)
+    assert s.stake_weight("t") == 2.0

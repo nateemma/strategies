@@ -1,0 +1,146 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Signal-rank liquidity: one decision per signal run (all three books) and liquidity-rank sizing (reversion books)",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1 weights for the reversion arms, momentum model-free; both designs were motivated by liqsr_decomp.py, which read the liqsr arms' P&L split. Nothing adopted.",
+ "why": "liqsr_decomp.py (c51f9c08): refused reversion entries re-enter a median 2 bars later in the same signal run and those late entries carry the late-half loss (-4.41 cs_aro, -12.67 all3k); on reversion the refused trades themselves earn (+7.79 / +11.49), so volume rank orders reversion trades but refusing low-rank ones costs money -> size instead.",
+ "guard": {
+  "st_g24_mom_liqrun": {
+   "signals": 160,
+   "quantile": 0.6666666666666666,
+   "runs": true
+  },
+  "cs_aro_liqrun": {
+   "signals": 20,
+   "quantile": 0.6666666666666666,
+   "runs": true
+  },
+  "cs_aro_all3k_liqrun": {
+   "signals": 20,
+   "quantile": 0.6666666666666666,
+   "runs": true
+  },
+  "cs_aro_liqsz": {
+   "signals": 20,
+   "quantile": 0.6666666666666666,
+   "size": {
+    "share": 0.75,
+    "weights": [
+     1.0,
+     0.5
+    ]
+   }
+  },
+  "cs_aro_all3k_liqsz": {
+   "signals": 20,
+   "quantile": 0.6666666666666666,
+   "size": {
+    "share": 0.75,
+    "weights": [
+     1.0,
+     0.5
+    ]
+   }
+  }
+ },
+ "definition": "as preregistration_liqsr.json (history = the pair's previous K traded mask rows, current excluded; pass = quote volume > the 2/3 quantile; fewer than K -> pass). runs: a signal run = consecutive mask rows; every row of a run takes the pass/refuse decision of the run's first row with quote volume > 0 (history unchanged). size: nothing refused; pass -> tag ':liqhi', else ':liqlo'; stake weight = model sizer weight x (1.0 or 0.5) / (0.75 x 1.0 + 0.25 x 0.5) = x1.143 / x0.571",
+ "parameter_choice": "K and q unchanged from liqsr (no new cut). Hi share 0.75 = the liqsr guard's keep share of control trades (74.7% cs_aro, 73.8% all3k). Weights 1.0 / 0.5 = the existing sizer's ratio (WidthSizerMixin STAKE_WEIGHTS), not fitted; the decomposition's per-trade P&L ratio kept/refused was ~2.3 (cs_aro) and ~3.2 (all3k), i.e. seen.",
+ "arms": {
+  "st_g24_mom_liqrun": "SimpleTrigger_BreakoutGbb_MomExit_G24_LiqRun (st_g24_mom_liqsr + runs)",
+  "cs_aro_liqrun": "NNNC_CS_ARO_LIQRUN (cs_aro_liqsr + runs)",
+  "cs_aro_all3k_liqrun": "NNNC_CS_ARO_ALL3K_LIQRUN (cs_aro_all3k_liqsr + runs)",
+  "cs_aro_liqsz": "NNNC_CS_ARO_LIQSZ (startup 4096, cs_aro weights, liquidity-rank sizer)",
+  "cs_aro_all3k_liqsz": "NNNC_CS_ARO_ALL3K_LIQSZ (same on the all-available book; fillable cap and max_stake still apply)"
+ },
+ "controls": {
+  "st_g24_mom_liqrun": "st_g24_mom_s4k",
+  "cs_aro_liqrun": "cs_aro_s4k",
+  "cs_aro_all3k_liqrun": "cs_aro_all3k_s4k",
+  "cs_aro_liqsz": "cs_aro_s4k",
+  "cs_aro_all3k_liqsz": "cs_aro_all3k_s4k"
+ },
+ "plans": [
+  "evaluation/folds/plan_st_g24_mom_liqrun.json",
+  "evaluation/folds/plan_cs_aro_liqrun.json",
+  "evaluation/folds/plan_cs_aro_all3k_liqrun.json",
+  "evaluation/folds/plan_cs_aro_liqsz.json",
+  "evaluation/folds/plan_cs_aro_all3k_liqsz.json"
+ ],
+ "code": "utils/LiquidityGuardMixin.py (runs and size options, stake_weight; utils/tests/test_liquidity_guard.py); SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24_LiqRun.py; NNNC/NNNC_CS_ARO_{LIQRUN,LIQSZ}.py, NNNC/NNNC_CS_ARO_ALL3K_{LIQRUN,LIQSZ}.py",
+ "instrument": "all 15 records per arm, each run with its own FT_LIQ_GUARD_DUMP. runs arms: >= 99% of trades' signal candles (row before the open, trade's own fold dump) keep = True; >= 10% of the control's trades' signal candles refused in the same dump; 0 position adds. size arms: 100% of trades tagged ':liqhi' / ':liqlo'; hi share of trades in [0.65, 0.85]; mean tag stake factor in [0.95, 1.05]; >= 99% of trades' tags agree with the dump's keep flag; 0 adds. Both halves have trades. Fail -> that question INCONCLUSIVE, no P&L read",
+ "questions": {
+  "QR1": "judge_one(st_g24_mom_liqrun, st_g24_mom_s4k) PASS: run-level signal rank improves the momentum book",
+  "QR2": "judge_one(cs_aro_liqrun, cs_aro_s4k) PASS: it improves the reversion book",
+  "QR3": "judge_one(cs_aro_all3k_liqrun, cs_aro_all3k_s4k) PASS: it improves the all-available reversion book",
+  "QZ1": "judge_one(cs_aro_liqsz, cs_aro_s4k) PASS: liquidity-rank sizing improves the reversion book",
+  "QZ2": "judge_one(cs_aro_all3k_liqsz, cs_aro_all3k_s4k) PASS: it improves the all-available reversion book"
+ },
+ "returns_reading": "pre-registered SECONDARY for all five: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "runs arms vs their liqsr counterparts; size arms vs their liqsr counterparts; slippage at 0 / 2.5 / 5 / 10 bps and break-even per side; median stakes; liqsr_decomp-style split of each runs arm vs control",
+ "order": "one chain: st_g24_mom_liqrun, cs_aro_liqrun, cs_aro_all3k_liqrun, cs_aro_liqsz, cs_aro_all3k_liqsz backtests, then research.tb_model.liqsr2 <dump root>",
+ "seen_before": [
+  "all results of *_s4k, *_liqnz, *_liqsr and the liqsr_decomp.py split (P&L of refused / kept / late-entry trades)",
+  "no backtest of any arm here"
+ ],
+ "question": "Does taking one liquidity decision per signal run fix the re-entry loss, and does sizing (not refusing) by liquidity rank raise the reversion books?"
+}

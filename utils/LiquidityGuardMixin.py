@@ -20,6 +20,15 @@ form of "the pair's top (1 - q) of its own signal candles". A signal with fewer 
 before it is kept (no history, no filter). `"observe": True` filters nothing. With the environment
 variable FT_LIQ_GUARD_DUMP set to a directory, each call writes the signal rows (date, qv, thr, n,
 keep) to <dir>/<pair>_<first date>.csv for the instrument.
+
+`"runs": True` (research/tb_model/preregistration_liqsr2.json): one decision per signal run (consecutive
+mask rows), taken at the run's first traded row, so a refused run cannot re-enter a few bars later on a
+louder candle (liqsr_decomp.py: refused reversion entries came back a median 2 bars later).
+
+`"size": {"share": s, "weights": (w_hi, w_lo)}` (same pre-registration): refuse nothing; tag each signal
+":liqhi" (the rank test passes) or ":liqlo" and scale the parent's `stake_weight` by
+w / (s x w_hi + (1 - s) x w_lo), capital-neutral at the pre-registered hi share s. Needs a parent with
+`stake_weight` (the NNNC sizer books).
 """
 
 from __future__ import annotations
@@ -35,7 +44,8 @@ class LiquidityGuardMixin:
     LIQUIDITY_GUARD: dict | None = None
     MODEL_KEY_IGNORED = ("LIQUIDITY_GUARD",)
     # an entry filter applied after the model; it does not shape the weights
-    MODEL_KEY_METHODS_IGNORED = ("get_entry_conditions",)
+    MODEL_KEY_METHODS_IGNORED = ("get_entry_conditions", "stake_weight")
+    SIZE_TAGS = (":liqhi", ":liqlo")
 
     def get_entry_conditions(self, dataframe):
         mask = super().get_entry_conditions(dataframe)
@@ -43,8 +53,15 @@ class LiquidityGuardMixin:
         if g is None or mask is None:
             return mask
         if "signals" in g:
-            keep = np.asarray(mask, dtype=bool) & self._signal_rank_ok(dataframe, np.asarray(mask, dtype=bool), g)
-            return self._clear_tags(keep)
+            m = np.asarray(mask, dtype=bool)
+            ok = self._signal_rank_ok(dataframe, m, g)
+            if g.get("size"):
+                tags = self._st_tags.copy()
+                for sel, sfx in ((m & ok, self.SIZE_TAGS[0]), (m & ~ok, self.SIZE_TAGS[1])):
+                    tags[sel] = [f"{t}{sfx}" for t in tags[sel]]
+                self._st_tags = tags
+                return mask
+            return self._clear_tags(m & ok)
         window = int(g["window"])
         if int(self.startup_candle_count) < window:
             raise ValueError(f"{type(self).__name__}: LIQUIDITY_GUARD window {window} needs "
@@ -74,6 +91,15 @@ class LiquidityGuardMixin:
         n = np.zeros(len(rows), dtype=int)
         n[has] = n_t[pos[has]]
         row_ok = np.isnan(thr) | (qv[rows] > thr)
+        if g.get("runs") and len(rows):
+            start = np.r_[True, np.diff(rows) != 1]  # first row of each run of consecutive signals
+            run = np.cumsum(start) - 1
+            traded_row = qv[rows] > 0
+            first = np.full(run[-1] + 1, -1)
+            for i in np.flatnonzero(traded_row)[::-1]:  # reversed: the earliest traded row wins
+                first[run[i]] = i
+            has_t = first[run] >= 0
+            row_ok = np.where(has_t, row_ok[np.maximum(first[run], 0)], row_ok)
         if g.get("observe"):
             row_ok = np.ones(len(rows), dtype=bool)
         ok = np.ones(len(mask), dtype=bool)
@@ -85,6 +111,15 @@ class LiquidityGuardMixin:
             pd.DataFrame({"date": dates[rows], "qv": qv[rows], "thr": thr, "n": n, "keep": row_ok}).to_csv(
                 Path(dump) / f"{pair}_{dates[0]:%Y%m%d%H%M}.csv", index=False)
         return ok
+
+    def stake_weight(self, entry_tag) -> float:
+        tag = str(entry_tag or "")
+        for sfx, i in zip(self.SIZE_TAGS, (0, 1)):
+            if tag.endswith(sfx):
+                sz = self.LIQUIDITY_GUARD["size"]
+                s, (wh, wl) = float(sz["share"]), sz["weights"]
+                return super().stake_weight(tag[: -len(sfx)]) * (wh, wl)[i] / (s * wh + (1.0 - s) * wl)
+        return super().stake_weight(entry_tag)
 
     def _clear_tags(self, keep: np.ndarray) -> np.ndarray:
         tags = getattr(self, "_st_tags", None)

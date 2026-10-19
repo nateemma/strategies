@@ -1,0 +1,20 @@
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
+# type: ignore
+"""`NNNC_CS_ARO` (4096-bar startup) sizing by liquidity rank, refusing nothing: a signal whose candle quote volume beats the 2/3 quantile of the pair's previous 20 traded signal candles stakes x1.0, else x0.5, normalised to a mean of 1 at hi share 0.75 (on top of the model sizer weight). Pre-registered in research/tb_model/preregistration_liqsr2.json."""
+
+import sys
+from pathlib import Path
+
+
+sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
+
+from NNNC_CS_ARO import NNNC_CS_ARO
+from utils.LiquidityGuardMixin import LiquidityGuardMixin
+
+
+class NNNC_CS_ARO_LIQSZ(LiquidityGuardMixin, NNNC_CS_ARO):
+    startup_candle_count = 4096
+    # 030: warm-up is a training input; these weights were trained with 64 startup candles.
+    MODEL_TRAINED_WITH = {"startup_candle_count": 64}
+    LIQUIDITY_GUARD = {"signals": 20, "quantile": 2 / 3, "size": {"share": 0.75, "weights": (1.0, 0.5)}}
