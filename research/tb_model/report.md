@@ -394,3 +394,16 @@ Returns-only: same decisions. Run-level refusal cuts trades 35% (momentum 5,284 
 worse than liqsr in every half. Sizing keeps every trade and raises both reversion books' late halves
 (+2.59, +4.81); cs_aro_all3k_liqsz's 117.10 is the highest total so far, but it loses 1.82 early and
 maxDD rises 8.2 -> 11.2 (UNCHANGED). Vs liqsr: liqsz -0.64 / +6.32, all3k_liqsz +5.69 / +11.54.
+
+### Seed-2 repeat (preregistration_liqsz_s2.json)
+
+Instruments PASS (hi share 0.747 / 0.741, mean factor 0.998 / 0.995). Warm-up nulls -0.05 / -0.07.
+
+| Q | arm vs control (seed 2) | total | early / late | maxDD | seed 2 | two-seed mean gain | combined |
+|---|---|---|---|---|---|---|---|
+| QZ1s2 | cs_aro_liqsz vs cs_aro_s4k | 59.84 vs 57.11 | +1.08 / +1.64 (p 0.12) | 5.47 vs 4.95 | PASS (PROVISIONAL) | +0.79 / +2.12 | INCONCLUSIVE (early < 1 pp) |
+| QZ2s2 | cs_aro_all3k_liqsz vs cs_aro_all3k_s4k | 116.72 vs 113.76 | -2.27 / +5.22 | 11.1 vs 8.8 | FAIL | -2.04 / +5.02 | FAIL |
+
+The seed-1 pattern repeats almost exactly: on cs_aro the sizer gains in both halves on both seeds (total
++3.1 / +2.7); on all3k it loses ~2 pp early and gains ~5 pp late on both seeds, with maxDD up 2.3-3 pp.
+Returns-only: same decisions.
