@@ -30,13 +30,18 @@ VOTE_MEMBERS = ("harm_k1", "harm_k2", "harm_k4", "harm_k5", "holt_w32", "holt_w1
 VOTES = ("vote_A", "vote_B", "vote_C")
 AMEND_ATROUS = HERE / "preregistration_atrous.json"  # post-hoc causal a trous multiscale forecasts
 ATROUS = ("ridge_AT", "lgb_AT", "lgb_LAT")
+AMEND_LONGX = HERE / "preregistration_long_xasset.json"  # post-hoc cross-asset inputs + 2-4 day horizons
+LONGX = ("lgb_LX", "ridge_LX", "lgb_L_long", "lgb_null_long", "holt_w288", "holt_w672", "holt_w1344")
 #: post-hoc method -> the amendment that registered it (committed before its results)
 POST_HOC = {**{m: AMEND_HARMONIC for m in HARMONIC}, "ridge_L": AMEND_RIDGE,
-            **{m: AMEND_VOTE for m in VOTE_MEMBERS + VOTES}, **{m: AMEND_ATROUS for m in ATROUS}}
+            **{m: AMEND_VOTE for m in VOTE_MEMBERS + VOTES}, **{m: AMEND_ATROUS for m in ATROUS},
+            **{m: AMEND_LONGX for m in LONGX}}
 PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
 CONFIG = STRAT / "config" / "config_wf.json"
 
 HORIZONS = (1, 2, 4, 8, 16, 32, 48, 96)
+LONG_HORIZONS = (192, 288, 384)  # 2, 3, 4 days (post-hoc, preregistration_long_xasset.json)
+ALL_HORIZONS = HORIZONS + LONG_HORIZONS
 FEE = 0.0010  # binance.us 0.10 / 0.10 (memory reference_exchange_venues); config_wf has no fee key
 SLIPPAGE_BPS = (0.0, 2.5, 5.0, 10.0)
 VERDICT_BPS = 5.0

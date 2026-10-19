@@ -99,6 +99,50 @@ AT_COLS = [*[c for j in range(1, ATROUS_LEVELS + 1) for c in (f"at_w{j}", f"at_w
            "at_smooth_slope", "at_dist"]
 
 
+X_LAGS = (1, 4, 16, 64)
+X_COLS = [*[f"btc_ret_{k}" for k in X_LAGS], *[f"mkt_ret_{k}" for k in X_LAGS],
+          *[f"rel_ret_{k}" for k in X_LAGS], "mkt_disp_16"]
+_SOURCES: dict[str, pd.DataFrame] = {}
+
+
+def _source(pair: str) -> pd.DataFrame:
+    """date-indexed log close of a pair (or BTC/USDT) with NaN on gap-filled candles."""
+    if pair not in _SOURCES:
+        from research.forecast import frames as F
+
+        if pair in C.pairs():
+            d = F.read(pair, ["date", "lc", "has_data"])
+        else:  # BTC/USDT: not a scored pair, loaded and flagged the same way
+            filled, raw = F.load(pair, True), F.load(pair, False)
+            d = pd.DataFrame({"date": filled["date"], "lc": np.log(filled["close"].to_numpy(float)),
+                              "has_data": filled["date"].isin(set(raw["date"])).to_numpy()})
+        _SOURCES[pair] = pd.Series(np.where(d["has_data"], d["lc"], np.nan), index=pd.DatetimeIndex(d["date"]))
+    return _SOURCES[pair]
+
+
+def set_X(pair: str, fr: pd.DataFrame) -> pd.DataFrame:
+    """Cross-asset inputs (literature.md: lagged other-coin returns are the published intraday edge):
+    BTC's trailing log returns; the equal-weight mean of the OTHER nine pairs' trailing returns
+    ('market'); the pair's own return minus that market; the market's cross-sectional dispersion.
+    Generic columns, so one pooled model serves every pair. NaN where a source has no real candle
+    (LightGBM handles NaN; Ridge imputes)."""
+    idx = pd.DatetimeIndex(fr["date"])
+    own = _source(pair).reindex(idx)
+    others = [p for p in C.pairs() if p != pair]
+    lc_o = pd.concat({p: _source(p).reindex(idx) for p in others}, axis=1)
+    btc = _source("BTC/USDT").reindex(idx)
+    out = {}
+    for k in X_LAGS:
+        out[f"btc_ret_{k}"] = (btc - btc.shift(k)).to_numpy()
+        r_o = lc_o - lc_o.shift(k)
+        mkt = r_o.mean(axis=1, skipna=True)
+        out[f"mkt_ret_{k}"] = mkt.to_numpy()
+        out[f"rel_ret_{k}"] = ((own - own.shift(k)) - mkt).to_numpy()
+        if k == 16:
+            out["mkt_disp_16"] = r_o.std(axis=1, skipna=True).to_numpy()
+    return pd.DataFrame(out, index=fr.index)[X_COLS].astype(np.float32)
+
+
 def build(pair: str, fr: pd.DataFrame, fset: str, lw_cols: list[str] | None = None) -> pd.DataFrame:
     base = set_L(fr)
     if fset in ("L", "null"):
@@ -112,4 +156,6 @@ def build(pair: str, fr: pd.DataFrame, fset: str, lw_cols: list[str] | None = No
         return pd.concat([base, w[lw_cols if lw_cols is not None else LW_COLS]], axis=1)
     if fset == "LAT":
         return pd.concat([base, set_T(fr)], axis=1)
+    if fset == "LX":
+        return pd.concat([base, set_X(pair, fr)], axis=1)
     raise ValueError(fset)

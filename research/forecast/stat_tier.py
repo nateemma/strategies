@@ -36,6 +36,14 @@ MODELS = {"ar": "AR", "holt": "HOLT", "ses": "SIMPLE_EXPONENTAL", "expsm": "EXPO
 MODELS |= {f"harm_k{k}": "HARMONIC" for k in (1, 2, 4, 5)}
 MODELS |= {f"holt_w{w}": "HOLT" for w in (32, 128, 256)}
 WINDOWS = {f"holt_w{w}": w for w in (32, 128, 256)}
+# post-hoc (preregistration_long_xasset.json): Holt on 3 / 7 / 14 days of candles, horizons up to 4 days
+MODELS |= {f"holt_w{w}": "HOLT" for w in (288, 672, 1344)}
+WINDOWS |= {f"holt_w{w}": w for w in (288, 672, 1344)}
+LONG_MODELS = ("holt_w288", "holt_w672", "holt_w1344")
+
+
+def horizons_of(model: str) -> tuple[int, ...]:
+    return C.ALL_HORIZONS if model in LONG_MODELS else C.HORIZONS
 DEFAULT = ("ar", "holt", "ses", "expsm", "ets", "ss_expsm", "arima", "theta")
 SMOOTH_WINDOW = 4
 
@@ -64,11 +72,12 @@ def _forecaster(model: str):
 
 
 def _steps(model: str, x: np.ndarray) -> np.ndarray:
-    """Forecasts 1..96 ahead. The library returns the last len(x) values of [x, forecasts], so a
-    window shorter than 96 needs several calls (steps w, 2w, ... capped at 96)."""
-    w, out, covered = len(x), np.full(96, np.nan), 0
-    while covered < 96:
-        s = min(covered + w, 96)
+    """Forecasts 1..H ahead (H = the model's longest horizon). The library returns the last len(x)
+    values of [x, forecasts], so a window shorter than H needs several calls (steps w, 2w, ... capped)."""
+    top = max(horizons_of(model))
+    w, out, covered = len(x), np.full(top, np.nan), 0
+    while covered < top:
+        s = min(covered + w, top)
         k = min(w, s)  # forecasts in the returned tail: steps s-k+1 .. s
         tail = np.asarray(_forecaster(model).forecast(x.copy(), s), float)[-k:]
         out[covered:s] = tail[covered - (s - k):]
@@ -88,13 +97,14 @@ def _path(model: str, lc: np.ndarray) -> np.ndarray:
 def forecast_rows(d: pd.DataFrame, rows, model: str) -> pd.DataFrame:
     lc = d["lc"].to_numpy(float)
     hd = d["has_data"].to_numpy(bool)
-    out = {f"f_{n}": [] for n in C.HORIZONS}
+    hz = horizons_of(model)
+    out = {f"f_{n}": [] for n in hz}
     failed, skipped, kinds = [], [], Counter()
     w = window_of(model)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for t in rows:
-            path = np.full(96, np.nan)
+            path = np.full(max(hz), np.nan)
             gap = (not hd[t]) or hd[t - w + 1: t + 1].mean() < 0.5
             bad = False
             if not gap:
@@ -105,8 +115,8 @@ def forecast_rows(d: pd.DataFrame, rows, model: str) -> pd.DataFrame:
                     kinds[type(e).__name__] += 1
                     bad = True
                 if bad:
-                    path = np.full(96, np.nan)
-            for n in C.HORIZONS:
+                    path = np.full(max(hz), np.nan)
+            for n in hz:
                 out[f"f_{n}"].append(path[n - 1])
             failed.append(bad)
             skipped.append(gap)
@@ -144,7 +154,7 @@ def main(argv=None) -> int:
                   f"skipped {p.skipped_gap.mean():.4f} {kinds or ''} {sec:6.1f}s  [{time.time() - t0:7.1f}s]",
                   flush=True)
             if len(res[model]) == len(C.pairs()):
-                cols = ["pair", "date", *[f"f_{n}" for n in C.HORIZONS], "failed", "skipped_gap"]
+                cols = ["pair", "date", *[f"f_{n}" for n in horizons_of(model)], "failed", "skipped_gap"]
                 C.write_feather(pd.concat(res[model], ignore_index=True)[cols], C.PRED / f"{model}.feather")
                 print(f"wrote {model}", flush=True)
     print(f"stat tier done in {(time.time() - t0) / 60:.1f} min")

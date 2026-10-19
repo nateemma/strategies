@@ -1,0 +1,63 @@
+{
+ "label": "038 post-hoc addition: cross-asset inputs and 2-4 day horizons",
+ "date": "2026-10-19",
+ "status": "POST-HOC: added after the 038 verdicts and earlier follow-ups were read, at the user's request (literature.md: cross-asset lagged returns are the published intraday crypto edge; crypto momentum lives at longer horizons). Committed before any of these results. Same rule, costs, eligibility, trade simulation (one position per pair, entry next open, held N candles), benchmark, bootstrap and decision as preregistration.json.",
+ "horizons_added": [
+  192,
+  288,
+  384
+ ],
+ "horizon_note": "2, 3, 4 days; one position per pair at a time, so trades per half shrink with N (min_trades_per_half 200 still applies)",
+ "inputs_X": "btc_ret_k (BTC/USDT trailing log return) and mkt_ret_k (equal-weight mean of the OTHER nine pairs' trailing log returns), rel_ret_k (own minus mkt) for k in 1, 4, 16, 64; mkt_disp_16 (cross-sectional std of the other pairs' 16-candle returns). NaN where a source has no real candle; rows need finite own inputs only. Causality tested (tests/test_frames.py::test_cross_asset_inputs_are_causal).",
+ "methods": {
+  "lgb_LX": {
+   "tier": 2,
+   "features": "L + X",
+   "horizons": "all 11 (1..384)",
+   "params": "lightgbm_params; NaN handled natively",
+   "seed": "a PASS needs a seed-2 PASS"
+  },
+  "ridge_LX": {
+   "tier": 2,
+   "features": "L + X",
+   "horizons": "all 11",
+   "params": "median imputer (training rows) + StandardScaler + Ridge(alpha=1.0)",
+   "seed": "deterministic"
+  },
+  "lgb_L_long": {
+   "tier": 2,
+   "features": "L",
+   "horizons": "192, 288, 384",
+   "params": "as lgb_L",
+   "seed": "a PASS needs a seed-2 PASS"
+  },
+  "lgb_null_long": {
+   "tier": 2,
+   "features": "L, targets permuted per training span",
+   "horizons": "192, 288, 384",
+   "role": "null control at long horizons; a PASS downgrades every learned PASS"
+  },
+  "holt_w288": {
+   "tier": 1,
+   "stride": 16,
+   "window": 288,
+   "horizons": "all 11",
+   "params": "Holt(damped_trend=True, initialization_method='estimated') on 288 log closes (3 days); no detrending/smoothing"
+  },
+  "holt_w672": {
+   "tier": 1,
+   "stride": 16,
+   "window": 672,
+   "horizons": "all 11",
+   "params": "as holt_w288 on 672 (7 days)"
+  },
+  "holt_w1344": {
+   "tier": 1,
+   "stride": 16,
+   "window": 1344,
+   "horizons": "all 11",
+   "params": "as holt_w288 on 1344 (14 days)"
+  }
+ },
+ "baselines": "zero and hist_mean rescored on all 11 horizons (identical values at 1..96)"
+}

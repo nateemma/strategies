@@ -105,12 +105,12 @@ def _frames(columns: list[str]) -> dict[str, pd.DataFrame]:
 
 def score_method(method: str, pred: pd.DataFrame | None = None, frames: dict | None = None) -> dict:
     pred = load_pred(method) if pred is None else pred
-    cols = [c for n in C.HORIZONS for c in (f"target_{n}", f"trade_ret_{n}", f"eligible_{n}")]
+    cols = [c for n in C.ALL_HORIZONS for c in (f"target_{n}", f"trade_ret_{n}", f"eligible_{n}")]
     frames = _frames(cols) if frames is None else frames
     stride = int(pred.attrs.get("stride", 0)) or _infer_stride(pred)
     lookback = LOOKBACK_DAYS * C.BARS_PER_DAY // stride
     out = {"stride": stride, "n": {}}
-    for n in C.HORIZONS:
+    for n in [h for h in C.ALL_HORIZONS if f"f_{h}" in pred.columns]:  # a method scores what it forecasts
         trades, shorts, desc_rows, rand_rows, years = [], [], [], [], {}
         for pair, fr in frames.items():
             p = pred[pred["pair"] == pair]
@@ -207,11 +207,11 @@ def main(argv=None) -> int:
     methods = a.method or sorted(p.stem for p in C.PRED.glob("*.feather"))
     path = C.HERE / "scores.json"
     scores = json.loads(path.read_text()) if path.exists() else {}
-    cols = [c for n in C.HORIZONS for c in (f"target_{n}", f"trade_ret_{n}", f"eligible_{n}")]
+    cols = [c for n in C.ALL_HORIZONS for c in (f"target_{n}", f"trade_ret_{n}", f"eligible_{n}")]
     frames = _frames(cols)
     for m in methods:
         scores[m] = score_method(m, frames=frames)
-        for n in C.HORIZONS:
+        for n in [int(k) for k in scores[m]["n"]]:
             e, l = scores[m]["n"][str(n)]["early"], scores[m]["n"][str(n)]["late"]
             print(f"{m:12s} n={n:3d} trades {e['n_trades']:6d}/{l['n_trades']:6d} "
                   f"net5 {_bp(e['mean_net_5.0'])}/{_bp(l['mean_net_5.0'])} edge {_bp(e['edge_vs_rand'])}/"

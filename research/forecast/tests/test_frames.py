@@ -147,3 +147,35 @@ def test_atrous_reconstructs_exactly_and_is_causal():
     part = X.set_T(fr.iloc[: cut + 1])
     np.testing.assert_array_equal(full.iloc[: cut + 1].to_numpy(), part.to_numpy())  # no future data
     assert list(full.columns) == X.AT_COLS
+
+
+def test_long_horizons_have_targets():
+    c = _candles(n=900)
+    d = F.build(c, c["date"], None, WIN, FWD)
+    for n in C.LONG_HORIZONS:
+        lc = d["lc"].to_numpy()
+        np.testing.assert_allclose(d[f"target_{n}"].to_numpy()[: len(c) - n], lc[n:] - lc[:-n])
+
+
+def test_cross_asset_inputs_are_causal(monkeypatch):
+    """set_X at t must not change when every source is truncated after t."""
+    from research.forecast import features as X
+
+    pairs = [f"P{i}/USDT" for i in range(4)]
+    monkeypatch.setattr(C, "pairs", lambda: pairs)
+    idx = pd.date_range("2023-01-01", periods=500, freq="15min", tz="UTC")
+    rng = np.random.default_rng(11)
+    full = {p: pd.Series(4.6 + np.cumsum(rng.normal(0, 0.01, 500)), index=idx) for p in pairs + ["BTC/USDT"]}
+    full["P2/USDT"].iloc[100:150] = np.nan  # a source with a gap
+    fr = pd.DataFrame({"date": idx})
+    monkeypatch.setattr(X, "_SOURCES", dict(full))
+    a = X.set_X("P0/USDT", fr)
+    cut = 300
+    monkeypatch.setattr(X, "_SOURCES", {p: s.iloc[: cut + 1] for p, s in full.items()})
+    b = X.set_X("P0/USDT", fr.iloc[: cut + 1])
+    np.testing.assert_array_equal(a.iloc[: cut + 1].to_numpy(), b.to_numpy())
+    # the market excludes the pair itself
+    own_excluded = (full["P1/USDT"] - full["P1/USDT"].shift(4) + full["P2/USDT"] - full["P2/USDT"].shift(4)
+                    + full["P3/USDT"] - full["P3/USDT"].shift(4)) / 3
+    np.testing.assert_allclose(a["mkt_ret_4"].to_numpy()[200:300], own_excluded.to_numpy()[200:300], rtol=1e-5)
+    assert list(a.columns) == X.X_COLS

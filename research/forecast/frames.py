@@ -29,9 +29,10 @@ def build(filled: pd.DataFrame, raw_dates: pd.Series, data_ok: pd.Series | None,
     lo = np.log(d["open"].to_numpy(float))
     traded = (d["volume"].to_numpy(float) > 0) & d["has_data"].to_numpy()
     n_rows = len(d)
-    for n in C.HORIZONS:
+    for n in C.ALL_HORIZONS:
         tgt = np.full(n_rows, np.nan)
-        tgt[: n_rows - n] = d["lc"].to_numpy()[n:] - d["lc"].to_numpy()[: n_rows - n]
+        if n < n_rows:  # a horizon longer than the data has no target
+            tgt[: n_rows - n] = d["lc"].to_numpy()[n:] - d["lc"].to_numpy()[: n_rows - n]
         d[f"target_{n}"] = tgt
         tr = np.full(n_rows, np.nan)
         el = np.zeros(n_rows, dtype=bool)

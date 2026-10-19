@@ -17,6 +17,14 @@ def _load(name: str) -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
+_EMPTY = {"early": {}, "late": {}, "fwd": {}}
+
+
+def _n(s: dict, n) -> dict:
+    """A method's cell at horizon n, or empty halves when it does not forecast that horizon."""
+    return s["n"].get(str(n), _EMPTY)
+
+
 def bp(x, d=1) -> str:
     return "–" if x is None else f"{x * 1e4:+.{d}f}"
 
@@ -63,8 +71,10 @@ def main(argv=None) -> int:
         L += ["## Horizon and cost line (pooled, eligible candles, early + late)", "",
               "| N | hours | median abs move (bp) | move / cost @0 | @2.5 | @5 | @10 | |",
               "|---|---|---|---|---|---|---|---|"]
-        for n in C.HORIZONS:
-            r = base["horizons"]["pooled"][str(n)]
+        for n in C.ALL_HORIZONS:
+            r = base["horizons"]["pooled"].get(str(n))
+            if r is None:
+                continue
             L.append(f"| {n} | {n / 4:g} | {r['typical_move'] * 1e4:.1f} | "
                      + " | ".join(f"{r[f'move_to_cost_{s}']:.2f}" for s in C.SLIPPAGE_BPS)
                      + f" | {'untradeable' if r['untradeable'] else ''} |")
@@ -72,53 +82,53 @@ def main(argv=None) -> int:
 
     if ver:
         methods = list(ver["cells"])
-        L += ["## Verdicts", "", "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |",
-              "|---|" + "---|" * len(C.HORIZONS)]
+        L += ["## Verdicts", "", "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |",
+              "|---|" + "---|" * len(C.ALL_HORIZONS)]
         post = set(ver.get("post_hoc_methods", []))
         if post:
-            L += ["Methods marked † were added post-hoc (`preregistration_harmonic.json`, same rule).", ""]
+            L += ["Methods marked † were added post-hoc, each in its own `preregistration_*.json` amendment, same rule.", ""]
         for m in methods:
             L.append(f"| {m}{' †' if m in post else ''} | " + " | ".join(ver["cells"][m].get(str(n), {}).get("verdict", "–")
-                                               .replace(" (PROVISIONAL)", "") for n in C.HORIZONS) + " |")
+                                               .replace(" (PROVISIONAL)", "") for n in C.ALL_HORIZONS) + " |")
         L.append("")
 
     if scores:
         for title, key, fmt in (("Mean net return per trade, bp (early / late)", NET, bp),
                                 ("Edge over random entry, bp (early / late)", "edge_vs_rand", bp)):
-            L += [f"## {title}", "", "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |",
-                  "|---|" + "---|" * len(C.HORIZONS)]
+            L += [f"## {title}", "", "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |",
+                  "|---|" + "---|" * len(C.ALL_HORIZONS)]
             for m, s in sorted(scores.items()):
                 L.append(f"| {m} | " + " | ".join(
-                    f"{fmt(s['n'][str(n)]['early'].get(key))} / {fmt(s['n'][str(n)]['late'].get(key))}"
-                    for n in C.HORIZONS) + " |")
+                    f"{fmt(_n(s, n)['early'].get(key))} / {fmt(_n(s, n)['late'].get(key))}"
+                    for n in C.ALL_HORIZONS) + " |")
             L.append("")
         L += ["## Trades (early / late) and late lower bound (bp)", "",
-              "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |", "|---|" + "---|" * len(C.HORIZONS)]
+              "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |", "|---|" + "---|" * len(C.ALL_HORIZONS)]
         for m, s in sorted(scores.items()):
             L.append(f"| {m} | " + " | ".join(
-                f"{s['n'][str(n)]['early']['n_trades']}/{s['n'][str(n)]['late']['n_trades']} "
-                f"({bp(s['n'][str(n)]['late'].get('net_lb95'))})" for n in C.HORIZONS) + " |")
+                f"{_n(s, n)['early'].get('n_trades', '–')}/{_n(s, n)['late'].get('n_trades', '–')} "
+                f"({bp(_n(s, n)['late'].get('net_lb95'))})" for n in C.ALL_HORIZONS) + " |")
         L.append("")
         L += ["## Descriptive (late half, traded candles): R² vs zero / median IC / hit rate", "",
               "Reported, never decisive (FR-010).", "",
-              "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |", "|---|" + "---|" * len(C.HORIZONS)]
+              "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |", "|---|" + "---|" * len(C.ALL_HORIZONS)]
         for m, s in sorted(scores.items()):
             L.append(f"| {m} | " + " | ".join(
-                f"{num(s['n'][str(n)]['late'].get('r2_oos_traded'), 4)} / "
-                f"{num(s['n'][str(n)]['late'].get('ic_median_traded'), 3)} / "
-                f"{num(s['n'][str(n)]['late'].get('hit_rate_traded'), 3)}" for n in C.HORIZONS) + " |")
+                f"{num(_n(s, n)['late'].get('r2_oos_traded'), 4)} / "
+                f"{num(_n(s, n)['late'].get('ic_median_traded'), 3)} / "
+                f"{num(_n(s, n)['late'].get('hit_rate_traded'), 3)}" for n in C.ALL_HORIZONS) + " |")
         L.append("")
         L += ["## Short side (descriptive; not tradeable on spot): late mean net, bp", "",
-              "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |", "|---|" + "---|" * len(C.HORIZONS)]
+              "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |", "|---|" + "---|" * len(C.ALL_HORIZONS)]
         for m, s in sorted(scores.items()):
-            L.append(f"| {m} | " + " | ".join(bp(s["n"][str(n)]["late"].get(f"short_mean_net_{C.VERDICT_BPS}"))
-                                               for n in C.HORIZONS) + " |")
+            L.append(f"| {m} | " + " | ".join(bp(_n(s, n)["late"].get(f"short_mean_net_{C.VERDICT_BPS}"))
+                                               for n in C.ALL_HORIZONS) + " |")
         L.append("")
         L += ["## Forward window 2026-09-07 → 2026-10-18 (descriptive): trades / mean net bp", "",
-              "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |", "|---|" + "---|" * len(C.HORIZONS)]
+              "| method | " + " | ".join(f"N={n}" for n in C.ALL_HORIZONS) + " |", "|---|" + "---|" * len(C.ALL_HORIZONS)]
         for m, s in sorted(scores.items()):
             L.append(f"| {m} | " + " | ".join(
-                f"{s['n'][str(n)]['fwd']['n_trades']} / {bp(s['n'][str(n)]['fwd'].get(NET))}" for n in C.HORIZONS) + " |")
+                f"{_n(s, n)['fwd'].get('n_trades', '–')} / {bp(_n(s, n)['fwd'].get(NET))}" for n in C.ALL_HORIZONS) + " |")
         L.append("")
         L += ["## Per pair, late half: mean net bp at N=16 (trades)", "",
               "| method | " + " | ".join(p.split("/")[0] for p in C.pairs()) + " |", "|---|" + "---|" * len(C.pairs())]

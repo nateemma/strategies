@@ -25,7 +25,7 @@ def scored(fr: pd.DataFrame) -> pd.DataFrame:
 def zero_pred(pair: str, fr: pd.DataFrame) -> pd.DataFrame:
     s = scored(fr)
     out = pd.DataFrame({"pair": pair, "date": s["date"].to_numpy()})
-    for n in C.HORIZONS:
+    for n in C.ALL_HORIZONS:
         out[f"f_{n}"] = 0.0
     return out.assign(failed=False, skipped_gap=False)
 
@@ -38,22 +38,22 @@ def hist_mean_pred(pair: str, fr: pd.DataFrame) -> pd.DataFrame:
     mu = {fid: float(r1[real & (fr["date"] < a)].mean()) for fid, a in starts.items()}
     m = s["fold"].map(mu).to_numpy(float)
     out = pd.DataFrame({"pair": pair, "date": s["date"].to_numpy()})
-    for n in C.HORIZONS:
+    for n in C.ALL_HORIZONS:
         out[f"f_{n}"] = n * m
     return out.assign(failed=False, skipped_gap=False)
 
 
 def horizon_table(frames: dict[str, pd.DataFrame]) -> dict:
     out = {}
-    pooled = {n: [] for n in C.HORIZONS}
+    pooled = {n: [] for n in C.ALL_HORIZONS}
     for pair, fr in frames.items():
         s = fr[fr["half"].isin(["early", "late"])]
         out[pair] = {}
-        for n in C.HORIZONS:
+        for n in C.ALL_HORIZONS:
             mv = np.abs(s.loc[s[f"eligible_{n}"], f"trade_ret_{n}"].to_numpy())
             pooled[n].append(mv)
             out[pair][str(n)] = _row(mv, n)
-    out["pooled"] = {str(n): _row(np.concatenate(pooled[n]), n) for n in C.HORIZONS}
+    out["pooled"] = {str(n): _row(np.concatenate(pooled[n]), n) for n in C.ALL_HORIZONS}
     return out
 
 
@@ -69,7 +69,7 @@ def _row(mv: np.ndarray, n: int) -> dict:
 
 def main(argv=None) -> int:
     cols = ["date", "fold", "half", "has_data", "lc",
-            *[c for n in C.HORIZONS for c in (f"trade_ret_{n}", f"eligible_{n}")]]
+            *[c for n in C.ALL_HORIZONS for c in (f"trade_ret_{n}", f"eligible_{n}")]]
     frames = {p: F.read(p, cols) for p in C.pairs()}
     C.write_feather(pd.concat([zero_pred(p, f) for p, f in frames.items()], ignore_index=True), C.PRED / "zero.feather")
     C.write_feather(pd.concat([hist_mean_pred(p, f) for p, f in frames.items()], ignore_index=True),
@@ -77,7 +77,7 @@ def main(argv=None) -> int:
     table = horizon_table(frames)
     C.write_json(C.HERE / "baselines.json", {"horizons": table})
     print(f"{'N':>4s} {'hours':>6s} {'median |move|':>14s} {'cost@5bp':>9s} {'move/cost':>9s}")
-    for n in C.HORIZONS:
+    for n in C.ALL_HORIZONS:
         r = table["pooled"][str(n)]
         print(f"{n:4d} {n / 4:6.2f} {r['typical_move'] * 1e4:11.1f} bp {C.cost_rt(5.0) * 1e4:6.1f} bp "
               f"{r['move_to_cost_5.0']:9.2f}{'  UNTRADEABLE' if r['untradeable'] else ''}")

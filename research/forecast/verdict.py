@@ -75,18 +75,19 @@ def judge(scores: dict, pr: dict) -> dict:
             # vote_B has a seeded member (lgb_L): its PASS needs the vote rebuilt on lgb_L_s2 (vote amendment)
             v, why = decide(h, pr, _learned(m, pr) or m == "vote_B", s2["n"].get(n) if s2 else None)
             cells[m][n] = {"verdict": v, "reasons": why, "numbers": {k: _brief(h[k], pr) for k in ("early", "late")}}
-    null_passes = [n for n, c in cells.get("lgb_null", {}).items() if c["verdict"] == PASS]
+    nulls = [m for m in cells if m.startswith("lgb_null")]  # lgb_null (1-96) and lgb_null_long (2-4 days)
+    null_passes = [n for m in nulls for n, c in cells[m].items() if c["verdict"] == PASS]
     if null_passes:
         for m, cs in cells.items():
-            if _learned(m, pr) and m != "lgb_null":
+            if _learned(m, pr) and m not in nulls:
                 for c in cs.values():
                     if c["verdict"] == PASS:
                         c["verdict"], c["reasons"] = "INCONCLUSIVE", c["reasons"] + [f"null passes at N={null_passes}"]
     key = f"mean_net_{float(pr['costs']['verdict_bps'])}"
     winners = [(scores[m]["n"][n]["late"].get("net_per_pair_year") or float("-inf"), int(n), m)
-               for m, cs in cells.items() if m != "lgb_null" for n, c in cs.items() if c["verdict"] == PASS]
+               for m, cs in cells.items() if not m.startswith("lgb_null") for n, c in cs.items() if c["verdict"] == PASS]
     best = max(winners) if winners else None
-    be = sorted(int(n) for m, s in scores.items() if m != "lgb_null" and not m.endswith("_s2")
+    be = sorted(int(n) for m, s in scores.items() if not m.startswith("lgb_null") and not m.endswith("_s2")
                 for n, h in s["n"].items()
                 if all((h[x][key] or 0) > 0 and h[x]["n_trades"] > 0 for x in ("early", "late")))
     return {"cells": cells, "null_passes": null_passes,

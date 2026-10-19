@@ -56,7 +56,7 @@ def pooled(fset: str) -> tuple[pd.DataFrame, list[str]]:
     parts, feat_cols = [], None
     for pair in C.pairs():
         fr = F.read(pair, ["date", "fold", "lc", "volume", "has_data", "data_ok",
-                           *[f"target_{n}" for n in C.HORIZONS], *[f"eligible_{n}" for n in C.HORIZONS]])
+                           *[f"target_{n}" for n in C.ALL_HORIZONS], *[f"eligible_{n}" for n in C.ALL_HORIZONS]])
         f = X.build(pair, fr, fset, lw)
         feat_cols = list(f.columns)
         keep = fr["date"] >= pd.Timestamp("2021-01-01", tz="UTC")
@@ -80,48 +80,63 @@ def make_model(kind: str, pr: dict, seed: int):
         from sklearn.pipeline import make_pipeline
         from sklearn.preprocessing import StandardScaler
 
-        return make_pipeline(StandardScaler(), Ridge(alpha=1.0, fit_intercept=True))
+        from sklearn.impute import SimpleImputer
+
+        # the imputer (median of the training rows) only acts on NaN cross-asset inputs; elsewhere identity
+        return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), Ridge(alpha=1.0, fit_intercept=True))
     from lightgbm import LGBMRegressor
 
     return LGBMRegressor(**lgb_params(pr, seed))
 
 
-def run(fset: str, seed: int, kind: str = "lgb") -> pd.DataFrame:
+HORIZON_SETS = {"main": C.HORIZONS, "long": C.LONG_HORIZONS, "all": C.ALL_HORIZONS}
+
+
+def run(fset: str, seed: int, kind: str = "lgb", horizons: tuple[int, ...] = C.HORIZONS) -> pd.DataFrame:
     pr = C.prereg()
     data, cols = pooled(fset)
-    finite = np.isfinite(data[cols].to_numpy(np.float32)).all(axis=1)
+    # rows need finite OWN inputs (set L etc.); cross-asset inputs may be NaN (a source without data)
+    req = [c for c in cols if c not in X.X_COLS]
+    finite = np.isfinite(data[req].to_numpy(np.float32)).all(axis=1)
     base_ok = data["has_data"].to_numpy() & data["data_ok"].to_numpy() & finite
     stride_ok = (data["row"].to_numpy() % TRAIN_STRIDE) == 0
     folds = C.folds()
     out = data.loc[data["fold"] != "", ["pair", "date", "fold"]].copy()
-    for n in C.HORIZONS:
+    for n in horizons:
         out[f"f_{n}"] = np.nan
     feats = data[cols].to_numpy(np.float32)
     dates = data["date"]
     t0 = time.time()
     for k, (fid, (start, end)) in enumerate(folds.items()):
         pred_mask = ((data["fold"] == fid) | ((data["fold"] == "fwd") & (fid == "f14"))).to_numpy() & base_ok
-        for n in C.HORIZONS:
+        for n in horizons:
             y_all = data[f"target_{n}"].to_numpy(float)
             tm = (train_mask(dates, start, n) & base_ok & stride_ok & data[f"eligible_{n}"].to_numpy()
                   & np.isfinite(y_all))
             y = y_all[tm]
             if fset == "null":
-                y = null_targets(y, seed=seed * 1000 + k * 10 + C.HORIZONS.index(n))
+                y = null_targets(y, seed=seed * 1000 + k * 100 + C.ALL_HORIZONS.index(n))
             m = make_model(kind, pr, seed).fit(feats[tm], y)
             out.loc[data.index[pred_mask], f"f_{n}"] = m.predict(feats[pred_mask])
             print(f"  {kind} {fset} s{seed} {fid} n={n:3d} train {tm.sum():7d} predict {pred_mask.sum():6d} "
                   f"[{time.time() - t0:7.1f}s]", flush=True)
-    return out.drop(columns=["fold"]).assign(failed=False, skipped_gap=lambda d: d["f_1"].isna())
+    first = f"f_{horizons[0]}"
+    return out.drop(columns=["fold"]).assign(failed=False, skipped_gap=lambda d: d[first].isna())
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--set", required=True, choices=["L", "LA", "LW", "null", "AT", "LAT"])
+    ap.add_argument("--set", required=True, choices=["L", "LA", "LW", "null", "AT", "LAT", "LX"])
+    ap.add_argument("--horizons", choices=list(HORIZON_SETS), default="main",
+                    help="long -> name suffix _long (2-4 day horizons only)")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--model", choices=["lgb", "ridge"], default="lgb")
     a = ap.parse_args(argv)
-    name = f"{a.model}_{a.set}" + ("" if a.seed == 1 else f"_s{a.seed}")
+    name = (f"{a.model}_{a.set}" + ("_long" if a.horizons == "long" else "")
+            + ("" if a.seed == 1 else f"_s{a.seed}"))
+    if a.horizons != "main" and name.split("_s2")[0] not in C.POST_HOC:
+        print(f"REFUSED: {name} at horizons '{a.horizons}' is not registered")
+        return 2
     rc = C.refuse_unless_registered()
     if not rc and name in C.POST_HOC:
         rc = C.refuse_unless_registered(prereg=C.POST_HOC[name])
@@ -130,9 +145,9 @@ def main(argv=None) -> int:
         rc = 2
     if rc:
         return rc
-    p = run(a.set, a.seed, a.model)
+    p = run(a.set, a.seed, a.model, HORIZON_SETS[a.horizons])
     C.write_feather(p.reset_index(drop=True), C.PRED / f"{name}.feather")
-    print(f"wrote {name}: {len(p)} rows, forecast share {p['f_1'].notna().mean():.3f}")
+    print(f"wrote {name}: {len(p)} rows, forecast share {(~p['skipped_gap']).mean():.3f}")
     return 0
 
 

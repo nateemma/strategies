@@ -28,7 +28,7 @@ def sc002a(frames: dict) -> dict:
     """Zero forecast: r2_oos == 0 exactly, on every horizon."""
     z = S.load_pred("zero")
     vals = {}
-    for n in C.HORIZONS:
+    for n in C.ALL_HORIZONS:
         f, r = [], []
         for pair, fr in frames.items():
             p = z[z["pair"] == pair]
@@ -43,10 +43,11 @@ def sc002a(frames: dict) -> dict:
 def sc002b() -> dict:
     """lgb_null is not PASS at any N (filled in once the null has been scored and judged)."""
     v = C.HERE / "verdicts.json"
-    if not v.exists() or "lgb_null" not in json.loads(v.read_text()).get("cells", {}):
+    judged = json.loads(v.read_text()).get("cells", {}) if v.exists() else {}
+    nulls = [m for m in judged if m.startswith("lgb_null")]  # lgb_null and lgb_null_long
+    if not nulls:
         return {"pass": None, "detail": "lgb_null not judged yet"}
-    cells = json.loads(v.read_text())["cells"]["lgb_null"]
-    passed = [n for n, c in cells.items() if c["verdict"].startswith("PASS")]
+    passed = [f"{m}:{n}" for m in nulls for n, c in judged[m].items() if c["verdict"].startswith("PASS")]
     return {"pass": not passed, "null_pass_n": passed}
 
 
@@ -72,7 +73,7 @@ def liveness() -> dict:
         if p.stem == "zero":
             continue
         d = pd.read_feather(p)
-        f = d[[f"f_{n}" for n in C.HORIZONS]].dropna()
+        f = d[[c for c in d.columns if c.startswith("f_")]].dropna()
         across_n[p.stem] = bool(len(f) and not np.allclose(f["f_1"].to_numpy()[:, None], f.to_numpy()))
         if p.stem == "hist_mean":  # constant within a fold by definition; it moves across folds
             out[p.stem] = bool(d["f_1"].nunique() > 1)
@@ -82,7 +83,7 @@ def liveness() -> dict:
 
 
 def main(argv=None) -> int:
-    cols = ["date", "fold", "has_data", "eligible_1", *[f"target_{n}" for n in C.HORIZONS]]
+    cols = ["date", "fold", "has_data", "eligible_1", *[f"target_{n}" for n in C.ALL_HORIZONS]]
     frames = {p: F.read(p, cols) for p in C.pairs()}
     res = {"SC-001": sc001(), "SC-002a": sc002a(frames), "SC-002b": sc002b(), "SC-003": sc003(frames),
            "R12": liveness()}
