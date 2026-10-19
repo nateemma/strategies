@@ -112,7 +112,7 @@ tree -d -L 1
 - _scripts_ — shell scripts for backtesting, hyperopt, dry-run, and live trading
 - _SimpleStrategies_ — indicator-driven strategies (no ML); each file is a standalone strategy
 - _Sklearn_ — sklearn-based classifier strategies (RandomForest, XGBoost, etc.) sharing the NN training/augmentation pipeline
-- _TSPredict_ — time-series prediction strategies using wavelets, FFTs, and DWT
+- _TSPredict_ — time-series prediction strategies using wavelets, FFTs, and DWT. **Status (2026-10-19): no forecasting approach works after costs** (feature 038); see [TSPredict/README.md](TSPredict/README.md) for the findings and references
 - _utils_ — shared utility code (classifiers, data manipulation, indicators, wavelets, etc.)
 
 > _**Note**: an older `NeuralNets/` directory used to hold a separate git repo with the NN base classes and scaler storage.  Its contents have been folded into `Framework/` (base classes) and `saved_data/` (scalers).  If you see references to `NeuralNets/` in older docs or branches, treat them as historical._
