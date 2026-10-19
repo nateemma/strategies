@@ -363,3 +363,15 @@ Returns-only: same decisions. Instrument PASS (keep share 1.0 / 0.998 / 0.998; c
 control trades vs 3-9% for AAVE/BCH): their entries fire on candles below their own recent signal
 candles. Momentum late half +4.94 (break-even 0.077%/side, -0.96 at 2.5 bps). Reversion loses the
 late half in both books under either guard design.
+
+### Why the offline tercile did not carry over (liqsr_decomp.py, informal)
+
+Score points; parts sum exactly to arm - control. (1) The offline "77%" was never a gain: on reversion
+the lower two within-pair terciles are still profitable (cs_aro +14.0, all3k +20.5), so even the
+lookahead top tercile as a fixed subset scores 45.93 / 93.59 vs 59.90 / 114.10. Control trades the
+causal guard refuses EARN +7.79 (cs_aro) / +11.49 (all3k); on momentum they lose (-1.80). (2) Causal keep
+agrees with the top tercile on 51-52% of trades: it keeps 89-95% of the top tercile but 60-64% of the
+bottom (refuses ~25%, not 67%). (3) Refused reversion entries come back a median 2 bars later in the
+same signal run (143 of 233 cs_aro, 135 of 236 all3k); those late entries carry the late-half loss
+(-4.41 cs_aro, -12.67 all3k, vs refused-trade cost -1.24 / +1.55 late). Momentum's gain is
+re-sequencing, not the filter: displaced control trades -15.21 vs other new arm trades +17.60.
