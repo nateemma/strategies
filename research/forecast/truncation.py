@@ -17,11 +17,11 @@ N_CUTS = 5
 
 
 def check(fr, cuts) -> dict[str, bool]:
-    full = X.set_L(fr).join(X.set_W(fr))
+    full = X.set_L(fr).join(X.set_W(fr)).join(X.set_T(fr))
     ok = {c: True for c in full.columns}
     for cut in cuts:
         part = fr.iloc[: cut + 1]
-        trunc = X.set_L(part).join(X.set_W(part))
+        trunc = X.set_L(part).join(X.set_W(part)).join(X.set_T(part))
         for c in full.columns:
             a, b = full[c].to_numpy()[: cut + 1], trunc[c].to_numpy()
             if not np.array_equal(a, b, equal_nan=True):
@@ -39,7 +39,8 @@ def main(argv=None) -> int:
             res[c] = res.get(c, True) and ok
     out = {"pairs": PAIRS, "cuts_per_pair": N_CUTS,
            "inputs": {c: v for c, v in res.items() if c in X.LW_COLS},
-           "L_inputs": {c: v for c, v in res.items() if c not in X.LW_COLS}}
+           "at_inputs": {c: v for c, v in res.items() if c in X.AT_COLS},
+           "L_inputs": {c: v for c, v in res.items() if c not in X.LW_COLS + X.AT_COLS}}
     C.write_json(C.HERE / "truncation.json", out)
     bad = [c for c, v in res.items() if not v]
     print("truncation:", "all inputs identical up to every cut" if not bad else f"FAIL {bad}")

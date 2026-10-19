@@ -131,3 +131,19 @@ def test_harm_k_sets_the_number_of_sinusoids():
     assert [S._forecaster(f"harm_k{k}").n_harmonics for k in (1, 2, 4, 5)] == [1, 2, 4, 5]
     f = S._forecaster("harm_sd")
     assert f.detrend_data and f.smooth_data and not S._forecaster("harm_k1").detrend_data
+
+
+def test_atrous_reconstructs_exactly_and_is_causal():
+    from research.forecast import features as X
+
+    lc = pd.Series(4.6 + np.cumsum(np.random.default_rng(9).normal(0, 0.01, 600)))
+    w, cJ = X.atrous(lc)
+    recon = sum(w) + cJ
+    ok = recon.notna()
+    np.testing.assert_allclose(recon[ok], lc[ok], atol=1e-12)  # lc = sum(w_j) + c_J
+    fr = pd.DataFrame({"lc": lc})
+    full = X.set_T(fr)
+    cut = 400
+    part = X.set_T(fr.iloc[: cut + 1])
+    np.testing.assert_array_equal(full.iloc[: cut + 1].to_numpy(), part.to_numpy())  # no future data
+    assert list(full.columns) == X.AT_COLS

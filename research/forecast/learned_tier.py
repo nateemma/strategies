@@ -41,9 +41,18 @@ def lw_inputs() -> list[str]:
     return [c for c, ok in json.loads(t.read_text())["inputs"].items() if ok]
 
 
+def at_inputs_ok() -> None:
+    t = C.HERE / "truncation.json"
+    at = json.loads(t.read_text()).get("at_inputs", {}) if t.exists() else {}
+    if not at or not all(at.values()):
+        raise SystemExit(f"REFUSED: a trous inputs not truncation-tested or failing ({at}) (FR-012)")
+
+
 def pooled(fset: str) -> tuple[pd.DataFrame, list[str]]:
     """One pooled frame: pair, date, row, fold, data flags, targets and the set's features."""
     lw = lw_inputs() if fset == "LW" else None
+    if fset in ("AT", "LAT"):
+        at_inputs_ok()
     parts, feat_cols = [], None
     for pair in C.pairs():
         fr = F.read(pair, ["date", "fold", "lc", "volume", "has_data", "data_ok",
@@ -108,7 +117,7 @@ def run(fset: str, seed: int, kind: str = "lgb") -> pd.DataFrame:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--set", required=True, choices=["L", "LA", "LW", "null"])
+    ap.add_argument("--set", required=True, choices=["L", "LA", "LW", "null", "AT", "LAT"])
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--model", choices=["lgb", "ridge"], default="lgb")
     a = ap.parse_args(argv)

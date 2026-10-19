@@ -67,13 +67,49 @@ def set_W(fr: pd.DataFrame, chunk: int = 20000) -> pd.DataFrame:
     return pd.DataFrame(out, index=fr.index, columns=LW_COLS)
 
 
+ATROUS_LEVELS = 5  # scales 1-2, 2-4, 4-8, 8-16, 16-32 candles; smooth c5 ~ a 32-candle average
+
+
+def atrous(lc: pd.Series, levels: int = ATROUS_LEVELS) -> tuple[list[pd.Series], pd.Series]:
+    """Causal Haar a trous transform (Renaud, Starck & Murtagh 2005): c_j(t) = (c_{j-1}(t) +
+    c_{j-1}(t - 2^(j-1))) / 2, w_j = c_{j-1} - c_j. One-sided, so every coefficient at t uses data
+    <= t only (no padding, no wrap-around), and lc = sum(w_j) + c_J exactly."""
+    c, details = lc.astype(float), []
+    for j in range(1, levels + 1):
+        c_new = 0.5 * (c + c.shift(2 ** (j - 1)))
+        details.append(c - c_new)
+        c = c_new
+    return details, c
+
+
+def set_T(fr: pd.DataFrame, levels: int = ATROUS_LEVELS) -> pd.DataFrame:
+    """Multiscale AR inputs: each scale's coefficient now and one scale-step back, w_j(t) and
+    w_j(t - 2^j); the smooth's slope c_J(t) - c_J(t - 2^J) and the price's distance from it."""
+    w, cJ = atrous(fr["lc"], levels)
+    out = {}
+    for j, wj in enumerate(w, start=1):
+        out[f"at_w{j}"] = wj
+        out[f"at_w{j}_lag"] = wj.shift(2 ** j)
+    out["at_smooth_slope"] = cJ - cJ.shift(2 ** levels)
+    out["at_dist"] = fr["lc"] - cJ
+    return pd.DataFrame(out, index=fr.index).astype(np.float32)
+
+
+AT_COLS = [*[c for j in range(1, ATROUS_LEVELS + 1) for c in (f"at_w{j}", f"at_w{j}_lag")],
+           "at_smooth_slope", "at_dist"]
+
+
 def build(pair: str, fr: pd.DataFrame, fset: str, lw_cols: list[str] | None = None) -> pd.DataFrame:
     base = set_L(fr)
     if fset in ("L", "null"):
         return base
+    if fset == "AT":
+        return set_T(fr)
     if fset == "LA":
         return pd.concat([base, set_A(pair, fr)], axis=1)
     if fset == "LW":
         w = set_W(fr)
         return pd.concat([base, w[lw_cols if lw_cols is not None else LW_COLS]], axis=1)
+    if fset == "LAT":
+        return pd.concat([base, set_T(fr)], axis=1)
     raise ValueError(fset)

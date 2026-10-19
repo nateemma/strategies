@@ -148,11 +148,13 @@ def main(argv=None) -> int:
                      f"{bp(l['edge_vs_rand'])} | {bp(e.get('mean_net_0.0'))} / {bp(l.get('mean_net_0.0'))} | "
                      f"{e['n_trades']} / {l['n_trades']} |")
         L.append("")
-        if "lgb_LW" in scores and "lgb_L" in scores:
-            L += ["## Decomposition inputs: LW − L (paired candles), mean net and edge, bp (early / late)", "",
-                  "| N | Δ net | Δ edge |", "|---|---|---|"]
+        for dec, label in (("lgb_LW", "SWT/FFT (periodic boundary)"), ("lgb_LAT", "causal à trous")):
+            if dec not in scores or "lgb_L" not in scores:
+                continue
+            L += [f"## Decomposition inputs, {label}: {dec[4:]} − L (paired candles), mean net and edge, bp "
+                  "(early / late)", "", "| N | Δ net | Δ edge |", "|---|---|---|"]
             for n in C.HORIZONS:
-                w, b_ = scores["lgb_LW"]["n"][str(n)], scores["lgb_L"]["n"][str(n)]
+                w, b_ = scores[dec]["n"][str(n)], scores["lgb_L"]["n"][str(n)]
                 d = lambda k, h: (w[h][k] - b_[h][k]) if w[h][k] is not None and b_[h][k] is not None else None  # noqa: E731
                 L.append(f"| {n} | {bp(d(NET, 'early'))} / {bp(d(NET, 'late'))} | "
                          f"{bp(d('edge_vs_rand', 'early'))} / {bp(d('edge_vs_rand', 'late'))} |")

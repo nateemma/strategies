@@ -28,9 +28,11 @@ AMEND_RIDGE = HERE / "preregistration_ridge.json"  # post-hoc linear benchmark (
 AMEND_VOTE = HERE / "preregistration_vote.json"  # post-hoc N-of-M votes and their new members
 VOTE_MEMBERS = ("harm_k1", "harm_k2", "harm_k4", "harm_k5", "holt_w32", "holt_w128", "holt_w256")
 VOTES = ("vote_A", "vote_B", "vote_C")
+AMEND_ATROUS = HERE / "preregistration_atrous.json"  # post-hoc causal a trous multiscale forecasts
+ATROUS = ("ridge_AT", "lgb_AT", "lgb_LAT")
 #: post-hoc method -> the amendment that registered it (committed before its results)
 POST_HOC = {**{m: AMEND_HARMONIC for m in HARMONIC}, "ridge_L": AMEND_RIDGE,
-            **{m: AMEND_VOTE for m in VOTE_MEMBERS + VOTES}}
+            **{m: AMEND_VOTE for m in VOTE_MEMBERS + VOTES}, **{m: AMEND_ATROUS for m in ATROUS}}
 PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
 CONFIG = STRAT / "config" / "config_wf.json"
 

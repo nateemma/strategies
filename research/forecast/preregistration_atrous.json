@@ -1,0 +1,28 @@
+{
+ "label": "038 post-hoc addition: causal a trous (Haar) multiscale forecast (Renaud, Starck & Murtagh 2005)",
+ "date": "2026-10-19",
+ "status": "POST-HOC: added after the 038 verdicts were read, at the user's request; committed before any a trous result. Replaces the periodic-boundary SWT inputs of lgb_LW as the sound test of wavelet forecasting. Same rule, costs, folds, purge, training rows and scorer as preregistration.json.",
+ "transform": "causal Haar a trous on log close, 5 levels: c_j(t) = (c_{j-1}(t) + c_{j-1}(t - 2^(j-1)))/2, w_j = c_{j-1} - c_j; one-sided, no padding",
+ "inputs_AT": "w_j(t) and w_j(t - 2^j) for j = 1..5; c_5(t) - c_5(t - 32); lc(t) - c_5(t) (12 inputs); must pass the truncation test",
+ "methods": {
+  "ridge_AT": {
+   "tier": 2,
+   "features": "AT",
+   "params": "Ridge(alpha=1.0) on standardised AT (scaler per training span): the paper's multiscale AR, direct N-step target",
+   "seed": "deterministic"
+  },
+  "lgb_AT": {
+   "tier": 2,
+   "features": "AT",
+   "params": "lightgbm_params from preregistration.json",
+   "seed": "a PASS needs a seed-2 PASS"
+  },
+  "lgb_LAT": {
+   "tier": 3,
+   "features": "L + AT",
+   "params": "lightgbm_params",
+   "seed": "a PASS needs a seed-2 PASS",
+   "compare": "paired with lgb_L (as LW was)"
+  }
+ }
+}
