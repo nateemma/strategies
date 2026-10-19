@@ -389,82 +389,14 @@ class TS_Wavelet(TSPredict):
 
     # -------------
 
-    # single prediction (for use in rolling calculation)
+    # Dead paths (feature 038, research R4 D6): both called predict_data(start, end), but predict_data
+    # takes the feature matrix X, so either would raise a TypeError. Nothing calls them;
+    # add_rolling_predictions is the live path.
     def predict(self, gain, df) -> float:
-        # Get the start and end index labels of the series
-        start = gain.index[0]
-        end = gain.index[-1]
-
-        # Get the integer positions of the labels in the dataframe index
-        start_row = df.index.get_loc(start)
-        end_row = df.index.get_loc(end) + 1  # need to add the 1, don't know why!
-
-        # if end_row < (self.train_len + self.wavelet_size + self.lookahead):
-        # # if start_row < (self.wavelet_size + self.lookahead): # need buffer for training
-        #     # print(f'    ({start_row}:{end_row}) y_pred[-1]:0.0')
-        #     return 0.0
-
-        # print(f'gain.index:{gain.index} start:{start} end:{end} start_row:{start_row} end_row:{end_row}')
-
-        scale_start = max(0, len(gain) - 16)
-
-        # print(f'    coeff_table: {np.shape(self.coeff_table)} start_row: {start_row} end_row: {end_row} ')
-
-        self.update_scaler(np.array(gain)[scale_start:])
-
-        y_pred = self.predict_data(start_row, end_row)
-        # print(f'    ({start_row}:{end_row}) y_pred[-1]:{y_pred[-1]}')
-        return y_pred[-1]
-
-    # -------------
+        raise NotImplementedError("dead path; add_rolling_predictions is the live path")
 
     def rolling_predict(self, data):
-
-        if self.forecaster.requires_pretraining():
-            min_data = self.train_min_len + self.wavelet_size + self.lookahead
-        else:
-            min_data = self.wavelet_size
-
-        end = min_data - 1
-        start = max(0, end - self.wavelet_size)
-
-        x = np.nan_to_num(np.array(data))
-        nrows = len(x)
-        preds = np.zeros(nrows, dtype=float)
-
-        # if self.col_forecasters is  None:
-        #     # create an array of forecasters (1 for each column)
-        #     self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
-        self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
-
-        while end <= nrows:
-
-            # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
-            if end < (min_data - 1):
-                preds[end] = 0.0
-                end = end + 1
-                start = max(0, end - self.wavelet_size)
-                continue
-
-            scale_start = max(0, start - self.scale_len)
-            scale_end = max(scale_start + self.scale_len, start)
-            self.update_scaler(np.array(data)[scale_start:scale_end])
-
-            forecast = self.predict_data(start, end)
-            preds[end - 1] = forecast[-1]
-
-            # if end == len(x):
-            #     print(f'    preds[-1]:{preds[-1]} forecast[-1]: {forecast[-1]}')
-
-            end = end + 1
-            start = max(0, end - self.wavelet_size)
-
-        # predict for last window
-        self.update_scaler(np.array(data[-self.scale_len :]))
-        plast = self.predict_data(nrows - self.wavelet_size, nrows - 1)
-        preds[-1] = plast[-1]
-
-        return preds
+        raise NotImplementedError("dead path; add_rolling_predictions is the live path")
 
     # -------------
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:

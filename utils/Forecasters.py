@@ -48,6 +48,14 @@ sys.path.append(str(Path(__file__).parent))
 
 import Detrenders
 
+
+class ForecastFailed(RuntimeError):
+    """The underlying model could not fit or forecast this window (never returned as zeros)."""
+
+
+class ForecastUnavailable(RuntimeError):
+    """The forecaster is not a valid forecast; the message says why."""
+
 # Define a timer decorator function
 def timer(func):
     # Define a wrapper function
@@ -202,6 +210,11 @@ class base_forecaster(ABC):
 
         x_notrend = self.data_retrender.detrend(x)
         # x_notrend = self.data_retrender.get_trend().reshape(-1,1) # temp
+
+        # remember this window's own trend (first column = the series being forecast), so that
+        # retrend_results restores it rather than the trend of the training targets
+        self.window_detrender = Detrenders.make_detrender(self.detrender_type)
+        self.window_detrender.detrend(self.check_1d(np.array(x, dtype=float)).copy())
         return x_notrend
 
 
@@ -223,11 +236,12 @@ class base_forecaster(ABC):
 
 
     def retrend_results(self, x_trend, steps, axis=0):
-
-        # self.results_detrender.extend_trend(steps) # this is computationaly very expensive
-        x = self.results_detrender.retrend(x_trend)
-        return x
-        # return x_trend # temp
+        # Restore the trend of the window being forecast (set by the last detrend() call, which every
+        # forecast() makes on its input). The training-results detrender holds the trend of a
+        # different window (the training targets) and must not be added to a forecast.
+        x = np.array(x_trend, dtype=float)
+        flat = self.window_detrender.retrend(x.reshape(-1).copy())
+        return flat.reshape(x.shape)
 
     # -----------------------------------
 
@@ -426,6 +440,10 @@ class fft_extrapolation_forecaster(base_forecaster):
 
     def forecast(self, data: np.array, steps) -> np.array:
 
+        if self.predict_type == self.PA_FORECASTER:
+            raise ForecastUnavailable("FFT_EXTRAPOLATION predict_type 4 feeds FFT coefficients to a "
+                                      "regressor trained on returns; the output is not a forecast")
+
         y = self.check_1d(data)
 
         # print(f'y:{np.shape(y)}')
@@ -591,8 +609,8 @@ class exponential_forecaster(base_forecaster):
         if self.detrend_data:
             x = self.detrend(x)
 
-        self.model = tsa.ExponentialSmoothing(x).fit()
-        predictions = self.model.predict(0, len(x) + steps)
+        self.model = tsa.ExponentialSmoothing(x, initialization_method="estimated").fit()
+        predictions = self.model.forecast(steps)  # exactly steps values: 1..steps ahead
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
 
@@ -620,7 +638,7 @@ class statespace_exponential_forecaster(base_forecaster):
             x = self.detrend(x)
 
         self.model = tsa.statespace.ExponentialSmoothing(x).fit(disp=False)
-        predictions = self.model.predict(0, len(x) + steps)
+        predictions = self.model.forecast(steps)  # exactly steps values: 1..steps ahead
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
 
@@ -685,8 +703,8 @@ class simple_exponential_forecaster(base_forecaster):
         if self.detrend_data:
             x = self.detrend(x)
 
-        self.model = tsa.SimpleExpSmoothing(x).fit()
-        predictions = self.model.predict(0, len(x) + steps)
+        self.model = tsa.SimpleExpSmoothing(x, initialization_method="estimated").fit()
+        predictions = self.model.forecast(steps)  # exactly steps values: 1..steps ahead
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
 
@@ -716,7 +734,7 @@ class ets_forecaster(base_forecaster):
             x = self.detrend(x)
 
         self.model = tsa.ETSModel(x).fit(disp=False)
-        predictions = self.model.predict(0, len(x) + steps)
+        predictions = self.model.forecast(steps)  # exactly steps values: 1..steps ahead
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
 
@@ -734,42 +752,31 @@ class arima_forecaster(base_forecaster):
         return "ARIMA"
 
     def forecast(self, data: np.array, steps) -> np.array:
-        try:  # ARIMA is very sensitive to zeroes in data, which happens a lot at startup
+        y = self.check_1d(data)
 
-            y = self.check_1d(data)
+        # self.smooth
+        if self.smooth_data:
+            y = self.smooth(y, self.smooth_window)
 
-            # self.smooth
-            if self.smooth_data:
-                y = self.smooth(y, self.smooth_window)
+        # detrend
+        if self.detrend_data:
+            y = self.detrend(y)
 
-            # detrend
-            if self.detrend_data:
-                y = self.detrend(y)
-
-            if self.model is None:
-                 # Choose the order of the ARIMA model
-                # order = (1, 1, 1)  # AR(1), I(1), MA(1)
-                # order = (0, 0, 1)  # zero order model for 1d
-                order = (2, 1, 2) 
-
-                 # create the model and fit
-                self.model = tsa.ARIMA(y, order=order)
-
-            res = self.model.fit()
-            start = len(data)
-
-            # predictions = res.forecast(start, start + steps)
-            # predictions = res.predict(0, start + steps, typ='levels')
-            predictions = res.predict(0, start + steps)
-
-
-            predictions = np.concatenate((y, predictions), dtype=float)[-len(y):]
-
-            if self.detrend_data:
-                predictions = self.retrend(predictions)
-
+        # ARIMA is very sensitive to zeroes in data, which happens a lot at startup. A failed fit is
+        # raised, never returned as zeros (that reads as a genuine 'no move' forecast).
+        if not np.all(np.isfinite(y)):
+            raise ForecastFailed("ARIMA: non-finite input")
+        try:
+            # a fresh model per window: re-fitting a stored model would re-fit its first window
+            self.model = tsa.ARIMA(y, order=(2, 1, 2))
+            predictions = self.model.fit().forecast(steps)  # exactly steps values: 1..steps ahead
         except Exception as e:
-            predictions = np.zeros(len(data), dtype=float)
+            raise ForecastFailed(f"ARIMA: {type(e).__name__}: {e}") from e
+
+        predictions = np.concatenate((y, predictions), dtype=float)[-len(y):]
+
+        if self.detrend_data:
+            predictions = self.retrend(predictions)
 
         return np.array(predictions)
 
@@ -836,21 +843,14 @@ class theta_forecaster(base_forecaster):
         if self.detrend_data:
             x = self.detrend(x)
 
-        if self.model is None:
-            # Create a pandas date range with 5-minute frequency and the same length as the array
-            # TODO: pass in pd.Series?
-            dates = pd.date_range(start="2023-01-01", periods=len(x), freq="5m")
-            y = pd.Series(x, index=dates)
-            # y = pd.Series(data)
-
-            # create the model and fit
-            self.model = ThetaModel(y)
-            # print(model.summary())
+        # a fresh model per window (a stored model would re-fit its first window); period=1 because
+        # candles have no seasonality to remove
+        self.model = ThetaModel(np.asarray(x, dtype=float), period=1)
 
         # get a prediction
         res = self.model.fit()
 
-        preds = res.forecast(steps, theta=1.2)
+        preds = np.asarray(res.forecast(steps, theta=1.2), dtype=float)
         predictions = np.concatenate((x, preds), dtype=float)[-len(x):]
         if self.detrend_data:
             predictions = self.retrend(predictions)

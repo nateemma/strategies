@@ -1,0 +1,53 @@
+{
+ "label": "038 close-price forecast study: pre-registered pass rule (specs/038-close-forecast-study, research R8-R9)",
+ "date": "2026-10-19",
+ "target": "log return of close over N candles; trades long-only, entry open[t+1], exit open[t+1+N]",
+ "horizons": [1, 2, 4, 8, 16, 32, 48, 96],
+ "pairs": ["ZEC/USDT", "XRP/USDT", "SOL/USDT", "LINK/USDT", "NEAR/USDT", "AAVE/USDT", "AVAX/USDT", "LTC/USDT", "BCH/USDT", "DOT/USDT"],
+ "folds_from": "evaluation/folds/plan_cs_aro.json (f00-f14, anchored training from 2021-01-01, 90-day tests)",
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "forward_window": {"start": "2026-09-07", "role": "descriptive only, no verdict"},
+ "costs": {"fee_per_side": 0.001, "slippage_bps_per_side": [0, 2.5, 5, 10], "verdict_bps": 5,
+           "round_trip_at_verdict": 0.003},
+ "eligibility": "entry and exit candles have volume > 0 and exist in the raw file",
+ "selection": {"signal": "f > 0 and f >= causal 0.9 quantile of the pair/method/N's previous 30 days of forecasts",
+               "quantile": 0.9, "lookback_days": 30, "one_position_per_pair": true},
+ "benchmark": "pair- and half-matched mean gross trade return of all eligible scored candles (random entry)",
+ "bootstrap": {"blocks": "calendar week", "n_boot": 2000, "seed": 0, "one_sided_confidence": 0.95},
+ "min_trades_per_half": 200,
+ "max_fail_share": 0.05,
+ "methods": {
+  "zero": {"tier": 0, "stride": 1, "params": "f = 0"},
+  "hist_mean": {"tier": 0, "stride": 1, "params": "f[n] = n x mean 1-candle log return of the pair over all data before the fold start"},
+  "ar": {"tier": 1, "stride": 16, "window": 64, "series": "1-candle log returns", "params": "AutoReg, lags by ar_select_order(maxlag=15); forecast path summed"},
+  "holt": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "Holt(damped_trend=True, initialization_method='estimated')"},
+  "ses": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "SimpleExpSmoothing(initialization_method='estimated')"},
+  "expsm": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "ExponentialSmoothing(initialization_method='estimated')"},
+  "ets": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "ETSModel defaults"},
+  "ss_expsm": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "statespace.ExponentialSmoothing defaults"},
+  "arima": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "ARIMA(2,1,2)"},
+  "theta": {"tier": 1, "stride": 16, "window": 64, "series": "log close", "params": "ThetaModel(period=1), forecast(theta=1.2)"},
+  "lgb_null": {"tier": 2, "stride": 1, "features": "L", "targets": "permuted within each training span (seed 1)"},
+  "lgb_L": {"tier": 2, "stride": 1, "features": "L: log returns over 1,2,4,8,16,32,64,96; realised vol 16, 96; log volume ratio 16/96"},
+  "lgb_LA": {"tier": 2, "stride": 1, "features": "L + 24 ARO model inputs (037 cache base: columns aliased by aro:)"},
+  "lgb_LW": {"tier": 3, "stride": 1, "features": "L + SWT bior3.9 level-2 coefficients at the last position (cA2, cD2, cD1) + FFT magnitudes bins 1-8, on the trailing 64 1-candle log returns; only inputs passing the truncation test"},
+  "lightgbm_params": {"n_estimators": 300, "learning_rate": 0.03, "num_leaves": 31, "min_child_samples": 500,
+                      "subsample": 0.8, "subsample_freq": 1, "colsample_bytree": 0.8, "seed": 1, "n_jobs": 6,
+                      "training": "anchored from 2021-01-01 to test_start minus (N+1) candles, pooled pairs, training rows at stride 4; rows need eligible, has_data and data_ok"}
+ },
+ "decision": {
+  "PASS (PROVISIONAL)": "all of: (a) n_trades >= 200 in each half; (b) mean_net at verdict_bps > 0 in each half; (c) edge_vs_rand > 0 in each half; (d) late-half one-sided 95% bootstrap lower bound of mean_net at verdict_bps > 0; (e) learned methods (tiers 2-3): the seed-2 rerun also meets (a)-(d)",
+  "FAIL": "mean_net at verdict_bps <= 0 in either half, or edge_vs_rand <= 0 in either half (when that half has trades)",
+  "INCONCLUSIVE": "anything else, including fewer than 200 trades in a half, or fail_share > max_fail_share",
+  "null_downgrade": "if lgb_null PASSes at any N, every tier-2/3 PASS becomes INCONCLUSIVE",
+  "provisional": "no distant era exists (binance.com data empty); halves are the persistence test (constitution gate 2)"
+ },
+ "summary": {
+  "most_viable_n": "N of the PASS cell with the highest late-half net_per_pair_year at verdict_bps; null if no PASS",
+  "break_even_n": "smallest N at which any non-null method has mean_net at verdict_bps > 0 in both halves; null if none"
+ },
+ "instrument": ["SC-001 forecaster known-answer tests pass", "SC-002a zero-forecast r2_oos == 0 exactly",
+                "SC-002b lgb_null is not PASS at any N", "SC-003 unscored eligible share (not gaps) < 1%",
+                "R12 forecasts differ across N (liveness)"]
+}

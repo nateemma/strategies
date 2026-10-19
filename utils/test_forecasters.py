@@ -142,7 +142,7 @@ flist = [
     # Forecasters.ForecasterType.EXPONENTAL,
     # Forecasters.ForecasterType.SIMPLE_EXPONENTAL,
     # Forecasters.ForecasterType.AR,
-    # Forecasters.ForecasterType.HOLT,
+    Forecasters.ForecasterType.HOLT,
     # Forecasters.ForecasterType.ARIMA,
     # Forecasters.ForecasterType.THETA,
     # Forecasters.ForecasterType.ETS,
@@ -154,7 +154,7 @@ flist = [
     # Forecasters.ForecasterType.PA,
     # Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
-    Forecasters.ForecasterType.FFT_EXTRAPOLATION,
+    # Forecasters.ForecasterType.FFT_EXTRAPOLATION,  # unavailable (feature 038 R4 D5)
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.LGBM,
     # Forecasters.ForecasterType.XGB,
@@ -196,7 +196,11 @@ for f in flist:
     print(id)
 
     col = "predicted_gain_" + id
-    dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
+    try:
+        dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
+    except Forecasters.ForecastUnavailable as e:
+        print(f"    skipped {id}: {e}")
+        continue
     dataframe[col].plot(ax=ax, label=id, marker=marker_list[mkr_idx])
 
     mkr_idx = (mkr_idx + 1) % num_markers
