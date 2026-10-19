@@ -17,6 +17,20 @@
   "fft_7": true,
   "fft_8": true
  },
+ "at_inputs": {
+  "at_w1": true,
+  "at_w1_lag": true,
+  "at_w2": true,
+  "at_w2_lag": true,
+  "at_w3": true,
+  "at_w3_lag": true,
+  "at_w4": true,
+  "at_w4_lag": true,
+  "at_w5": true,
+  "at_w5_lag": true,
+  "at_smooth_slope": true,
+  "at_dist": true
+ },
  "L_inputs": {
   "ret_1": true,
   "ret_2": true,

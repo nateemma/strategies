@@ -59,3 +59,26 @@ TSPredict backtest from before 2026-10-19 ran on the defective library.
 - **Costs.** The trend cells clear costs at fees alone. A maker-fee or lower-fee venue, or the 036 cost
   model's real slippage measurements (live gate pending), would change the arithmetic before the signal
   does.
+
+## Post-hoc follow-ups (2026-10-19, each registered and committed before its results)
+
+All were scored under the same rule, and all are labelled post-hoc: 15 more methods, 120 more cells.
+The conclusion doesn't change. No PASS anywhere, and the null control passes nowhere.
+
+| Addition | Amendment | Result |
+|---|---|---|
+| Harmonic regression (off-grid sinusoids), plain / smoothed / detrended / both | `preregistration_harmonic.json` | All FAIL. The plain sinusoids are worse than random entry in the late half (R² −1.5 to −6: the extended cycles overshoot). Only detrending helps, and the gain is the extended straight line, i.e. Holt's trend, not the cycles. Smoothing adds nothing. |
+| Ridge (`ridge_L`), the linear benchmark | `preregistration_ridge.json` | All FAIL, with edge over random entry of about 0 (−3 to +5 bp). It does no worse than LightGBM, so the learned models found nothing nonlinear. |
+| N-of-M votes A/B/C | `preregistration_vote.json` | A (harmonic K = 1–5): members correlate 0.97 (N=16), so it acts as one forecast; FAIL. B (6 different methods): members correlate 0.07, so 4-of-6 rarely fires; FAIL. **C (Holt on 32/64/128/256 candles), N=48: net +10.1 / +7.5 bp, the only cell in the study positive in both halves**, edge +20 / +34 bp, 1,847 / 1,409 trades. But the late lower bound is −19 bp, so it is INCONCLUSIVE, and in the forward window (2026-09-07 → 10-18, 138 trades) it nets −42 bp. |
+| Causal à trous (Haar) multiscale forecast: `ridge_AT` (the published method), `lgb_AT`, `lgb_LAT` | `preregistration_atrous.json` | All FAIL. `ridge_AT` has no edge (−5 to +1 bp). LAT − L is a few bp either way, the same as the periodic-boundary SWT inputs. Wavelets add nothing to price-only forecasting here once leakage is excluded. That is consistent with the literature (`literature.md`). |
+
+**Library defects found while building these (recorded, base helpers unchanged):**
+- D9: base `retrend` adds the trend of past window positions to forecasts instead of extending it. On a perfect line, the linear forecaster gives 4.6537 for a true 4.667.
+- D10: base `smooth` is a centred, zero-padded box filter. The window's last value collapses (4.663 → 3.496 on log close).
+- Every Forecasters model with `set_detrend(True)` or `set_smooth(True)` is affected, which means TSPredict's defaults. The harmonic forecaster implements correct versions itself.
+
+**Multiple testing:** about 28 methods × 8 horizons, roughly 220 cells. A single cell positive in both halves with a lower bound below zero is about what chance produces. The deflated-Sharpe / t > 3 standard in `literature.md` would not accept it.
+
+**What the follow-ups add to "where this points":**
+- **The trend signal improves with a longer look-back.** Holt on 256 candles at N=32 nets −4 / −2 bp, with edge +12 / +27. This matches the literature: crypto momentum lives at longer horizons. A test at N ≥ 96 with look-backs of days is the natural next horizon question.
+- **The literature's most actionable lead is cross-asset inputs** (other pairs' and BTC's lagged returns): new information from data already held.

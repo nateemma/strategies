@@ -2897,10 +2897,3755 @@
      }
     }
    }
+  },
+  "harm": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00242 <= 0",
+     "late mean_net -0.00344 <= 0",
+     "late edge_vs_rand -0.00051 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2662,
+      "mean_net_5.0": -0.002423509885133734,
+      "edge_vs_rand": 0.0005167083402897888,
+      "net_lb95": -0.002784111803367028,
+      "net_per_pair_year": -0.3362574543197977,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2116,
+      "mean_net_5.0": -0.0034361940294029528,
+      "edge_vs_rand": -0.0005100445490033963,
+      "net_lb95": -0.003918364459087926,
+      "net_per_pair_year": -0.42488054379332824,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00231 <= 0",
+     "late mean_net -0.00297 <= 0",
+     "late edge_vs_rand -0.00013 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2547,
+      "mean_net_5.0": -0.0023118395305117222,
+      "edge_vs_rand": 0.0005384785834045609,
+      "net_lb95": -0.002795201784024165,
+      "net_per_pair_year": -0.30690623015510987,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2015,
+      "mean_net_5.0": -0.0029749520345771414,
+      "edge_vs_rand": -0.0001345485346982472,
+      "net_lb95": -0.0035703940036741376,
+      "net_per_pair_year": -0.35029062999889904,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00273 <= 0",
+     "late mean_net -0.00342 <= 0",
+     "late edge_vs_rand -0.00047 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2577,
+      "mean_net_5.0": -0.002725269179977823,
+      "edge_vs_rand": 9.703033269889264e-05,
+      "net_lb95": -0.003337498546439942,
+      "net_per_pair_year": -0.3660520956326782,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1992,
+      "mean_net_5.0": -0.003415530035152068,
+      "edge_vs_rand": -0.0004720337616571044,
+      "net_lb95": -0.004345345770673496,
+      "net_per_pair_year": -0.39757671850444115,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00207 <= 0",
+     "late mean_net -0.00370 <= 0",
+     "late edge_vs_rand -0.00087 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2565,
+      "mean_net_5.0": -0.002070281384212428,
+      "edge_vs_rand": 0.0005360401101111101,
+      "net_lb95": -0.0028277520835002876,
+      "net_per_pair_year": -0.27678071098854473,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1929,
+      "mean_net_5.0": -0.0036994063571161554,
+      "edge_vs_rand": -0.0008675774060028351,
+      "net_lb95": -0.005055364927737838,
+      "net_per_pair_year": -0.4170016449790079,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00098 <= 0",
+     "late mean_net -0.00457 <= 0",
+     "late edge_vs_rand -0.00166 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2586,
+      "mean_net_5.0": -0.000981110109704877,
+      "edge_vs_rand": 0.001342756390542624,
+      "net_lb95": -0.0019602386010828345,
+      "net_per_pair_year": -0.13224076275545654,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2041,
+      "mean_net_5.0": -0.0045712767295746385,
+      "edge_vs_rand": -0.001660900370075479,
+      "net_lb95": -0.006203188894979043,
+      "net_per_pair_year": -0.5451977056389946,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00091 <= 0",
+     "late mean_net -0.00514 <= 0",
+     "late edge_vs_rand -0.00216 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2109,
+      "mean_net_5.0": -0.0009092032539195818,
+      "edge_vs_rand": 0.0007883615139561014,
+      "net_lb95": -0.0024698661032229053,
+      "net_per_pair_year": -0.09994397888737683,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1578,
+      "mean_net_5.0": -0.005140940709218466,
+      "edge_vs_rand": -0.0021647191291885993,
+      "net_lb95": -0.007507592061879139,
+      "net_per_pair_year": -0.47404884855530277,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00089 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1928,
+      "mean_net_5.0": 0.0013433935040690179,
+      "edge_vs_rand": 0.0024216498519478106,
+      "net_lb95": -0.0009946852581040589,
+      "net_per_pair_year": 0.1349986257967179,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1507,
+      "mean_net_5.0": -0.0008905254681224288,
+      "edge_vs_rand": 0.0019801036626227674,
+      "net_lb95": -0.003917460596648533,
+      "net_per_pair_year": -0.07842113049719153,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00352 <= 0",
+     "late edge_vs_rand -0.00024 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1638,
+      "mean_net_5.0": 0.0005621366791116819,
+      "edge_vs_rand": 0.00023577506187009122,
+      "net_lb95": -0.0036102219499229487,
+      "net_per_pair_year": 0.04799266815915005,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1368,
+      "mean_net_5.0": -0.0035196542040620603,
+      "edge_vs_rand": -0.0002400053264251764,
+      "net_lb95": -0.007613260178501484,
+      "net_per_pair_year": -0.28135821287528806,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_s": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00264 <= 0",
+     "late mean_net -0.00343 <= 0",
+     "late edge_vs_rand -0.00050 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2762,
+      "mean_net_5.0": -0.002640741526218383,
+      "edge_vs_rand": 0.0002979051967040156,
+      "net_lb95": -0.003029349768051659,
+      "net_per_pair_year": -0.38016194704427325,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2211,
+      "mean_net_5.0": -0.0034266339806487017,
+      "edge_vs_rand": -0.0005044221931444436,
+      "net_lb95": -0.0038675918751607135,
+      "net_per_pair_year": -0.4427208360045166,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00232 <= 0",
+     "late mean_net -0.00304 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2616,
+      "mean_net_5.0": -0.002322215340400169,
+      "edge_vs_rand": 0.0005352988192714921,
+      "net_lb95": -0.0028489321562576273,
+      "net_per_pair_year": -0.31663528033334565,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2089,
+      "mean_net_5.0": -0.003043611003819601,
+      "edge_vs_rand": -0.0002059339721719682,
+      "net_lb95": -0.003585314316791005,
+      "net_per_pair_year": -0.37153615949527935,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00278 <= 0",
+     "late mean_net -0.00322 <= 0",
+     "late edge_vs_rand -0.00028 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2573,
+      "mean_net_5.0": -0.0027770502723766487,
+      "edge_vs_rand": 4.18939111167766e-05,
+      "net_lb95": -0.003445594924063915,
+      "net_per_pair_year": -0.3724282378158128,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2040,
+      "mean_net_5.0": -0.003219568179433633,
+      "edge_vs_rand": -0.0002780870847064056,
+      "net_lb95": -0.004135116396802793,
+      "net_per_pair_year": -0.38379675267661123,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00196 <= 0",
+     "late mean_net -0.00391 <= 0",
+     "late edge_vs_rand -0.00109 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2528,
+      "mean_net_5.0": -0.0019564114804477965,
+      "edge_vs_rand": 0.0006490315259709611,
+      "net_lb95": -0.0028453039738841,
+      "net_per_pair_year": -0.25778423036943965,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1984,
+      "mean_net_5.0": -0.0039137652232362,
+      "edge_vs_rand": -0.0010928714826346918,
+      "net_lb95": -0.005202425386985739,
+      "net_per_pair_year": -0.4537430016503865,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00127 <= 0",
+     "late mean_net -0.00423 <= 0",
+     "late edge_vs_rand -0.00133 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2618,
+      "mean_net_5.0": -0.0012674444581957565,
+      "edge_vs_rand": 0.0010654046584955132,
+      "net_lb95": -0.002177516356960599,
+      "net_per_pair_year": -0.1729488398864439,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2030,
+      "mean_net_5.0": -0.004232625128549078,
+      "edge_vs_rand": -0.001329254053200366,
+      "net_lb95": -0.005915388502376203,
+      "net_per_pair_year": -0.5020874266957678,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00011 <= 0",
+     "late mean_net -0.00463 <= 0",
+     "late edge_vs_rand -0.00163 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2073,
+      "mean_net_5.0": -0.00010794902579334702,
+      "edge_vs_rand": 0.0015946283184920197,
+      "net_lb95": -0.0017518097217021455,
+      "net_per_pair_year": -0.011663720487622686,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1570,
+      "mean_net_5.0": -0.004626048011185971,
+      "edge_vs_rand": -0.0016300924749764278,
+      "net_lb95": -0.007198684479966872,
+      "net_per_pair_year": -0.4244077346904336,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00130 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1939,
+      "mean_net_5.0": 0.000935344861416039,
+      "edge_vs_rand": 0.0020053601949043395,
+      "net_lb95": -0.0014357052291739999,
+      "net_per_pair_year": 0.09452978015959451,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1530,
+      "mean_net_5.0": -0.0013011824381800128,
+      "edge_vs_rand": 0.0015785067968372736,
+      "net_lb95": -0.004044607667907861,
+      "net_per_pair_year": -0.11633305304808936,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00024 <= 0",
+     "early edge_vs_rand -0.00059 <= 0",
+     "late mean_net -0.00406 <= 0",
+     "late edge_vs_rand -0.00077 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1627,
+      "mean_net_5.0": -0.00024239220091641677,
+      "edge_vs_rand": -0.0005903507030629918,
+      "net_lb95": -0.004370012817450577,
+      "net_per_pair_year": -0.02055536860916563,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1354,
+      "mean_net_5.0": -0.004063863581337949,
+      "edge_vs_rand": -0.0007739174576411728,
+      "net_lb95": -0.00823021617507879,
+      "net_per_pair_year": -0.32153724563266406,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_d": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00299 <= 0",
+     "early edge_vs_rand -0.00005 <= 0",
+     "late mean_net -0.00328 <= 0",
+     "late edge_vs_rand -0.00035 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2668,
+      "mean_net_5.0": -0.00299176195883367,
+      "edge_vs_rand": -5.1183947036106194e-05,
+      "net_lb95": -0.0033678524405558173,
+      "net_per_pair_year": -0.41603697990119304,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2161,
+      "mean_net_5.0": -0.003277073926010457,
+      "edge_vs_rand": -0.000353121294253805,
+      "net_lb95": -0.0036914348093372612,
+      "net_per_pair_year": -0.4138228881728458,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00303 <= 0",
+     "early edge_vs_rand -0.00018 <= 0",
+     "late mean_net -0.00290 <= 0",
+     "late edge_vs_rand -0.00006 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2519,
+      "mean_net_5.0": -0.0030309696071361045,
+      "edge_vs_rand": -0.00017798093314451256,
+      "net_lb95": -0.003510116712919791,
+      "net_per_pair_year": -0.3979502878459458,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2047,
+      "mean_net_5.0": -0.0028987604726011754,
+      "edge_vs_rand": -5.50497342320525e-05,
+      "net_lb95": -0.003414334414060598,
+      "net_per_pair_year": -0.3467397848159025,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00303 <= 0",
+     "early edge_vs_rand -0.00021 <= 0",
+     "late mean_net -0.00268 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2510,
+      "mean_net_5.0": -0.003025374250534577,
+      "edge_vs_rand": -0.00020908739980545854,
+      "net_lb95": -0.003627349389007549,
+      "net_per_pair_year": -0.39579645661907126,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1989,
+      "mean_net_5.0": -0.0026812024105949254,
+      "edge_vs_rand": 0.0002557950402198562,
+      "net_lb95": -0.003254418646168768,
+      "net_per_pair_year": -0.3116290145376437,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00291 <= 0",
+     "early edge_vs_rand -0.00030 <= 0",
+     "late mean_net -0.00233 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2556,
+      "mean_net_5.0": -0.0029061661830913506,
+      "edge_vs_rand": -0.00030495154881104996,
+      "net_lb95": -0.0037105121277580936,
+      "net_per_pair_year": -0.38716881436369727,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1966,
+      "mean_net_5.0": -0.0023312283334951727,
+      "edge_vs_rand": 0.0004791323207051748,
+      "net_lb95": -0.0032126900461323877,
+      "net_per_pair_year": -0.26781927393761074,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00178 <= 0",
+     "late mean_net -0.00217 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2574,
+      "mean_net_5.0": -0.0017813317858061143,
+      "edge_vs_rand": 0.0005481321390056566,
+      "net_lb95": -0.0029877500149324268,
+      "net_per_pair_year": -0.23898598558907622,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2045,
+      "mean_net_5.0": -0.00217059774877642,
+      "edge_vs_rand": 0.0007084606717630058,
+      "net_lb95": -0.0032991814404071925,
+      "net_per_pair_year": -0.25938577940851537,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00032 <= 0",
+     "late mean_net -0.00128 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1946,
+      "mean_net_5.0": -0.00032048602652126623,
+      "edge_vs_rand": 0.001342681418772089,
+      "net_lb95": -0.001902095436821172,
+      "net_per_pair_year": -0.03250655969409384,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1580,
+      "mean_net_5.0": -0.0012836884687563732,
+      "edge_vs_rand": 0.0017017723114170278,
+      "net_lb95": -0.0036255358590361335,
+      "net_per_pair_year": -0.11851961415758262,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00166 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1669,
+      "mean_net_5.0": 0.001257611182024881,
+      "edge_vs_rand": 0.002326831096855781,
+      "net_lb95": -0.000784278345832,
+      "net_per_pair_year": 0.10940112829404676,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1329,
+      "mean_net_5.0": -0.0016638866019653533,
+      "edge_vs_rand": 0.001242392061605351,
+      "net_lb95": -0.004679810975753171,
+      "net_per_pair_year": -0.12921775982619385,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00366 <= 0",
+     "late edge_vs_rand -0.00036 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1307,
+      "mean_net_5.0": 0.0020614572966067388,
+      "edge_vs_rand": 0.0017512988613800828,
+      "net_lb95": -0.0015394244038498916,
+      "net_per_pair_year": 0.14043294532680503,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1128,
+      "mean_net_5.0": -0.00366411841265164,
+      "edge_vs_rand": -0.0003553566878090116,
+      "net_lb95": -0.008205099400005363,
+      "net_per_pair_year": -0.24151944492406374,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_sd": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00288 <= 0",
+     "late mean_net -0.00347 <= 0",
+     "late edge_vs_rand -0.00055 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2793,
+      "mean_net_5.0": -0.0028849431975000585,
+      "edge_vs_rand": 5.3367360536857414e-05,
+      "net_lb95": -0.0033062805294039456,
+      "net_per_pair_year": -0.4199787111848224,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2250,
+      "mean_net_5.0": -0.003467115702173415,
+      "edge_vs_rand": -0.0005471498546099466,
+      "net_lb95": -0.0039013806712607907,
+      "net_per_pair_year": -0.45585251477445143,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00294 <= 0",
+     "early edge_vs_rand -0.00009 <= 0",
+     "late mean_net -0.00289 <= 0",
+     "late edge_vs_rand -0.00005 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2665,
+      "mean_net_5.0": -0.0029375454229556217,
+      "edge_vs_rand": -8.710162679611159e-05,
+      "net_lb95": -0.003433130578402136,
+      "net_per_pair_year": -0.40803825188059695,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2099,
+      "mean_net_5.0": -0.0028905798240517443,
+      "edge_vs_rand": -5.4944085072133983e-05,
+      "net_lb95": -0.003346281743872974,
+      "net_per_pair_year": -0.3545446265359028,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00282 <= 0",
+     "late mean_net -0.00276 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2594,
+      "mean_net_5.0": -0.002815152094903118,
+      "edge_vs_rand": 3.1267196422954857e-06,
+      "net_lb95": -0.003398752676263961,
+      "net_per_pair_year": -0.38061939048126536,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2043,
+      "mean_net_5.0": -0.0027618821240096916,
+      "edge_vs_rand": 0.0001705238337545074,
+      "net_lb95": -0.003408391257123772,
+      "net_per_pair_year": -0.3297213032560988,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00266 <= 0",
+     "early edge_vs_rand -0.00005 <= 0",
+     "late mean_net -0.00243 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2528,
+      "mean_net_5.0": -0.002659869429493865,
+      "edge_vs_rand": -5.383043819880037e-05,
+      "net_lb95": -0.0033421005988363253,
+      "net_per_pair_year": -0.35047452983067506,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1989,
+      "mean_net_5.0": -0.002429058472999632,
+      "edge_vs_rand": 0.00038557199795711427,
+      "net_lb95": -0.003237819205866629,
+      "net_per_pair_year": -0.2823229962810707,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00208 <= 0",
+     "late mean_net -0.00256 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2568,
+      "mean_net_5.0": -0.0020759475452803893,
+      "edge_vs_rand": 0.0002456808178181209,
+      "net_lb95": -0.003293233874859348,
+      "net_per_pair_year": -0.2778628392996475,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2054,
+      "mean_net_5.0": -0.002562626109548955,
+      "edge_vs_rand": 0.0003160747656351859,
+      "net_lb95": -0.0036007839774605923,
+      "net_per_pair_year": -0.30758077575984744,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00069 <= 0",
+     "late mean_net -0.00149 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1961,
+      "mean_net_5.0": -0.0006940216913077821,
+      "edge_vs_rand": 0.0009628119502192278,
+      "net_lb95": -0.0023639756156611123,
+      "net_per_pair_year": -0.07093649273564244,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1614,
+      "mean_net_5.0": -0.001491830200186169,
+      "edge_vs_rand": 0.0014848140099405626,
+      "net_lb95": -0.0038006823470163827,
+      "net_per_pair_year": -0.14070075472990579,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00189 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1696,
+      "mean_net_5.0": 0.0019237852504631282,
+      "edge_vs_rand": 0.002993952815385226,
+      "net_lb95": -0.0001932324649413052,
+      "net_per_pair_year": 0.1700597407877804,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1357,
+      "mean_net_5.0": -0.0018888180817762318,
+      "edge_vs_rand": 0.0010070013619299962,
+      "net_lb95": -0.00486808036665096,
+      "net_per_pair_year": -0.1497764322584233,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00255 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1345,
+      "mean_net_5.0": 0.002457075844933151,
+      "edge_vs_rand": 0.0021209748883541575,
+      "net_lb95": -0.001040716960517793,
+      "net_per_pair_year": 0.17225027381876012,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1144,
+      "mean_net_5.0": -0.0025466489240521108,
+      "edge_vs_rand": 0.0007718088896325429,
+      "net_lb95": -0.007085938627953349,
+      "net_per_pair_year": -0.1702427416013127,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "ridge_L": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00323 <= 0",
+     "early edge_vs_rand -0.00029 <= 0",
+     "late mean_net -0.00325 <= 0",
+     "late edge_vs_rand -0.00025 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 41750,
+      "mean_net_5.0": -0.0032330205766788298,
+      "edge_vs_rand": -0.0002852003513196505,
+      "net_lb95": -0.0033497874974305953,
+      "net_per_pair_year": -7.035322699792634,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 33226,
+      "mean_net_5.0": -0.0032499537002560097,
+      "edge_vs_rand": -0.00025447533576263665,
+      "net_lb95": -0.003364256614814914,
+      "net_per_pair_year": -6.309990954623615,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00323 <= 0",
+     "early edge_vs_rand -0.00031 <= 0",
+     "late mean_net -0.00319 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 32100,
+      "mean_net_5.0": -0.0032287747754010435,
+      "edge_vs_rand": -0.0003085072895526196,
+      "net_lb95": -0.0033979187397845554,
+      "net_per_pair_year": -5.402090533258394,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 25803,
+      "mean_net_5.0": -0.0031917985873841687,
+      "edge_vs_rand": -0.00021060132487671135,
+      "net_lb95": -0.0033574934806936602,
+      "net_per_pair_year": -4.812593526812072,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00305 <= 0",
+     "early edge_vs_rand -0.00022 <= 0",
+     "late mean_net -0.00320 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 23247,
+      "mean_net_5.0": -0.0030546910370755002,
+      "edge_vs_rand": -0.0002165830577448049,
+      "net_lb95": -0.0033169333318384658,
+      "net_per_pair_year": -3.701291419191713,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 18648,
+      "mean_net_5.0": -0.0032006858613613876,
+      "edge_vs_rand": -0.0002127151618915123,
+      "net_lb95": -0.0034796953209203043,
+      "net_per_pair_year": -3.487777839355375,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00303 <= 0",
+     "early edge_vs_rand -0.00035 <= 0",
+     "late mean_net -0.00317 <= 0",
+     "late edge_vs_rand -0.00013 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 15633,
+      "mean_net_5.0": -0.003027261805893566,
+      "edge_vs_rand": -0.0003453304869545784,
+      "net_lb95": -0.003479303475008075,
+      "net_per_pair_year": -2.466671883934115,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 12499,
+      "mean_net_5.0": -0.003168829111245474,
+      "edge_vs_rand": -0.00013453013448836568,
+      "net_lb95": -0.0036511903245891636,
+      "net_per_pair_year": -2.3144488609056424,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00225 <= 0",
+     "late mean_net -0.00256 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 10360,
+      "mean_net_5.0": -0.0022488998429330835,
+      "edge_vs_rand": 4.308900600155381e-05,
+      "net_lb95": -0.003088298674659241,
+      "net_per_pair_year": -1.2143641667992235,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 8374,
+      "mean_net_5.0": -0.0025576386499585393,
+      "edge_vs_rand": 0.00047963002654656463,
+      "net_lb95": -0.0033683506094532877,
+      "net_per_pair_year": -1.2515426231714668,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00195 <= 0",
+     "early edge_vs_rand -0.00030 <= 0",
+     "late mean_net -0.00290 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 7649,
+      "mean_net_5.0": -0.0019483052803891895,
+      "edge_vs_rand": -0.0002954774844271036,
+      "net_lb95": -0.00321035444130726,
+      "net_per_pair_year": -0.7767490712434546,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 5815,
+      "mean_net_5.0": -0.002895903586722922,
+      "edge_vs_rand": 0.00032013826363809104,
+      "net_lb95": -0.004340804766963544,
+      "net_per_pair_year": -0.9840276910513882,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00086 <= 0",
+     "late mean_net -0.00272 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 5760,
+      "mean_net_5.0": -0.00086311993788638,
+      "edge_vs_rand": 9.736325556846618e-05,
+      "net_lb95": -0.0027200233574518843,
+      "net_per_pair_year": -0.25912702345417216,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 4312,
+      "mean_net_5.0": -0.0027166758292311794,
+      "edge_vs_rand": 0.0005029605713092768,
+      "net_lb95": -0.004783935484502783,
+      "net_per_pair_year": -0.6845261963754842,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early edge_vs_rand -0.00042 <= 0",
+     "late mean_net -0.00408 <= 0",
+     "late edge_vs_rand -0.00098 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 3403,
+      "mean_net_5.0": 2.2641937813621826e-05,
+      "edge_vs_rand": -0.0004208906845160755,
+      "net_lb95": -0.0032332697577211614,
+      "net_per_pair_year": 0.004016008436862784,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2690,
+      "mean_net_5.0": -0.004077703349797445,
+      "edge_vs_rand": -0.0009813656646519753,
+      "net_lb95": -0.007250221067585752,
+      "net_per_pair_year": -0.6409754707222126,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_k1": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00261 <= 0",
+     "late mean_net -0.00305 <= 0",
+     "late edge_vs_rand -0.00012 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2801,
+      "mean_net_5.0": -0.0026051913843171235,
+      "edge_vs_rand": 0.00033273403954156393,
+      "net_lb95": -0.002980192251592875,
+      "net_per_pair_year": -0.38033983715553843,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2192,
+      "mean_net_5.0": -0.0030493093232188645,
+      "edge_vs_rand": -0.0001229081084289787,
+      "net_lb95": -0.0035271288215409486,
+      "net_per_pair_year": -0.3905849755166618,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00230 <= 0",
+     "late mean_net -0.00295 <= 0",
+     "late edge_vs_rand -0.00011 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2733,
+      "mean_net_5.0": -0.0022991855149158036,
+      "edge_vs_rand": 0.0005553297653719877,
+      "net_lb95": -0.002797993824545851,
+      "net_per_pair_year": -0.3275161502929793,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2102,
+      "mean_net_5.0": -0.002950756432364316,
+      "edge_vs_rand": -0.00010770337145244734,
+      "net_lb95": -0.003615987875632845,
+      "net_per_pair_year": -0.3624428829462276,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00250 <= 0",
+     "late mean_net -0.00316 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2720,
+      "mean_net_5.0": -0.002495386751012715,
+      "edge_vs_rand": 0.00031889916058934454,
+      "net_lb95": -0.0030922777241455084,
+      "net_per_pair_year": -0.35377394384255284,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2090,
+      "mean_net_5.0": -0.0031565100071256026,
+      "edge_vs_rand": -0.0002098500481382635,
+      "net_lb95": -0.0040269911621206135,
+      "net_per_pair_year": -0.3855022868018036,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00200 <= 0",
+     "late mean_net -0.00404 <= 0",
+     "late edge_vs_rand -0.00120 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2656,
+      "mean_net_5.0": -0.0019954117236717288,
+      "edge_vs_rand": 0.0006065483448197411,
+      "net_lb95": -0.00287050273478286,
+      "net_per_pair_year": -0.2762356105475861,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2059,
+      "mean_net_5.0": -0.004035991325896299,
+      "edge_vs_rand": -0.0012036579746299875,
+      "net_lb95": -0.005515144782368215,
+      "net_per_pair_year": -0.48560155951290374,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00088 <= 0",
+     "late mean_net -0.00453 <= 0",
+     "late edge_vs_rand -0.00164 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2604,
+      "mean_net_5.0": -0.000875584104648684,
+      "edge_vs_rand": 0.0014586959702231833,
+      "net_lb95": -0.0019067686833805684,
+      "net_per_pair_year": -0.11883870834724825,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2046,
+      "mean_net_5.0": -0.0045288876587231556,
+      "edge_vs_rand": -0.0016401700867512796,
+      "net_lb95": -0.006392531808087238,
+      "net_per_pair_year": -0.5414653615621958,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00034 <= 0",
+     "late mean_net -0.00464 <= 0",
+     "late edge_vs_rand -0.00164 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2006,
+      "mean_net_5.0": -0.00034057695126188457,
+      "edge_vs_rand": 0.0013521706094363607,
+      "net_lb95": -0.002328725062808005,
+      "net_per_pair_year": -0.03560944921499954,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1596,
+      "mean_net_5.0": -0.004641816320152826,
+      "edge_vs_rand": -0.0016400243304102976,
+      "net_lb95": -0.007143888582225004,
+      "net_per_pair_year": -0.4329067327023138,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00321 <= 0",
+     "late edge_vs_rand -0.00033 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2166,
+      "mean_net_5.0": 0.0009174937890682776,
+      "edge_vs_rand": 0.0020024101220418797,
+      "net_lb95": -0.0016223892301705555,
+      "net_per_pair_year": 0.10358113354587281,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1639,
+      "mean_net_5.0": -0.0032126045228203924,
+      "edge_vs_rand": -0.00032937456319543913,
+      "net_lb95": -0.006699587279969909,
+      "net_per_pair_year": -0.30768740711778386,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00368 <= 0",
+     "late edge_vs_rand -0.00035 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1537,
+      "mean_net_5.0": 0.0012571272717144069,
+      "edge_vs_rand": 0.0009666862818403367,
+      "net_lb95": -0.0031753867927215257,
+      "net_per_pair_year": 0.100709905762164,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1272,
+      "mean_net_5.0": -0.0036822966860874133,
+      "edge_vs_rand": -0.0003464198608881562,
+      "net_lb95": -0.008544112840999275,
+      "net_per_pair_year": -0.27370289460342834,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_k2": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00275 <= 0",
+     "late mean_net -0.00333 <= 0",
+     "late edge_vs_rand -0.00041 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2691,
+      "mean_net_5.0": -0.00274722382172299,
+      "edge_vs_rand": 0.00019328581176481833,
+      "net_lb95": -0.0031329170133732546,
+      "net_per_pair_year": -0.38532467040297685,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2121,
+      "mean_net_5.0": -0.003333694968771111,
+      "edge_vs_rand": -0.00041275368346335153,
+      "net_lb95": -0.0038005621087439825,
+      "net_per_pair_year": -0.41318070290153086,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00258 <= 0",
+     "late mean_net -0.00300 <= 0",
+     "late edge_vs_rand -0.00016 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2606,
+      "mean_net_5.0": -0.0025824425881186227,
+      "edge_vs_rand": 0.00027480877609393654,
+      "net_lb95": -0.003116661625822209,
+      "net_per_pair_year": -0.35077138758967363,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2030,
+      "mean_net_5.0": -0.002999648812184521,
+      "edge_vs_rand": -0.00015992074292074004,
+      "net_lb95": -0.0035893915752558446,
+      "net_per_pair_year": -0.35582786269971917,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00295 <= 0",
+     "early edge_vs_rand -0.00013 <= 0",
+     "late mean_net -0.00283 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2603,
+      "mean_net_5.0": -0.0029536628850243144,
+      "edge_vs_rand": -0.00013245299850488126,
+      "net_lb95": -0.003637572561740524,
+      "net_per_pair_year": -0.40073213300528493,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1992,
+      "mean_net_5.0": -0.0028305729135391588,
+      "edge_vs_rand": 0.00011228136440541453,
+      "net_lb95": -0.003896394110406137,
+      "net_per_pair_year": -0.32948616433476907,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00204 <= 0",
+     "late mean_net -0.00391 <= 0",
+     "late edge_vs_rand -0.00108 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2599,
+      "mean_net_5.0": -0.0020355692041512862,
+      "edge_vs_rand": 0.0005796613823446222,
+      "net_lb95": -0.002824812896997231,
+      "net_per_pair_year": -0.2757472725772981,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1984,
+      "mean_net_5.0": -0.00391069165901054,
+      "edge_vs_rand": -0.0010845440008386538,
+      "net_lb95": -0.00534063572583431,
+      "net_per_pair_year": -0.45338666748674367,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00113 <= 0",
+     "late mean_net -0.00433 <= 0",
+     "late edge_vs_rand -0.00144 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2580,
+      "mean_net_5.0": -0.0011316146327671446,
+      "edge_vs_rand": 0.0011978150515409571,
+      "net_lb95": -0.0020257775146558586,
+      "net_per_pair_year": -0.15217290615848159,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2016,
+      "mean_net_5.0": -0.00432529578833336,
+      "edge_vs_rand": -0.0014395174587095631,
+      "net_lb95": -0.005977314063047303,
+      "net_per_pair_year": -0.509541829559691,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00031 <= 0",
+     "late mean_net -0.00559 <= 0",
+     "late edge_vs_rand -0.00261 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2093,
+      "mean_net_5.0": -0.00031079014328207856,
+      "edge_vs_rand": 0.0013841021483979163,
+      "net_lb95": -0.0019397925584154047,
+      "net_per_pair_year": -0.033904359094122975,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1614,
+      "mean_net_5.0": -0.005593928763160125,
+      "edge_vs_rand": -0.0026142611643667347,
+      "net_lb95": -0.008506394642236367,
+      "net_per_pair_year": -0.5275868518975804,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00023 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1919,
+      "mean_net_5.0": 0.0011169815926125803,
+      "edge_vs_rand": 0.0021939877957013578,
+      "net_lb95": -0.0012831469049438139,
+      "net_per_pair_year": 0.11172235073731004,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1498,
+      "mean_net_5.0": -0.00022833304766636678,
+      "edge_vs_rand": 0.0026425530405926414,
+      "net_lb95": -0.0030602635792512096,
+      "net_per_pair_year": -0.01998729805443896,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00016 <= 0",
+     "early edge_vs_rand -0.00047 <= 0",
+     "late mean_net -0.00417 <= 0",
+     "late edge_vs_rand -0.00091 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1620,
+      "mean_net_5.0": -0.0001582155110755082,
+      "edge_vs_rand": -0.00047225796011887873,
+      "net_lb95": -0.004260725011301581,
+      "net_per_pair_year": -0.013359282913908371,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1359,
+      "mean_net_5.0": -0.004170958342174551,
+      "edge_vs_rand": -0.0009115947742830346,
+      "net_lb95": -0.008705965114946255,
+      "net_per_pair_year": -0.33122934901109513,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_k4": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00263 <= 0",
+     "late mean_net -0.00336 <= 0",
+     "late edge_vs_rand -0.00044 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2618,
+      "mean_net_5.0": -0.0026293558961973554,
+      "edge_vs_rand": 0.0003125586371735779,
+      "net_lb95": -0.0029628735912945866,
+      "net_per_pair_year": -0.35878814961505684,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2104,
+      "mean_net_5.0": -0.0033600383816551646,
+      "edge_vs_rand": -0.0004350341088708615,
+      "net_lb95": -0.003788926879517946,
+      "net_per_pair_year": -0.41310787681823496,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00233 <= 0",
+     "late mean_net -0.00306 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2540,
+      "mean_net_5.0": -0.0023270066184614187,
+      "edge_vs_rand": 0.0005296024893709628,
+      "net_lb95": -0.0027808522103558507,
+      "net_per_pair_year": -0.3080707098520477,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2012,
+      "mean_net_5.0": -0.0030579967962019857,
+      "edge_vs_rand": -0.0002099787189056847,
+      "net_lb95": -0.003640670472926567,
+      "net_per_pair_year": -0.3595327896249452,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00267 <= 0",
+     "late mean_net -0.00345 <= 0",
+     "late edge_vs_rand -0.00050 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2521,
+      "mean_net_5.0": -0.00266722943181691,
+      "edge_vs_rand": 0.0001609710224441771,
+      "net_lb95": -0.003199954669055651,
+      "net_per_pair_year": -0.350471166926883,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2021,
+      "mean_net_5.0": -0.0034514396812542376,
+      "edge_vs_rand": -0.0005032340080295684,
+      "net_lb95": -0.004251482263064382,
+      "net_per_pair_year": -0.40760556373382545,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00237 <= 0",
+     "late mean_net -0.00389 <= 0",
+     "late edge_vs_rand -0.00106 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2540,
+      "mean_net_5.0": -0.0023651822207443607,
+      "edge_vs_rand": 0.00024050295080045667,
+      "net_lb95": -0.0032757389419921547,
+      "net_per_pair_year": -0.3131247500086294,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1968,
+      "mean_net_5.0": -0.0038910446572070177,
+      "edge_vs_rand": -0.0010577259949528764,
+      "net_lb95": -0.005323221153977093,
+      "net_per_pair_year": -0.4474709142549441,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00106 <= 0",
+     "late mean_net -0.00409 <= 0",
+     "late edge_vs_rand -0.00119 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2554,
+      "mean_net_5.0": -0.0010552646095846184,
+      "edge_vs_rand": 0.0012698205358602894,
+      "net_lb95": -0.001967724336299987,
+      "net_per_pair_year": -0.14047574387046344,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2017,
+      "mean_net_5.0": -0.0040897961780686914,
+      "edge_vs_rand": -0.0011863181135892164,
+      "net_lb95": -0.005794826506172215,
+      "net_per_pair_year": -0.4820377659035519,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00021 <= 0",
+     "late mean_net -0.00409 <= 0",
+     "late edge_vs_rand -0.00110 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2121,
+      "mean_net_5.0": -0.00021452053695203055,
+      "edge_vs_rand": 0.001487959117483665,
+      "net_lb95": -0.0018383413629194962,
+      "net_per_pair_year": -0.02371529973431736,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1655,
+      "mean_net_5.0": -0.004091023395317229,
+      "edge_vs_rand": -0.001102017093712907,
+      "net_lb95": -0.006591764313024363,
+      "net_per_pair_year": -0.39564297899159573,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00201 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1935,
+      "mean_net_5.0": 0.00157407266301827,
+      "edge_vs_rand": 0.002659415836444328,
+      "net_lb95": -0.0006852908508750055,
+      "net_per_pair_year": 0.15875405241781593,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1493,
+      "mean_net_5.0": -0.002013309682213467,
+      "edge_vs_rand": 0.0008958493536657707,
+      "net_lb95": -0.004796981438200503,
+      "net_per_pair_year": -0.17564827612948855,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00293 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1642,
+      "mean_net_5.0": 0.001328652992456863,
+      "edge_vs_rand": 0.000986521800645292,
+      "net_lb95": -0.002794219403195538,
+      "net_per_pair_year": 0.11371134511781018,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1375,
+      "mean_net_5.0": -0.002928752210398354,
+      "edge_vs_rand": 0.000342059247349623,
+      "net_lb95": -0.007236011990214526,
+      "net_per_pair_year": -0.2353199944916828,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "harm_k5": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00278 <= 0",
+     "late mean_net -0.00311 <= 0",
+     "late edge_vs_rand -0.00019 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2575,
+      "mean_net_5.0": -0.002778747049264983,
+      "edge_vs_rand": 0.00016288487332136812,
+      "net_lb95": -0.0030977353728433616,
+      "net_per_pair_year": -0.37294545773300225,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2051,
+      "mean_net_5.0": -0.0031109150702317645,
+      "edge_vs_rand": -0.00018694667194666282,
+      "net_lb95": -0.0035629496594189927,
+      "net_per_pair_year": -0.37284413612992634,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00242 <= 0",
+     "late mean_net -0.00297 <= 0",
+     "late edge_vs_rand -0.00012 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2511,
+      "mean_net_5.0": -0.002417541316195351,
+      "edge_vs_rand": 0.0004402383120425513,
+      "net_lb95": -0.002834688356229524,
+      "net_per_pair_year": -0.31640234372936415,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2002,
+      "mean_net_5.0": -0.002965032456828685,
+      "edge_vs_rand": -0.0001217701609083635,
+      "net_lb95": -0.0034774034686678537,
+      "net_per_pair_year": -0.3468702288858795,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00282 <= 0",
+     "late mean_net -0.00323 <= 0",
+     "late edge_vs_rand -0.00028 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2541,
+      "mean_net_5.0": -0.002818060882004356,
+      "edge_vs_rand": 1.1262676998257586e-05,
+      "net_lb95": -0.003334084762415013,
+      "net_per_pair_year": -0.37322790812216533,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1990,
+      "mean_net_5.0": -0.003226902134416099,
+      "edge_vs_rand": -0.00027605752928079347,
+      "net_lb95": -0.0040278690791119625,
+      "net_per_pair_year": -0.37524280413578287,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00189 <= 0",
+     "late mean_net -0.00393 <= 0",
+     "late edge_vs_rand -0.00110 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2532,
+      "mean_net_5.0": -0.0018868010614441337,
+      "edge_vs_rand": 0.0007250714427443174,
+      "net_lb95": -0.0026837875213105355,
+      "net_per_pair_year": -0.24900546992390313,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1987,
+      "mean_net_5.0": -0.0039337790431947075,
+      "edge_vs_rand": -0.0010983396873535094,
+      "net_lb95": -0.005221588143914846,
+      "net_per_pair_year": -0.45675291894691655,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00079 <= 0",
+     "late mean_net -0.00412 <= 0",
+     "late edge_vs_rand -0.00122 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2550,
+      "mean_net_5.0": -0.000788746100390388,
+      "edge_vs_rand": 0.001533349054208382,
+      "net_lb95": -0.001709152427948753,
+      "net_per_pair_year": -0.10483262959350077,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2042,
+      "mean_net_5.0": -0.004116180302707023,
+      "edge_vs_rand": -0.0012189532926598216,
+      "net_lb95": -0.00577443653722577,
+      "net_per_pair_year": -0.49116072283636186,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00141 <= 0",
+     "late mean_net -0.00489 <= 0",
+     "late edge_vs_rand -0.00190 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2117,
+      "mean_net_5.0": -0.001409461471907574,
+      "edge_vs_rand": 0.00028675254809326753,
+      "net_lb95": -0.003078293054010345,
+      "net_per_pair_year": -0.15552246852231366,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1695,
+      "mean_net_5.0": -0.004891766238356411,
+      "edge_vs_rand": -0.0019004925390960236,
+      "net_lb95": -0.007284739253101342,
+      "net_per_pair_year": -0.4845168665223378,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00089 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1933,
+      "mean_net_5.0": 0.0014049851097634718,
+      "edge_vs_rand": 0.0024937594169657097,
+      "net_lb95": -0.0006985766571645987,
+      "net_per_pair_year": 0.14155416416232508,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1518,
+      "mean_net_5.0": -0.0008876701452339715,
+      "edge_vs_rand": 0.0019941333915201075,
+      "net_lb95": -0.003674342088711843,
+      "net_per_pair_year": -0.07874026773980973,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00042 <= 0",
+     "early edge_vs_rand -0.00074 <= 0",
+     "late mean_net -0.00347 <= 0",
+     "late edge_vs_rand -0.00018 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1636,
+      "mean_net_5.0": -0.0004159665481846881,
+      "edge_vs_rand": -0.0007425985580233113,
+      "net_lb95": -0.004313094869961768,
+      "net_per_pair_year": -0.03546996662060661,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1355,
+      "mean_net_5.0": -0.0034662940676152025,
+      "edge_vs_rand": -0.00017638676732763687,
+      "net_lb95": -0.007392963257594341,
+      "net_per_pair_year": -0.2744594578332261,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "holt_w32": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00271 <= 0",
+     "late mean_net -0.00288 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2766,
+      "mean_net_5.0": -0.0027144021673130036,
+      "edge_vs_rand": 0.00022368133944171154,
+      "net_lb95": -0.0030339536161993826,
+      "net_per_pair_year": -0.39133207284159294,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2253,
+      "mean_net_5.0": -0.0028771677117739496,
+      "edge_vs_rand": 4.4544318046556674e-05,
+      "net_lb95": -0.0031625037650092466,
+      "net_per_pair_year": -0.37879119182529497,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00253 <= 0",
+     "late mean_net -0.00277 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2719,
+      "mean_net_5.0": -0.002531300041203711,
+      "edge_vs_rand": 0.00031750438519349096,
+      "net_lb95": -0.0029546105981476988,
+      "net_per_pair_year": -0.35873347783878023,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2171,
+      "mean_net_5.0": -0.00277100064295109,
+      "edge_vs_rand": 7.008656584779534e-05,
+      "net_lb95": -0.003312585663287783,
+      "net_per_pair_year": -0.35153611758800685,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00232 <= 0",
+     "late mean_net -0.00310 <= 0",
+     "late edge_vs_rand -0.00016 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2733,
+      "mean_net_5.0": -0.0023216314744364144,
+      "edge_vs_rand": 0.0004897080361833988,
+      "net_lb95": -0.002799020819046884,
+      "net_per_pair_year": -0.3307135496346726,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2193,
+      "mean_net_5.0": -0.003099728027160469,
+      "edge_vs_rand": -0.00015972082775880298,
+      "net_lb95": -0.0037839054048672944,
+      "net_per_pair_year": -0.39722422264566126,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00165 <= 0",
+     "late mean_net -0.00259 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2618,
+      "mean_net_5.0": -0.001648510298336323,
+      "edge_vs_rand": 0.0009422344913693672,
+      "net_lb95": -0.0023138032611950705,
+      "net_per_pair_year": -0.2249470908129434,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2092,
+      "mean_net_5.0": -0.0025877292683208187,
+      "edge_vs_rand": 0.00022341110871349694,
+      "net_lb95": -0.0036256974565363658,
+      "net_per_pair_year": -0.31633993431329366,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00120 <= 0",
+     "late mean_net -0.00220 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2657,
+      "mean_net_5.0": -0.0012013274543483255,
+      "edge_vs_rand": 0.0011111307499826312,
+      "net_lb95": -0.002088745252017217,
+      "net_per_pair_year": -0.16636885620548034,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2210,
+      "mean_net_5.0": -0.0021980371971094597,
+      "edge_vs_rand": 0.0006896909486167324,
+      "net_lb95": -0.003477779510390138,
+      "net_per_pair_year": -0.28385778748022344,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00063 <= 0",
+     "late mean_net -0.00290 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2201,
+      "mean_net_5.0": -0.000632341459762351,
+      "edge_vs_rand": 0.0010385573187541872,
+      "net_lb95": -0.0020966940620699595,
+      "net_per_pair_year": -0.07254220865201912,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1868,
+      "mean_net_5.0": -0.0028998630556008724,
+      "edge_vs_rand": 5.056782978759071e-05,
+      "net_lb95": -0.0049575952924121305,
+      "net_per_pair_year": -0.3165394642497157,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00071 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2000,
+      "mean_net_5.0": 0.0004257675416006845,
+      "edge_vs_rand": 0.0014877886240388942,
+      "net_lb95": -0.0015622138723568413,
+      "net_per_pair_year": 0.04438350744248752,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1689,
+      "mean_net_5.0": -0.0007119168381858324,
+      "edge_vs_rand": 0.0021304215118791918,
+      "net_lb95": -0.0029418964626263143,
+      "net_per_pair_year": -0.07026392667424342,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00290 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1685,
+      "mean_net_5.0": 0.0016059638423988618,
+      "edge_vs_rand": 0.001298604500163204,
+      "net_lb95": -0.0016905716611799206,
+      "net_per_pair_year": 0.14104404105548135,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1474,
+      "mean_net_5.0": -0.0029044440804304604,
+      "edge_vs_rand": 0.00028428593180611166,
+      "net_lb95": -0.006691792179796022,
+      "net_per_pair_year": -0.25016929513106134,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "holt_w128": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00296 <= 0",
+     "early edge_vs_rand -0.00002 <= 0",
+     "late mean_net -0.00272 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2820,
+      "mean_net_5.0": -0.002959563800601795,
+      "edge_vs_rand": -2.4247668456728765e-05,
+      "net_lb95": -0.003307863971011011,
+      "net_per_pair_year": -0.43500664301964836,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2319,
+      "mean_net_5.0": -0.002722882618299758,
+      "edge_vs_rand": 0.00019669309075283207,
+      "net_lb95": -0.003017542507416104,
+      "net_per_pair_year": -0.3689802920185,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00287 <= 0",
+     "early edge_vs_rand -0.00002 <= 0",
+     "late mean_net -0.00226 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2791,
+      "mean_net_5.0": -0.0028662681573561723,
+      "edge_vs_rand": -1.6800294824092225e-05,
+      "net_lb95": -0.0032809040413659383,
+      "net_per_pair_year": -0.4169612822316338,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2218,
+      "mean_net_5.0": -0.0022563316271052296,
+      "edge_vs_rand": 0.0005849267822474927,
+      "net_lb95": -0.0027447356340604824,
+      "net_per_pair_year": -0.29244080774153786,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00292 <= 0",
+     "early edge_vs_rand -0.00010 <= 0",
+     "late mean_net -0.00280 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2781,
+      "mean_net_5.0": -0.002915131481470805,
+      "edge_vs_rand": -0.00010388592172628342,
+      "net_lb95": -0.0034104538137809666,
+      "net_per_pair_year": -0.4225501017072846,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2205,
+      "mean_net_5.0": -0.002804605970176856,
+      "edge_vs_rand": 0.00013937840157393308,
+      "net_lb95": -0.0033726042167432856,
+      "net_per_pair_year": -0.3613715429173645,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00277 <= 0",
+     "early edge_vs_rand -0.00017 <= 0",
+     "late mean_net -0.00274 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2720,
+      "mean_net_5.0": -0.0027656857002564426,
+      "edge_vs_rand": -0.0001721474687770357,
+      "net_lb95": -0.0035396402353072218,
+      "net_per_pair_year": -0.39209454695212836,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2143,
+      "mean_net_5.0": -0.002742580067972343,
+      "edge_vs_rand": 6.808315174035978e-05,
+      "net_lb95": -0.003773384596695599,
+      "net_per_pair_year": -0.3434432525543529,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00243 <= 0",
+     "early edge_vs_rand -0.00013 <= 0",
+     "late mean_net -0.00166 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2766,
+      "mean_net_5.0": -0.0024293149149867553,
+      "edge_vs_rand": -0.0001274240602830224,
+      "net_lb95": -0.0032301049038462007,
+      "net_per_pair_year": -0.35023138896467787,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2163,
+      "mean_net_5.0": -0.0016576293641647707,
+      "edge_vs_rand": 0.0012107292181640632,
+      "net_lb95": -0.0029687471198870364,
+      "net_per_pair_year": -0.20951612485271412,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00119 <= 0",
+     "late mean_net -0.00100 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1989,
+      "mean_net_5.0": -0.001186042659473276,
+      "edge_vs_rand": 0.0004717656480220131,
+      "net_lb95": -0.0025508986393034637,
+      "net_per_pair_year": -0.12295725732028077,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1597,
+      "mean_net_5.0": -0.0010016206960969472,
+      "edge_vs_rand": 0.0019399032648812395,
+      "net_lb95": -0.003153802285070999,
+      "net_per_pair_year": -0.09347203711961431,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00113 <= 0",
+     "early edge_vs_rand -0.00010 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1631,
+      "mean_net_5.0": -0.0011323626431947625,
+      "edge_vs_rand": -9.589751019574238e-05,
+      "net_lb95": -0.003160656050647418,
+      "net_per_pair_year": -0.09626281746914202,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1337,
+      "mean_net_5.0": 0.00030303722698667347,
+      "edge_vs_rand": 0.0031794473899133526,
+      "net_lb95": -0.0022596034041248167,
+      "net_per_pair_year": 0.023675594469582804,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early edge_vs_rand -0.00023 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1219,
+      "mean_net_5.0": 0.0001441679102254829,
+      "edge_vs_rand": -0.00023102639776124414,
+      "net_lb95": -0.0035263787028861652,
+      "net_per_pair_year": 0.009159913721042707,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1022,
+      "mean_net_5.0": 0.00024834017559714126,
+      "edge_vs_rand": 0.0035486398699918448,
+      "net_lb95": -0.003958344124027624,
+      "net_per_pair_year": 0.014831032331879384,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "holt_w256": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00294 <= 0",
+     "early edge_vs_rand -0.00001 <= 0",
+     "late mean_net -0.00261 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2825,
+      "mean_net_5.0": -0.0029388844523521745,
+      "edge_vs_rand": -5.648480548647218e-06,
+      "net_lb95": -0.0033197929994403757,
+      "net_per_pair_year": -0.4327330220051364,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2317,
+      "mean_net_5.0": -0.0026145857423703956,
+      "edge_vs_rand": 0.000307600014734765,
+      "net_lb95": -0.002934360304927914,
+      "net_per_pair_year": -0.35399931723055517,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00279 <= 0",
+     "late mean_net -0.00228 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2751,
+      "mean_net_5.0": -0.0027879560244311106,
+      "edge_vs_rand": 6.323060778191592e-05,
+      "net_lb95": -0.003265535301572586,
+      "net_per_pair_year": -0.39975654570364066,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2217,
+      "mean_net_5.0": -0.002284108307043921,
+      "edge_vs_rand": 0.0005661816138521953,
+      "net_lb95": -0.0028180726317163607,
+      "net_per_pair_year": -0.2959074424817252,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00272 <= 0",
+     "late mean_net -0.00234 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2822,
+      "mean_net_5.0": -0.002722087363559657,
+      "edge_vs_rand": 8.930718488575775e-05,
+      "net_lb95": -0.003238265818711477,
+      "net_per_pair_year": -0.4003853174316139,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2243,
+      "mean_net_5.0": -0.0023402885766724423,
+      "edge_vs_rand": 0.0006085873121537356,
+      "net_lb95": -0.002946310751546559,
+      "net_per_pair_year": -0.30674125375686934,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00223 <= 0",
+     "late mean_net -0.00218 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2736,
+      "mean_net_5.0": -0.0022326335955774415,
+      "edge_vs_rand": 0.0003623074497558049,
+      "net_lb95": -0.0029314832185668993,
+      "net_per_pair_year": -0.3183850175720479,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2118,
+      "mean_net_5.0": -0.0021757890035394595,
+      "edge_vs_rand": 0.000646738750646677,
+      "net_lb95": -0.0031222858032045053,
+      "net_per_pair_year": -0.2692875253097859,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00187 <= 0",
+     "late mean_net -0.00125 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2827,
+      "mean_net_5.0": -0.0018684276073552349,
+      "edge_vs_rand": 0.0004398426214584718,
+      "net_lb95": -0.002797594861273316,
+      "net_per_pair_year": -0.27530947503927494,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2192,
+      "mean_net_5.0": -0.0012500386506546605,
+      "edge_vs_rand": 0.0016370501898106881,
+      "net_lb95": -0.0024028630836914777,
+      "net_per_pair_year": -0.16011701798931852,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00043 <= 0",
+     "late mean_net -0.00023 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1987,
+      "mean_net_5.0": -0.00042697336301486186,
+      "edge_vs_rand": 0.0012301370782744957,
+      "net_lb95": -0.0018723412947675695,
+      "net_per_pair_year": -0.04421989666944479,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1590,
+      "mean_net_5.0": -0.00022831995395178147,
+      "edge_vs_rand": 0.0027544806718654675,
+      "net_lb95": -0.00265187129268313,
+      "net_per_pair_year": -0.021213605807631198,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00010 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1599,
+      "mean_net_5.0": 0.0006375166283614398,
+      "edge_vs_rand": 0.0016697095643943439,
+      "net_lb95": -0.0011137795177345474,
+      "net_per_pair_year": 0.053132353674997586,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1279,
+      "mean_net_5.0": -0.00010436504307484855,
+      "edge_vs_rand": 0.0027490790638416006,
+      "net_lb95": -0.0032112916232180156,
+      "net_per_pair_year": -0.007800080829913455,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00367 <= 0",
+     "late edge_vs_rand -0.00042 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1143,
+      "mean_net_5.0": 0.003362903902506729,
+      "edge_vs_rand": 0.002974705373855379,
+      "net_lb95": -8.554096959991064e-05,
+      "net_per_pair_year": 0.2003455782573189,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 970,
+      "mean_net_5.0": -0.0036661485328800332,
+      "edge_vs_rand": -0.0004231872142929688,
+      "net_lb95": -0.009094149023268688,
+      "net_per_pair_year": -0.20780466488952185,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "vote_A": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00287 <= 0",
+     "late mean_net -0.00312 <= 0",
+     "late edge_vs_rand -0.00021 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 7068,
+      "mean_net_5.0": -0.002871586134639105,
+      "edge_vs_rand": 7.49556782836236e-05,
+      "net_lb95": -0.0030652318248664046,
+      "net_per_pair_year": -1.057882572558439,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 5962,
+      "mean_net_5.0": -0.003119471285888796,
+      "edge_vs_rand": -0.0002070059616699319,
+      "net_lb95": -0.0033492227714648935,
+      "net_per_pair_year": -1.0867920831476783,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00279 <= 0",
+     "late mean_net -0.00309 <= 0",
+     "late edge_vs_rand -0.00024 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 8010,
+      "mean_net_5.0": -0.0027946523362328848,
+      "edge_vs_rand": 7.202435283558598e-05,
+      "net_lb95": -0.0030570914739925814,
+      "net_per_pair_year": -1.1667542141743494,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 6706,
+      "mean_net_5.0": -0.003089482979345384,
+      "edge_vs_rand": -0.00024108788564963112,
+      "net_lb95": -0.0034038399170131105,
+      "net_per_pair_year": -1.2106618521054877,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00288 <= 0",
+     "early edge_vs_rand -0.00005 <= 0",
+     "late mean_net -0.00314 <= 0",
+     "late edge_vs_rand -0.00020 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 9244,
+      "mean_net_5.0": -0.002883765430345081,
+      "edge_vs_rand": -5.4809848772415385e-05,
+      "net_lb95": -0.003178070658911684,
+      "net_per_pair_year": -1.3894372641421506,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 7608,
+      "mean_net_5.0": -0.003137723582000423,
+      "edge_vs_rand": -0.0001982402178924207,
+      "net_lb95": -0.0035567371756187022,
+      "net_per_pair_year": -1.3949501491820877,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00277 <= 0",
+     "early edge_vs_rand -0.00015 <= 0",
+     "late mean_net -0.00328 <= 0",
+     "late edge_vs_rand -0.00045 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 9635,
+      "mean_net_5.0": -0.002768208260409201,
+      "edge_vs_rand": -0.00015410554939956675,
+      "net_lb95": -0.003219580584904494,
+      "net_per_pair_year": -1.3901752535879146,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 7847,
+      "mean_net_5.0": -0.0032781497640192617,
+      "edge_vs_rand": -0.0004522470827339911,
+      "net_lb95": -0.003899091696026995,
+      "net_per_pair_year": -1.5031625435044367,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00263 <= 0",
+     "early edge_vs_rand -0.00028 <= 0",
+     "late mean_net -0.00353 <= 0",
+     "late edge_vs_rand -0.00064 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 10084,
+      "mean_net_5.0": -0.002626837402366544,
+      "edge_vs_rand": -0.00028350090028861526,
+      "net_lb95": -0.0033081393482193304,
+      "net_per_pair_year": -1.3806547854527136,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 8254,
+      "mean_net_5.0": -0.0035326367195449527,
+      "edge_vs_rand": -0.0006416625363005534,
+      "net_lb95": -0.00429823950063699,
+      "net_per_pair_year": -1.7038719185655833,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00193 <= 0",
+     "early edge_vs_rand -0.00024 <= 0",
+     "late mean_net -0.00340 <= 0",
+     "late edge_vs_rand -0.00044 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 6955,
+      "mean_net_5.0": -0.0019261064903569913,
+      "edge_vs_rand": -0.00024211912498703315,
+      "net_lb95": -0.003038191523556045,
+      "net_per_pair_year": -0.6982267820774448,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 5720,
+      "mean_net_5.0": -0.0033952759590602185,
+      "edge_vs_rand": -0.0004392743535640736,
+      "net_lb95": -0.00473568419848805,
+      "net_per_pair_year": -1.1348660632100738,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00124 <= 0",
+     "early edge_vs_rand -0.00017 <= 0",
+     "late mean_net -0.00236 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 5817,
+      "mean_net_5.0": -0.0012392014874360784,
+      "edge_vs_rand": -0.00017236653610688954,
+      "net_lb95": -0.0026738097653430317,
+      "net_per_pair_year": -0.3757163235069213,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 4539,
+      "mean_net_5.0": -0.0023612001283535885,
+      "edge_vs_rand": 0.00046702728465247684,
+      "net_lb95": -0.004259792636964105,
+      "net_per_pair_year": -0.626277029361278,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00032 <= 0",
+     "early edge_vs_rand -0.00069 <= 0",
+     "late mean_net -0.00338 <= 0",
+     "late edge_vs_rand -0.00004 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 3945,
+      "mean_net_5.0": -0.0003197647030505631,
+      "edge_vs_rand": -0.0006887106624804125,
+      "net_lb95": -0.003191615876342693,
+      "net_per_pair_year": -0.0657501282871336,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 3501,
+      "mean_net_5.0": -0.0033767615465188504,
+      "edge_vs_rand": -3.99906149284389e-05,
+      "net_lb95": -0.0060244427405107695,
+      "net_per_pair_year": -0.6908217560363916,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "vote_B": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00201 <= 0",
+     "late mean_net -0.00193 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 177,
+      "mean_net_5.0": -0.002011432707904157,
+      "edge_vs_rand": 0.0008276371328358168,
+      "net_lb95": -0.0051336882603718,
+      "net_per_pair_year": -0.018556576161194,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 128,
+      "mean_net_5.0": -0.001927946101799765,
+      "edge_vs_rand": 0.0009168077335939808,
+      "net_lb95": -0.0031611179117507476,
+      "net_per_pair_year": -0.014420434961150294,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00225 <= 0",
+     "late mean_net -0.00235 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 169,
+      "mean_net_5.0": -0.002254540469139393,
+      "edge_vs_rand": 0.00038978751076451825,
+      "net_lb95": -0.006179122798086467,
+      "net_per_pair_year": -0.019859294405435435,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 122,
+      "mean_net_5.0": -0.0023511235344919955,
+      "edge_vs_rand": 0.0003188799398776356,
+      "net_lb95": -0.004196183804720214,
+      "net_per_pair_year": -0.016761341763606732,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00309 <= 0",
+     "early edge_vs_rand -0.00041 <= 0",
+     "late mean_net -0.00206 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 180,
+      "mean_net_5.0": -0.003085019152929526,
+      "edge_vs_rand": -0.0004111140687449998,
+      "net_lb95": -0.006538204047476423,
+      "net_per_pair_year": -0.028943393152410193,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 133,
+      "mean_net_5.0": -0.0020629490658037922,
+      "edge_vs_rand": 0.0007384834822946312,
+      "net_lb95": -0.004331007875653291,
+      "net_per_pair_year": -0.016032957758566353,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00244 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 260,
+      "mean_net_5.0": -0.0024383362192285456,
+      "edge_vs_rand": 5.928298780955477e-06,
+      "net_lb95": -0.005599720949731173,
+      "net_per_pair_year": -0.03304349770875441,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 213,
+      "mean_net_5.0": 0.0008665850774005842,
+      "edge_vs_rand": 0.0032634150200958416,
+      "net_lb95": -0.003041656247441469,
+      "net_per_pair_year": 0.010786096752853058,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00225 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 490,
+      "mean_net_5.0": 0.0009088459778272586,
+      "edge_vs_rand": 0.0029818553802949937,
+      "net_lb95": -0.0011718749065868406,
+      "net_per_pair_year": 0.023211619554143116,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 349,
+      "mean_net_5.0": -0.0022465049771175872,
+      "edge_vs_rand": 0.00021587833409181635,
+      "net_lb95": -0.005820458366208143,
+      "net_per_pair_year": -0.0458148547544725,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00152 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1067,
+      "mean_net_5.0": 0.0015671544724054228,
+      "edge_vs_rand": 0.0030518607276453992,
+      "net_lb95": -0.0003851690394544634,
+      "net_per_pair_year": 0.08715560059747064,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 842,
+      "mean_net_5.0": -0.0015187653301817906,
+      "edge_vs_rand": 0.0011486803685599708,
+      "net_lb95": -0.004620648771745396,
+      "net_per_pair_year": -0.0747267798959007,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00078 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 2029,
+      "mean_net_5.0": 0.0007950045142047523,
+      "edge_vs_rand": 0.0017344107391943963,
+      "net_lb95": -0.0009397344366208872,
+      "net_per_pair_year": 0.08407574336373276,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1642,
+      "mean_net_5.0": -0.0007828367333263776,
+      "edge_vs_rand": 0.0019098018628521379,
+      "net_lb95": -0.0035266841669641855,
+      "net_per_pair_year": -0.07511347438615135,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00396 <= 0",
+     "late edge_vs_rand -0.00093 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1321,
+      "mean_net_5.0": 0.003467710372653248,
+      "edge_vs_rand": 0.0028584943728616886,
+      "net_lb95": -0.00014175366343287713,
+      "net_per_pair_year": 0.238761725753436,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1118,
+      "mean_net_5.0": -0.003961256814650477,
+      "edge_vs_rand": -0.0009274123413908295,
+      "net_lb95": -0.008375222962248217,
+      "net_per_pair_year": -0.2587904852278439,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "vote_C": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00169 <= 0",
+     "late mean_net -0.00087 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 245,
+      "mean_net_5.0": -0.0016911773471434757,
+      "edge_vs_rand": 0.0011597364662492035,
+      "net_lb95": -0.004199556995171597,
+      "net_per_pair_year": -0.021596049351686984,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 157,
+      "mean_net_5.0": -0.0008664982352471889,
+      "edge_vs_rand": 0.0019599169275607547,
+      "net_lb95": -0.0023274996437211374,
+      "net_per_pair_year": -0.00794951873057277,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00178 <= 0",
+     "late mean_net -0.00131 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 360,
+      "mean_net_5.0": -0.00178042272188106,
+      "edge_vs_rand": 0.0009623297044892194,
+      "net_lb95": -0.003774601578523106,
+      "net_per_pair_year": -0.033407555844801574,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 245,
+      "mean_net_5.0": -0.0013074600774834718,
+      "edge_vs_rand": 0.0014489714183313909,
+      "net_lb95": -0.003083617829089936,
+      "net_per_pair_year": -0.018718369810519827,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00256 <= 0",
+     "late mean_net -0.00251 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 599,
+      "mean_net_5.0": -0.0025550345591526503,
+      "edge_vs_rand": 0.00019877702497973543,
+      "net_lb95": -0.003917789353730987,
+      "net_per_pair_year": -0.07977056631939544,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 414,
+      "mean_net_5.0": -0.002510692779045875,
+      "edge_vs_rand": 0.000321977585895357,
+      "net_lb95": -0.004052227976213535,
+      "net_per_pair_year": -0.06073896911612922,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00127 <= 0",
+     "late mean_net -0.00169 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1004,
+      "mean_net_5.0": -0.0012676235806008814,
+      "edge_vs_rand": 0.00124340884678219,
+      "net_lb95": -0.0027656579525247057,
+      "net_per_pair_year": -0.06633505543189647,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 779,
+      "mean_net_5.0": -0.0016870925085576418,
+      "edge_vs_rand": 0.0009769292697169468,
+      "net_lb95": -0.0031969059161610362,
+      "net_per_pair_year": -0.07679799054164292,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00064 <= 0",
+     "late mean_net -0.00018 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1723,
+      "mean_net_5.0": -0.0006411707182515823,
+      "edge_vs_rand": 0.0015863149219087875,
+      "net_lb95": -0.0019013473316045082,
+      "net_per_pair_year": -0.05758084473258379,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1347,
+      "mean_net_5.0": -0.00018263743611547295,
+      "edge_vs_rand": 0.002548313928309974,
+      "net_lb95": -0.0018667050207478624,
+      "net_per_pair_year": -0.014375762842241803,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00028 <= 0",
+     "late mean_net -0.00099 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1934,
+      "mean_net_5.0": -0.00028216385495426644,
+      "edge_vs_rand": 0.0013082206097724345,
+      "net_lb95": -0.0018126136276185676,
+      "net_per_pair_year": -0.02844309972403069,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1453,
+      "mean_net_5.0": -0.000990211631131718,
+      "edge_vs_rand": 0.0018221159814561208,
+      "net_lb95": -0.0034236318779308156,
+      "net_per_pair_year": -0.08407505103262773,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "INCONCLUSIVE",
+    "reasons": [
+     "late net_lb95 -0.0019254910213218391 not > 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1847,
+      "mean_net_5.0": 0.001012224112619347,
+      "edge_vs_rand": 0.0019876480350655697,
+      "net_lb95": -0.0009179494793215867,
+      "net_per_pair_year": 0.09744569293041805,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1409,
+      "mean_net_5.0": 0.0007483918731124574,
+      "edge_vs_rand": 0.0034119459478626738,
+      "net_lb95": -0.0019254910213218391,
+      "net_per_pair_year": 0.061618845621555354,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00096 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 1585,
+      "mean_net_5.0": 0.0017510486399444386,
+      "edge_vs_rand": 0.0013128060939499651,
+      "net_lb95": -0.0017418788752317723,
+      "net_per_pair_year": 0.14465936374665347,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 1262,
+      "mean_net_5.0": -0.0009644565151780834,
+      "edge_vs_rand": 0.0021130288131851077,
+      "net_lb95": -0.005221171554994302,
+      "net_per_pair_year": -0.07112389106847797,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "ridge_AT": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00320 <= 0",
+     "early edge_vs_rand -0.00025 <= 0",
+     "late mean_net -0.00319 <= 0",
+     "late edge_vs_rand -0.00019 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 44154,
+      "mean_net_5.0": -0.0031976884698389106,
+      "edge_vs_rand": -0.00025112390447379834,
+      "net_lb95": -0.003301305015842933,
+      "net_per_pair_year": -7.359109726230224,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 34005,
+      "mean_net_5.0": -0.0031866684239815093,
+      "edge_vs_rand": -0.00019116575562102206,
+      "net_lb95": -0.0033130403543399595,
+      "net_per_pair_year": -6.332178637019699,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00324 <= 0",
+     "early edge_vs_rand -0.00032 <= 0",
+     "late mean_net -0.00322 <= 0",
+     "late edge_vs_rand -0.00024 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 34007,
+      "mean_net_5.0": -0.0032411660500002324,
+      "edge_vs_rand": -0.00032171260186410737,
+      "net_lb95": -0.003422354661655855,
+      "net_per_pair_year": -5.7449820586563485,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 26252,
+      "mean_net_5.0": -0.00322327574618968,
+      "edge_vs_rand": -0.00024181536386688155,
+      "net_lb95": -0.003397252610593077,
+      "net_per_pair_year": -4.944624972499435,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00308 <= 0",
+     "early edge_vs_rand -0.00024 <= 0",
+     "late mean_net -0.00315 <= 0",
+     "late edge_vs_rand -0.00016 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 25116,
+      "mean_net_5.0": -0.00307900310262928,
+      "edge_vs_rand": -0.00024118306698754524,
+      "net_lb95": -0.00332976251385901,
+      "net_per_pair_year": -4.030692572462218,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 19847,
+      "mean_net_5.0": -0.0031521481027596567,
+      "edge_vs_rand": -0.00016495242203965287,
+      "net_lb95": -0.0034226090852005724,
+      "net_per_pair_year": -3.655737352707125,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00304 <= 0",
+     "early edge_vs_rand -0.00035 <= 0",
+     "late mean_net -0.00346 <= 0",
+     "late edge_vs_rand -0.00043 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 18074,
+      "mean_net_5.0": -0.0030376354913291,
+      "edge_vs_rand": -0.0003530892979249352,
+      "net_lb95": -0.0034642203736965837,
+      "net_per_pair_year": -2.8616005492043204,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 14511,
+      "mean_net_5.0": -0.0034585372060867065,
+      "edge_vs_rand": -0.00042911917541420963,
+      "net_lb95": -0.0039434514703254936,
+      "net_per_pair_year": -2.9326706728191043,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00244 <= 0",
+     "early edge_vs_rand -0.00015 <= 0",
+     "late mean_net -0.00291 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 12064,
+      "mean_net_5.0": -0.002439308396996947,
+      "edge_vs_rand": -0.0001462484306911714,
+      "net_lb95": -0.0032120018843869,
+      "net_per_pair_year": -1.533829596068326,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 10421,
+      "mean_net_5.0": -0.0029135367760733722,
+      "edge_vs_rand": 0.00011631483144652617,
+      "net_lb95": -0.003582226956733917,
+      "net_per_pair_year": -1.7742033798460073,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00220 <= 0",
+     "early edge_vs_rand -0.00054 <= 0",
+     "late mean_net -0.00309 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 10015,
+      "mean_net_5.0": -0.0022002649994552694,
+      "edge_vs_rand": -0.0005372791278241773,
+      "net_lb95": -0.0033111482392134493,
+      "net_per_pair_year": -1.1485370729300641,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 7979,
+      "mean_net_5.0": -0.0030858263469554946,
+      "edge_vs_rand": 0.00011478421231534501,
+      "net_lb95": -0.00421924430257574,
+      "net_per_pair_year": -1.4387768779924963,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00157 <= 0",
+     "early edge_vs_rand -0.00057 <= 0",
+     "late mean_net -0.00332 <= 0",
+     "late edge_vs_rand -0.00010 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 7790,
+      "mean_net_5.0": -0.001565014588573708,
+      "edge_vs_rand": -0.000571219099952538,
+      "net_lb95": -0.0030121080082571804,
+      "net_per_pair_year": -0.6354405450776189,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 6251,
+      "mean_net_5.0": -0.0033185530894285268,
+      "edge_vs_rand": -9.546524312203589e-05,
+      "net_lb95": -0.004901237651258145,
+      "net_per_pair_year": -1.212192996939999,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00035 <= 0",
+     "early edge_vs_rand -0.00081 <= 0",
+     "late mean_net -0.00461 <= 0",
+     "late edge_vs_rand -0.00152 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 3890,
+      "mean_net_5.0": -0.0003497190020308677,
+      "edge_vs_rand": -0.0008063258122131003,
+      "net_lb95": -0.003479562305066975,
+      "net_per_pair_year": -0.07090680320349299,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 3276,
+      "mean_net_5.0": -0.0046116622140460785,
+      "edge_vs_rand": -0.0015196309901628362,
+      "net_lb95": -0.007269772327880174,
+      "net_per_pair_year": -0.8828255314506236,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "lgb_AT": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00303 <= 0",
+     "early edge_vs_rand -0.00009 <= 0",
+     "late mean_net -0.00314 <= 0",
+     "late edge_vs_rand -0.00014 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 41562,
+      "mean_net_5.0": -0.0030348727583230386,
+      "edge_vs_rand": -8.673202252195093e-05,
+      "net_lb95": -0.003134959786928996,
+      "net_per_pair_year": -6.574398116555549,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 30828,
+      "mean_net_5.0": -0.003137518735511224,
+      "edge_vs_rand": -0.00014195003018538816,
+      "net_lb95": -0.00324299576516636,
+      "net_per_pair_year": -5.6520393942115845,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00295 <= 0",
+     "early edge_vs_rand -0.00004 <= 0",
+     "late mean_net -0.00310 <= 0",
+     "late edge_vs_rand -0.00012 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 32686,
+      "mean_net_5.0": -0.0029546852804876334,
+      "edge_vs_rand": -3.5230320232785466e-05,
+      "net_lb95": -0.003108689806411726,
+      "net_per_pair_year": -5.033755059639221,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 24849,
+      "mean_net_5.0": -0.003097387630926191,
+      "edge_vs_rand": -0.00011713348878665333,
+      "net_lb95": -0.0032460015310689654,
+      "net_per_pair_year": -4.497570480355893,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00267 <= 0",
+     "late mean_net -0.00303 <= 0",
+     "late edge_vs_rand -0.00004 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 24651,
+      "mean_net_5.0": -0.0026749949055556404,
+      "edge_vs_rand": 0.00016294636400276542,
+      "net_lb95": -0.0029104962019608754,
+      "net_per_pair_year": -3.4369765981128135,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 18782,
+      "mean_net_5.0": -0.0030330169139448884,
+      "edge_vs_rand": -4.4913427990137066e-05,
+      "net_lb95": -0.0032878045461048008,
+      "net_per_pair_year": -3.328818914126909,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00245 <= 0",
+     "late mean_net -0.00312 <= 0",
+     "late edge_vs_rand -0.00009 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 17310,
+      "mean_net_5.0": -0.002451487159728576,
+      "edge_vs_rand": 0.0002261369562240194,
+      "net_lb95": -0.0028814114592865055,
+      "net_per_pair_year": -2.211799547550625,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 13089,
+      "mean_net_5.0": -0.0031190243935521945,
+      "edge_vs_rand": -8.880966013235927e-05,
+      "net_lb95": -0.0035639994506457655,
+      "net_per_pair_year": -2.3856061244474214,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00154 <= 0",
+     "late mean_net -0.00307 <= 0",
+     "late edge_vs_rand -0.00003 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 11332,
+      "mean_net_5.0": -0.0015443394287851591,
+      "edge_vs_rand": 0.0007432321101369461,
+      "net_lb95": -0.002295360368671547,
+      "net_per_pair_year": -0.9121544886906633,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 8749,
+      "mean_net_5.0": -0.003066880180795012,
+      "edge_vs_rand": -2.8796710598000086e-05,
+      "net_lb95": -0.003874493300775991,
+      "net_per_pair_year": -1.5679374290411172,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00108 <= 0",
+     "late mean_net -0.00303 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 7267,
+      "mean_net_5.0": -0.0010750911011102717,
+      "edge_vs_rand": 0.0005649202223259851,
+      "net_lb95": -0.002376698426408646,
+      "net_per_pair_year": -0.4072110002992283,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 5560,
+      "mean_net_5.0": -0.0030272270477083403,
+      "edge_vs_rand": 0.00015678027624200898,
+      "net_lb95": -0.004332934311592751,
+      "net_per_pair_year": -0.9835428570132969,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00036 <= 0",
+     "late mean_net -0.00379 <= 0",
+     "late edge_vs_rand -0.00060 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 5714,
+      "mean_net_5.0": -0.0003571490027927886,
+      "edge_vs_rand": 0.0006118751197908036,
+      "net_lb95": -0.0021298288321695254,
+      "net_per_pair_year": -0.10636745103857978,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 4156,
+      "mean_net_5.0": -0.0037879365052714046,
+      "edge_vs_rand": -0.0005952741243276339,
+      "net_lb95": -0.005943521805929835,
+      "net_per_pair_year": -0.9199235384921199,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00449 <= 0",
+     "late edge_vs_rand -0.00141 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 3955,
+      "mean_net_5.0": 0.0004800748952793339,
+      "edge_vs_rand": 1.7210238103853616e-05,
+      "net_lb95": -0.002613994994643699,
+      "net_per_pair_year": 0.09896338866928117,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 3153,
+      "mean_net_5.0": -0.0044941544718177405,
+      "edge_vs_rand": -0.0014135253784956384,
+      "net_lb95": -0.0073861101590823024,
+      "net_per_pair_year": -0.8280288498089393,
+      "fail_share": 0.0
+     }
+    }
+   }
+  },
+  "lgb_LAT": {
+   "1": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00301 <= 0",
+     "early edge_vs_rand -0.00006 <= 0",
+     "late mean_net -0.00310 <= 0",
+     "late edge_vs_rand -0.00011 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 42194,
+      "mean_net_5.0": -0.0030123983938140893,
+      "edge_vs_rand": -6.42748648811239e-05,
+      "net_lb95": -0.003105038956423612,
+      "net_per_pair_year": -6.6249435191616675,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 31687,
+      "mean_net_5.0": -0.0031013690475508167,
+      "edge_vs_rand": -0.00010573842234047403,
+      "net_lb95": -0.0031966105037442363,
+      "net_per_pair_year": -5.742593487061212,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "2": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00293 <= 0",
+     "early edge_vs_rand -0.00001 <= 0",
+     "late mean_net -0.00313 <= 0",
+     "late edge_vs_rand -0.00015 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 32459,
+      "mean_net_5.0": -0.002928423527738705,
+      "edge_vs_rand": -8.888730005902936e-06,
+      "net_lb95": -0.003075891975652805,
+      "net_per_pair_year": -4.9543661241461,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 24901,
+      "mean_net_5.0": -0.0031267415460642326,
+      "edge_vs_rand": -0.00014587461277309528,
+      "net_lb95": -0.0032792904519626533,
+      "net_per_pair_year": -4.549694905274219,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "4": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00264 <= 0",
+     "late mean_net -0.00299 <= 0",
+     "late edge_vs_rand -0.00001 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 23739,
+      "mean_net_5.0": -0.002640898277435382,
+      "edge_vs_rand": 0.00019521089876189723,
+      "net_lb95": -0.0028740363778121548,
+      "net_per_pair_year": -3.267632206383235,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 18192,
+      "mean_net_5.0": -0.0029921541728315224,
+      "edge_vs_rand": -5.379418306765644e-06,
+      "net_lb95": -0.003258384135310931,
+      "net_per_pair_year": -3.180811379617392,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "8": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00223 <= 0",
+     "late mean_net -0.00289 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 15837,
+      "mean_net_5.0": -0.0022296955227091484,
+      "edge_vs_rand": 0.0004473671923292091,
+      "net_lb95": -0.002670237954225468,
+      "net_per_pair_year": -1.8405073352449501,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 12084,
+      "mean_net_5.0": -0.002885001954993836,
+      "edge_vs_rand": 0.0001461743229631022,
+      "net_lb95": -0.003366996446198688,
+      "net_per_pair_year": -2.037184346257853,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "16": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00170 <= 0",
+     "late mean_net -0.00250 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 9822,
+      "mean_net_5.0": -0.0016981892400465845,
+      "edge_vs_rand": 0.000586417340807753,
+      "net_lb95": -0.002549276457065665,
+      "net_per_pair_year": -0.8693708791076289,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 7705,
+      "mean_net_5.0": -0.002504235396335219,
+      "edge_vs_rand": 0.0005390429359779877,
+      "net_lb95": -0.0033776194191473545,
+      "net_per_pair_year": -1.1275123171500412,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "32": {
+    "verdict": "FAIL",
+    "reasons": [
+     "early mean_net -0.00083 <= 0",
+     "late mean_net -0.00219 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 6043,
+      "mean_net_5.0": -0.0008338944505581242,
+      "edge_vs_rand": 0.0008092759725763308,
+      "net_lb95": -0.0021844909481150542,
+      "net_per_pair_year": -0.26265323370880383,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 4646,
+      "mean_net_5.0": -0.002185278034982078,
+      "edge_vs_rand": 0.0009948896975897148,
+      "net_lb95": -0.003744289280091466,
+      "net_per_pair_year": -0.5932795899847522,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "48": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00197 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 4735,
+      "mean_net_5.0": 0.00011079520667620035,
+      "edge_vs_rand": 0.001081229412552457,
+      "net_lb95": -0.001813546507228498,
+      "net_per_pair_year": 0.027343873073038556,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 3436,
+      "mean_net_5.0": -0.001973107807551629,
+      "edge_vs_rand": 0.001225792548659005,
+      "net_lb95": -0.004309422852263844,
+      "net_per_pair_year": -0.3961662478707705,
+      "fail_share": 0.0
+     }
+    }
+   },
+   "96": {
+    "verdict": "FAIL",
+    "reasons": [
+     "late mean_net -0.00249 <= 0"
+    ],
+    "numbers": {
+     "early": {
+      "n_trades": 3307,
+      "mean_net_5.0": 0.0015686310878841128,
+      "edge_vs_rand": 0.0011314797864198476,
+      "net_lb95": -0.0016507235845917422,
+      "net_per_pair_year": 0.2703797031372004,
+      "fail_share": 0.0
+     },
+     "late": {
+      "n_trades": 2367,
+      "mean_net_5.0": -0.002488942058035647,
+      "edge_vs_rand": 0.000539410223779951,
+      "net_lb95": -0.005873553034882243,
+      "net_per_pair_year": -0.3442599857114569,
+      "fail_share": 0.0
+     }
+    }
+   }
   }
  },
  "null_passes": [],
  "most_viable_n": null,
  "most_viable_method": null,
- "break_even_n": null
+ "break_even_n": 48,
+ "post_hoc_methods": [
+  "harm",
+  "harm_s",
+  "harm_d",
+  "harm_sd",
+  "ridge_L",
+  "harm_k1",
+  "harm_k2",
+  "harm_k4",
+  "harm_k5",
+  "holt_w32",
+  "holt_w128",
+  "holt_w256",
+  "vote_A",
+  "vote_B",
+  "vote_C",
+  "ridge_AT",
+  "lgb_AT",
+  "lgb_LAT"
+ ]
 }
