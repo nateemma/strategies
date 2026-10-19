@@ -1,5 +1,5 @@
 {
- "run_id": "20261019-holt",
+ "run_id": "20261019-holt-fade",
  "family": "SimpleTrigger",
  "base_strategy": "SimpleTrigger_HoltVoteFade",
  "derived_from": "20261007-085500",
