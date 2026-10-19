@@ -29,7 +29,11 @@ import Forecasters as FC  # noqa: E402  (utils/ is on sys.path via common); impo
 WINDOW = 64
 STRIDE = 16
 MODELS = {"ar": "AR", "holt": "HOLT", "ses": "SIMPLE_EXPONENTAL", "expsm": "EXPONENTAL", "ets": "ETS",
-          "ss_expsm": "SS_EXPONENTAL", "arima": "ARIMA", "theta": "THETA"}
+          "ss_expsm": "SS_EXPONENTAL", "arima": "ARIMA", "theta": "THETA",
+          # post-hoc (preregistration_harmonic.json): harmonic regression, smoothing / detrending variants
+          "harm": "HARMONIC", "harm_s": "HARMONIC", "harm_d": "HARMONIC", "harm_sd": "HARMONIC"}
+DEFAULT = ("ar", "holt", "ses", "expsm", "ets", "ss_expsm", "arima", "theta")
+SMOOTH_WINDOW = 4
 
 
 def scored_rows(d: pd.DataFrame, stride: int = STRIDE) -> np.ndarray:
@@ -40,8 +44,11 @@ def scored_rows(d: pd.DataFrame, stride: int = STRIDE) -> np.ndarray:
 
 def _forecaster(model: str):
     f = FC.make_forecaster(FC.ForecasterType[MODELS[model]])
-    f.set_detrend(False)
-    f.set_smooth(False)
+    harm = model.startswith("harm")
+    # only the harmonic variants smooth / detrend, with their own causal implementations (the base
+    # helpers are broken at the window edge: 038 D9/D10)
+    f.set_detrend(harm and "d" in model.split("_")[-1] and model != "harm")
+    f.set_smooth(harm and "s" in model.split("_")[-1] and model != "harm", SMOOTH_WINDOW)
     return f
 
 
@@ -107,9 +114,11 @@ def main(argv=None) -> int:
     ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args(argv)
     rc = C.refuse_unless_registered()
+    models = a.model or list(DEFAULT)
+    if not rc and any(m in C.HARMONIC for m in models):
+        rc = C.refuse_unless_registered(prereg=C.AMEND_HARMONIC)
     if rc:
         return rc
-    models = a.model or list(MODELS)
     tasks = [(p, m) for m in models for p in C.pairs()]
     res: dict[str, list] = {m: [] for m in models}
     t0 = time.time()

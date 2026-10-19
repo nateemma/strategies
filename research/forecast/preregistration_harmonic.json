@@ -1,0 +1,38 @@
+{
+ "label": "038 post-hoc addition: harmonic regression forecaster, with and without smoothing and detrending",
+ "date": "2026-10-19",
+ "status": "POST-HOC: added after the 038 verdicts were read (dcc4f2b9); the rule, costs, folds and scorer are unchanged from preregistration.json. Verdicts for these methods are labelled post-hoc and do not change the 038 conclusion's pre-registered status.",
+ "why": "FFT extrapolation is periodic in the window length (forecast h ahead = window value h-1), so it was marked unavailable; harmonic regression estimates frequencies off-grid and extends them.",
+ "rule": "identical to preregistration.json (decision, costs, verdict_bps 5, min_trades_per_half 200, max_fail_share 0.05, bootstrap, selection)",
+ "methods": {
+  "harm": {
+   "tier": 1,
+   "stride": 16,
+   "window": 64,
+   "series": "log close",
+   "params": "harmonic_forecaster n_harmonics=3, pad 16, least-squares frequency refinement, 5 joint rounds; no smoothing, no detrending"
+  },
+  "harm_s": {
+   "tier": 1,
+   "stride": 16,
+   "window": 64,
+   "series": "log close",
+   "params": "as harm + trailing 4-candle mean (causal) before fitting"
+  },
+  "harm_d": {
+   "tier": 1,
+   "stride": 16,
+   "window": 64,
+   "series": "log close",
+   "params": "as harm + a straight line fitted jointly with the sinusoids and extended forward"
+  },
+  "harm_sd": {
+   "tier": 1,
+   "stride": 16,
+   "window": 64,
+   "series": "log close",
+   "params": "smoothing and detrending as above"
+  }
+ },
+ "library_note": "the base smooth() (centred, zero-padded: the window's last value collapses) and base retrend (adds past window-position trend to forecasts) are broken at the window edge (038 D9/D10); the harmonic forecaster implements its own causal smoothing and extended trend instead"
+}

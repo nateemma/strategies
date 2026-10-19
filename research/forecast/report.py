@@ -74,8 +74,11 @@ def main(argv=None) -> int:
         methods = list(ver["cells"])
         L += ["## Verdicts", "", "| method | " + " | ".join(f"N={n}" for n in C.HORIZONS) + " |",
               "|---|" + "---|" * len(C.HORIZONS)]
+        post = set(ver.get("post_hoc_methods", []))
+        if post:
+            L += ["Methods marked † were added post-hoc (`preregistration_harmonic.json`, same rule).", ""]
         for m in methods:
-            L.append(f"| {m} | " + " | ".join(ver["cells"][m].get(str(n), {}).get("verdict", "–")
+            L.append(f"| {m}{' †' if m in post else ''} | " + " | ".join(ver["cells"][m].get(str(n), {}).get("verdict", "–")
                                                .replace(" (PROVISIONAL)", "") for n in C.HORIZONS) + " |")
         L.append("")
 

@@ -94,6 +94,9 @@ def _brief(c: dict, pr: dict) -> dict:
 def main(argv=None) -> int:
     scores_p, inst_p = C.HERE / "scores.json", C.HERE / "instrument.json"
     rc = C.refuse_unless_registered([scores_p, inst_p, *C.PRED.glob("*.feather")])
+    harm = [C.PRED / f"{m}.feather" for m in C.HARMONIC if (C.PRED / f"{m}.feather").exists()]
+    if not rc and harm:
+        rc = C.refuse_unless_registered(harm, prereg=C.AMEND_HARMONIC)
     if rc:
         return rc
     inst = json.loads(inst_p.read_text()) if inst_p.exists() else {}
@@ -103,6 +106,7 @@ def main(argv=None) -> int:
         return 2
     pr = C.prereg()
     out = judge(json.loads(scores_p.read_text()), pr)
+    out["post_hoc_methods"] = [m for m in out["cells"] if m in C.HARMONIC]
     C.write_json(C.HERE / "verdicts.json", out)
     for m, cs in out["cells"].items():
         print(f"{m:12s} " + " ".join(f"{n}:{c['verdict'][:4]}" for n, c in cs.items()))

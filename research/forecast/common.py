@@ -22,6 +22,8 @@ FRAMES = OUT / "frames"
 PRED = OUT / "pred"
 DATADIR = ROOT / "user_data" / "data" / "binanceus"
 PREREG = HERE / "preregistration.json"
+AMEND_HARMONIC = HERE / "preregistration_harmonic.json"  # post-hoc harmonic methods (038 follow-up)
+HARMONIC = ("harm", "harm_s", "harm_d", "harm_sd")
 PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
 CONFIG = STRAT / "config" / "config_wf.json"
 
@@ -71,12 +73,13 @@ def _git(*args) -> str:
     return g(*args)
 
 
-def refusals(result_paths: list[Path] = ()) -> list[str]:
+def refusals(result_paths: list[Path] = (), prereg: Path | None = None) -> list[str]:
     """Why results may not be produced/read yet (FR-009): the pre-registration must be tracked,
     clean, and committed before every result file named here was written."""
-    if not PREREG.exists():
-        return [f"{PREREG} missing"]
-    rel = str(PREREG.relative_to(STRAT))
+    prereg = prereg or PREREG
+    if not prereg.exists():
+        return [f"{prereg} missing"]
+    rel = str(prereg.relative_to(STRAT))
     if not _git("ls-files", "--", rel):
         return [f"{rel} is not committed"]
     if _git("status", "--porcelain", "--", rel):
@@ -86,9 +89,9 @@ def refusals(result_paths: list[Path] = ()) -> list[str]:
             if Path(p).exists() and os.path.getmtime(p) < ts]
 
 
-def refuse_unless_registered(result_paths: list[Path] = ()) -> int | None:
+def refuse_unless_registered(result_paths: list[Path] = (), prereg: Path | None = None) -> int | None:
     """None when allowed; otherwise prints the reasons and returns exit code 2."""
-    bad = refusals(result_paths)
+    bad = refusals(result_paths, prereg)
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2

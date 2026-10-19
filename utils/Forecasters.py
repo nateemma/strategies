@@ -19,6 +19,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
+from scipy.optimize import minimize_scalar
 from sklearn.preprocessing import RobustScaler
 import statsmodels.tsa.api as tsa
 from statsmodels.tsa.forecasting.theta import ThetaModel
@@ -409,6 +410,93 @@ class quadratic_forecaster(base_forecaster):
         return predictions.squeeze()
 
 
+
+
+# -----------------------------------
+
+
+# Harmonic regression (feature 038 follow-up). Unlike FFT extrapolation, whose inverse transform is
+# periodic in the window length (the 'forecast' h ahead is the value h-1 into the window), this
+# estimates the dominant frequencies freely (zero-padded periodogram peak, then a joint least-squares
+# fit of all amplitudes and phases), so the fitted sinusoids extend past the window.
+#
+# Detrending and smoothing are done here, not with the base helpers: base.smooth is a centred,
+# zero-padded box filter (the window's last value collapses toward 0), and base.retrend adds the
+# trend of past window positions to the forecasts instead of extending it (feature 038, D9/D10).
+#   detrend_data: fit a straight line, model the residual, extend the line forward;
+#   smooth_data:  trailing moving average of smooth_window samples (causal; adds lag).
+class harmonic_forecaster(base_forecaster):
+    n_harmonics = 3
+    pad_factor = 16
+    refine_rounds = 5
+    detrend_data = False
+    smooth_data = False
+
+    def get_name(self):
+        return "Harmonic"
+
+    def _trailing_mean(self, x):
+        w = max(1, int(self.smooth_window))
+        c = np.cumsum(np.r_[0.0, x])
+        out = np.empty_like(x)
+        out[w - 1:] = (c[w:] - c[:-w]) / w
+        out[: w - 1] = c[1:w] / np.arange(1, w)  # shorter trailing mean at the start
+        return out
+
+    def _design(self, t, freqs):
+        """Constant (+ straight line when detrending) + a cosine/sine pair per frequency. The line is
+        fitted jointly with the sinusoids: a separate line fit absorbs part of any partial cycle."""
+        cols = [np.ones_like(t)] + ([t] if self.detrend_data else [])
+        for f in freqs:
+            cols += [np.cos(2 * np.pi * f * t), np.sin(2 * np.pi * f * t)]
+        return np.column_stack(cols)
+
+    def _fit(self, t, y, freqs):
+        d = self._design(t, freqs)
+        coef, *_ = np.linalg.lstsq(d, y, rcond=None)
+        return coef, y - d @ coef
+
+    def _refine(self, t, y, others, f0, df):
+        """Least-squares frequency within one padded-grid step of f0, the other frequencies fixed (the
+        grid alone leaves a phase error that grows with the forecast horizon)."""
+        def rss(f):
+            return float(np.sum(self._fit(t, y, others + [f])[1] ** 2))
+
+        lo, hi = max(f0 - df, 1.0 / len(t)), min(f0 + df, 0.5)
+        if hi <= lo:
+            return f0
+        return float(minimize_scalar(rss, bounds=(lo, hi), method="bounded", options={"xatol": 1e-12}).x)
+
+    def forecast(self, data: np.array, steps) -> np.array:
+        x = np.asarray(self.check_1d(data), dtype=float)
+        if not np.all(np.isfinite(x)):
+            raise ForecastFailed("Harmonic: non-finite input")
+        N = len(x)
+        y = self._trailing_mean(x) if self.smooth_data else x.copy()
+        t = np.arange(N, dtype=float)
+        grid = np.fft.rfftfreq(self.pad_factor * N)
+        df = grid[1]
+        ok = grid >= 1.0 / N  # no cycle longer than the window: it cannot be estimated from it
+
+        # greedy: strongest periodogram peak of the residual, refined by least squares
+        freqs = []
+        resid = self._fit(t, y, freqs)[1]
+        for _ in range(self.n_harmonics):
+            power = np.abs(np.fft.rfft(resid, n=self.pad_factor * N)) ** 2
+            power[~ok] = 0.0
+            if power.max() <= 1e-24:
+                break
+            freqs.append(self._refine(t, y, freqs, grid[int(np.argmax(power))], df))
+            resid = self._fit(t, y, freqs)[1]
+        # joint refinement: each frequency again with the others fixed (removes cross-leakage bias)
+        for _ in range(self.refine_rounds if len(freqs) > 1 else 0):
+            for i in range(len(freqs)):
+                freqs[i] = self._refine(t, y, freqs[:i] + freqs[i + 1:], freqs[i], df)
+        coef = self._fit(t, y, freqs)[0]
+
+        preds = self._design(np.arange(N, N + steps, dtype=float), freqs) @ coef
+        self.model = NullRegressor()  # just have something not None that can be called
+        return np.concatenate((x, preds))[-N:]
 
 
 # -----------------------------------
@@ -1581,6 +1669,7 @@ class ForecasterType(Enum):
     LINEAR = linear_forecaster
     QUADRATIC = quadratic_forecaster
     FFT_EXTRAPOLATION = fft_extrapolation_forecaster
+    HARMONIC = harmonic_forecaster
     SS_EXPONENTAL = statespace_exponential_forecaster
     EXPONENTAL = exponential_forecaster
     HOLT = holt_forecaster

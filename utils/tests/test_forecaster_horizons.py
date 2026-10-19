@@ -99,3 +99,58 @@ def test_regressor_retrend_uses_the_forecast_windows_own_trend():
     p2 = np.asarray(f.forecast(w2, 4), dtype=float)
     # the restored level follows each window (+1 vs -1), not the training targets (+5)
     assert abs(p1.mean() - 1.0) < 1.0 and abs(p2.mean() + 1.0) < 1.0
+
+
+# ---- harmonic regression (038 follow-up) ----
+
+def _harm(k=1, detrend=False, smooth=False, w=4):
+    f = FC.make_forecaster(T.HARMONIC)
+    f.n_harmonics = k
+    f.set_detrend(detrend)
+    f.set_smooth(smooth, w)
+    return f
+
+
+def _sig(t, trend=0.0):
+    return 4.6 + trend * t + 0.02 * np.sin(2 * np.pi * t / 13.7 + 0.4)
+
+
+@pytest.mark.parametrize("h", [1, 4, 96])
+def test_harmonic_extends_an_off_grid_sine_exactly(h):
+    t = np.arange(64 + h, dtype=float)
+    out = np.asarray(_harm(1).forecast(_sig(t)[:64], h), float)
+    np.testing.assert_allclose(out[-min(h, 64):], _sig(t)[64:][-min(h, 64):], atol=1e-6)
+
+
+@pytest.mark.parametrize("h", [1, 4, 96])
+def test_harmonic_two_sines(h):
+    t = np.arange(64 + h, dtype=float)
+    x = _sig(t) + 0.01 * np.cos(2 * np.pi * t / 5.3)
+    out = np.asarray(_harm(2).forecast(x[:64], h), float)
+    np.testing.assert_allclose(out[-min(h, 64):], x[64:][-min(h, 64):], atol=1e-6)
+
+
+@pytest.mark.parametrize("h", [1, 4, 96])
+def test_harmonic_detrend_extends_the_line(h):
+    t = np.arange(64 + h, dtype=float)
+    x = _sig(t, trend=0.001)
+    out = np.asarray(_harm(1, detrend=True).forecast(x[:64], h), float)
+    np.testing.assert_allclose(out[-min(h, 64):], x[64:][-min(h, 64):], atol=1e-6)
+
+
+def test_harmonic_is_not_periodic_in_the_window():
+    """FFT extrapolation's defect: forecast(h) == x[h-1]. A 13.7-candle sine must not repeat at 64."""
+    t = np.arange(64 + 8, dtype=float)
+    x = _sig(t)
+    out = np.asarray(_harm(1).forecast(x[:64], 8), float)
+    assert not np.allclose(out[-8:], x[:8], atol=1e-3)
+
+
+def test_harmonic_smoothing_is_trailing_and_causal():
+    """Smoothing uses only past samples: changing nothing before t leaves the smoothed series unchanged,
+    and the last smoothed value is the mean of the last w inputs (no zero-padding collapse)."""
+    x = 4.6 + 0.001 * np.arange(64)
+    f = _harm(1, smooth=True, w=4)
+    sm = f._trailing_mean(x)
+    assert abs(sm[-1] - x[-4:].mean()) < 1e-12
+    np.testing.assert_allclose(sm[:-1], f._trailing_mean(x[:-1]))
