@@ -375,3 +375,22 @@ bottom (refuses ~25%, not 67%). (3) Refused reversion entries come back a median
 same signal run (143 of 233 cs_aro, 135 of 236 all3k); those late entries carry the late-half loss
 (-4.41 cs_aro, -12.67 all3k, vs refused-trade cost -1.24 / +1.55 late). Momentum's gain is
 re-sequencing, not the filter: displaced control trades -15.21 vs other new arm trades +17.60.
+
+## Run-level signal rank and liquidity-rank sizing (preregistration_liqsr2.json)
+
+Instruments PASS (runs arms keep 99.5-100%, controls refused 21-26%; sizer arms 100% tagged, hi share
+0.747 / 0.740, mean stake factor 0.998 / 0.994).
+
+| Q | arm vs control | total | early / late | maxDD | decision |
+|---|---|---|---|---|---|
+| QR1 | st_g24_mom_liqrun vs s4k | 28.53 vs 35.13 | -6.52 / -0.08 | 20.7 vs 24.1 | FAIL |
+| QR2 | cs_aro_liqrun vs s4k | 48.16 vs 59.90 | -5.06 / -6.68 (p 0.07) | 4.2 vs 4.5 | FAIL |
+| QR3 | cs_aro_all3k_liqrun vs s4k | 93.26 vs 114.10 | -12.35 / -8.50 | 8.1 vs 8.2 | FAIL |
+| QZ1 | cs_aro_liqsz vs s4k | 62.98 vs 59.90 | +0.49 / +2.59 (p 0.11) | 4.95 vs 4.49 | INCONCLUSIVE (PASS verdict, early < 1 pp) |
+| QZ2 | cs_aro_all3k_liqsz vs s4k | 117.10 vs 114.10 | -1.82 / +4.81 | 11.2 vs 8.2 | FAIL (early) |
+
+Returns-only: same decisions. Run-level refusal cuts trades 35% (momentum 5,284 -> 3,411; reversion
+929 -> 637): it removes the profitable early-half re-entries along with the late-half losing ones, and is
+worse than liqsr in every half. Sizing keeps every trade and raises both reversion books' late halves
+(+2.59, +4.81); cs_aro_all3k_liqsz's 117.10 is the highest total so far, but it loses 1.82 early and
+maxDD rises 8.2 -> 11.2 (UNCHANGED). Vs liqsr: liqsz -0.64 / +6.32, all3k_liqsz +5.69 / +11.54.
