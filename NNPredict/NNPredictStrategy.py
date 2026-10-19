@@ -203,9 +203,13 @@ class NNPredictStrategy(BaseNNStrategy):
     # owns; the lists merge along the MRO. ATTRIBUTES/METHODS shape trained weights;
     # IGNORED act only after the model. The audit test keeps every name classified.
     MODEL_KEY_ATTRIBUTES = (
-        "target_mode", "target_max_gain", "target_max_loss", "LABEL_SMOOTH_WINDOW",
+        "target_mode", "target_max_gain", "target_max_loss", "LABEL_SMOOTH_WINDOW", "atr_floor",
+    )
+    # 039 (research R1): the signal gate acts only in get_predictions, after classifier.predict, so
+    # a gate change must reuse the same weights (it previously demanded new ones / ModelMissing).
+    MODEL_KEY_IGNORED = (
         "rolling_window", "entry_z", "magnitude_floor_mode", "magnitude_pctile", "min_magnitude",
-        "mag_std_mult", "atr_floor", "entry_quantile", "exit_quantile",
+        "mag_std_mult", "entry_quantile", "exit_quantile",
     )
 
     def get_classifier_type(self):

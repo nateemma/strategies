@@ -1,0 +1,97 @@
+{
+ "title": "039 NNPredict improvement study -- model stage: the Ridge baseline on the 15-fold harness, the stop_aware target, and NNNC-style plain-LSTM regressors on three input sets",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it selects the model the framework and sizer stages use.",
+ "arms": {
+  "nnp_ridge": {
+   "class": "NNPredict_Ridge",
+   "role": "baseline: NNPredict as is (point target, H=4, z>=1.0 & |pred|>=0.10 gate, class params, grace 2.6 h)"
+  },
+  "nnp_ridge_sa": {
+   "class": "NNPredict_Ridge_SA",
+   "comparator": "nnp_ridge",
+   "change": "target_mode stop_aware"
+  },
+  "nnp_lstm_raw": {
+   "class": "NNPredict_LSTM_Raw",
+   "comparator": "nnp_ridge",
+   "change": "LSTM_RAW regressor on raw8 + gains"
+  },
+  "nnp_lstm_ind": {
+   "class": "NNPredict_LSTM_RawInd",
+   "comparator": "nnp_ridge",
+   "change": "LSTM_RAW regressor on NNPredict's inputs + raw8"
+  },
+  "nnp_lstm_ret": {
+   "class": "NNPredict_LSTM_RawRet",
+   "comparator": "nnp_ridge",
+   "change": "LSTM_RAW regressor on raw8 + lagged returns + gains"
+  }
+ },
+ "baseline_report": "nnp_ridge pooled per half beside w_aro, cs_aro and st_g24_mom (judge_one(nnp_ridge, comparator), reported only -- no verdict is attached to the baseline)",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, nnp_ridge) with the rule maps below",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "selection_R7": "the model arm (nnp_ridge, nnp_ridge_sa, nnp_lstm_raw, nnp_lstm_ind, nnp_lstm_ret) with the highest pooled total pp over f00-f14 among those whose judge_one halves vs nnp_ridge have no WORSENED verdict (nnp_ridge itself qualifies); ties -> nnp_ridge. An INCONCLUSIVE-instrument arm cannot be selected.",
+ "seed_robustness": "constitution gate 5 applies to adoption, which this stage does not do; the selected model's later PASSes carry their own seed rule",
+ "seen_before": [
+  "038 (short-horizon return forecasting ~0 edge after costs)",
+  "NNPredict memory (fit metrics decoupled from P&L; single-horizon H=4 best on its own 4/8-window walk-forwards)",
+  "no 15-fold harness result for any NNPredict class",
+  "a 30-day smoke run of NNPredict_LSTM_Raw on 2025-01 (pipeline check: 26 trades; trained and tested on the same window, not a result)"
+ ]
+}

@@ -149,9 +149,42 @@ class NNPredictRegressorMLX_MultiHorizon_LSTM(MLXRegressorMultiHorizon):
         )
 
 
+# 039 (research R4): the regression twin of NNNC's LSTM_RAW (ARO's architecture): features straight
+# into the LSTM -- no resize, no conv -- then the classifier's decode head (LayerNorm, dropout, dense
+# bottleneck) with a single linear output instead of the class logits.
+RAW_DROPOUT = 0.25  # NNNClassifierMLX.DROPOUT, which LSTM_RAW uses
+
+
+class _RawLSTMRegressorModel(nn.Module):
+    def __init__(self, num_features: int, num_filters: int):
+        super().__init__()
+        self.lstm = nn.LSTM(num_features, num_filters)
+        self.ln_lstm = nn.LayerNorm(num_filters)
+        self.dropout_lstm = nn.Dropout(RAW_DROPOUT)
+        self.bottleneck = nn.Linear(num_filters, num_filters)
+        self.dropout_bn = nn.Dropout(RAW_DROPOUT)
+        self.out = nn.Linear(num_filters, 1)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        lstm_out, _ = self.lstm(x)                     # (B, T, num_filters)
+        h = self.dropout_lstm(self.ln_lstm(lstm_out[:, -1, :]))
+        h = self.dropout_bn(nn.relu(self.bottleneck(h)))
+        return self.out(h)                             # (B, 1)
+
+
+class NNPredictRegressorMLX_LSTM_Raw(MLXRegressor):
+    is_trained = False
+    clean_data_required = False
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _RawLSTMRegressorModel(num_features, num_filters)
+
+
 class RegressorTypeMLX(Enum):
     LSTM = NNPredictRegressorMLX_LSTM
     MULTI_HORIZON_LSTM = NNPredictRegressorMLX_MultiHorizon_LSTM
+    LSTM_RAW = NNPredictRegressorMLX_LSTM_Raw
 
 
 def create_regressor_mlx(
