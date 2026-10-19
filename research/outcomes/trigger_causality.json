@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-17T18:05:27+00:00",
-  "code_sha": "50fe8dd44c92263c",
+  "generated": "2026-10-19T21:53:15+00:00",
+  "code_sha": "42c06185386065ab",
   "pairs": [
     "SOL",
     "LTC",
@@ -163,6 +163,20 @@
     },
     "geometry": {
       "trigger": "geometry",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "holt_vote_fade": {
+      "trigger": "holt_vote_fade",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "holt_vote_up": {
+      "trigger": "holt_vote_up",
       "verdict": "PASS",
       "first_mismatch": null,
       "comparisons": 144,

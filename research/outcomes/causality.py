@@ -46,6 +46,9 @@ CODE_FILES = (
     # mofn_4of8 runs the 037 harvest's own signal path
     "research/indicator_screen/harvest.py",
     "research/indicator_screen/overrides.py",
+    # holt_vote_up / holt_vote_fade (038 vote C)
+    "research/outcomes/holt_triggers.py",
+    "utils/Forecasters.py",
 )
 
 #: Whitelist pairs whose 15m history is CONTIGUOUS through all three eras. XRP is not: it was

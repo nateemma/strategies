@@ -1,0 +1,95 @@
+{
+ "title": "038 vote C (multi-Holt) as SimpleTrigger entry triggers: holt_vote_up (momentum) and its long-only fade holt_vote_fade (reversion), each alone vs its family reference and beside the width book",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26); vote C was chosen with both halves in view (038 post-hoc, preregistration_vote.json), so neither half is blind. Nothing is adopted.",
+ "arms": {
+  "st_holt_up": {
+   "trigger": "holt_vote_up",
+   "class": "SimpleTrigger_HoltVoteUp",
+   "comparator": "st_g24_mom"
+  },
+  "st_holt_fade": {
+   "trigger": "holt_vote_fade",
+   "class": "SimpleTrigger_HoltVoteFade",
+   "comparator": "st_fam_gbb"
+  }
+ },
+ "why_these": {
+  "st_holt_up": "038's only both-halves-positive cell: vote C (Holt 32/64/128/256, 3 of 4 > +30 bp, N=48) net +10.1 / +7.5 bp, edge +20 / +34 bp, INCONCLUSIVE (late lb -19 bp), forward window -42 bp",
+  "st_holt_fade": "the user's fade arm after the TS_ForecastPlot inspection: in the last 14 days up-signals were followed by -106 bp over 12 h; on spot the up-signal cannot be shorted, so the long-only mirror buys when 3 of 4 forecast < -30 bp"
+ },
+ "signals": "research/outcomes/holt_triggers.py: damped Holt (utils/Forecasters.py HOLT, no detrending/smoothing) on the trailing 32/64/128/256 log closes, forecast 48 candles ahead, at every 16th candle on a fixed date grid (epoch candle index % 16 == 0); a candle without 256 closes of history does not vote. Data-keyed forecast cache (seeded from 038; never read by causality checks).",
+ "setup": "st_holt_up inherits st_g24_mom (SimpleTrigger_BreakoutGbb_MomExit_G24: momentum exits, 24 h grace, hold window); st_holt_fade inherits st_fam_gbb (SimpleTrigger_FamGbb, ARM_D_FAMILY reversion exits); only TRIGGER_NAME differs. config_wf; 15 folds f00-f14; startup_candle_count 64 as the comparators, so the first ~192 candles (~2 days) of each 90-day fold cannot vote (Holt-256 needs 256 closes).",
+ "comparators": {
+  "st_holt_up": "st_g24_mom",
+  "st_holt_fade": "st_fam_gbb",
+  "book": "w_aro (the width book, NNNC)"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": "trigger causality PASS (research/outcomes/causality.py --write with HOLT_TRIGGER_NOCACHE=1, all triggers re-run); no zero-trade half; arm trades >= 100 over 15 folds, else INCONCLUSIVE",
+ "alone": "judge_one(arm, its family comparator) (early gain > 0, late gain > 0, paired and risk not WORSENED; rule maps below)",
+ "beside_width_book": "evaluation/books.py combine + shared_wallet (one wallet of stake x max_open_trades; refused and shrunk entries counted) of [w_aro, arm] vs w_aro alone: PASS = combined early AND late totals above w_aro's, AND the whole-period paired verdict (halves.split, split_after f14) not WORSENED; same-pair overlaps between the books reported (they need two sub-accounts)",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "decision": "per arm: 'candidate trigger' if either verdict PASSes; both reported with p values",
+ "note": "038 measured the vote with a fixed 12 h hold; these arms use the framework's family exits, so the result tests the entry inside the real exit stack.",
+ "seen_before": [
+  "038 scores of vote C (both halves, forward window)",
+  "038 short side of vote C at N=48: long return after a down-vote ~ +15 bp early / -15 bp late gross over 12 h (fade prior is weak)",
+  "TS_ForecastPlot inspection of the last 14 days (up-signals followed by -106 bp)",
+  "st_g24_mom, st_fam_gbb, w_aro backtests",
+  "no backtest of any Holt trigger"
+ ]
+}

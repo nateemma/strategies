@@ -19,7 +19,7 @@ EXPECTED = {
     **dict.fromkeys(
         ["gbb", "gbb_tight", "gbb_stale", "geometry", "votes_tech", "failed_breakout",
          "pair_cmo_macdhist", "pair_cmo_dcbreakout", "pair_kst_zscore", "pair_cci_copp",
-         "mofn_4of8"],
+         "mofn_4of8", "holt_vote_fade"],
         "reversion",
     ),
     **dict.fromkeys(
@@ -33,6 +33,7 @@ EXPECTED = {
             "breakout_gm",
             "breakout_vol_gm",
             "breakout_squeeze_gm",
+            "holt_vote_up",
         ],
         "momentum",
     ),

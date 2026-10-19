@@ -217,6 +217,9 @@ def ensure_builtins() -> None:
     if "mofn_4of8" not in _REGISTRY:
         from research.outcomes.audit_triggers import register_mofn_trigger
         register_mofn_trigger(replace=True)
+    if not {"holt_vote_up", "holt_vote_fade"} <= set(_REGISTRY):
+        from research.outcomes.holt_triggers import register_holt_triggers
+        register_holt_triggers(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:
