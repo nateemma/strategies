@@ -45,3 +45,16 @@ def test_post_model_gate_settings_leave_the_key(storage, name, value):
 @pytest.mark.parametrize("name,value", list(WEIGHT_SHAPING.items()))
 def test_label_settings_move_the_key(storage, name, value):
     assert _h(**{name: value}) != _h()
+
+
+@pytest.mark.parametrize("op,base", [
+    ("NNPredict_Ridge_OP", "NNPredict_Ridge"), ("NNPredict_Ridge_SA_OP", "NNPredict_Ridge_SA"),
+    ("NNPredict_LSTM_Raw_OP", "NNPredict_LSTM_Raw"), ("NNPredict_LSTM_RawInd_OP", "NNPredict_LSTM_RawInd"),
+    ("NNPredict_LSTM_RawRet_OP", "NNPredict_LSTM_RawRet")])
+def test_operating_point_twin_reuses_its_base_weights(storage, op, base):
+    import importlib
+
+    o = getattr(importlib.import_module(op), op)
+    b = getattr(importlib.import_module(base), base)
+    assert MK.key_hash(MK.resolve(o, CONFIG)) == MK.key_hash(MK.resolve(b, CONFIG))
+    assert o.magnitude_floor_mode == "percentile" and o.buy_params["entry_guard_threshold"] == 5.0

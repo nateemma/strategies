@@ -1,0 +1,104 @@
+{
+ "title": "039 NNPredict -- operating-point amendment: every model arm at the NNNC reference operating point (guards open as NNNC_A_Raw_Open, percentile magnitude floor at its code default 0.60)",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it selects the model the framework and sizer stages use.",
+ "arms": {
+  "nnp_ridge_op": {
+   "class": "NNPredict_Ridge_OP",
+   "role": "operating-point baseline (reuses nnp_ridge weights)"
+  },
+  "nnp_ridge_sa_op": {
+   "class": "NNPredict_Ridge_SA_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "target_mode stop_aware"
+  },
+  "nnp_lstm_raw_op": {
+   "class": "NNPredict_LSTM_Raw_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "LSTM_RAW on raw8 + gains"
+  },
+  "nnp_lstm_ind_op": {
+   "class": "NNPredict_LSTM_RawInd_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "LSTM_RAW on NNPredict's inputs + raw8"
+  },
+  "nnp_lstm_ret_op": {
+   "class": "NNPredict_LSTM_RawRet_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "LSTM_RAW on raw8 + lagged returns + gains"
+  }
+ },
+ "baseline_report": "nnp_ridge_op pooled per half beside w_aro, cs_aro and st_g24_mom (reported only); the as-is nnp_ridge trade counts reported",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, nnp_ridge_op) with the rule maps below",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "selection_R7": "the model arm (the five _op arms) with the highest pooled total pp over f00-f14 among those whose judge_one halves vs nnp_ridge_op have no WORSENED verdict (nnp_ridge_op itself qualifies); ties -> nnp_ridge_op. An INCONCLUSIVE-instrument arm cannot be selected.",
+ "seed_robustness": "constitution gate 5 applies to adoption, which this stage does not do; the selected model's later PASSes carry their own seed rule",
+ "seen_before": [
+  "038 (short-horizon return forecasting ~0 edge after costs)",
+  "NNPredict memory (fit metrics decoupled from P&L; single-horizon H=4 best on its own 4/8-window walk-forwards)",
+  "no 15-fold harness result for any NNPredict class",
+  "a 30-day smoke run of NNPredict_LSTM_Raw on 2025-01 (pipeline check: 26 trades; trained and tested on the same window, not a result)",
+  "nnp_ridge as-is 15-fold trade counts (152 total) and its f00 entry-condition counts"
+ ],
+ "why": "The pre-registered as-is baseline nnp_ridge is degenerate on the harness: 152 trades over 15 folds (2,4,5,0,6,14,10,8,11,7,10,31,24,15,5), below min_control_trades 200, so it cannot serve as a comparator. Diagnosis on f00: Ridge predictions are compressed (std ~0.02), the absolute magnitude floor 0.10 sits ~5 sigma out (54 of 78,345 bars signalled) and NNPredict's guards keep 3. This amendment changes no rule and tunes nothing: it applies the NNNC reference operating point (ARO's guards-open values) and NNPredict's own existing scale-invariant floor mode at its default. Both are post-model settings, so each _op arm reuses its twin's weights. It is written after seeing nnp_ridge's TRADE COUNTS (not its P&L verdict vs anything) and committed before any _op result.",
+ "baseline": "nnp_ridge_op",
+ "superseded": {
+  "nnp_ridge_sa, nnp_lstm_raw, nnp_lstm_ind, nnp_lstm_ret (as-is gate)": "not run: their comparator nnp_ridge is degenerate; the _op arms replace them. nnp_ridge's as-is record stays as a reported result."
+ },
+ "fallback": "if nnp_ridge_op itself has < 200 trades, the stage stops INCONCLUSIVE and is reported; no further operating point is tried without the user."
+}

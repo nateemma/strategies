@@ -30,7 +30,7 @@ Five steps, each judged on 15-fold walk-forward P&L under rules committed before
 
 **Storage**:
 - trained models under `saved_data/`;
-- fold records in `regime/arms/` (committed, as for every study);
+- fold records in `regime/arms/` (local, not committed, as for recent studies);
 - verdicts and reports in `research/nnpredict/`.
 
 **Testing**: pytest (`NNPredict/tests/`, `Framework/tests/test_model_key.py`, `utils/tests`,

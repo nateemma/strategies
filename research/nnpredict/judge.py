@@ -66,10 +66,14 @@ def select_model(baseline_pp: float, judged: dict) -> str:
     return best
 
 
-def models() -> int:
+def models(stage: str = "models") -> int:
+    """The model stage; `stage="op"` is the operating-point amendment (preregistration_op.json), the
+    same procedure with that file's baseline and arms."""
     from research.nnnc_switches.judge import judge_one
 
-    path, pr = _prereg("models")
+    path, pr = _prereg(stage)
+    global BASELINE
+    BASELINE = pr.get("baseline", BASELINE)
     bad = _refused(path, pr)
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
@@ -79,7 +83,7 @@ def models() -> int:
     if not base_inst["pass"]:
         print("REFUSED: the baseline's instrument failed", base_inst)
         out["selected"] = None
-        (HERE / "verdicts_models.json").write_text(json.dumps(out, indent=1, default=str))
+        (HERE / f"verdicts_{stage}.json").write_text(json.dumps(out, indent=1, default=str))
         return 1
     for comp in COMPARATORS:
         v = judge_one(pr, BASELINE, comp)
@@ -108,14 +112,14 @@ def models() -> int:
     out["baseline_pp"] = baseline_pp
     out["selected"] = select_model(baseline_pp, out["arms"])
     print("R7 selected model:", out["selected"], flush=True)
-    (HERE / "verdicts_models.json").write_text(json.dumps(out, indent=1, default=str))
+    (HERE / f"verdicts_{stage}.json").write_text(json.dumps(out, indent=1, default=str))
     return 0
 
 
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
-    if stage == "models":
-        return models()
+    if stage in ("models", "op"):
+        return models(stage)
     raise SystemExit(f"stage {stage!r} is not implemented yet (framework / sizer come with their tasks)")
 
 
