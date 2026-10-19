@@ -1,0 +1,62 @@
+{
+ "SC-001": {
+  "pass": true,
+  "detail": "45 passed in 1.76s"
+ },
+ "SC-002a": {
+  "pass": true,
+  "r2_oos": {
+   "1": 0.0,
+   "2": 0.0,
+   "4": 0.0,
+   "8": 0.0,
+   "16": 0.0,
+   "32": 0.0,
+   "48": 0.0,
+   "96": 0.0
+  }
+ },
+ "SC-002b": {
+  "pass": true,
+  "null_pass_n": []
+ },
+ "SC-003": {
+  "pass": true,
+  "unscored_share": 0.0,
+  "eligible": 677108
+ },
+ "R12": {
+  "pass": true,
+  "methods": {
+   "ar": true,
+   "arima": true,
+   "ets": true,
+   "expsm": true,
+   "hist_mean": true,
+   "holt": true,
+   "lgb_L": true,
+   "lgb_LA": true,
+   "lgb_LW": true,
+   "lgb_null": true,
+   "ses": true,
+   "ss_expsm": true,
+   "theta": true
+  },
+  "differs_across_n": {
+   "ar": true,
+   "arima": true,
+   "ets": false,
+   "expsm": false,
+   "hist_mean": true,
+   "holt": true,
+   "lgb_L": true,
+   "lgb_LA": true,
+   "lgb_LW": true,
+   "lgb_null": true,
+   "ses": false,
+   "ss_expsm": false,
+   "theta": true
+  }
+ },
+ "pass": true
+}

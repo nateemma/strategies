@@ -268,7 +268,10 @@ All are given per pair, per half and pooled.
 
 ## R12 — Liveness (Principle IV)
 
-- The harness asserts that forecasts at different N differ for every model except "no change" and the
-  historical mean, whose horizon dependence is linear by construction.
+- The harness asserts that every method's forecast changes with its input window (it is not constant
+  across candles). Whether forecasts also differ across N is reported but not required, because the
+  level models (SES, ExpSmoothing, ETS, state-space) forecast a flat path by construction (found while
+  implementing). The historical mean is constant within a fold by definition and must vary across
+  folds.
 - The null control must differ from L.
 - Any pair of arms that comes out byte-identical is reported as a defect.

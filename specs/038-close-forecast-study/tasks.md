@@ -173,8 +173,8 @@ with a dirty pre-registration exits 2.
 **Independent Test**: on one fold, every forecast uses only candles before t, and the forecast count
 equals the number of stride-16 eligible candles.
 
-- [ ] T021 [P] [US3] Add a test in `research/forecast/tests/test_frames.py` (stat-tier causality): on a synthetic pair, changing `close` after candle t leaves the stat-tier forecast at t unchanged, and the row count equals the scored candles at stride 16
-- [ ] T022 [US3] Write `research/forecast/stat_tier.py`:
+- [X] T021 [P] [US3] Add a test in `research/forecast/tests/test_frames.py` (stat-tier causality): on a synthetic pair, changing `close` after candle t leaves the stat-tier forecast at t unchanged, and the row count equals the scored candles at stride 16
+- [X] T022 [US3] Write `research/forecast/stat_tier.py`:
   - for each pair and scored candle at stride 16, take the trailing 64 log-close values (or 64 one-candle returns for AR), call the Forecasters model with `set_detrend(False)`, forecast 96 steps, and read `f[n] = path[n-1] − lc[t]` (for AR, the cumulative sum of the return path);
   - catch `ForecastFailed` and set `failed=True`;
   - use a `multiprocessing` pool across pairs with `--workers 4` (CPU only);
@@ -183,7 +183,7 @@ equals the number of stride-16 eligible candles.
   - write `pred/<model>.feather`;
   - models: ar, holt, ses, expsm, ets, ss_expsm, arima, theta;
   - make T021 pass
-- [ ] T023 [US3] Run `stat_tier --workers 4` (target: under 1 h together with Phase 4, SC-006, so record the elapsed time), then `score` for the 8 models. Report the fail share per model and N, and the R12 liveness check (forecasts differ across N)
+- [X] T023 [US3] Run `stat_tier --workers 4` (target: under 1 h together with Phase 4, SC-006, so record the elapsed time), then `score` for the 8 models. Report the fail share per model and N, and the R12 liveness check (forecasts differ across N)
 
 **Checkpoint**: tier 1 is scored.
 
@@ -197,19 +197,19 @@ shuffled-target null control.
 **Independent Test**: the gap between the end of the training labels and the test start is ≥ N, and the
 null control scores within noise of zero.
 
-- [ ] T024 [P] [US4] Add a test in `research/forecast/tests/test_frames.py` (learned-tier purge): `learned_tier.train_slice(fold, n)` ends at least n candles before the fold's test start for every n, and the null control's shuffled targets are a permutation within the training span only
-- [ ] T025 [US4] Write `research/forecast/features.py`:
+- [X] T024 [P] [US4] Add a test in `research/forecast/tests/test_frames.py` (learned-tier purge): `learned_tier.train_slice(fold, n)` ends at least n candles before the fold's test start for every n, and the null control's shuffled targets are a permutation within the training span only
+- [X] T025 [US4] Write `research/forecast/features.py`:
   - set L: trailing log returns over {1,2,4,8,16,32,64,96}, realised volatility over 16 and 96 candles, and the log volume ratio 16/96;
   - set LA: L plus the 24 `base:` columns aliased by `aro:` in `research/indicator_screen/manifest.json`, read through `harvest.read_cache` and joined on date (the cache ends 2026-09-07, so LA has no forward window)
-- [ ] T026 [US4] Write `research/forecast/learned_tier.py` with `--set {L,LA,LW,null} --seed {1,2}`:
+- [X] T026 [US4] Write `research/forecast/learned_tier.py` with `--set {L,LA,LW,null} --seed {1,2}`:
   - per fold and n, train LightGBM with the R7 parameters, from 2021-01-01 to `test_start − n` candles, pooled over pairs, training rows at stride 4. Rows need `eligible`, real data at t (`has_data`), finite features and, for every set, `data_ok` at t (the 037 cache's `meta:data_ok` inside the cache range; in the forward window, after the cache ends on 2026-09-07, `has_data` only), so L, LA, LW and null train and score on the same candles (a paired comparison);
   - predict the fold's test candles, and for L, LW and null also the forward window from the f14 model;
   - null = set L with targets permuted within the training span (seed-fixed);
   - refuse unless the pre-registration is committed;
   - write `pred/lgb_<set>[_s2].feather`;
   - make T024 pass
-- [ ] T027 [US4] Run `learned_tier --set null`, then `score`. The null control must show no tradeable skill (it should FAIL or be INCONCLUSIVE at every N, and its pooled IC should be within noise of zero). Record this in `instrument.json` as SC-002b. If it fails, stop and report (no learned result is read)
-- [ ] T028 [US4] Run `learned_tier --set L`, then `--set LA`, sequentially, then `score`
+- [X] T027 [US4] Run `learned_tier --set null`, then `score`. The null control must show no tradeable skill (it should FAIL or be INCONCLUSIVE at every N, and its pooled IC should be within noise of zero). Record this in `instrument.json` as SC-002b. If it fails, stop and report (no learned result is read)
+- [X] T028 [US4] Run `learned_tier --set L`, then `--set LA`, sequentially, then `score`
 
 **Checkpoint**: tier 2 is scored behind a passing null.
 
@@ -221,9 +221,9 @@ null control scores within noise of zero.
 
 **Independent Test**: `truncation.json` shows every LW input identical up to each cut.
 
-- [ ] T029 [US5] Add the LW inputs to `research/forecast/features.py`: on the trailing 64 one-candle log returns, the SWT `bior3.9` level-2 coefficients at the last position (cA2, cD2, cD1), using `utils/Wavelets.py` or pywt directly, plus the FFT magnitudes of bins 1–8
-- [ ] T030 [US5] Write `research/forecast/truncation.py`: for 2 pairs × 5 random cut points, recompute every LW input on data truncated at the cut and compare all values up to the cut. Write `research/forecast/truncation.json`. Any input that fails is excluded and named (FR-012)
-- [ ] T031 [US5] Run `truncation`, then `learned_tier --set LW` (with only the inputs that passed), then `score`. Report the paired difference LW − L per n and half
+- [X] T029 [US5] Add the LW inputs to `research/forecast/features.py`: on the trailing 64 one-candle log returns, the SWT `bior3.9` level-2 coefficients at the last position (cA2, cD2, cD1), using `utils/Wavelets.py` or pywt directly, plus the FFT magnitudes of bins 1–8
+- [X] T030 [US5] Write `research/forecast/truncation.py`: for 2 pairs × 5 random cut points, recompute every LW input on data truncated at the cut and compare all values up to the cut. Write `research/forecast/truncation.json`. Any input that fails is excluded and named (FR-012)
+- [X] T031 [US5] Run `truncation`, then `learned_tier --set LW` (with only the inputs that passed), then `score`. Report the paired difference LW − L per n and half
 
 **Checkpoint**: tier 3 is scored.
 
@@ -231,8 +231,8 @@ null control scores within noise of zero.
 
 ## Phase 9: Polish and closing
 
-- [ ] T032 Run `verdict`. For any learned PASS, run `learned_tier --set <S> --seed 2`, then `score` and `verdict` again (quality gate 5)
-- [ ] T033 Write `research/forecast/report.py` and run it to produce `research/forecast/report.md`, containing:
+- [X] T032 Run `verdict`. For any learned PASS, run `learned_tier --set <S> --seed 2`, then `score` and `verdict` again (quality gate 5)
+- [X] T033 Write `research/forecast/report.py` and run it to produce `research/forecast/report.md`, containing:
   - the horizon and cost table;
   - the verdict table per (method, N);
   - most viable N and break-even N;
@@ -241,9 +241,9 @@ null control scores within noise of zero.
   - the descriptive metrics;
   - the forward window (descriptive);
   - limitations (no distant era, so PROVISIONAL)
-- [ ] T034 [P] Run `pytest research/forecast/tests utils/tests -q`; all green
-- [ ] T035 Update `AGENT_GUIDE.md` "Current state", and the memory file `project_038_close_forecast.md` with a MEMORY.md index line (verdict, viable N, and what it implies for NNNC: a passing forecast is the candidate for a filter or sizer feature, otherwise new inputs are the lever)
-- [ ] T036 Commit to master, staging only the named files (never `git add -A`; leave `NNNC/NNNCStrategy.py`, `research/live_pnl/{drift,gate}.json`, `utils/Wavelets.py` and `utils/test_fft.py` unstaged). End the message with the Co-Authored-By line
+- [X] T034 [P] Run `pytest research/forecast/tests utils/tests -q`; all green
+- [X] T035 Update `AGENT_GUIDE.md` "Current state", and the memory file `project_038_close_forecast.md` with a MEMORY.md index line (verdict, viable N, and what it implies for NNNC: a passing forecast is the candidate for a filter or sizer feature, otherwise new inputs are the lever)
+- [X] T036 Commit to master, staging only the named files (never `git add -A`; leave `NNNC/NNNCStrategy.py`, `research/live_pnl/{drift,gate}.json`, `utils/Wavelets.py` and `utils/test_fft.py` unstaged). End the message with the Co-Authored-By line
 
 ---
 

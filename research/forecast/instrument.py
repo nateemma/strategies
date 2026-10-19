@@ -64,15 +64,21 @@ def sc003(frames: dict) -> dict:
 
 
 def liveness() -> dict:
-    """R12: forecasts differ across N (hist_mean: linear in N by construction, so not all equal)."""
-    out = {}
+    """R12: every method's forecast moves with its input (not constant across candles within a fold).
+    Whether it also differs across N is reported, not required: level models (SES, ExpSmoothing, ETS,
+    state-space) forecast a flat path by construction."""
+    out, across_n = {}, {}
     for p in sorted(C.PRED.glob("*.feather")):
         if p.stem == "zero":
             continue
         d = pd.read_feather(p)
         f = d[[f"f_{n}" for n in C.HORIZONS]].dropna()
-        out[p.stem] = bool(len(f) and not np.allclose(f["f_1"].to_numpy()[:, None], f.to_numpy()))
-    return {"pass": all(out.values()) if out else None, "methods": out}
+        across_n[p.stem] = bool(len(f) and not np.allclose(f["f_1"].to_numpy()[:, None], f.to_numpy()))
+        if p.stem == "hist_mean":  # constant within a fold by definition; it moves across folds
+            out[p.stem] = bool(d["f_1"].nunique() > 1)
+            continue
+        out[p.stem] = bool(len(f) and f["f_16"].std() > 0)
+    return {"pass": all(out.values()) if out else None, "methods": out, "differs_across_n": across_n}
 
 
 def main(argv=None) -> int:

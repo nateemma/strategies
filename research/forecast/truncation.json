@@ -1,0 +1,33 @@
+{
+ "pairs": [
+  "SOL/USDT",
+  "AAVE/USDT"
+ ],
+ "cuts_per_pair": 5,
+ "inputs": {
+  "swt_cA2": true,
+  "swt_cD2": true,
+  "swt_cD1": true,
+  "fft_1": true,
+  "fft_2": true,
+  "fft_3": true,
+  "fft_4": true,
+  "fft_5": true,
+  "fft_6": true,
+  "fft_7": true,
+  "fft_8": true
+ },
+ "L_inputs": {
+  "ret_1": true,
+  "ret_2": true,
+  "ret_4": true,
+  "ret_8": true,
+  "ret_16": true,
+  "ret_32": true,
+  "ret_64": true,
+  "ret_96": true,
+  "vol_16": true,
+  "vol_96": true,
+  "vratio_16_96": true
+ }
+}

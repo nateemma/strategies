@@ -15,7 +15,7 @@ import pandas as pd
 STRAT = Path(__file__).resolve().parents[2]
 ROOT = STRAT.parents[1]
 HERE = Path(__file__).resolve().parent
-sys.path[:0] = [str(STRAT), str(STRAT / "evaluation")]
+sys.path[:0] = [str(STRAT), str(STRAT / "evaluation"), str(STRAT / "utils")]
 
 OUT = ROOT / "user_data" / "data" / "forecast_038"
 FRAMES = OUT / "frames"

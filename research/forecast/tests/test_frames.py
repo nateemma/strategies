@@ -89,7 +89,12 @@ def test_stat_tier_is_causal_and_strided():
     base = S.forecast_rows(d, [t], "holt")
     d2 = d.copy()
     d2.loc[t + 1:, "lc"] += 0.5  # change the future only
-    assert np.allclose(base["f"], S.forecast_rows(d2, [t], "holt")["f"], equal_nan=True)
+    cols = [f"f_{n}" for n in C.HORIZONS]
+    assert np.isfinite(base[cols].to_numpy()).all()
+    np.testing.assert_allclose(base[cols].to_numpy(), S.forecast_rows(d2, [t], "holt")[cols].to_numpy())
+    d3 = d.copy()
+    d3.loc[t - 10:t, "lc"] += 0.05  # change the past: the forecast must move (liveness)
+    assert not np.allclose(base[cols].to_numpy(), S.forecast_rows(d3, [t], "holt")[cols].to_numpy())
 
 
 @pytest.mark.parametrize("n", C.HORIZONS)
