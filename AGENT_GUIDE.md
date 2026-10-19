@@ -42,7 +42,7 @@ gap, add a pointer to this file.
 
 ---
 
-## Current state (2026-10-15)
+## Current state (2026-10-19)
 
 - **Live (two dry-run bots, no real money):**
   - the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`, port 8080). Never kill
@@ -65,6 +65,13 @@ gap, add a pointer to this file.
   capital-neutral 1.333×/0.667× stake on the width book's own trades) beats the width book by
   +8.5 pp on identical trades (PASS PROVISIONAL, `research/control_sizer/report.md`). Labels (034)
   and inputs (035, both32) have not improved ARO's ranking of those trades.
+- **Reference NNNC book since 2026-10-19: `cs_aro`** (`NNNC/NNNC_CS_ARO.py`; width book + ARO sizer,
+  held-pair add off). New NNNC arms are judged against `cs_aro` (or its 4096-startup twin
+  `cs_aro_s4k` for long warm-ups), and the width book stays the bar for any sizer. The live-fold
+  tool (`research/live_pnl/live_fold.py`) builds a `cs_aro` live fold by default (`--book aro` for
+  the plain model book live1 runs). `cs_aro_all3k` (stake up to 3,000 x weight, fillable cap,
+  wallet: 114.17, seed 2 113.83) is NOT the default: its gain is larger orders on liquid candles
+  and waits for 036's cost-by-volume model (`research/tb_model/report.md`).
 - **Primary model:** ARO (`NNNC_A_Raw_Open`, a plain LSTM on raw inputs; control arm
   `wf_aro_g24`). GBR (`NNNC_GbbRaw_Open`, control `fs_gbr_gr`) is the usual replication.
 - **Results are PROVISIONAL.** The data has no distant era (see Walk-forward folds), so nothing
@@ -74,6 +81,7 @@ Recent features, newest first (each `specs/NNN-*` or the named `research/` direc
 
 | # | topic | outcome |
 |---|---|---|
+| — | liquidity guards and sizing (`research/tb_model`, liq / liqnz / liqsr / liqsr2 / liqsz_s2) | nothing adopted: refusing thin-candle signals FAILs on reversion (the refused trades earn); liquidity-rank sizing gains ~+3 pp, repeats on seed 2 but stays INCONCLUSIVE (cs_aro) / FAILs early (all3k); momentum guards PASS (PROVISIONAL) n.s. Backtest fills ignore volume, so the real test waits for 036's cost model |
 | 037 | indicator screen: ~800 columns from 67 SimpleStrategies classes (+ raw8, 035 inputs, price/close ratios added after the lock) scored against the NNNC labels and 18 regime targets; signal pairs; per-fold tree/HGB models (`research/indicator_screen/report.md`) | SCREEN only, no backtest. label:buy candidate bars: best single column `atr_pct_roll` (AUC ≈ 0.59); HGB on all columns 0.62 early / 0.625 late vs ARO 0.61 / 0.60 vs width 0.55. Price-level and calendar columns dominate naive regime results (tagged, not counted). Regime models that beat the persistence baseline: 9 blocks, all at 48/288 bars; none for A2 |
 | 036 | realistic P&L: live NNNC dry-run recording depth, an execution-cost model, and a cost-budget stake cap (`research/live_pnl`) | recording since 2026-10-16; US2/US3 wait for the gate (≥ 4 weeks and ≥ 5 orders per pair) |
 | 035 | new-input screen: 17 non-OHLCV / market-state inputs, plus both32 (ind24 + raw8) (`research/new_inputs`) | no input beats the control at S2 |

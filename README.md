@@ -283,6 +283,15 @@ Internally, every GAN type is wrapped by a `GANBackend` subclass (in `GANs/backe
 | `NNNC_CGP_Wavenet`  | WaveNet                 |
 | `NNNC_CGP_MLX_*`    | Apple MLX variants      |
 
+**Reference book (2026-10-19): `NNNC_CS_ARO` (`cs_aro`).** Research found that, among the gbb
+trigger's candidates, the models mostly sort on Bollinger band width, so the reference book enters
+on the gbb rule plus a per-fold `bb_width` cut (the "width book", `NNNC/_width_book.py`) and uses
+the ARO model (`NNNC_A_Raw_Open`) only to size stakes, capital-neutrally (`NNNC/_width_sizer.py`).
+It beats the width book by +8.5 pp on the same trades (provisional). New NNNC experiments are judged
+against it, and `research/live_pnl/live_fold.py` builds a cs_aro live fold by default (`--book aro`
+for the plain model book). The larger-stake variant `cs_aro_all3k` scores higher in backtests but is
+not the default until slippage is measured (feature 036). See `AGENT_GUIDE.md`, "Current state".
+
 ### NNMT Family
 
 `NNMT/` uses multi-task classification — the model predicts several variables simultaneously, which reduces overfitting. Variants follow the same naming pattern as NNNC.
