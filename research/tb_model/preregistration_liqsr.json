@@ -1,0 +1,115 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Signal-rank liquidity guard: keep signals in the top third of the pair's own recent signal candles (momentum, cs_aro, cs_aro_all3k)",
+ "date": "2026-10-18",
+ "label": "PROVISIONAL -- one era (2023-26), seed 1 weights for the reversion arms, momentum model-free. Nothing adopted.",
+ "why": "preregistration_liqnz.json (traded-candle median, 5x): momentum PASS (PROVISIONAL, +10.77/+3.32 n.s.), cs_aro and cs_aro_all3k FAIL late (-1.39, -4.09); refusals there fell mostly on SOL/XRP, i.e. partly a pair filter. Offline (full-sample, lookahead) the within-pair top tercile of SIGNAL candles held 77% of cs_aro's P&L, both halves positive. This is that tercile made causal: rank each signal against the same pair's previous signal candles.",
+ "guard": {
+  "st_g24_mom_liqsr": {
+   "signals": 160,
+   "quantile": 0.6666666666666666
+  },
+  "cs_aro_liqsr": {
+   "signals": 20,
+   "quantile": 0.6666666666666666
+  },
+  "cs_aro_all3k_liqsr": {
+   "signals": 20,
+   "quantile": 0.6666666666666666
+  }
+ },
+ "definition": "signal candle = a row of the book's own entry mask (before the volume > 0 / rvol checks); history = the pair's previous K such rows with quote volume > 0 (current row excluded) inside the backtest dataframe (4096-bar startup + test window); keep where quote volume > the history's 2/3 quantile; fewer than K prior traded signals -> kept (no filter)",
+ "parameter_choice": "From the observe-mode probes (st_g24_mom_srprobe, cs_aro_srprobe: 15/15 folds hash-identical to the s4k controls) and refusal shares on the controls' trades only (no P&L read): traded signal rows per pair per 90 days ~710 (momentum, consecutive rows) vs ~82 (reversion), so K = ~3 weeks of signals (160 / 20). Cut q = 1/3 refuses only 4.3% / 8.3% / 8.4% of control trades (near-inert, not registered); q = 2/3 refuses 20.8% / 25.3% / 26.2%, with 2.2% / 12.5% / 12.1% of control trades lacking K prior signals (kept).",
+ "arms": {
+  "st_g24_mom_liqsr": "SimpleTrigger_BreakoutGbb_MomExit_G24 (startup 4096) + LIQUIDITY_GUARD {signals 160, quantile 2/3}",
+  "cs_aro_liqsr": "NNNC_CS_ARO (startup 4096, cs_aro's weights via MODEL_TRAINED_WITH) + LIQUIDITY_GUARD {signals 20, quantile 2/3}",
+  "cs_aro_all3k_liqsr": "NNNC_CS_ARO_ALL3K (startup 4096, same weights) + LIQUIDITY_GUARD {signals 20, quantile 2/3}"
+ },
+ "controls": {
+  "st_g24_mom_liqsr": "st_g24_mom_s4k",
+  "cs_aro_liqsr": "cs_aro_s4k",
+  "cs_aro_all3k_liqsr": "cs_aro_all3k_s4k (all from earlier pre-registrations, already run)"
+ },
+ "probes": "st_g24_mom_srprobe, cs_aro_srprobe (observe mode, run before registration): 15/15 folds trades_hash-identical to their s4k controls",
+ "plans": [
+  "evaluation/folds/plan_st_g24_mom_liqsr.json",
+  "evaluation/folds/plan_cs_aro_liqsr.json",
+  "evaluation/folds/plan_cs_aro_all3k_liqsr.json"
+ ],
+ "code": "utils/LiquidityGuardMixin.py (signal-rank mode, observe flag, FT_LIQ_GUARD_DUMP; utils/tests/test_liquidity_guard.py); SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit_G24_{SRProbe,LiqSR}.py; NNNC/NNNC_CS_ARO_{SRPROBE,LIQSR}.py, NNNC/NNNC_CS_ARO_ALL3K_LIQSR.py",
+ "instrument": "all 15 records per arm; each arm run with FT_LIQ_GUARD_DUMP (its own signal rows, thresholds, keep flags); per arm: >= 99% of its trades' signal candles (the row before the entry open, in the trade's own fold dump) have keep = True; >= 10% of its control's trades' signal candles fail the arm's threshold in the same dump; trades in both halves; 0 position adds. Fail -> that question INCONCLUSIVE, no P&L read",
+ "questions": {
+  "QS1": "judge_one(st_g24_mom_liqsr, st_g24_mom_s4k) PASS: the signal-rank guard improves the momentum book",
+  "QS2": "judge_one(cs_aro_liqsr, cs_aro_s4k) PASS: it improves the reversion book",
+  "QS3": "judge_one(cs_aro_all3k_liqsr, cs_aro_all3k_s4k) PASS: it improves the all-available reversion book"
+ },
+ "returns_reading": "pre-registered SECONDARY for all three: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "each arm vs its preregistration_liqnz.json counterpart (st_g24_mom_liqnz, cs_aro_liqnz, cs_aro_all3k_liqnz); slippage re-score at 0 / 2.5 / 5 / 10 bps per side and break-even per side; trades, median stakes; refusal share by pair",
+ "order": "one chain: st_g24_mom_liqsr, cs_aro_liqsr, cs_aro_all3k_liqsr backtests (each with its own dump directory), then research.tb_model.liqsr <dump root>",
+ "seen_before": [
+  "all results of st_g24_mom, *_s4k, *_liqnz (QN1 PASS, QN2/QN3 FAIL late), cs_aro, cs_aro_all3k",
+  "offline full-sample within-pair tercile tables (research/tb_model/liquidity_offline.py)",
+  "the probes' signal densities and the q = 1/3 and 2/3 refusal shares on control trades (no P&L split by them); no backtest of any arm here"
+ ],
+ "question": "Does keeping only the signals in the top third of the pair's own recent signal-candle liquidity raise the momentum, reversion and all-available reversion books?"
+}
