@@ -1,0 +1,102 @@
+{
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "small_margin_pp": 1.0,
+ "small_margin_rule": "if any primary half gain is < 1 pp, a PASS is INCONCLUSIVE",
+ "decisions": [
+  "PASS (PROVISIONAL)",
+  "FAIL",
+  "INCONCLUSIVE"
+ ],
+ "title": "Liquidity-rank sizing, seed-2 repeat (cs_aro_liqsz, cs_aro_all3k_liqsz)",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26), seed-2 weights (trained for preregistration_seed2.json) and seed-2 threshold picks. Nothing adopted.",
+ "why": "preregistration_liqsr2.json seed 1: QZ1 cs_aro_liqsz 62.98 vs 59.90 (+0.49 / +2.59) INCONCLUSIVE by the small-margin rule; QZ2 cs_aro_all3k_liqsz 117.10 vs 114.10 (-1.82 / +4.81) FAIL early. Training is deterministic per seed, so variance needs another seed.",
+ "arms": {
+  "cs_aro_liqsz_s2": "NNNC_CS_ARO_LIQSZ, seed-2 weights, seed-2 thresholds (plan_cs_aro_liqsz_r2.json, run_folds --seed 2)",
+  "cs_aro_all3k_liqsz_s2": "NNNC_CS_ARO_ALL3K_LIQSZ, same"
+ },
+ "controls": {
+  "cs_aro_liqsz_s2": "cs_aro_s4k_s2 (NNNC_CS_ARO_S4K, seed 2)",
+  "cs_aro_all3k_liqsz_s2": "cs_aro_all3k_s4k_s2 (NNNC_CS_ARO_ALL3K_S4K, seed 2)"
+ },
+ "guard": "unchanged from preregistration_liqsr2.json: {signals 20, quantile 2/3, size {share 0.75, weights [1.0, 0.5]}}",
+ "plans": [
+  "evaluation/folds/plan_cs_aro_s4k_r2.json",
+  "evaluation/folds/plan_cs_aro_s4k_s2.json",
+  "evaluation/folds/plan_cs_aro_all3k_s4k_r2.json",
+  "evaluation/folds/plan_cs_aro_all3k_s4k_s2.json",
+  "evaluation/folds/plan_cs_aro_liqsz_r2.json",
+  "evaluation/folds/plan_cs_aro_liqsz_s2.json",
+  "evaluation/folds/plan_cs_aro_all3k_liqsz_r2.json",
+  "evaluation/folds/plan_cs_aro_all3k_liqsz_s2.json"
+ ],
+ "code": "no strategy change; research/tb_model/liqsz_s2.py (judge)",
+ "instrument": "all 15 seed-2 records per arm and control; arms run with FT_LIQ_GUARD_DUMP: 100% of trades tagged ':liqhi' / ':liqlo'; hi share in [0.65, 0.85]; mean tag stake factor in [0.95, 1.05]; >= 99% of tags agree with the dump's keep flag; trades in both halves; 0 adds; arm and control trade counts within 2%. Fail -> INCONCLUSIVE, no P&L read",
+ "questions": {
+  "QZ1s2": "judge_one(cs_aro_liqsz_s2, cs_aro_s4k_s2) PASS",
+  "QZ2s2": "judge_one(cs_aro_all3k_liqsz_s2, cs_aro_all3k_s4k_s2) PASS"
+ },
+ "combined": "per book: PASS (PROVISIONAL, 2 seeds) if the seed-2 decision is PASS (PROVISIONAL) AND the two-seed mean gain is >= 1 pp in each half; FAIL if the seed-2 decision is FAIL; otherwise INCONCLUSIVE. Seed-1 gains: cs_aro +0.49 / +2.59, all3k -1.82 / +4.81",
+ "returns_reading": "pre-registered SECONDARY: Sharpe / maxDD ignored, labelled RETURNS-ONLY",
+ "reported": "warm-up nulls cs_aro_s4k_s2 vs cs_aro_s2 and cs_aro_all3k_s4k_s2 vs cs_aro_all3k_s2; slippage; maxDD both seeds",
+ "order": "one chain: cs_aro_s4k_r2, cs_aro_all3k_s4k_r2, cs_aro_liqsz_r2, cs_aro_all3k_liqsz_r2 (run_folds --seed 2), then research.tb_model.liqsz_s2 <dump root>",
+ "seen_before": [
+  "all seed-1 results incl. liqsr2",
+  "seed-2 results of cs_aro and cs_aro_all3k (startup 64) from preregistration_seed2.json",
+  "no seed-2 backtest of any arm or s4k control here"
+ ],
+ "question": "Does liquidity-rank sizing's seed-1 result repeat on seed-2 weights?"
+}
