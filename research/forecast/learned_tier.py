@@ -63,9 +63,21 @@ def lgb_params(pr: dict, seed: int) -> dict:
     return p
 
 
-def run(fset: str, seed: int) -> pd.DataFrame:
+def make_model(kind: str, pr: dict, seed: int):
+    """lgb: the pre-registered LightGBM. ridge: Ridge(alpha=1) on features standardised by a scaler
+    fitted on the training rows only (preregistration_ridge.json)."""
+    if kind == "ridge":
+        from sklearn.linear_model import Ridge
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        return make_pipeline(StandardScaler(), Ridge(alpha=1.0, fit_intercept=True))
     from lightgbm import LGBMRegressor
 
+    return LGBMRegressor(**lgb_params(pr, seed))
+
+
+def run(fset: str, seed: int, kind: str = "lgb") -> pd.DataFrame:
     pr = C.prereg()
     data, cols = pooled(fset)
     finite = np.isfinite(data[cols].to_numpy(np.float32)).all(axis=1)
@@ -87,9 +99,9 @@ def run(fset: str, seed: int) -> pd.DataFrame:
             y = y_all[tm]
             if fset == "null":
                 y = null_targets(y, seed=seed * 1000 + k * 10 + C.HORIZONS.index(n))
-            m = LGBMRegressor(**lgb_params(pr, seed)).fit(feats[tm], y)
+            m = make_model(kind, pr, seed).fit(feats[tm], y)
             out.loc[data.index[pred_mask], f"f_{n}"] = m.predict(feats[pred_mask])
-            print(f"  {fset} s{seed} {fid} n={n:3d} train {tm.sum():7d} predict {pred_mask.sum():6d} "
+            print(f"  {kind} {fset} s{seed} {fid} n={n:3d} train {tm.sum():7d} predict {pred_mask.sum():6d} "
                   f"[{time.time() - t0:7.1f}s]", flush=True)
     return out.drop(columns=["fold"]).assign(failed=False, skipped_gap=lambda d: d["f_1"].isna())
 
@@ -98,12 +110,18 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", required=True, choices=["L", "LA", "LW", "null"])
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--model", choices=["lgb", "ridge"], default="lgb")
     a = ap.parse_args(argv)
+    name = f"{a.model}_{a.set}" + ("" if a.seed == 1 else f"_s{a.seed}")
     rc = C.refuse_unless_registered()
+    if not rc and name in C.POST_HOC:
+        rc = C.refuse_unless_registered(prereg=C.POST_HOC[name])
+    if not rc and a.model == "ridge" and name not in C.POST_HOC:
+        print(f"REFUSED: {name} is not registered")
+        rc = 2
     if rc:
         return rc
-    name = f"lgb_{a.set}" + ("" if a.seed == 1 else f"_s{a.seed}")
-    p = run(a.set, a.seed)
+    p = run(a.set, a.seed, a.model)
     C.write_feather(p.reset_index(drop=True), C.PRED / f"{name}.feather")
     print(f"wrote {name}: {len(p)} rows, forecast share {p['f_1'].notna().mean():.3f}")
     return 0

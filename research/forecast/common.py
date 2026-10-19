@@ -24,6 +24,9 @@ DATADIR = ROOT / "user_data" / "data" / "binanceus"
 PREREG = HERE / "preregistration.json"
 AMEND_HARMONIC = HERE / "preregistration_harmonic.json"  # post-hoc harmonic methods (038 follow-up)
 HARMONIC = ("harm", "harm_s", "harm_d", "harm_sd")
+AMEND_RIDGE = HERE / "preregistration_ridge.json"  # post-hoc linear benchmark (038 follow-up)
+#: post-hoc method -> the amendment that registered it (committed before its results)
+POST_HOC = {**{m: AMEND_HARMONIC for m in HARMONIC}, "ridge_L": AMEND_RIDGE}
 PLAN = STRAT / "evaluation" / "folds" / "plan_cs_aro.json"
 CONFIG = STRAT / "config" / "config_wf.json"
 

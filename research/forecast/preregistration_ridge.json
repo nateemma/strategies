@@ -1,0 +1,15 @@
+{
+ "label": "038 post-hoc addition: Ridge regression, the linear benchmark for the learned tier",
+ "date": "2026-10-19",
+ "status": "POST-HOC: added after the 038 verdicts were read (dcc4f2b9), at the user's request, as the honest linear counterpart to LightGBM (TSPredict's default PassiveAggressive ignores errors under epsilon=1.5 and has no intercept). Rule, costs, folds, training rows and scorer unchanged from preregistration.json; verdicts labelled post-hoc.",
+ "rule": "identical to preregistration.json",
+ "methods": {
+  "ridge_L": {
+   "tier": 2,
+   "stride": 1,
+   "features": "set L (as lgb_L)",
+   "params": "sklearn Ridge(alpha=1.0, fit_intercept=True) on features standardised with a StandardScaler fitted on each fit's training rows only (Principle XI); same anchored training span, purge, stride-4 rows and row filters as lgb_L",
+   "seed": "deterministic: a seed-2 rerun is identical by construction, so condition (e) is met by the seed-1 run"
+  }
+ }
+}

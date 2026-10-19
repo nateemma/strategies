@@ -54,7 +54,14 @@ def decide(h: dict, pr: dict, learned: bool, seed2: dict | None = None) -> tuple
 
 
 def _learned(method: str, pr: dict) -> bool:
-    return pr["methods"].get(method, {}).get("tier", 2 if method.startswith("lgb_") else 0) >= 2
+    learned = method.startswith(("lgb_", "ridge_"))
+    return pr["methods"].get(method, {}).get("tier", 2 if learned else 0) >= 2
+
+
+def _deterministic(method: str) -> bool:
+    """Ridge has no seed: a seed-2 rerun is identical, so the seed-1 run meets condition (e)
+    (preregistration_ridge.json)."""
+    return method.startswith("ridge_")
 
 
 def judge(scores: dict, pr: dict) -> dict:
@@ -62,7 +69,7 @@ def judge(scores: dict, pr: dict) -> dict:
     for m, s in scores.items():
         if m.endswith("_s2"):
             continue
-        s2 = scores.get(f"{m}_s2")
+        s2 = scores.get(f"{m}_s2") or (s if _deterministic(m) else None)
         cells[m] = {}
         for n, h in s["n"].items():
             v, why = decide(h, pr, _learned(m, pr), s2["n"].get(n) if s2 else None)
@@ -94,9 +101,10 @@ def _brief(c: dict, pr: dict) -> dict:
 def main(argv=None) -> int:
     scores_p, inst_p = C.HERE / "scores.json", C.HERE / "instrument.json"
     rc = C.refuse_unless_registered([scores_p, inst_p, *C.PRED.glob("*.feather")])
-    harm = [C.PRED / f"{m}.feather" for m in C.HARMONIC if (C.PRED / f"{m}.feather").exists()]
-    if not rc and harm:
-        rc = C.refuse_unless_registered(harm, prereg=C.AMEND_HARMONIC)
+    for m, amend in C.POST_HOC.items():
+        f = C.PRED / f"{m}.feather"
+        if not rc and f.exists():
+            rc = C.refuse_unless_registered([f], prereg=amend)
     if rc:
         return rc
     inst = json.loads(inst_p.read_text()) if inst_p.exists() else {}
@@ -106,7 +114,7 @@ def main(argv=None) -> int:
         return 2
     pr = C.prereg()
     out = judge(json.loads(scores_p.read_text()), pr)
-    out["post_hoc_methods"] = [m for m in out["cells"] if m in C.HARMONIC]
+    out["post_hoc_methods"] = [m for m in out["cells"] if m in C.POST_HOC]
     C.write_json(C.HERE / "verdicts.json", out)
     for m, cs in out["cells"].items():
         print(f"{m:12s} " + " ".join(f"{n}:{c['verdict'][:4]}" for n, c in cs.items()))

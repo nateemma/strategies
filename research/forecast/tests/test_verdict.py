@@ -90,3 +90,12 @@ def test_most_viable_and_break_even():
 def test_refuses_without_committed_preregistration(monkeypatch, tmp_path):
     monkeypatch.setattr(C, "PREREG", tmp_path / "missing.json")
     assert C.refuse_unless_registered([]) == 2
+
+
+def test_ridge_is_learned_and_deterministic():
+    good = {str(n): halves() for n in C.HORIZONS}
+    bad = {str(n): halves(e=cell(net=-0.001)) for n in C.HORIZONS}
+    out = V.judge({"ridge_L": {"n": good}, "lgb_null": {"n": bad}}, PR)
+    assert all(c["verdict"].startswith("PASS") for c in out["cells"]["ridge_L"].values())
+    out = V.judge({"ridge_L": {"n": good}, "lgb_null": {"n": good}, "lgb_null_s2": {"n": good}}, PR)
+    assert all(c["verdict"] == "INCONCLUSIVE" for c in out["cells"]["ridge_L"].values())  # null downgrade
