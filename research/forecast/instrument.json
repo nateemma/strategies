@@ -1,7 +1,7 @@
 {
  "SC-001": {
   "pass": true,
-  "detail": "56 passed in 1.76s"
+  "detail": "56 passed in 1.75s"
  },
  "SC-002a": {
   "pass": true,
@@ -13,7 +13,10 @@
    "16": 0.0,
    "32": 0.0,
    "48": 0.0,
-   "96": 0.0
+   "96": 0.0,
+   "192": 0.0,
+   "288": 0.0,
+   "384": 0.0
   }
  },
  "SC-002b": {
@@ -43,16 +46,23 @@
    "hist_mean": true,
    "holt": true,
    "holt_w128": true,
+   "holt_w1344": true,
    "holt_w256": true,
+   "holt_w288": true,
    "holt_w32": true,
+   "holt_w672": true,
    "lgb_AT": true,
    "lgb_L": true,
    "lgb_LA": true,
    "lgb_LAT": true,
    "lgb_LW": true,
+   "lgb_LX": true,
+   "lgb_L_long": true,
    "lgb_null": true,
+   "lgb_null_long": true,
    "ridge_AT": true,
    "ridge_L": true,
+   "ridge_LX": true,
    "ses": true,
    "ss_expsm": true,
    "theta": true,
@@ -76,16 +86,23 @@
    "hist_mean": true,
    "holt": true,
    "holt_w128": true,
+   "holt_w1344": true,
    "holt_w256": true,
+   "holt_w288": true,
    "holt_w32": true,
+   "holt_w672": true,
    "lgb_AT": true,
    "lgb_L": true,
    "lgb_LA": true,
    "lgb_LAT": true,
    "lgb_LW": true,
+   "lgb_LX": true,
+   "lgb_L_long": true,
    "lgb_null": true,
+   "lgb_null_long": true,
    "ridge_AT": true,
    "ridge_L": true,
+   "ridge_LX": true,
    "ses": false,
    "ss_expsm": false,
    "theta": true,

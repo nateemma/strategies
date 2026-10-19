@@ -74,11 +74,12 @@ def liveness() -> dict:
             continue
         d = pd.read_feather(p)
         f = d[[c for c in d.columns if c.startswith("f_")]].dropna()
-        across_n[p.stem] = bool(len(f) and not np.allclose(f["f_1"].to_numpy()[:, None], f.to_numpy()))
+        first = f.columns[0]  # long-horizon-only methods have no f_1 / f_16
+        across_n[p.stem] = bool(len(f) and not np.allclose(f[first].to_numpy()[:, None], f.to_numpy()))
         if p.stem == "hist_mean":  # constant within a fold by definition; it moves across folds
-            out[p.stem] = bool(d["f_1"].nunique() > 1)
+            out[p.stem] = bool(d[first].nunique() > 1)
             continue
-        out[p.stem] = bool(len(f) and f["f_16"].std() > 0)
+        out[p.stem] = bool(len(f) and f[first].std() > 0)
     return {"pass": all(out.values()) if out else None, "methods": out, "differs_across_n": across_n}
 
 

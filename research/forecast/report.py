@@ -133,7 +133,7 @@ def main(argv=None) -> int:
         L += ["## Per pair, late half: mean net bp at N=16 (trades)", "",
               "| method | " + " | ".join(p.split("/")[0] for p in C.pairs()) + " |", "|---|" + "---|" * len(C.pairs())]
         for m, s in sorted(scores.items()):
-            pp = s["n"]["16"]["late"].get("pairs", {})
+            pp = _n(s, 16)["late"].get("pairs", {})
             L.append(f"| {m} | " + " | ".join(
                 f"{bp(pp.get(p, {}).get(NET), 0)} ({pp.get(p, {}).get('n_trades', 0)})" for p in C.pairs()) + " |")
         L.append("")

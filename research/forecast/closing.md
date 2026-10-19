@@ -82,3 +82,21 @@ The conclusion doesn't change. No PASS anywhere, and the null control passes now
 **What the follow-ups add to "where this points":**
 - **The trend signal improves with a longer look-back.** Holt on 256 candles at N=32 nets −4 / −2 bp, with edge +12 / +27. This matches the literature: crypto momentum lives at longer horizons. A test at N ≥ 96 with look-backs of days is the natural next horizon question.
 - **The literature's most actionable lead is cross-asset inputs** (other pairs' and BTC's lagged returns): new information from data already held.
+
+## Cross-asset inputs and 2–4 day horizons (`preregistration_long_xasset.json`, post-hoc)
+
+7 more methods, 59 cells: still no PASS, and the null control passes nowhere. Break-even N stays 48.
+
+- **Cross-asset information is real, but it is short-horizon information.**
+  - Adding BTC and other-pair market returns raises the out-of-sample R² at N=1 five-fold: +3.8% (LightGBM LX) against +0.7% (L).
+  - The edge over random entry at N=1 turns positive (+2.5 / +1.6 bp, from −0.5 / −1.3).
+  - The effect fades by N ≥ 16, and 2.5 bp is nowhere near a 30 bp round trip.
+  - This matches the literature: cross-coin lead-lag lives at minutes. It is new information, but at a horizon our costs can't pay for.
+  - Ridge on the same inputs: R² +2.1% at N=1, edge ≈ 0.
+- **At 2–4 days, the early half is market drift, not skill.**
+  - Early-half nets are large (+40 to +98 bp), but the shuffled-target control is also positive early (+5 to +35 bp) with negative edge over random entry. 2023–24 rewarded any long held for days.
+  - Every method's late-half net at 2–4 days is negative except one: LightGBM L at N=288 (3 days), +74.9 / +1.6 bp net, edge +11 / +45 bp. That cell is INCONCLUSIVE (lower bound −76 bp; about 1,300–1,500 trades).
+- **Longer Holt windows help only up to about 3 days of look-back.** Holt on 288 candles at N=48 nets +3.6 / +0.5 bp, edge +14 / +30 (INCONCLUSIVE). That's the same horizon and sign as vote C. On 7 or 14 days of look-back the edge disappears or turns negative.
+- **Overall:** about 280 method × horizon cells, three marginal INCONCLUSIVE cells (vote C N=48, Holt-288 N=48, LightGBM L N=288), no PASS. Price-only and cross-asset forecasting of close does not clear costs on these pairs. The remaining live lead is the 12 h trend timing as a filter inside NNNC/NNMT (memory: project_todo_trend_filter_nnnc).
+
+`TSPredict/TS_ForecastPlot.py` plots the Holt-window forecasts and the vote C signal for inspection (plot-only; see its docstring).
