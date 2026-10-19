@@ -344,3 +344,22 @@ Momentum keeps nearly all its trades (5,233 vs 5,284): refused signals are repla
 same pair; median stake 479 vs 313 (more liquid candles, bigger cap); late half turns positive (+2.62)
 and break-even rises 0.075% -> 0.089% per side, still negative late at 2.5 bps. Reversion loses 9-10% of
 trades; early gains, late loses in both books; on all3k break-even falls 0.714% -> 0.603% per side.
+
+## Signal-rank liquidity guard (preregistration_liqsr.json)
+
+Guard: keep a signal only where its candle's quote volume > the 2/3 quantile of the pair's previous K
+traded signal candles (K 160 momentum / 20 reversion, ~3 weeks); fewer than K -> kept. Observe-mode
+probes were 15/15 hash-identical to the s4k controls.
+
+| Q | arm vs control | total | early / late | maxDD | decision |
+|---|---|---|---|---|---|
+| QS1 | st_g24_mom_liqsr vs st_g24_mom_s4k | 42.48 vs 35.13 | +1.71 / +5.64 (p 0.71) | 18.2 vs 24.1 | PASS (PROVISIONAL) |
+| QS2 | cs_aro_liqsr vs cs_aro_s4k | 57.30 vs 59.90 | +1.13 / -3.73 (p 0.80) | 5.04 vs 4.49 | FAIL (late) |
+| QS3 | cs_aro_all3k_liqsr vs cs_aro_all3k_s4k | 99.86 vs 114.10 | -7.51 / -6.73 (p 0.54) | 11.6 vs 8.2 | FAIL (both) |
+
+Returns-only: same decisions. Instrument PASS (keep share 1.0 / 0.998 / 0.998; controls fail 20.8 /
+25.3 / 26.2%). Reported vs the liqnz arms: momentum -9.05 / +2.32, cs_aro -5.65 / -2.34, all3k
+-7.85 / -2.64. Even ranked within the pair, refusals concentrate on SOL and XRP (43-49% of their
+control trades vs 3-9% for AAVE/BCH): their entries fire on candles below their own recent signal
+candles. Momentum late half +4.94 (break-even 0.077%/side, -0.96 at 2.5 bps). Reversion loses the
+late half in both books under either guard design.
