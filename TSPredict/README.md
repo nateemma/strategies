@@ -1,249 +1,177 @@
 # Time Series Prediction (TSPredict)
 
-_*NOTE: these streategies currently do not work too well. Some of them perform slightly better than Market, but not much more.  
-The fundamental problem appears to be that the regression algorithms cannot handle the complexity of the underlying time series (predominantly the gain). I am currently investigating ways to address this*_
-
-_Also, the current performance is worse than previous releases because I fixed a subtle bug involving lookahead bias_
-
-Strategies in this directory implement a common approach to 'simply' estimating future values of a time series - in this case, the gain. I use gain instead of price because the values are similar across all pairs (price is not at all) and so I can create models that work for any pair.
-
-In general, most (all except TS_Wavelet*) of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.
-On subsequent runs, the strategy will load the saved model, and use that as the basis for all pairs. Pair-specific data is used to incrementally train the model with new data as it becomes available (but this is not saved). In theory, prediction accuracy should get better over time
-
-_*Warning*_: backtest results can look really good for these strategies, but be sure to try these out in a dry run.  
-The backtest results are good because the trades are 'perfect', meaning that they execute immediately; in the real world, there are delays and spreads that take away profit from each trade, and since these strategies inherently look at quick in & out trades that has a big impact. 
-Also, you can hyperopt these strategies to get what appears to be really good returns, usually by emphasising fast trades. In live environments, this approach tends to get hit hard by quick downward swings and reversals.  
-So, I have been trying to tune the hyperparameters to be 'safer', and optimise for expectancy rather than profit.
-
-_*
-Currently, the win rate on these strategies is pretty good, but they all seem to suffer from buying into 'false' reversals, i.e. the price is going down then swings up, but then quickly drops (a long way) down again. The strategies see this reversal and trade into it. I am currently looking into various momentum indicators to try and fix this...
-*_
-
-## Quick Start
-
-1. Download data<br>
-
-    > zsh user_data/strategies/scripts/download.sh binanceus
-
-2. Test over a long period of time to create a decent base model (only need to do this once per strat). No need for this with Wavelet strategies.
-
-    > zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict \<_strat_\>
-
-3. Test over reasonable time period
-
-    > zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict \<_strat_\>
-
-4. Plot data
-
-    > zsh user_data/strategies/scripts/plot_strat.sh -n 7 TSPredict \<_strat_\> \<_pair_\>
-
-5. Examine plot
-In a browser, open the file file://user_data/plot/freqtrade-plot-ALGO_USDT-5m.html <br>
-but you probably need to fix the path to point to wherever you installed freqtrade. 
-Replace ALGO_USDT with whatever pair you used when running plot_strat.sh
-
-The plot for _predicted\_gain_ should look something like the plot for _gain_, but shifted forward in time (since it is attempting to predict future values of _gain_). When the value of _predicted\_gain_ crosses above _target\_profit_, an entry signal should be generated. Conversely, when the value of _predicted\_gain_ crosses below _target\_loss_, an exit signal should be generated. Note that this may not always happen, since extra guard conditions could be active (look in the .json file)
-
-## Files
-
-The majority of functional code is in the class _TSPredict.py_ - this implements the basic dataframe handling, model loading/saving/training, custom stoploss/exit and populate_entry/exit functions.<br>
-Similarly _TS_Wavelet.py_ contains the base code for the Wavelet family of strategies (see below)
-
-Other classes add on different approaches to modelling the future values, for example:
-
-- TS_Gain_*.py<br>
-These classes predict on _only_ the historical gain values. These are not particularly good strategies, they are mostly here to serve as a baseline (any viable strategy should do better than these), and a way to find lookahead bias.
-
-- TS_Coeff_*.py<br>
-These add coefficients to the indicators that are based on various signal estimation algorithms, such as FFT, DWT etc. The estimation coefficients are added to the indicators and the prediction/regression algorithm is trained using those coefficients
-
-- TS_Wavelet_*.py<br>
-Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWT etc.), predict the future values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
-Note: these strategies do not save/reload models, so you do not need to train them before use
-
-Note: yes, I know there many other algorithms that could be used. If you don't see them here, it generally means they didn't perform well, so I didn't include them.
-
-## Indicators
-
-If you want to add indicators, then you should create a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategies, which does not use stored models).
-
-## Models
-
-Models, if used, are saved in user_data/strategies/saved_data/\<_classname_\>
-
-If you change indicators or the prediction/regression algorithm (or sometimes update the package) then you will need to delete and regenerate the model.
-
-For example, say we change something in TS_Coeff_DWTA.py that requires a model update, we would probably do the following:
-
-~~~
-# remove existing model
-rm -r user_data/strategies/TSPredict/models/TS_Coeff_DWTA
-
-# download data (this will only download missing data)
-zsh user_data/strategies/scripts/download.sh -n 600 binanceus
-
-# regenerate the model over a long time period
-zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Coeff_DWTA
-
-# test over a recent time period
-zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Coeff_DWTA
-
-# plot the last few days
-zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Coeff_DWTA ALGO/USDT
-
-# load the file user_data/plot/freqtrade-plot-ALGO_USDT-5m.html into a browser and check buy/sell events
-
-~~~
-
-## Downloading Test Data
-
-To run backtest and hyperopt, you need to download data to your local environment.
-<br>
-You do this using a command like this:
-
-> freqtrade download-data --timerange=_\<timerange\>_ -c _\<config\>_-t 5m
-
-I typically download for the past 180 days, which is the default used by the various scripts.
-
-For convenience, you can also just run :
-
-> zsh user_data/strategies/scripts/download.sh *\[\<exchange\>\]*
-
-## Backtesting
-
-Backtesting is where you run your strategy on historical data to see how it would have performed.
-
-In all command/shell examples, _\<strategy\>_ is the name of the strategy being used, and _\<timerange\>_ is the range
-of time to use for testing (duh).
-
-Examples of _\<timerange\>_ might be:
-
-- _20210501-_       May 1st, 2021 until present date
-- _20210603-20210605_   June 3rd 2021 until June 5th 2021
-
-Before you can backtest, you must download data for testing.
-
-It is recommended that you update fairly often (e.g. once per week) and on a limited time range (e.g. the last month).
-Optimising results for the past year or 6 months doesn't really help you perform better with the current market
-conditions.
-
-Backtesting can be done using the following command:
-
-> freqtrade backtesting -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --timerange=
-_\<timerange\>_
-
-Or, you can use a script:
-
-> zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict _\<strategy\>_
-
-Use the -h option for options.
-
-*NOTE*: if you get really good results in backtesting (100% or more) then it is highly likely that your strategy is
-performing lookahead (using future data). This is remarkably easy to do, since the entire set of test data is present in
-the dataframe when your strategy is calculating indicators. So, if you do something like take a mean, find a min/max
-etc. then you are operating on the entire data set, not just the older data. To avoid this, either use the TA-lib
-functions or process the data through the _rolling_ mechanism.
-
-See [here](https://www.freqtrade.io/en/latest/strategy-customization/#common-mistakes-when-developing-strategies) for (a
-little) more information
-
-Also, some example strategies with subtle lookahead bias can be viewed (with an explanation)
-at: <https://github.com/freqtrade/freqtrade-strategies/tree/master/user_data/strategies/lookahead_bias>
-
-## Hyper-Parameter Optimisation
-
-Run the hyperopt command to search for 'optimal' parameters in your strategy.
-
-The parameters that can be tuned are defined in the strategy using calls such as:
-
-> buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-
-In this example, the code is telling freqtrade that the strategy has a _buy_ parameter named _buy\_bb\_gain_, which is a
-floating point number (Decimal) between 0.01 and 0.1, using 2 decimal places
-
-Note that performance is _dramatically_ affected by the parameters (especially ROI) and timeframe. Also, strategies
-tuned for a specific exchange will typically not perform well on other exchanges.
-
-The freqtrade command to run the optimisation is:
-
-> freqtrade hyperopt -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --spaces _\<space\>_
-> --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
-
-where:
-
-_\<space\>_ specifies which space to try and optimise. Typical options are buy, sell, roi, stoploss and trailing. I tend
-to _not_ optimise for stoploss, and just set it manually to 10% (-0.1), or 99% for strategies that use dynamic ROI or a
-custom stoploss (e.g. FBB_Solipsis)
-
-Or, you can use a script:
-
-> zsh user_data/strategies/scripts/hyp_strat.sh -s "buy sell roi" _\<exchange\>_ _\<strategy\>_
-
-If you have a fast computer, try _--space buy sell_ and then _--spaces sell_, but if you have a slower computer, try
-them in sequence.
-
-NOTE: the optimised parameters are written to a json file that matches the strategy file, e.g. DWT.py will produce
-DWT.json. freqtrade commands (backtesting, dryrun, live running) will take the parameters from that file. Those
-settings _override_ any equivalent settings contained in the python file, so if you are changing parameters in the
-python code and nothing is happening, check the json file (it took me a while to figure that out)
-
-The optimisation run does not always produce better results, so look carefully). I tend to open the json file before
-running the optimisation, copy the contents to the paste buffer, and then paste them back if there was no improvement.
-
-## Plotting Results
-
-It is often very useful to see a visual representation of your strategy. You can do this using the plot-dataframe
-command:
-
-> freqtrade plot-dataframe --strategy-path _\<path\>_ --strategy _\<strategy\>_  -p BCH/USD --timerange=_\<timerange\>_
-> --indicators1 ema5 ema20 --indicators2 mfi
-
-This example creates a plot for pair BCH/USD, adds ema5 and ema20 to the main chart and adds a plot of mfi below that (
-these must exist in your dataframe for the strategy). You can find it in the _user_data/plot/_ directory, and in this
-case the name of the file would be:
-_user_data/plot/freqtrade-plot-BCH_USD-5m.html_
-<p>You can open this in a browser, and you can zoom in/out and move around</p>
-Any buys and sells generated by backtesting (if any) will be shown on the plot, which is very useful for debugging.
-
-Tip: constrain the plot to a day or 2, otherwise you have to zoom in a lot. Also, when debugging, use the -p option in
-backtesting, which will cause the strategy to run only on the pair that you specify, and not across the whole list of
-pairs. Also, choose the pair that has the worst performance in your strategy to see where things are going wrong.
-
-## Dry Runs
-
-Easy. In a command window, just run:
-
-> freqtrade trade --dry-run --strategy-path _\<path\>_ --strategy _\<strategy\>_
-
-If you install freqUI (instructions [here](https://www.freqtrade.io/en/stable/rest-api/)), then you can monitor the
-trades on a web page at <http://127.0.0.1:8080/> (or whatever address you specify in config.json)
-
-The script helper is:
-
-> zsh user_data/strategies/scripts/dryrun_strat.sh -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
-
-The -p is optional, but if you want to run multiple strategies on the same exchange you need to use this. In such cases,
-there needs to be a matching config file in the base _freqtrade_ directory of the form _
-config\_\<exchange\>\_\<port\>.json_, and the port number in the config file must match.
-
-## Live Trading
-
-Just to repeat:
-
-**Never, _ever_, go to live trading without first running the strategy (for at least a week) in a dry run to see how it
-performs with real, live data**
-
-For this, you need an account on an exchange, and you need to modify config.json to specify which exchange, trading
-limits, private keys etc. You need to get API keys from the exchange website, but that is usually easy.
-
-In a command window, just run:
-
-> freqtrade trade --strategy _\<strategy\>_
-
-The script helper is:
-
-> zsh user_data/strategies/scripts/run_strat.sh -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
-
-You can monitor trades from the UI (see above), and from the exchange website/app
-
-Note that you need your computer synched up to an NTP time source to do this.
+Strategies that try to forecast where price will be a few candles ahead, and trade on the forecast.
+For setup, data download, backtesting, plotting, hyperopt, dry runs and live trading, see the
+[main README](../README.md); everything here is specific to this directory.
+
+> **Status (2026-10-19): none of these approaches works after costs.** A full study (feature 038,
+> summarised below) tested every forecasting method in this directory, and several more, against
+> realistic costs. Nothing passed, which is what the published research predicts. Treat the strategies
+> here as reference and research code, not as candidates for live trading.
+
+## What is here
+
+All strategies predict **gain**: the percentage change in close over the next `lookahead` candles. Gain
+is used instead of price because it is comparable across pairs, so one model can serve every pair.
+
+| Files | Approach |
+|---|---|
+| `TSPredict.py` | Base class: dataframe handling, model load/save/train, walk-forward predictions, entry/exit and custom stoploss |
+| `TS_Gain_*.py` | Predict from the gain history alone. Baselines, and a check for lookahead bias |
+| `TS_Coeff_*.py` | Add signal-decomposition coefficients (FFT, DWT, SWT, MODWT, WPT) to the indicators and train a regressor on them |
+| `TS_Wavelet*.py`, `TS_Wavelet.py` | Decompose the gain with a transform, forecast each component, rebuild the series. These do not save models |
+| `BuyRegions.py` | A simple strategy that marks buy/sell regions, used with hyperopt to tune the guard indicators the TSPredict family uses |
+| `TS_ForecastPlot.py` | **Plot-only** view of the 038 trend forecasts (damped Holt on 32/64/128/256 candles, 12 h ahead) and the vote-C signal. Forecasts every 16 candles and caches them, so long ranges plot quickly |
+
+The forecasters these strategies use live in `utils/Forecasters.py`. The trend vote also exists as
+framework triggers, which run with plain `freqtrade backtesting`:
+
+```
+.venv/bin/freqtrade backtesting --strategy SimpleTrigger_HoltVoteUp \
+    --strategy-path user_data/strategies/SimpleTrigger -c user_data/strategies/config/config_wf.json \
+    --timerange 20250101-20250401
+```
+
+Use `SimpleTrigger_HoltVoteFade` for the long-only fade, and see `research/holt_trigger/report.md`.
+
+To plot the forecasts:
+
+```
+zsh user_data/strategies/scripts/plot_strat.sh -c user_data/strategies/config/config_wf.json \
+    -n 14 TSPredict TS_ForecastPlot SOL/USDT
+```
+
+### Models and custom indicators
+
+- Strategies other than `TS_Wavelet*` load a saved model if one exists, and otherwise train one. Run them
+  over a long period the first time.
+- If you change the indicators or the regression algorithm, delete the strategy's saved model so it is
+  regenerated.
+- To add indicators, subclass a strategy and override `add_strategy_indicators()`.
+
+### Library changes on 2026-10-19 (affect every result from before that date)
+
+The 038 study found and fixed defects in `utils/Forecasters.py`. Known-answer tests now guard each one
+(`utils/tests/test_forecaster_horizons.py`).
+
+| | Defect | Now |
+|---|---|---|
+| D1 | Exponential, StateSpace, ETS, ARIMA and SimpleExp returned the forecast one candle **too far** ahead | Exact horizon |
+| D2 | SimpleExpSmoothing crashed on statsmodels 0.15 | Fixed |
+| D3 | ARIMA returned **zeros** when its fit failed (looks like a genuine "no move" forecast) | Raises `ForecastFailed` |
+| D4 | Regressors added the **training** targets' trend to forecasts for a different window | Uses the forecast window's own trend |
+| D5 | `FFT_EXTRAPOLATION` (predict type 4) fed FFT coefficients to a regressor trained on returns | Raises `ForecastUnavailable` |
+| D6 | `TS_Wavelet.predict` / `rolling_predict` called a helper with the wrong arguments (dead code) | Raise `NotImplementedError` |
+| D8 | ARIMA and Theta built their model once and **re-fitted the first window forever** | Fresh model per window |
+| D9 | The base `retrend` adds past window positions' trend to forecasts instead of extending it | **Not fixed** (TSPredict defaults use it) |
+| D10 | The base `smooth` is centred and zero-padded, so the window's last value collapses (4.663 → 3.496 on log close) | **Not fixed** (TSPredict defaults use it) |
+
+D9 and D10 still affect any forecaster run with `set_detrend(True)` or `set_smooth(True)`, which are
+TSPredict's defaults. `harmonic_forecaster` (new) does its own correct detrending and smoothing.
+
+**Why FFT extrapolation cannot forecast:** the inverse FFT is periodic in the window length, so the
+"forecast" h candles ahead is the window's own value h−1 candles after its start. Raising or lowering the
+frequency cutoff only smooths what gets repeated. `harmonic_forecaster` (frequencies fitted off-grid by
+least squares) extends sinusoids properly, but 15m crypto prices contain no stable cycles to extend.
+
+## What the 038 study found
+
+Full write-up: `research/forecast/closing.md`. Tables: `research/forecast/report.md`. Spec:
+`specs/038-close-forecast-study/`.
+
+**Question:** can any method forecast the return of close N candles ahead (N = 15 minutes to 4 days)
+well enough to trade **long, after costs**? Costs were a 0.10% fee plus 5 bp slippage per side, a 30 bp
+round trip.
+
+**How it was judged:**
+- Long-only trades on the strongest forecasts, entered at the next open, compared with random entry at
+  the same cost.
+- The result had to hold in both 2023–24 and 2025–26.
+- The rule was committed before any model result, and a shuffled-target control guarded the learned
+  models.
+- The same rule covered every later addition, each registered before its own results.
+
+**Methods tested (about 280 method × horizon combinations):**
+- baselines;
+- AR, Holt, SES, ETS, ARIMA and Theta;
+- harmonic regression, with and without smoothing and detrending;
+- Ridge and LightGBM on lagged returns, on the NNNC indicators, on SWT/FFT components, on causal
+  à trous wavelets, and on cross-asset (BTC and market) returns;
+- N-of-M forecast votes;
+- the Holt vote as momentum and fade triggers, backtested in the full framework.
+
+**Findings:**
+1. **No method or horizon is tradeable.** There is no PASS anywhere. The few marginal cells (at most
+   +10 bp net per trade) are what chance produces across this many tests, and the best one lost money in
+   the most recent six weeks.
+2. **Costs are not the obstacle; the forecasts are.** Typical moves exceed the 30 bp cost from 30
+   minutes up (8× at 1 day). The forecasts just don't pick out the big ones.
+3. **Predictable is not profitable.** The best fits are at 15 minutes (R² up to 3.8% with cross-asset
+   inputs), where moves are smaller than the cost. Where moves are big enough, skill is close to zero.
+4. **The only real effect is trend timing,** worth 10–35 bp per trade over random entry at 4–24 h. It's
+   too small to pay its costs and changes sign with the market regime: it worked in 2023–24, and buying
+   after rallies lost in late 2026. As a framework trigger it lost to the existing momentum and reversion
+   triggers.
+5. **More model does not help.** LightGBM was no better than Ridge, and Ridge no better than a damped
+   Holt. Wavelet and FFT inputs added nothing once boundary leakage was removed. The limit is the
+   information in the inputs, not the method.
+6. **Cycles do not extend.** Harmonic models overshoot, and a vote across cutoffs is one forecast in
+   disguise: its members correlate at 0.97.
+
+**This is what the literature predicts.** Return forecasts reach out-of-sample R² below about 1% even
+with rich inputs (Welch & Goyal; Campbell & Thompson; Gu, Kelly & Xiu). In the M6 competition forecast
+accuracy and investment results were barely related. Crypto momentum is real but short-lived and only
+pays at longer horizons. Wavelet and EMD forecasting gains reported in many papers come from decomposing
+the whole series before the train/test split (Hasumi & Kajita). The intraday crypto edges that survive
+costs in published work come from other information: other coins' returns at minute horizons, and order
+flow.
+
+**What could still change the answer:**
+- **New information.** Order flow, which the live NNNC recorder (feature 036) is collecting.
+- **Using the trend or relative-weakness state inside an existing book** (NNNC/NNMT) as a filter or
+  sizer, where it does not have to pay its own costs.
+- **Lower measured execution costs.**
+
+## References
+
+Verification: **[web]** = checked against a publisher, repository or arXiv record. **[kb]** = details
+from standard knowledge, not re-fetched; spot-check before citing externally. The full annotated review,
+with links and per-paper notes on what each implies for this work, is `research/forecast/literature.md`.
+
+**Return predictability and evaluation**
+- Welch, I., Goyal, A. (2008). A Comprehensive Look at the Empirical Performance of Equity Premium Prediction. *Review of Financial Studies* 21(4), 1455–1508. [kb]
+- Campbell, J.Y., Thompson, S.B. (2008). Predicting Excess Stock Returns Out of Sample: Can Anything Beat the Historical Average? *Review of Financial Studies* 21(4), 1509–1531. [kb]
+- Gu, S., Kelly, B., Xiu, D. (2020). Empirical Asset Pricing via Machine Learning. *Review of Financial Studies* 33(5), 2223–2273. [kb]
+- Makridakis, S. et al. (2025). The M6 forecasting competition: Bridging the gap between forecasting and investment decisions. *International Journal of Forecasting* 41(4), 1315–1354; arXiv:2310.13357. [web]
+- Harvey, C.R., Liu, Y., Zhu, H. (2016). …and the Cross-Section of Expected Returns. *Review of Financial Studies* 29(1), 5–68. [web: NBER WP 20592]
+- Harvey, C.R., Liu, Y. (2015). Backtesting. *Journal of Portfolio Management* 42(1), 13–28. [web]
+- Bailey, D.H., López de Prado, M. (2014). The Deflated Sharpe Ratio. *Journal of Portfolio Management* 40(5), 94–107. [kb]
+- Bailey, D.H., Borwein, J.M., López de Prado, M., Zhu, Q.J. (2014). Pseudo-mathematics and financial charlatanism: the effects of backtest overfitting on out-of-sample performance. *Notices of the AMS* 61(5), 458–471. [web]
+- López de Prado, M. (2018). *Advances in Financial Machine Learning.* Wiley. [kb]
+
+**Crypto: intraday predictability, momentum, order flow**
+- Guo, L., Sang, B., Tu, J., Wang, Y. (2024). Cross-cryptocurrency return predictability. *Journal of Economic Dynamics and Control* 163, 104863. [web]
+- Fischer, T., Krauss, C., Deinert, A. (2019). Statistical Arbitrage in Cryptocurrency Markets. *Journal of Risk and Financial Management* 12(1), 31. [web]
+- Hudson, R., Urquhart, A. (2021). Technical trading and cryptocurrencies. *Annals of Operations Research* 297, 191–220. [web]
+- Shen, D., Urquhart, A., Wang, P. (2022). Bitcoin intraday time series momentum. *Financial Review* 57(2), 319–344. [web]
+- Borgards, O. (2021). Momentum in cryptocurrencies (interday and intraday). *North American Journal of Economics and Finance* 57. [web record; exact title unverified]
+- Liu, Y., Tsyvinski, A. (2021). Risks and Returns of Cryptocurrency. *Review of Financial Studies* 34(6), 2689–2727. [kb]
+- Moskowitz, T., Ooi, Y.H., Pedersen, L.H. (2012). Time series momentum. *Journal of Financial Economics* 104(2), 228–250. [kb]
+- Cont, R., Kukanov, A., Stoikov, S. (2014). The price impact of order book events. *Journal of Financial Econometrics* 12(1), 47–88. [kb]
+- Kolm, P.N., Turiel, J., Westray, N. (2023). Deep order flow imbalance: Extracting alpha at multiple horizons from the limit order book. *Mathematical Finance* 33(4), 1044–1081. [web]
+
+**Wavelets, decomposition and spectral methods**
+- Renaud, O., Starck, J.-L., Murtagh, F. (2005). Wavelet-based combined signal filtering and prediction. *IEEE Trans. Systems, Man, and Cybernetics, Part B* 35(6), 1241–1251. [web]
+- Hasumi, R., Kajita, Y. (2018). Boundary problem and data leakage: A caveat for wavelet-based forecasting. JCER Discussion Paper 148. [web]
+- Percival, D.B., Walden, A.T. (2000). *Wavelet Methods for Time Series Analysis.* Cambridge University Press. [kb]
+- Gençay, R., Selçuk, F., Whitcher, B. (2002). *An Introduction to Wavelets and Other Filtering Methods in Finance and Economics.* Academic Press. [kb]
+- Ehlers, J.F. (2001). *Rocket Science for Traders.* Wiley; (2013) *Cycle Analytics for Traders.* Wiley. Practitioner books. [kb]
+- *Bias effect on predicting market trends with EMD.* Expert Systems with Applications (2017), DOI 10.1016/j.eswa.2017.03.053. [web record; authors unverified]
+
+**Forecasting methods and combination**
+- Hyndman, R.J., Athanasopoulos, G. (2021). *Forecasting: Principles and Practice*, 3rd ed. OTexts, https://otexts.com/fpp3/. [kb]
+- Zeng, A., Chen, M., Zhang, L., Xu, Q. (2023). Are Transformers Effective for Time Series Forecasting? *AAAI 2023*; arXiv:2205.13504. [kb]
+- Bates, J.M., Granger, C.W.J. (1969). The Combination of Forecasts. *Operational Research Quarterly* 20(4), 451–468. [kb]
+- Timmermann, A. (2006). Forecast Combinations. In *Handbook of Economic Forecasting*, vol. 1, ch. 4, 135–196. Elsevier. [kb]
+- Claeskens, G., Magnus, J.R., Vasnev, A.L., Wang, W. (2016). The forecast combination puzzle: A simple theoretical explanation. *International Journal of Forecasting* 32(3), 754–762. [web]
+- Wang, X., Hyndman, R.J., Li, F., Kang, Y. (2023). Forecast combinations: An over 50-year review. *International Journal of Forecasting* 39(4), 1518–1547; arXiv:2205.04216. [web: arXiv]
