@@ -1,0 +1,203 @@
+{
+ "title": "040 regime-transition target (research R11, R12): a causal bear->bull / bull->bear label at 1, 3 and 7 days, pair and BTC level; its stand-in screen; trading arms only for passing cells",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test. Committed before any transition label is built.",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "definition": {
+  "z": "z_L(t) = log(close_t / SMA_L(t)) / (sigma(t) * sqrt(L)); SMA over L bars (min_periods L); sigma = trailing std of 1-bar log returns over sigma_window bars (min_periods sigma_min_periods)",
+  "state": "BULL if z >= +deadband, BEAR if z <= -deadband, else SIDEWAYS (L = H)",
+  "label": "UP if S_H(t) != BULL and S_H(t+H) == BULL; DOWN if S_H(t) != BEAR and S_H(t+H) == BEAR; NaN where either end is unknown",
+  "deadband": 0.5,
+  "sigma_window": 2880,
+  "sigma_min_periods": 960
+ },
+ "grid": {
+  "H": [
+   96,
+   288,
+   672
+  ],
+  "level": [
+   "pair",
+   "btc"
+  ],
+  "direction": [
+   "up",
+   "down"
+  ],
+  "note": "96/288/672 bars = 1/3/7 days at 15m; btc = BTC's close joined by date, predicted on every pair's rows"
+ },
+ "rows": "tradeable bars only (037 cache meta:data_ok and volume > 0) of the 10 screen pairs; BTC is an input and the btc-level label source, not a scored pair",
+ "causality": {
+  "pairs": [
+   "SOL/USDT",
+   "LTC/USDT",
+   "AAVE/USDT"
+  ],
+  "cuts": 16,
+  "warmup": 3000,
+  "rtol": 1e-09,
+  "rule": "z_L and the state from every prefix equal the full series' on the overlap (L in {H, H/4}); the label from a prefix ending at a cut equals the full label for t <= cut-H and is NaN after; every stand-in input has an explicit PASS in 037's truncation tables. Any mismatch: STOP (no screen runs)."
+ },
+ "stand_in": {
+  "model": "sklearn HistGradientBoostingClassifier, one-vs-rest per cell (UP vs rest, DOWN vs rest)",
+  "hgb": {
+   "max_iter": 300,
+   "learning_rate": 0.05,
+   "max_leaf_nodes": 31,
+   "min_samples_leaf": 200,
+   "l2_regularization": 1.0,
+   "early_stopping": false,
+   "random_state": 0
+  },
+  "indicators": [
+   "adx_scaled",
+   "aroonosc_scaled",
+   "atr_norm",
+   "bb_position",
+   "bb_width",
+   "cci_scaled",
+   "di_diff_scaled",
+   "ema_fast_norm",
+   "fast_diff",
+   "fastk_scaled",
+   "fisher_ss",
+   "cg_ss",
+   "gain_norm",
+   "guard_metric_pos",
+   "guard_metric_neg",
+   "macd_pos",
+   "macd_neg",
+   "macdhist_norm",
+   "mfi_scaled",
+   "rsi_scaled",
+   "sar_ratio",
+   "spread_ma",
+   "vwap_pos",
+   "vwap_neg"
+  ],
+  "raw8": [
+   "ret1",
+   "ret4",
+   "log_hc",
+   "log_lc",
+   "log_oc",
+   "range",
+   "logvol_z",
+   "vol_ratio"
+  ],
+  "btc": "BTC's raw8 (btc: prefix) joined by date",
+  "state_lengths": [
+   24,
+   72,
+   96,
+   168,
+   288,
+   672
+  ],
+  "state_inputs": "z_L of the pair's close and of BTC's close for each state length (causal; the trailing-trend baseline's information is inside the model, so the model must beat it with something else)",
+  "fit": "each fold: rows with date < test_start - tail_days - H bars (purge H); hourly subsample (minute == 0)",
+  "tail_days": 90,
+  "tail": "rows in [test_start - tail_days, test_start - H bars): out-of-sample predictions, the arms' percentile source",
+  "hourly_train": true
+ },
+ "baselines": {
+  "base_rate": "AUC 0.5",
+  "trailing_trend": "AUC of z_{H/4}(t) of the same level (sign-flipped for DOWN): 'the trend has already turned'"
+ },
+ "screen_rule": {
+  "min_auc_margin": 0.02,
+  "margin": "AUC - max(0.5, trailing-trend AUC), pooled per half over the half's test windows",
+  "min_events_per_half": 200,
+  "events": "run starts of the positive label per pair",
+  "proxy_top_share": 0.1,
+  "round_trip_bp": 30,
+  "proxy": "top decile of each fold's scored test bars, pooled per half: UP -> mean forward H-bar log return of the pair, in bp, minus 30 > 0; DOWN -> top-decile mean minus all-bar mean <= -30",
+  "pass": "margin >= 0.02 in BOTH halves AND events >= 200 in both halves AND the proxy passes in both halves",
+  "selection": "per direction, the passing cell with the largest late-half margin goes forward to the arms"
+ },
+ "arms": {
+  "tr_gate": {
+   "comparator": "cs_aro",
+   "use": "cs_aro's book skips an entry while P(DOWN, selected cell) >= the 80th percentile of that fold's tail predictions"
+  },
+  "tr_scale": {
+   "comparator": "cs_aro",
+   "use": "cs_aro's stake x1.333 when P(UP) >= tail p80, x0.667 when P(DOWN) >= tail p80 (both: unchanged)"
+  },
+  "tr_long": {
+   "comparator": "st_g24_rev",
+   "rule": "sign_vs_zero",
+   "use": "standalone long entry when P(UP) >= tail p99, on st_g24_rev's exit stack; PASS if pooled pp > 0 in both halves AND the bootstrap 95% CI of the per-trade mean pp (seed 0) excludes 0; st_g24_rev reported"
+  },
+  "tr_exit": {
+   "comparator": "cs_aro",
+   "use": "cs_aro closes an open trade at the first candle with P(DOWN) >= tail p90"
+  }
+ },
+ "head_version": "only if a stand-in cell passes: <M>_trh retargets the regime head with that cell's label (UP/NONE/DOWN, task weight 1); screened with the same rule; if its AUC is within 0.01 of the stand-in's in both halves its tables replace the stand-in's in the passing arms",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seeds": "any PASS is re-run with the HGB re-fit at random_state 1",
+ "instrument_files": [
+  "screens_transition.json"
+ ],
+ "seen_before": [
+  "037: regime-style targets beat persistence only at 48/288 bars; price-level/calendar columns produced spurious winners (excluded here: inputs are the deployed model's)",
+  "NNMT's regime label is a centred-mean state (not used here)",
+  "no transition label has been built or scored before this commit"
+ ]
+}

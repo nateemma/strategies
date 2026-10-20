@@ -843,6 +843,53 @@ class NNMTClassifierMLX_Multi_Transformer(NNMTClassifierMLX_Base):
         return _TransformerHead(num_filters)
 
 
+# ===========================================================================
+# 040 (research R6): the multi-task twin of NNNC's LSTM_RAW (ARO's architecture).
+# Features go straight into one shared LSTM -- no resize, no Conv1d preamble, no
+# residual -- and each task gets ARO's decode head (bottleneck Linear + ELU +
+# dropout -> Linear -> softmax) on the last time step.
+# ===========================================================================
+
+RAW_DROPOUT = 0.25  # NNNClassifierMLX.DROPOUT, which ARO's LSTM_RAW uses (this module's DROPOUT is 0.2)
+
+
+class _RawLSTMTaskHead(nn.Module):
+    """ARO's decode (NNNClassifierMLX._LSTMModel.decode) for one task: (B, nf) -> (B, 3)."""
+
+    def __init__(self, num_filters: int):
+        super().__init__()
+        self.bottleneck = nn.Linear(num_filters, num_filters)
+        self.drop = nn.Dropout(RAW_DROPOUT)
+        self.out = nn.Linear(num_filters, 3)
+
+    def __call__(self, h: mx.array) -> mx.array:
+        return mx.softmax(self.out(self.drop(nn.elu(self.bottleneck(h)))), axis=-1)
+
+
+class _NNMTRawLSTMModel(nn.Module):
+    """Input (B, S, F) -> LSTM(F -> nf) -> last step -> LayerNorm -> Dropout -> six task heads."""
+
+    def __init__(self, num_features: int, num_filters: int):
+        super().__init__()
+        self.lstm = nn.LSTM(num_features, num_filters)
+        self.ln = nn.LayerNorm(num_filters)
+        self.drop = nn.Dropout(RAW_DROPOUT)
+        self.task_heads = [_RawLSTMTaskHead(num_filters) for _ in TASK_NAMES]
+
+    def __call__(self, x: mx.array):  # type: ignore[override]
+        out, _ = self.lstm(x)
+        h = self.drop(self.ln(out[:, -1, :]))
+        return {task: head(h) for task, head in zip(TASK_NAMES, self.task_heads)}
+
+
+class NNMTClassifierMLX_LSTM_Raw(NNMTClassifierMLX_Base):
+    """BARE multi-task LSTM (040): raw features straight into the LSTM, ARO's head per task."""
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _NNMTRawLSTMModel(num_features, num_filters)
+
+
 # ---------------------------------------------------------------------------
 # ClassifierTypeMLX enum + factory
 # ---------------------------------------------------------------------------
@@ -863,6 +910,7 @@ class ClassifierTypeMLX(Enum):
     Multi_MLP = NNMTClassifierMLX_Multi_MLP
     Multi_Attention = NNMTClassifierMLX_Multi_Attention
     Multi_Transformer = NNMTClassifierMLX_Multi_Transformer
+    LSTM_RAW = NNMTClassifierMLX_LSTM_Raw
 
 
 def create_classifier_mlx(

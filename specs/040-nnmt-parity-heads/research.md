@@ -261,7 +261,7 @@ every head-arm percentile is taken from it.
 
 **Causal regime state** `S_L(t)` for a trailing window L ending at t:
 - `z = log(close_t / SMA_L(t)) / (σ_15m(t) · √L)`, where `σ_15m` is the trailing 2880-bar standard
-  deviation of 1-bar log returns;
+  deviation of 1-bar log returns (min_periods 960);
 - BULL if z ≥ +0.5, BEAR if z ≤ −0.5, else SIDEWAYS.
 
 **Transition label at horizon H** (L = H). It uses future data, as a label may:
@@ -283,8 +283,9 @@ next H", which a trader could have known at t+H.
 **Stand-in model (screen)**:
 - 037's per-fold HistGradientBoosting (`research/indicator_screen/screen_models.fit_fold` settings),
   one-vs-rest per direction, trained on each fold's training window with a purge of H bars.
-- Inputs: the deployed model's inputs (the 24 indicators + raw8) plus BTC's raw8 and BTC's
-  `S_L(t)` z for L ∈ {96, 288, 672}. They are read from 037's panel (`research/indicator_screen`
+- Inputs: the deployed model's inputs (the 24 indicators + raw8) plus BTC's raw8, and the causal
+  z of the pair's and BTC's close for L ∈ {24, 72, 96, 168, 288, 672}. The trailing-trend baseline's
+  information is inside the model, so the model must beat it with something else. They are read from 037's panel (`research/indicator_screen`
   `base:*` and `raw8:*` columns, the same causal-checked harvest). BTC's z is computed by
   `transition.py` itself. Rows: tradeable bars (volume > 0, `meta:data_ok`), hourly subsample for
   training.

@@ -120,7 +120,7 @@ NNMT/
 ├── NNMTStrategy.py          R1 EntryFrameworkMixin (all off); R2 key classification;
 │                            R8 head-probability capture (_head_probs)
 ├── NNMTClassifierMLX.py     R6 ClassifierTypeMLX.LSTM_RAW (no preamble, linear heads)
-├── _operating_point.py      R4 ARO operating point (merged buy params)
+├── _nnmt_operating_point.py R4 ARO operating point (merged buy params); _nnmt_inputs.py R6 input sets
 ├── _transition.py           R12 regime-head retarget with the R11 label (conditional)
 ├── NNMT_LR.py, NNMT_LR_Raw.py, NNMT_LR_RI.py, NNMT_Raw.py    R6 variants
 ├── README.md                stale reference fixed; status at the end
