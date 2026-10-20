@@ -2026,5 +2026,287 @@
   "threshold": 0.8,
   "rows": 81610,
   "enter_long": 452
+ },
+ "NNP_RIDGE_f00": {
+  "class": "NNP_RIDGE_OP_f00",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 7997
+ },
+ "NNP_RIDGE_f01": {
+  "class": "NNP_RIDGE_OP_f01",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 6751
+ },
+ "NNP_RIDGE_f02": {
+  "class": "NNP_RIDGE_OP_f02",
+  "threshold": 0.3,
+  "rows": 84950,
+  "enter_long": 7799
+ },
+ "NNP_RIDGE_f03": {
+  "class": "NNP_RIDGE_OP_f03",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9233
+ },
+ "NNP_RIDGE_f04": {
+  "class": "NNP_RIDGE_OP_f04",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 10369
+ },
+ "NNP_RIDGE_f05": {
+  "class": "NNP_RIDGE_OP_f05",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9986
+ },
+ "NNP_RIDGE_f06": {
+  "class": "NNP_RIDGE_OP_f06",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9252
+ },
+ "NNP_RIDGE_f07": {
+  "class": "NNP_RIDGE_OP_f07",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 10376
+ },
+ "NNP_RIDGE_EXC_f00": {
+  "class": "NNP_RIDGE_EXC_OP_f00",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 6026
+ },
+ "NNP_RIDGE_EXC_f01": {
+  "class": "NNP_RIDGE_EXC_OP_f01",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 4384
+ },
+ "NNP_RIDGE_EXC_f02": {
+  "class": "NNP_RIDGE_EXC_OP_f02",
+  "threshold": 0.3,
+  "rows": 84950,
+  "enter_long": 5350
+ },
+ "NNP_RIDGE_EXC_f03": {
+  "class": "NNP_RIDGE_EXC_OP_f03",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6829
+ },
+ "NNP_RIDGE_EXC_f04": {
+  "class": "NNP_RIDGE_EXC_OP_f04",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 7165
+ },
+ "NNP_RIDGE_EXC_f05": {
+  "class": "NNP_RIDGE_EXC_OP_f05",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6408
+ },
+ "NNP_RIDGE_EXC_f06": {
+  "class": "NNP_RIDGE_EXC_OP_f06",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6487
+ },
+ "NNP_RIDGE_EXC_f07": {
+  "class": "NNP_RIDGE_EXC_OP_f07",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 7028
+ },
+ "NNP_RIDGE_H24_f00": {
+  "class": "NNP_RIDGE_H24_OP_f00",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 7249
+ },
+ "NNP_RIDGE_H24_f01": {
+  "class": "NNP_RIDGE_H24_OP_f01",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 5829
+ },
+ "NNP_RIDGE_H24_f02": {
+  "class": "NNP_RIDGE_H24_OP_f02",
+  "threshold": 0.3,
+  "rows": 84950,
+  "enter_long": 6975
+ },
+ "NNP_RIDGE_H24_f03": {
+  "class": "NNP_RIDGE_H24_OP_f03",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 7621
+ },
+ "NNP_RIDGE_H24_f04": {
+  "class": "NNP_RIDGE_H24_OP_f04",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9224
+ },
+ "NNP_RIDGE_H24_f05": {
+  "class": "NNP_RIDGE_H24_OP_f05",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9013
+ },
+ "NNP_RIDGE_H24_f06": {
+  "class": "NNP_RIDGE_H24_OP_f06",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 8218
+ },
+ "NNP_RIDGE_H24_f07": {
+  "class": "NNP_RIDGE_H24_OP_f07",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 9901
+ },
+ "NNP_f00": {
+  "class": "NNP_LSTM_IND_OP_f00",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 7301
+ },
+ "NNP_f01": {
+  "class": "NNP_LSTM_IND_OP_f01",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 4834
+ },
+ "NNP_f02": {
+  "class": "NNP_LSTM_IND_OP_f02",
+  "threshold": 0.3,
+  "rows": 84950,
+  "enter_long": 4877
+ },
+ "NNP_f03": {
+  "class": "NNP_LSTM_IND_OP_f03",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6281
+ },
+ "NNP_f04": {
+  "class": "NNP_LSTM_IND_OP_f04",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 7137
+ },
+ "NNP_f05": {
+  "class": "NNP_LSTM_IND_OP_f05",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 5819
+ },
+ "NNP_f06": {
+  "class": "NNP_LSTM_IND_OP_f06",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 5593
+ },
+ "NNP_f07": {
+  "class": "NNP_LSTM_IND_OP_f07",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6507
+ },
+ "NNP_RIDGE_EXC32_f00": {
+  "class": "NNP_RIDGE_EXC32_OP_f00",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 4958
+ },
+ "NNP_RIDGE_EXC32_f01": {
+  "class": "NNP_RIDGE_EXC32_OP_f01",
+  "threshold": 0.3,
+  "rows": 77769,
+  "enter_long": 3221
+ },
+ "NNP_RIDGE_EXC32_f02": {
+  "class": "NNP_RIDGE_EXC32_OP_f02",
+  "threshold": 0.3,
+  "rows": 84950,
+  "enter_long": 3734
+ },
+ "NNP_RIDGE_EXC32_f03": {
+  "class": "NNP_RIDGE_EXC32_OP_f03",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 4741
+ },
+ "NNP_RIDGE_EXC32_f04": {
+  "class": "NNP_RIDGE_EXC32_OP_f04",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 5079
+ },
+ "NNP_RIDGE_EXC32_f05": {
+  "class": "NNP_RIDGE_EXC32_OP_f05",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 4457
+ },
+ "NNP_RIDGE_EXC32_f06": {
+  "class": "NNP_RIDGE_EXC32_OP_f06",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 4782
+ },
+ "NNP_RIDGE_EXC32_f07": {
+  "class": "NNP_RIDGE_EXC32_OP_f07",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6334
+ },
+ "NNP_RIDGE_EXC32_f08": {
+  "class": "NNP_RIDGE_EXC32_OP_f08",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 8059
+ },
+ "NNP_RIDGE_EXC32_f09": {
+  "class": "NNP_RIDGE_EXC32_OP_f09",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 5500
+ },
+ "NNP_RIDGE_EXC32_f10": {
+  "class": "NNP_RIDGE_EXC32_OP_f10",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 4512
+ },
+ "NNP_RIDGE_EXC32_f11": {
+  "class": "NNP_RIDGE_EXC32_OP_f11",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 6240
+ },
+ "NNP_RIDGE_EXC32_f12": {
+  "class": "NNP_RIDGE_EXC32_OP_f12",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 5068
+ },
+ "NNP_RIDGE_EXC32_f13": {
+  "class": "NNP_RIDGE_EXC32_OP_f13",
+  "threshold": 0.3,
+  "rows": 86410,
+  "enter_long": 4606
+ },
+ "NNP_RIDGE_EXC32_f14": {
+  "class": "NNP_RIDGE_EXC32_OP_f14",
+  "threshold": 0.3,
+  "rows": 81610,
+  "enter_long": 4279
  }
 }

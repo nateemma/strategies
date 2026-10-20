@@ -1,11 +1,11 @@
 {
- "days": 1.36,
+ "days": 3.36,
  "orders_per_pair": {
   "ZEC/USDT": 0,
   "XRP/USDT": 0,
   "SOL/USDT": 0,
   "LINK/USDT": 0,
-  "NEAR/USDT": 1,
+  "NEAR/USDT": 3,
   "AAVE/USDT": 0,
   "AVAX/USDT": 0,
   "LTC/USDT": 0,
