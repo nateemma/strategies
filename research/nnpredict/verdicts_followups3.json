@@ -1,0 +1,129 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "identity": {
+  "pass": true,
+  "folds_differing": [],
+  "folds": 15
+ },
+ "arms": {
+  "nnp_ridge_exc32_op_csa": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 411,
+     "late": 519
+    },
+    "trades": 930,
+    "pooled_pp": null
+   },
+   "alone": {
+    "arm": "nnp_ridge_exc32_op_csa",
+    "control": "w_aro",
+    "verdict": "PASS",
+    "failed": [],
+    "arm_trades": 930,
+    "ctl_trades": 930,
+    "arm_pp": 57.012,
+    "ctl_pp": 51.443,
+    "early_gain_pp": 1.0750000000000028,
+    "late_gain_pp": 4.4940000000000015,
+    "folds_changed": 14,
+    "paired": {
+     "verdict": "IMPROVED",
+     "delta_pp": 5.567438664210542,
+     "ci_pp_yr": [
+      0.15271938858247167,
+      2.914945318820076
+     ],
+     "p": 0.0281
+    },
+    "risk": {
+     "days": 1343,
+     "arm": {
+      "sharpe": 2.5379434249348205,
+      "maxdd": 6.036017826443352,
+      "daily_sd": 0.3195617268382576
+     },
+     "ctl": {
+      "sharpe": 2.4123463526189473,
+      "maxdd": 4.876079241340705,
+      "daily_sd": 0.3033591125568981
+     },
+     "sharpe_delta": 0.12559707231587325,
+     "sharpe_ci": [
+      -0.14013221876751197,
+      0.4052662268636679
+     ],
+     "sharpe_p": 0.356,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 1.1599385851026476,
+     "maxdd_ci": [
+      -0.8784550982954724,
+      1.4584797836988281
+     ],
+     "maxdd_p": 0.701,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.4651,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "IMPROVED",
+      "p": 0.03,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 557,
+     "trailing_stop_loss": 151,
+     "unclog_12h": 165,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    },
+    "exits_ctl": {
+     "take_profit": 557,
+     "trailing_stop_loss": 152,
+     "unclog_12h": 164,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    }
+   },
+   "decision": "PASS",
+   "paired": "IMPROVED",
+   "also": {
+    "cs_aro": {
+     "verdict": "FAIL",
+     "arm_pp": 57.012,
+     "ctl_pp": 59.949,
+     "early_gain_pp": -3.7749999999999986,
+     "late_gain_pp": 0.838000000000001,
+     "paired": "UNCHANGED"
+    },
+    "nnp_ridge_exc32_op_cs": {
+     "verdict": "PASS",
+     "arm_pp": 57.012,
+     "ctl_pp": 32.989,
+     "early_gain_pp": 15.619,
+     "late_gain_pp": 8.404000000000002,
+     "paired": "IMPROVED"
+    }
+   }
+  }
+ }
+}

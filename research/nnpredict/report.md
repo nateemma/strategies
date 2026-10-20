@@ -18,6 +18,10 @@ amendments say what had been seen first). Records are local (`regime/arms/`); ve
 - **Why:** the predictions rank 1–2 h outcomes inverted, and 8 h outcomes the right way but weakly.
   The best decile is 7–12 bp short of the 30 bp round trip. This matches 038.
 
+**Update (follow-ups 3, section 7):** the excursion-H32 Ridge's predicted move sizes `w_aro`'s width
+book to 57.01 pp vs 51.44 (IMPROVED p 0.028, both halves): NNPredict's first win over an NNNC
+reference. It is still 2.9 pp below `cs_aro`.
+
 ## 1. Fixes (US1)
 
 | Defect | Fix | Test |
@@ -192,3 +196,26 @@ Instrument notes:
   `_wb`'s trades are identical to the untagged run on 15/15 folds, and the model key is unchanged.
 - The CS template set its threshold in `bot_start`, a weight-shaping method, which re-keyed the
   model. It now sets it in `get_entry_conditions`.
+
+## 7. Follow-ups 3 (`preregistration_followups3.json`): the exc32 sizer on w_aro's own width book
+
+`w_aro`'s width book (the same per-fold cuts) and its resolved framework were copied onto the exc32
+class. `build_arms.waro` asserts framework_sha 7de225f72b71eef4 and an equal model key. The unsized
+twin `_wa` reproduces `w_aro` on **15/15** folds, so the sized arm differs from `w_aro` only in the
+stake, and from `cs_aro` only in the score.
+
+| Arm | Trades | Total pp | vs | Δ early | Δ late | Paired | Verdict |
+|---|---|---|---|---|---|---|---|
+| `nnp_ridge_exc32_op_csa` | 930 | **57.01** | `w_aro` 51.44 (930) | +1.08 | +4.49 | **IMPROVED (p 0.028)** | **PASS** |
+| | | | `cs_aro` 59.95 | −3.77 | +0.84 | UNCHANGED | FAIL (reported) |
+| | | | `_cs` (own exits) 32.99 | +15.62 | +8.40 | IMPROVED | (reported) |
+
+- **NNPredict works as a width-book sizer.** The excursion-H32 Ridge's predicted move sizes NNNC's
+  width book +5.6 pp better than flat stakes, in both halves, significantly. This is the first
+  NNPredict configuration in 039 to beat an NNNC reference.
+- **It does not beat `cs_aro`** (−2.9 pp). It is better in the late half (+0.84) and worse in the
+  early half (−3.77), unresolved.
+- The score is only partly the same as ARO's: ρ 0.36 with `cs_aro`'s p_buy on the early trades. That
+  makes it a candidate input for the composite/mixed sizer route (cs_mix), not tested here.
+- Follow-ups 2's weak own-exits result (+2.2 pp) was the NNPredict exit stack: on NNNC's exits the
+  same score is worth +5.6 pp.
