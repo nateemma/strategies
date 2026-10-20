@@ -4,12 +4,21 @@ The regression counterpart of `NNNC`: the model predicts a **continuous** future
 than a class, and a per-pair gate turns unusually strong predictions into entries. For setup, data,
 backtesting and the shared framework, see the [main README](../README.md).
 
-> **Status (2026-10-20, feature 039, `research/nnpredict/report.md`):** on the 15-fold harness every
-> NNPredict model loses money standalone (best: `NNPredict_LSTM_RawInd_OP`, −12.7 pp). Its predictions
-> rank 1–2 h outcomes inverted and 8 h outcomes weakly the right way, below the 30 bp round trip.
-> `NNPredictStrategy` now carries the NNNC entry framework (everything off, identical trades). Gating the
-> model by the gbb trigger is the one strong result (+29.7 pp, IMPROVED in both halves), but it still
-> trails the width book and `cs_aro`. As a width-book sizer the predicted move fails the screen.
+> **Status (2026-10-21, feature 039, `research/nnpredict/report.md`):** on the 15-fold harness every
+> NNPredict model loses money standalone (best: Ridge on the excursion target at H = 32, −11.0 pp).
+> `NNPredictStrategy` carries the NNNC entry framework.
+>
+> **Defaults since 2026-10-21 (039 adopted):** entry = the model AND the gbb trigger
+> (`ENTRY_MODE = "trigger_and_model"`, `TRIGGER_NAME = "gbb"`), guards open, percentile magnitude
+> floor. On `NNPredict_LSTM_RawInd` that is −12.7 → +29.7 pp (IMPROVED, both halves), and the plain
+> class reproduces the 039 gate arm's trades on 15/15 folds. On `st_g24_rev`'s exits the gbb trigger
+> alone still beats it, so the gain is the trigger's.
+>
+> **Where NNPredict earns its keep is as a width-book sizer.** The excursion-H32 Ridge's predicted move
+> sizes `w_aro`'s book to 57.0 vs 51.4 pp (IMPROVED), still below `cs_aro` 59.9.
+>
+> The 039 record classes pin what they ran: `_OP` arms are model-only (`_operating_point.py`), and the
+> as-shipped models stage runs `<Class>_Pre039` (`_pre039.py`).
 
 ## Target (`target_mode`)
 
@@ -34,8 +43,10 @@ Over the last `rolling_window` (200) predictions of each pair:
 | z-score ≤ −`entry_z` **and** prediction < −floor | SELL |
 | otherwise | HOLD |
 
-The floor is `max(min_magnitude, mag_std_mult × rolling std)` (`magnitude_floor_mode = "absolute"`,
-`min_magnitude` 0.10, `mag_std_mult` 0), or a rolling percentile of |prediction| (`"percentile"`).
+The floor is a rolling `magnitude_pctile` (0.60) percentile of |prediction| (`magnitude_floor_mode =
+"percentile"`, the default since 039), or `max(min_magnitude, mag_std_mult × rolling std)` (`"absolute"`,
+`min_magnitude` 0.10, `mag_std_mult` 0; the default before 039). A BUY becomes an entry only on a bar
+where the gbb trigger also fires (the 039 default gate) and the entry guards pass (open by default).
 
 This replaced the original rolling-quantile gate (q90/q10), which fired constantly when predictions
 were smooth (see memory: label smoothing backfires). The gate settings act after the model, so they

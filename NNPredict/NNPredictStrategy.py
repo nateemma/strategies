@@ -61,7 +61,15 @@ class NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy):
     # BaseNNStrategy's (the model's predict_buy), entries keep BaseStrategy's tag (no label family),
     # and no held-pair add. Proven identical to the pre-port trades on 15/15 folds before any feature
     # arm (research/nnpredict/preregistration_framework.json).
-    ENTRY_MODE = "model"
+    #
+    # 039 ADOPTED DEFAULTS (2026-10-21, user decision; research/nnpredict/report.md): entry = the model
+    # AND the gbb trigger (framework stage: +42.47 pp vs model-only, IMPROVED p 0.003, both halves),
+    # at the NNNC operating point (guards open, percentile magnitude floor -- below). NOT adopted:
+    # 24 h grace (fails on top of the gate) and the excursion-H32 target (weight-shaping: it would
+    # re-key every NNPredict model). The 039 record classes pin the settings they ran with
+    # (_operating_point.OperatingPointMixin, _pre039.Pre039DefaultsMixin).
+    ENTRY_MODE = "trigger_and_model"
+    TRIGGER_NAME = "gbb"
     MODEL_ENTRY_FAMILY = None
     HELD_PAIR_ADD = None
 
@@ -86,14 +94,16 @@ class NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy):
     }
 
     # Inherit the shared entry controls; override only what differs.
+    # 039 adopted: the guards OPEN, with NNNC_A_Raw_Open's own values (was adx 0.02, atr_pct 0.001,
+    # bb_width 0.0, close_norm 0.0, guard -0.2, rvol 1.0: those removed ~97% of model signals).
     buy_params = { **BaseNNStrategy.buy_params,
-        "entry_adx_threshold": 0.02,
-        "entry_atr_pct": 0.001,
-        "entry_bb_width_threshold": 0.0,
-        "entry_close_norm_threshold": 0.0,
-        "entry_enable_guards": True,
-        "entry_guard_threshold": -0.2,
-        "entry_rvol_threshold": 1.0,
+        "entry_adx_threshold": -1.0,
+        "entry_atr_pct": -1.0,
+        "entry_bb_width_threshold": -1.0,
+        "entry_close_norm_threshold": 5.0,
+        "entry_enable_guards": True,  # keeps the volume > 0 check live (BaseStrategy)
+        "entry_guard_threshold": 5.0,
+        "entry_rvol_threshold": -1.0,
         "prediction_threshold": 0.3,
     }
 
@@ -158,14 +168,16 @@ class NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy):
 
     # Magnitude-floor mode:
     #   "absolute"   — floor = max(min_magnitude, mag_std_mult * rolling_std)
-    #                  (the existing behaviour; unchanged default).
+    #                  (the default before 039).
     #   "percentile" — floor = rolling `magnitude_pctile` quantile of |pred|.
     # The absolute floor (0.10) is calibrated on the TARGET scale (~0.23) but is
     # applied to the raw predictions, which regress-to-mean and compress to a much
     # smaller, predictor-dependent scale (Ridge vs LSTM differ). A percentile
     # floor is scale-invariant: it always passes the top (1-pctile) fraction of
     # |pred|, so it self-calibrates to whatever amplitude the model outputs.
-    magnitude_floor_mode: str = "absolute"
+    # 039 adopted "percentile": the absolute 0.10 floor sat ~5 sigma out on Ridge's predictions
+    # (f00: 54 of 78,345 bars signalled).
+    magnitude_floor_mode: str = "percentile"
     magnitude_pctile: float = 0.60
 
     # entry_quantile / exit_quantile kept for backward compat but UNUSED

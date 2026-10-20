@@ -10,6 +10,10 @@ point applied to NNPredict, nothing tuned.
 
 Both act after the model (MODEL_KEY_IGNORED), so a class with this mixin reuses its base model's
 trained weights exactly.
+
+Since 039's adoption (2026-10-21) both are NNPredictStrategy's defaults, together with the gbb gate.
+Every 039 arm on this mixin ran the MODEL-ONLY entry, so the mixin pins it: those records reproduce,
+and an arm that wants the gate declares it (the _GATE arms do).
 """
 
 OPEN_GUARDS = {
@@ -24,6 +28,8 @@ OPEN_GUARDS = {
 
 
 class OperatingPointMixin:
+    ENTRY_MODE = "model"  # 039 records: the model-only entry they ran with (see above)
+    TRIGGER_NAME = None
     magnitude_floor_mode = "percentile"
 
     def __init_subclass__(cls, **kwargs):

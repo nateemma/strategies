@@ -1,7 +1,7 @@
 {
  "run_id": "039_nnp_ridge_sa",
  "family": "NNPredict",
- "base_strategy": "NNPredict_Ridge_SA",
+ "base_strategy": "NNPredict_Ridge_SA_Pre039",
  "anchored": true,
  "min_train_days": 730,
  "test_days": 90,
@@ -224,5 +224,5 @@
   }
  ],
  "params_sha": null,
- "note": "039 model stage (research/nnpredict/preregistration_models.json); class params, no .json"
+ "note": "039 model stage (research/nnpredict/preregistration_models.json); class params, no .json [2026-10-21: base NNPredict_Ridge_SA -> NNPredict_Ridge_SA_Pre039, the pre-039-adoption settings it ran with]"
 }
