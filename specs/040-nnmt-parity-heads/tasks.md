@@ -25,9 +25,9 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `research/nnmt/__init__.py`, `research/nnmt/tests/__init__.py` and `NNMT/tests/__init__.py` (if missing)
-- [ ] T002 [P] Run the existing suites as a baseline before any change: `pytest NNMT Framework/tests utils/tests -q`. Record the pass count and the pre-existing failures in `research/nnmt/baseline_tests.txt`
-- [ ] T003 [P] Fix the stale `NNMT/README.md` reference to `NNMT/BaseNNMTStrategy.py` (the class is `NNMTStrategy` in `NNMTStrategy.py`). Full rewrite in T080
+- [X] T001 Create `research/nnmt/__init__.py`, `research/nnmt/tests/__init__.py` and `NNMT/tests/__init__.py` (if missing)
+- [X] T002 [P] Run the existing suites as a baseline before any change: `pytest NNMT Framework/tests utils/tests -q`. Record the pass count and the pre-existing failures in `research/nnmt/baseline_tests.txt`
+- [X] T003 [P] Fix the stale `NNMT/README.md` reference to `NNMT/BaseNNMTStrategy.py` (the class is `NNMTStrategy` in `NNMTStrategy.py`). Full rewrite in T080
 
 ---
 
@@ -35,7 +35,7 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 **Purpose**: the harness pieces every stage uses. No behaviour change to `NNMT_MLX`.
 
-- [ ] T004 Write `research/nnmt/judge.py` scaffolding by copying 039's `research/nnpredict/judge.py` pattern:
+- [X] T004 Write `research/nnmt/judge.py` scaffolding by copying 039's `research/nnpredict/judge.py` pattern:
   - `refusals` via `research.nnnc_switches.judge`;
   - `judge_one` wrappers;
   - an `identity(arm, ref)` stage that compares `trades_hash` per fold over 15 folds;
@@ -43,22 +43,22 @@ classification (FR-002) and the transition truncation test (SC-005).
   - a `model_share(tag)` helper reading signal tables (data-model § model-decided share).
 
   Leave `research/nnpredict/` untouched
-- [ ] T005 Write `research/nnmt/build_arms.py` scaffolding: plan writing through `evaluation/foldplan.py` (family `NNMT`, 15 anchored folds, `config_wf`, seed 1, and a per-arm `class_prefix` such as `NNMT_MT_OP_fNN`, so plans never share generated fold classes: foldplan's default `<family>_WF_fNN` would collide) and arm-class writing (parameter dicts merged from the parent; each class gets its own `.json` copied from its parent's, or none if the parent has none)
-- [ ] T006 [P] Test `research/nnmt/tests/test_judge.py`:
+- [X] T005 Write `research/nnmt/build_arms.py` scaffolding: plan writing through `evaluation/foldplan.py` (family `NNMT`, 15 anchored folds, `config_wf`, seed 1, and a per-arm `class_prefix` such as `NNMT_MT_OP_fNN`, so plans never share generated fold classes: foldplan's default `<family>_WF_fNN` would collide) and arm-class writing (parameter dicts merged from the parent; each class gets its own `.json` copied from its parent's, or none if the parent has none)
+- [X] T006 [P] Test `research/nnmt/tests/test_judge.py`:
   - `identity` passes on equal hashes and fails on one differing fold;
   - `model_share` = 1 − entries ÷ guard-passing bars on a synthetic table
-- [ ] T007 R8 head-probability capture: in `NNMT/NNMTStrategy.get_predictions`, store each head's class-probability array (aligned with the dataframe offset) in an instance dict `self._head_probs[task]` before the argmax. No change to the predictions or `%<task>` columns. The shared `Predictors/MLXClassifierMultiTask.py` is unchanged
-- [ ] T008 [P] Test `NNMT/tests/test_head_probs.py`: on a stub classifier returning fixed probabilities, `_head_probs` has the right shapes, and its argmax equals `%<task>` wherever the threshold does not force neutral
-- [ ] T013 [P] [US1] Test `NNMT/tests/test_model_key_nnmt.py`:
+- [X] T007 R8 head-probability capture: in `NNMT/NNMTStrategy.get_predictions`, store each head's class-probability array (aligned with the dataframe offset) in an instance dict `self._head_probs[task]` before the argmax. No change to the predictions or `%<task>` columns. The shared `Predictors/MLXClassifierMultiTask.py` is unchanged
+- [X] T008 [P] Test `NNMT/tests/test_head_probs.py`: on a stub classifier returning fixed probabilities, `_head_probs` has the right shapes, and its argmax equals `%<task>` wherever the threshold does not force neutral
+- [X] T013 [P] [US1] Test `NNMT/tests/test_model_key_nnmt.py`:
   - classes differing only in `prediction_threshold`, `profit_prediction_threshold`, `min_consecutive_buys`, `apply_task_filters`, `forward_peak_regressor_threshold`, `use_forward_peak_regressor_filter`, `enable_exit_signal`, `exit_rvol_threshold` or a framework switch (`ENTRY_MODE`, `HELD_PAIR_ADD`, `TRIGGER_NAME`) have EQUAL keys;
   - differing in `_CLASSIFIER_TASK_WEIGHTS`, `classifier_type`, `INPUT_SET` or `PROFIT_HORIZON` gives DIFFERENT keys;
   - an unpinned NNMT class resolves to kind `mainline-absent` under an empty whitelist.
 
   Confirm it FAILS on `use_forward_peak_regressor_filter` before T014
-- [ ] T014 [US1] R2 in `NNMT/NNMTStrategy.py`: move `use_forward_peak_regressor_filter` to `MODEL_KEY_IGNORED` and add the other post-model names explicitly. T013 and `Framework/tests/test_model_key_audit.py` pass, apart from the failures recorded in T002.
+- [X] T014 [US1] R2 in `NNMT/NNMTStrategy.py`: move `use_forward_peak_regressor_filter` to `MODEL_KEY_IGNORED` and add the other post-model names explicitly. T013 and `Framework/tests/test_model_key_audit.py` pass, apart from the failures recorded in T002.
 
   This MUST land before `mt` trains (T011): it renames every NNMT key, and the identity arm reuses `mt`'s weights by key in strict mode
-- [ ] T009 Extend `research/nnnc_framework/signals.py`:
+- [X] T009 Extend `research/nnnc_framework/signals.py`:
   - NNMT plan entries (PLAN_FAMILY `NNMT`);
   - `fold_table` writes `p_<task>_<class>` columns when the strategy has `_head_probs`;
   - the trading head's p_sell/p_hold/p_buy as now.
@@ -73,7 +73,7 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 **Goal**: current NNMT's 15-fold record, the pre-port reference.
 
-- [ ] T010 [US2] Write `research/nnmt/preregistration_models.json`:
+- [X] T010 [US2] Write `research/nnmt/preregistration_models.json`:
   - arms `mt`, `mt_fw0`, `mt_op`, `mt_raw`, `mt_lr`, `mt_lr_raw`, `mt_lr_ri`, each with class, comparator and change;
   - the identity rule (15/15 `trades_hash`);
   - the R4 model-share minimum 0.5;
@@ -103,7 +103,7 @@ classification (FR-002) and the transition truncation test (SC-005).
 (T013 and T014, key hygiene, were done in Foundational, before `mt` trained.)
 
 - [ ] T015 [US1] R1 in `NNMT/NNMTStrategy.py`: `class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy)` with `ENTRY_MODE = "model"`, `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`. Update `Framework/tests/test_exit_policy_single_source.py`'s allowlist only if it flags NNMT, with a comment
-- [ ] T016 [P] [US1] Test `NNMT/tests/test_framework_port.py`:
+- [X] T016 [P] [US1] Test `NNMT/tests/test_framework_port.py`:
   - `NNMTStrategy` is an `EntryFrameworkMixin`;
   - `ENTRY_MODE == "model"`, `MODEL_ENTRY_FAMILY is None`, `HELD_PAIR_ADD_RESOLVED is None`, `FAMILY_EXITS == {}`;
   - `_model_tags` returns None;
@@ -117,8 +117,8 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 ## Phase 5: User Story 2 (part 2) — the operating point (P1)
 
-- [ ] T019 [US2] Write `NNMT/_nnmt_operating_point.py`: an `OperatingPointMixin` that merges `NNNC_A_Raw_Open.json`'s buy params (guards open, `prediction_threshold` 0.80) into the class's `buy_params` (039 pattern, `__init_subclass__`). Exits stay NNMT's
-- [ ] T020 [P] [US2] Test `NNMT/tests/test_operating_point.py`: the merged buy params equal ARO's open values, every parent key survives, and the model key equals `NNMT_MLX`'s
+- [X] T019 [US2] Write `NNMT/_nnmt_operating_point.py`: an `OperatingPointMixin` that merges `NNNC_A_Raw_Open.json`'s buy params (guards open, `prediction_threshold` 0.80) into the class's `buy_params` (039 pattern, `__init_subclass__`). Exits stay NNMT's
+- [X] T020 [P] [US2] Test `NNMT/tests/test_operating_point.py`: the merged buy params equal ARO's open values, every parent key survives, and the model key equals `NNMT_MLX`'s
 - [ ] T021 [US2] `NNMT/NNMT_MLX_OP.py` and `plan_mt_op.json`. Run 15 folds (no training). Run `signals --models mt,mt_op` and record each arm's model-decided share
 - [ ] T022 [US2] `judge models` (partial): `mt_op` vs `mt_fw0`, with the shares. If `mt_op`'s share is < 0.5, record it. Model and head arms at that operating point are then INCONCLUSIVE by rule, and the report says the guards decide (no further tuning, Principle VI)
 
@@ -131,20 +131,20 @@ classification (FR-002) and the transition truncation test (SC-005).
 **Independent test**: each variant trains on f00, predicts every head with finite, non-constant
 outputs, and has a distinct model key.
 
-- [ ] T023 [P] [US4] Add `ClassifierTypeMLX.LSTM_RAW` to `NNMT/NNMTClassifierMLX.py`:
+- [X] T023 [P] [US4] Add `ClassifierTypeMLX.LSTM_RAW` to `NNMT/NNMTClassifierMLX.py`:
   - a multi-task model with no resize or convolution preamble: features → `nn.LSTM(num_features, H)` (last step) → one `nn.Linear(H, n_classes)` per task;
   - H mirrors `NNNClassifierMLX`'s LSTM_RAW hidden size;
   - registered in the type factory;
   - trained by the existing multi-task loop.
-- [ ] T024 [P] [US4] Test `NNMT/tests/test_lstm_raw.py`: a forward pass on a (batch, seq, features) tensor returns one output per task in `TASK_NAMES` with the right class count. There are no Conv1d layers in the module tree
-- [ ] T025 [US4] Variant classes, all `NNMT_MLX` + `OperatingPointMixin`, with `InputSetMixin` from `NNPredict/_inputs.py`:
+- [X] T024 [P] [US4] Test `NNMT/tests/test_lstm_raw.py`: a forward pass on a (batch, seq, features) tensor returns one output per task in `TASK_NAMES` with the right class count. There are no Conv1d layers in the module tree
+- [X] T025 [US4] Variant classes, all `NNMT_MLX` + `OperatingPointMixin`, with `InputSetMixin` from `NNPredict/_inputs.py`:
   - `NNMT/NNMT_Raw.py`: current network, `INPUT_SET = "raw"`;
   - `NNMT/NNMT_LR.py`: `classifier_type = LSTM_RAW`, 24 indicators;
   - `NNMT/NNMT_LR_Raw.py`: LSTM_RAW, raw;
   - `NNMT/NNMT_LR_RI.py`: LSTM_RAW, `raw_ind`.
 
   If `InputSetMixin`'s `raw` set includes NNPredict-only columns (`current_gain`, `recent_gain`), add an NNMT-side input list that drops them. The set is then exactly raw8, recorded in `research.md` R6
-- [ ] T026 [P] [US4] Test `NNMT/tests/test_variants.py`:
+- [X] T026 [P] [US4] Test `NNMT/tests/test_variants.py`:
   - each variant's model inputs are what R6 lists;
   - the four keys are distinct from each other and from `NNMT_MLX`;
   - raw8 columns pass a truncation test (reuse `NNPredict/tests/test_inputs.py`'s helper)
@@ -157,7 +157,7 @@ outputs, and has a distinct model key.
 
 ## Phase 7: User Story 3 — NNNC framework features and the twin (P2)
 
-- [ ] T029 [US3] Write `research/nnmt/preregistration_framework.json`:
+- [X] T029 [US3] Write `research/nnmt/preregistration_framework.json`:
   - arms `<M>_g24`, `<M>_hpa`, `<M>_gate`, `<M>_tp` vs `<M>`, and `<M>_tr` vs `<M>` (`wf_aro_g24` reported);
   - the INERT rule;
   - `<M>` named by rule, not by name.
@@ -170,7 +170,7 @@ outputs, and has a distinct model key.
 
 ## Phase 8: User Story 4 (sizer) — the selected model's p_buy as a width-book sizer (P2)
 
-- [ ] T032 [US4] Write `research/nnmt/preregistration_screens.json`:
+- [X] T032 [US4] Write `research/nnmt/preregistration_screens.json`:
   - R9's sizer screen rule (early half only, gap ≥ 0.05, partial > 0, 5/8 sign folds) and its arm `<M>_cs` (on `w_aro`'s exits by `framework_sha`), judged against `w_aro` (must PASS) and `cs_aro` (reported);
   - R10's two head screens, each head's declared direction, and its arm use (R10 table);
   - the `<M>_ah` task weights (trading 4, every auxiliary 1).
@@ -188,7 +188,7 @@ outputs, and has a distinct model key.
 **Independent test**: `screens_heads.json` has both screens for all five heads in both halves.
 
 - [ ] T035 [US5] `build_arms heads-model` writes `<M>_ah` (all auxiliary weights 1). Run 15 trainings and `signals --models <M>_ah`. Report its trading head against `<M>` (side check, not a verdict)
-- [ ] T036 [P] [US5] Write `research/nnmt/head_screen.py`:
+- [X] T036 [P] [US5] Write `research/nnmt/head_screen.py`:
   - recompute each auxiliary label (the strategy's own target functions on the test windows);
   - compute each head's causal baseline: the same state from a TRAILING window of equal length ending at t (regime: close vs a trailing 200-bar mean ±1.5%; risk: a trailing 50-bar mean of atr_norm; flow and momentum: trailing 24-bar means; profit: the trailing 8-bar realised outcome sign);
   - one-vs-rest AUC per half for head and baseline (screen 1);
@@ -196,7 +196,7 @@ outputs, and has a distinct model key.
   - `rho_pbuy`.
 
   Writes `screens_heads.json`
-- [ ] T037 [P] [US5] Test `research/nnmt/tests/test_head_screen.py`:
+- [X] T037 [P] [US5] Test `research/nnmt/tests/test_head_screen.py`:
   - every trailing baseline is causal (a truncation test);
   - on a synthetic series where the head equals the label, the margin is > 0;
   - where the head equals the trailing state, the margin is about 0
@@ -217,7 +217,7 @@ outputs, and has a distinct model key.
 - base rates are reported per fold;
 - every grid cell has a screen result.
 
-- [ ] T039 [US6] Write `research/nnmt/preregistration_transition.json`:
+- [X] T039 [US6] Write `research/nnmt/preregistration_transition.json`:
   - the R11 definition (z, deadband 0.5, σ over 2880 bars, L = H);
   - grid H ∈ {96, 288, 672} × {pair, btc} × {UP, DOWN};
   - the stand-in model settings (037 HGB, purge H, hourly subsample, inputs);
@@ -228,10 +228,10 @@ outputs, and has a distinct model key.
   - the `<M>_trh` replacement rule (AUC within 0.01 both halves).
 
   COMMIT it before T040
-- [ ] T040 [US6] Write `research/nnmt/transition.py`:
+- [X] T040 [US6] Write `research/nnmt/transition.py`:
   - `labels`: S_H(t) and the UP/DOWN/NONE label per pair and for BTC, on tradeable rows; base rates and event counts per fold and half to `screens_transition.json["base_rates"]`;
   - `causality`: 16 truncation cuts with the `research/indicator_screen/causality.py` method, covering S_H, the label's S_H(t+H) and every stand-in input; exit 1 on a mismatch.
-- [ ] T041 [P] [US6] Test `research/nnmt/tests/test_transition.py`:
+- [X] T041 [P] [US6] Test `research/nnmt/tests/test_transition.py`:
   - on a synthetic random walk with an imposed bear→bull ramp, UP fires before the ramp completes and not elsewhere;
   - S_H(t) is unchanged when data after t is dropped;
   - a label is NaN within H of the data end;
