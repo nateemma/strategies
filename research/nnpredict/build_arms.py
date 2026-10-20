@@ -115,6 +115,7 @@ def framework() -> dict:
 
 SIZER_BODY = '''    """The width book sized by NNPredict's predicted move (cs_aro pattern, contract C2)."""
     AGREE_RULE = "p_buy"
+    MODEL_ENTRY_FAMILY = "reversion"  # the sizer reads the width book's entry tags
     WIDTH_CUTS = {cuts}
     #: MODEL_TRAIN_TIMERANGE -> the 0.5-agree-share threshold on %predict_gain (research.nnpredict.pick)
     SIZER_THRESHOLDS = {thresholds}
@@ -131,6 +132,12 @@ SIZER_BODY = '''    """The width book sized by NNPredict's predicted move (cs_ar
             self.prediction_threshold = SimpleNamespace(value=float(self.SIZER_THRESHOLDS[key]))
         return super().get_entry_conditions(dataframe)
 '''
+
+
+#: NNPredict declares no label family (MODEL_ENTRY_FAMILY None -> no entry tags), but the width sizer
+#: needs the width book's tags; both sizer-stage arms declare reversion (the gbb width book's family),
+#: so the control and the sizer stay identical but for the stake.
+FAMILY_LINE = "    MODEL_ENTRY_FAMILY = \"reversion\"  # the sizer reads the width book's entry tags\n"
 
 
 def width_cuts() -> dict:
@@ -153,7 +160,7 @@ def sizer(thresholds: dict | None = None, tag: str | None = None, base: str | No
     wb, cs = f"{base}_WB", f"{base}_CS"
     imports = "from _width_book import WidthBookMixin\n"
     _write_class(wb, fw0, "sizer", "the width book on the NNPredict model's own exits (the sizer's control)",
-                 imports, "    WIDTH_CUTS = " + cuts.replace("{", "{{").replace("}", "}}") + "\n").write_text(
+                 imports, FAMILY_LINE + "    WIDTH_CUTS = " + cuts.replace("{", "{{").replace("}", "}}") + "\n").write_text(
         (FAMILY_DIR / f"{wb}.py").read_text().replace(f"class {wb}({fw0}):", f"class {wb}(WidthBookMixin, {fw0}):"))
     _plan(tag, f"{tag}_wb", wb, "039 sizer stage: the width book on the selected model's exits")
     if thresholds is not None:

@@ -18,6 +18,7 @@ from NNPredict_Ridge_Exc32_OP import NNPredict_Ridge_Exc32_OP
 class NNPredict_Ridge_Exc32_OP_CS(WidthSizerMixin, WidthBookMixin, NNPredict_Ridge_Exc32_OP):
     """The width book sized by NNPredict's predicted move (cs_aro pattern, contract C2)."""
     AGREE_RULE = "p_buy"
+    MODEL_ENTRY_FAMILY = "reversion"  # the sizer reads the width book's entry tags
     WIDTH_CUTS = {
         "20210101-20230101": 0.12333389858998543,
         "20210101-20230401": 0.12333389858998543,
