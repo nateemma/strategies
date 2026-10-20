@@ -1,0 +1,94 @@
+{
+ "title": "039 NNPredict -- combined sizer (user request 2026-10-21: 'try the combined sizer'): cs_aro's width book sized by the mean of ARO's p_buy percentile and the excursion-H32 Ridge's predicted-move percentile (cs_mix's design)",
+ "date": "2026-10-21",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "arms": {
+  "cs_aro_nnp": {
+   "class": "NNNC_CS_ARO_NNP",
+   "comparator": "cs_aro",
+   "change": "cs_aro with sizer_score = 0.5 * (pct(ARO p_buy) + pct(exc32 %predict_gain)), each percentile against the fold's validation-tail width-book run starts; per-fold 0.5-share threshold (hgb_sizer pick, cs_mix's rule); model key, framework_sha (7de225f72b71eef4), entries and stakes = cs_aro's",
+   "also_reported_vs": [
+    "w_aro",
+    "nnp_ridge_exc32_op_csa",
+    "cs_mix"
+   ]
+  }
+ },
+ "instrument_files": [
+  "mix_table_check.json",
+  "mix_verify.json"
+ ],
+ "instrument_rules": {
+  "mix_table_check.json": "the exc32 tables reproduce nnp_ridge_exc32_op_csa's in-backtest agree tags on >= 99% of its 930 trades, <= 1% missing",
+  "mix_verify.json": "every fold: hgb_sizer verify (each validation-tail width-book tag == mixed score > the stored threshold) and no tail_leak_pairs"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, comparator) with the rule maps; liveness: an arm whose trades change on no fold vs its comparator is INERT (a defect)",
+ "decision": {
+  "cs_aro_nnp": "PASS vs cs_aro (both halves gain, paired not WORSENED) -> the combined sizer beats NNNC's reference sizer (candidate; adoption is the user's call). FAIL -> cs_aro stays the reference; the vs-w_aro / vs-csa / vs-cs_mix rows are reported"
+ },
+ "seed_rule_pp": 1.0,
+ "seen_before": [
+  "follow-ups 3: nnp_ridge_exc32_op_csa 57.01 vs w_aro 51.44 (IMPROVED p 0.028), vs cs_aro 59.95 (early -3.77 / late +0.84)",
+  "the exc32 screen: rho 0.36 with cs_aro's p_buy on early width-book trades",
+  "cs_mix (ARO + 037 composite, same design) 61.07: vs cs_aro -0.58 / +1.70 FAIL; its forward window lost",
+  "w_aro / cs_aro / cs_mix 15-fold records"
+ ],
+ "why": "the exc32 score and ARO's p_buy are partly independent (rho 0.36) and each sizes the width book on its own; cs_mix's equal-weight percentile mean is the existing, untuned way to combine two sizer scores. Nothing tuned: weights 0.5/0.5, knots and threshold rule as cs_mix.",
+ "caveat": "the combination was chosen after seeing both components' 15-fold results; one era, one seed"
+}

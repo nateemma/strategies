@@ -7,7 +7,9 @@
   threshold  the threshold amendment (preregistration_threshold.json): flip / excursion / H24 arms vs
              nnp_ridge_op, as the op stage; R7 re-applied over the op arms + these
                                                                      -> verdicts_threshold.json
-  followups  identity (revx trades_hash == st_g24_rev's, 15/15) gates revg; then each arm judge_one(arm,
+  followups  [followups2/3, mix: the same with their own pre-registration] identity (when declared) and
+             any instrument_files (each must have "pass": true) gate the verdicts;
+             identity (revx trades_hash == st_g24_rev's, 15/15) gates revg; then each arm judge_one(arm,
              comparator), plus the also_reported_vs comparisons    -> verdicts_followups.json
   sizer      judge_one(nnp_cs, w_aro) (must PASS); judge_one(nnp_cs, cs_aro) reported
                                                                      -> verdicts_sizer.json
@@ -179,17 +181,22 @@ def followups(stage: str = "followups") -> int:
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
-    idn = pr["identity"]
-    out = {"label": pr["label"], "identity": identity(pr, idn["reference"], idn["arm"]), "arms": {}}
+    idn = pr.get("identity") or {}
+    out = {"label": pr["label"], "arms": {},
+           "identity": identity(pr, idn["reference"], idn["arm"]) if idn else {"pass": True, "note": "none declared"}}
     print("identity:", out["identity"], flush=True)
+    extra = {f: json.loads((HERE / f).read_text()) if (HERE / f).exists() else {"pass": False, "missing": True}
+             for f in pr.get("instrument_files", [])}
+    out["instrument_files"] = {f: {k: v for k, v in x.items() if k != "per_fold"} for f, x in extra.items()}
+    extra_ok = all(x.get("pass") for x in extra.values())
     for arm, spec in pr["arms"].items():
         if "comparator" not in spec:
             continue
         inst = instrument(pr, arm)
         r = {"instrument": inst}
-        if not inst["pass"]:
+        if not inst["pass"] or not extra_ok:
             r["decision"] = "INCONCLUSIVE (instrument)"
-        elif spec["comparator"] == idn["reference"] and not out["identity"]["pass"]:
+        elif idn and spec["comparator"] == idn["reference"] and not out["identity"]["pass"]:
             r["decision"] = "NOT READ (identity failed)"
         else:
             v = judge_one(pr, arm, spec["comparator"])
@@ -264,7 +271,7 @@ def main(argv=None) -> int:
         return framework()
     if stage.startswith("sizer"):
         return sizer(stage)
-    if stage.startswith("followups"):
+    if stage.startswith("followups") or stage == "mix":
         return followups(stage)
     raise SystemExit(f"unknown stage {stage!r}")
 
