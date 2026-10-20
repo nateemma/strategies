@@ -32,8 +32,11 @@
   - **Task weights cannot be tuned.** Head-weight changes are not resolvable above seed noise, and
     several arms produced byte-identical trades from different weights.
   - **The regime and profit heads are never trained** (task weight 0).
-  - **The trading LABEL is built from the ground-truth auxiliary targets** (profit, regime,
-    momentum, flow), so the auxiliaries define the target rather than regularise it.
+  - **The trading label is NNNC's label.** An older audit recorded the trading label as filtered by
+    the ground-truth auxiliary targets. Since 2026-09-01 the filter writes only the debug columns, and
+    the head trains on the unfiltered gbb_path label (H = 48, ±2%), the same label as NNNC's models.
+    So the auxiliary heads act only as regularisers, and a trading-head-only NNMT is directly
+    comparable with NNNC.
   - **Gating entries on the auxiliary predictions** (`apply_task_filters`) cost 14 pp.
   - **NNMT's best rvol guard is 8× looser than NNNC's,** so the families need separate tuning.
 - **What the regime head predicts today.** The regime label compares the close with a CENTRED
@@ -137,8 +140,11 @@ its results exist.
 The researcher sees whether NNNC's model designs work inside NNMT's multi-task setup. The heads stay
 the same and only the inputs and architecture change:
 - **raw:** raw OHLCV-derived inputs only, in NNMT's current network;
-- **plain LSTM on raw:** raw inputs straight into a plain LSTM, then the heads (ARO's design);
-- **plain LSTM on raw + indicators:** the same, with NNNC's 24 indicators added.
+- **plain LSTM:** inputs straight into a plain LSTM, then the heads, with no resize or convolution
+  stage. This is ARO's design. It is run on three input sets:
+  - NNNC's 24 indicators (ARO's own inputs);
+  - raw inputs only;
+  - raw inputs plus the 24 indicators.
 
 A trading-head-only twin of the best variant measures whether multi-task training helps at all.
 
@@ -239,8 +245,10 @@ own forward horizon.
 - **Heads that are never trained.** Regime and profit have task weight 0 today, so their outputs are
   untrained noise. They are screened only from a model that trains them, and the trading head of
   that model is checked against the default so a weight change does not silently move the baseline.
-- **Labels built from ground truth.** The trading label uses the true auxiliary targets. Any variant
-  that changes an auxiliary target changes the trading label too, and the report says so.
+- **Auxiliary labels use future prices.** Every auxiliary label is a centred rolling state shifted
+  5 bars ahead, so half its window is future data. This is allowed in a label, but a head screen
+  must compare against a baseline built from past data only. The head is not credited with
+  "predicting" what is mostly the current state.
 - **Pairs with gaps or zero-volume candles** (XRP 2021–2023). These are handled by the shared
   harness. There is no pair-specific code.
 
@@ -261,12 +269,11 @@ own forward horizon.
 - **FR-005**: Each NNNC framework feature MUST be tested on NNMT as its own arm: 24 h grace,
   in-profit held-pair add, gbb trigger gate and C2 ATR take-profit. An arm whose trades are
   unchanged on every fold MUST be reported as INERT, not given a verdict.
-- **FR-006**: Three model variants MUST exist and be scored:
+- **FR-006**: Four model variants MUST exist and be scored, all keeping the multi-task heads:
   - raw inputs in the current network;
+  - a plain LSTM on NNNC's 24 indicators (ARO's design);
   - a plain LSTM on raw inputs;
-  - a plain LSTM on raw inputs plus NNNC's 24 indicators.
-
-  All of them keep the multi-task heads.
+  - a plain LSTM on raw inputs plus the 24 indicators.
 - **FR-007**: A trading-head-only twin of the best variant MUST be scored, to measure the effect of
   multi-task training.
 - **FR-008**: The best variant's buy probability MUST be screened as a width-book stake sizer before
@@ -359,10 +366,11 @@ own forward horizon.
   is the sign of a trailing multi-day trend with a dead band. Its exact form and dead band are fixed
   in the pre-registration before any transition result is seen. Horizons are a small fixed set
   within 1–7 days (e.g. 1, 3 and 7 days). The market regime is BTC's.
-- **The transition model.** It is screened first as a new NNMT head where that fits. A cheap model
-  trained on the same inputs (as 037's screens used) is an acceptable stand-in for the screen, so a
-  dead target does not cost a 15-fold retrain. A trading arm always uses the model that would be
-  deployed.
+- **The transition model.** It is screened first with a cheap per-fold model trained on the
+  deployed model's inputs (as 037's screens used), so a dead target does not cost a 15-fold retrain.
+  Only if that passes is it trained as an NNMT head (the idle regime head, retargeted) and screened
+  the same way. Trading arms read the passing model's per-fold predictions. Wiring a passing signal
+  into a live strategy is a follow-up.
 - **Standalone transition entries** use the shared exit stack. Designing new exits for them is out
   of scope.
 - **Out of scope:** new data sources (order flow, funding), more network capacity, label smoothing,
