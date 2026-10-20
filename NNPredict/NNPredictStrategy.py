@@ -299,12 +299,12 @@ class NNPredictStrategy(BaseNNStrategy):
         # [-1, +1]). Idempotent across calls — same pattern as
         # BaseNNStrategy.process_one_hot_columns uses for derived columns.
 
+        # Instance copies (039): appending to the shared class-level lists leaked the columns into
+        # every later instance in the process, changing their model key (ModelMissing in signals).
         add_columns = ["recent_gain", "current_gain", "atr_norm", "ema_fast_norm"]
-        for col in add_columns:
-            if col not in self.include_list:
-                self.include_list.append(col)
-            if col not in self.pre_normalized_columns:
-                self.pre_normalized_columns.append(col)
+        self.include_list = list(self.include_list) + [c for c in add_columns if c not in self.include_list]
+        self.pre_normalized_columns = list(self.pre_normalized_columns) + [
+            c for c in add_columns if c not in self.pre_normalized_columns]
 
         return dataframe
 

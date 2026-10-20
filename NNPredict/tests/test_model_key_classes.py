@@ -50,7 +50,7 @@ def test_label_settings_move_the_key(storage, name, value):
 @pytest.mark.parametrize("op,base", [
     ("NNPredict_Ridge_OP", "NNPredict_Ridge"), ("NNPredict_Ridge_SA_OP", "NNPredict_Ridge_SA"),
     ("NNPredict_LSTM_Raw_OP", "NNPredict_LSTM_Raw"), ("NNPredict_LSTM_RawInd_OP", "NNPredict_LSTM_RawInd"),
-    ("NNPredict_LSTM_RawRet_OP", "NNPredict_LSTM_RawRet")])
+    ("NNPredict_LSTM_RawRet_OP", "NNPredict_LSTM_RawRet"), ("NNPredict_Ridge_Flip_OP", "NNPredict_Ridge")])
 def test_operating_point_twin_reuses_its_base_weights(storage, op, base):
     import importlib
 
@@ -58,3 +58,14 @@ def test_operating_point_twin_reuses_its_base_weights(storage, op, base):
     b = getattr(importlib.import_module(base), base)
     assert MK.key_hash(MK.resolve(o, CONFIG)) == MK.key_hash(MK.resolve(b, CONFIG))
     assert o.magnitude_floor_mode == "percentile" and o.buy_params["entry_guard_threshold"] == 5.0
+
+
+@pytest.mark.parametrize("arm", ["NNPredict_Ridge_Exc_OP", "NNPredict_Ridge_H24_OP"])
+def test_threshold_amendment_retrains_get_their_own_weights(storage, arm):
+    import importlib
+
+    from NNPredict_Ridge import NNPredict_Ridge
+
+    a = getattr(importlib.import_module(arm), arm)
+    assert MK.key_hash(MK.resolve(a, CONFIG)) != MK.key_hash(MK.resolve(NNPredict_Ridge, CONFIG))
+    assert a.magnitude_floor_mode == "percentile" and a.buy_params["entry_guard_threshold"] == 5.0

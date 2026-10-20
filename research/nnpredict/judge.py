@@ -4,6 +4,9 @@
              reported beside w_aro / cs_aro / st_g24_mom          -> verdicts_models.json
   framework  identity (fw0 trades_hash == the selected model's, 15/15) first; then each feature arm
              judge_one(arm, fw0) with liveness (folds_changed > 0) -> verdicts_framework.json
+  threshold  the threshold amendment (preregistration_threshold.json): flip / excursion / H24 arms vs
+             nnp_ridge_op, as the op stage; R7 re-applied over the op arms + these
+                                                                     -> verdicts_threshold.json
   sizer      judge_one(nnp_cs, w_aro) (must PASS); judge_one(nnp_cs, cs_aro) reported
                                                                      -> verdicts_sizer.json
 
@@ -112,15 +115,111 @@ def models(stage: str = "models") -> int:
     out["baseline_pp"] = baseline_pp
     out["selected"] = select_model(baseline_pp, out["arms"])
     print("R7 selected model:", out["selected"], flush=True)
+    if stage == "threshold":  # R7 again over the operating-point arms + these (same baseline, same rules)
+        op = json.loads((HERE / "verdicts_op.json").read_text())
+        out["selected_union"] = select_model(baseline_pp, {**op["arms"], **out["arms"]})
+        print("R7 selected over op + threshold arms:", out["selected_union"], flush=True)
     (HERE / f"verdicts_{stage}.json").write_text(json.dumps(out, indent=1, default=str))
+    return 0
+
+
+def identity(pr: dict, base: str, fw0: str) -> dict:
+    """fw0 (the ported framework, everything off) must reproduce the selected model's trades on every
+    fold: equal trades_hash (the same record field judge_one compares)."""
+    from research.nnnc_switches.judge import _recs
+
+    ra, rb = _recs(fw0, pr["folds"]), _recs(base, pr["folds"])
+    diff = [f for f in pr["folds"] if (ra.get(f) or {}).get("trades_hash") != (rb.get(f) or {}).get("trades_hash")]
+    return {"pass": not diff, "folds_differing": diff, "folds": len(pr["folds"])}
+
+
+def framework() -> int:
+    from research.nnnc_switches.judge import judge_one
+
+    path, pr = _prereg("framework")
+    bad = _refused(path, pr)
+    if bad:
+        print("REFUSED:\n  " + "\n  ".join(bad))
+        return 2
+    base, fw0 = pr["selected"], pr["identity_arm"]
+    out = {"label": pr["label"], "selected": base, "identity": identity(pr, base, fw0), "arms": {}}
+    print("identity:", out["identity"], flush=True)
+    if out["identity"]["pass"]:
+        for arm in pr["feature_arms"]:
+            inst = instrument(pr, arm)
+            r = {"instrument": inst}
+            if not inst["pass"]:
+                r["decision"] = "INCONCLUSIVE (instrument)"
+            else:
+                v = judge_one(pr, arm, fw0)
+                r["alone"] = v
+                if not v.get("folds_changed"):
+                    r["decision"] = "INERT (defect: no fold's trades changed)"
+                else:
+                    r["decision"] = ("candidate default" if v["verdict"] == "PASS" else v["verdict"])
+                    whole = (v["arm_pp"] or 0) - (v["ctl_pp"] or 0)
+                    if v["verdict"] == "PASS" and whole < pr["seed_rule_pp"]:
+                        r["decision"] = "PASS, seed-2 rerun required (gain < 1 pp)"
+                print(f"{arm}: {r['decision']} {v['arm_pp']} vs {v['ctl_pp']} early {v['early_gain_pp']} "
+                      f"late {v['late_gain_pp']} changed {v.get('folds_changed')}", flush=True)
+            out["arms"][arm] = r
+    else:
+        print("identity FAILED: feature verdicts are not read", flush=True)
+    (HERE / "verdicts_framework.json").write_text(json.dumps(out, indent=1, default=str))
+    return 0
+
+
+def sizer() -> int:
+    from research.nnnc_switches.judge import judge_one
+
+    from research.nnpredict.build_arms import selected
+
+    path, pr = _prereg("sizer")
+    sel = selected()[0]
+    pr = {**pr, "sizer_arm": pr["sizer_arm"].format(selected=sel),
+          "sizer_control": pr["sizer_control"].format(selected=sel)}
+    pr["arms"] = {pr["sizer_arm"]: {}, pr["sizer_control"]: {}}
+    bad = _refused(path, pr)
+    if bad:
+        print("REFUSED:\n  " + "\n  ".join(bad))
+        return 2
+    scr = json.loads((HERE / "screen.json").read_text()) if (HERE / "screen.json").exists() else {}
+    out = {"label": pr["label"], "selected": sel, "screen": {k: v for k, v in scr.items() if k != "directions"},
+           "screen_directions": {d: {k: v for k, v in x.items() if k != "per_fold"}
+                                 for d, x in scr.get("directions", {}).items()}}
+    if not scr.get("pass"):
+        out["decision"] = "screen did not pass: no sizer backtest (a recorded result)"
+        print(out["decision"])
+    else:
+        arm, ctl = pr["sizer_arm"], pr["sizer_control"]
+        inst = instrument(pr, arm)
+        out["instrument"] = inst
+        if inst["pass"]:
+            v = judge_one(pr, arm, ctl)
+            out["primary"] = v
+            out["secondary"] = {c: judge_one(pr, arm, c) for c in pr["secondary"]}
+            whole = (v["arm_pp"] or 0) - (v["ctl_pp"] or 0)
+            out["decision"] = ("PASS, seed-2 rerun required (gain < 1 pp)"
+                               if v["verdict"] == "PASS" and whole < pr["seed_rule_pp"] else v["verdict"])
+            print(f"{arm} vs {ctl}: {out['decision']} {v['arm_pp']} vs {v['ctl_pp']} early {v['early_gain_pp']} "
+                  f"late {v['late_gain_pp']}", flush=True)
+            for c, w in out["secondary"].items():
+                print(f"  vs {c}: {w['verdict']} {w['arm_pp']} vs {w['ctl_pp']}", flush=True)
+        else:
+            out["decision"] = "INCONCLUSIVE (instrument)"
+    (HERE / "verdicts_sizer.json").write_text(json.dumps(out, indent=1, default=str))
     return 0
 
 
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
-    if stage in ("models", "op"):
+    if stage in ("models", "op", "threshold"):
         return models(stage)
-    raise SystemExit(f"stage {stage!r} is not implemented yet (framework / sizer come with their tasks)")
+    if stage == "framework":
+        return framework()
+    if stage == "sizer":
+        return sizer()
+    raise SystemExit(f"unknown stage {stage!r}")
 
 
 if __name__ == "__main__":

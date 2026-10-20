@@ -52,18 +52,35 @@ LS_PLANS = _ls_table_plans()
 from research.new_inputs.arms import table_plans as _ni_table_plans  # noqa: E402
 
 NI_PLANS = _ni_table_plans()
+
+
+def _nnp_plans() -> dict:
+    """039: the NNPredict model chosen by R7 (research/nnpredict/verdicts_threshold.json, else verdicts_op.json),
+    tabled with its predicted move (`predict_gain`). Empty until that selection exists."""
+    d = STRAT / "research" / "nnpredict"
+    v, th = d / "verdicts_op.json", d / "verdicts_threshold.json"
+    sel = (json.loads(th.read_text()).get("selected_union") if th.exists()
+           else json.loads(v.read_text()).get("selected") if v.exists() else None)
+    # the decile check (research/nnpredict/deciles.py): Ridge and the threshold amendment's retrains
+    out = {"NNP_RIDGE": "nnp_ridge_op", "NNP_RIDGE_EXC": "nnp_ridge_exc_op", "NNP_RIDGE_H24": "nnp_ridge_h24_op"}
+    return out | ({"NNP": sel} if sel else {})
+
+
+NNP_PLANS = _nnp_plans()
+#: plan name -> strategy family directory (default NNNC)
+PLAN_FAMILY = {plan: "NNPredict" for plan in NNP_PLANS.values()}
 KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
         "bb_width"]
 PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
 
 
-def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
+def fold_table(cls: str, test_timerange: str, family: str = "NNNC") -> pd.DataFrame:
     from freqtrade.configuration import TimeRange
     from freqtrade.data import history
     from freqtrade.data.converter import trim_dataframe
     from pick_threshold import _load_fold_context
 
-    strat, cfg = _load_fold_context(cls, "NNNC", CONFIG)
+    strat, cfg = _load_fold_context(cls, family, CONFIG)
     # pick_threshold never calls ft_bot_start, so the fold's .json (its per-fold threshold, its
     # guards) is not applied there -- harmless for a probability distribution, wrong for
     # enter_long. Apply it exactly as ft_bot_start does.
@@ -81,8 +98,11 @@ def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
             continue
         sig = strat.advise_entry(df.copy(), {"pair": pair})
         sig = trim_dataframe(sig, tr, startup_candles=strat.startup_candle_count)
-        probs = sig[PROB_COLS].to_numpy(float)
+        probs = (sig[PROB_COLS].to_numpy(float) if set(PROB_COLS) <= set(sig.columns)
+                 else np.full((len(sig), 3), np.nan))  # a regressor (NNPredict) has no class probabilities
         out = pd.DataFrame({"date": sig["date"].values, "pair": pair})
+        if "%predict_gain" in sig.columns:  # 039: NNPredict's predicted move, the sizer score
+            out["predict_gain"] = sig["%predict_gain"].to_numpy(float)
         out["p_buy"] = probs[:, 2]
         out["p_sell"], out["p_hold"] = probs[:, 0], probs[:, 1]
         out["buy_argmax"] = np.argmax(np.nan_to_num(probs, nan=-1.0), axis=1) == 2
@@ -92,7 +112,7 @@ def fold_table(cls: str, test_timerange: str) -> pd.DataFrame:
             out[c] = sig[c].values if c in sig.columns else np.nan
         rows.append(out)
     t = pd.concat(rows, ignore_index=True)
-    t.attrs["threshold"] = float(strat.prediction_threshold.value)
+    t.attrs["threshold"] = float(getattr(getattr(strat, "prediction_threshold", None), "value", np.nan))
     return t
 
 
@@ -107,14 +127,15 @@ def main(argv=None) -> int:
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     for m in a.models.split(","):
         plan = json.loads((STRAT / "evaluation/folds" /
-                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS)[m]}.json").read_text())
+                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS)[m]}.json").read_text())
+        family = PLAN_FAMILY.get((PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS)[m], "NNNC")
         for f in plan["folds"]:
             if only and f["fold_id"] not in only:
                 continue
             dest = OUT / f"{m}_{f['fold_id']}.parquet"
             if dest.exists():
                 continue
-            t = fold_table(f["strategy_class"], f["test_timerange"])
+            t = fold_table(f["strategy_class"], f["test_timerange"], family)
             t.to_parquet(dest)
             meta[f"{m}_{f['fold_id']}"] = {"class": f["strategy_class"],
                                            "threshold": t.attrs["threshold"],

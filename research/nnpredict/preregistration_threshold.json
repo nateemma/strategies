@@ -1,0 +1,94 @@
+{
+ "title": "039 NNPredict -- threshold amendment (user request 2026-10-19: 'try all 3'): sign flip, a target that matches the hold, and the width-book screen in both directions",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it selects the model the framework and sizer stages use.",
+ "baseline": "nnp_ridge_op",
+ "arms": {
+  "nnp_ridge_flip_op": {
+   "class": "NNPredict_Ridge_Flip_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "option 1: the gate sees -prediction (BUY on the most negative predictions); reuses nnp_ridge weights"
+  },
+  "nnp_ridge_exc_op": {
+   "class": "NNPredict_Ridge_Exc_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "option 2a: Ridge retrained on target_mode excursion (H=4)"
+  },
+  "nnp_ridge_h24_op": {
+   "class": "NNPredict_Ridge_H24_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "option 2b: Ridge retrained with HORIZON 24 (point target); median hold of nnp_ridge_op is 3.5-7.25 h"
+  }
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, nnp_ridge_op) with the rule maps below; each arm also reported beside w_aro",
+ "selection_R7": "R7 re-applied over the five _op arms (verdicts_op.json, after the outage reruns) plus these three, same baseline and rule: highest pooled total pp among arms with no WORSENED half vs nnp_ridge_op; ties -> nnp_ridge_op. The result (selected_union) is the model the framework and sizer stages use.",
+ "option_3": "the sizer-stage S1 screen (preregistration_sizer.json) scores the selected model in both directions",
+ "diagnostic": "deciles (research/nnpredict/deciles.py, early f00-f07 only, H = 4, 8, 32) for nnp_ridge_exc_op and nnp_ridge_h24_op, reported, no verdict; nnp_ridge re-run with H=32 added",
+ "seen_before": [
+  "038 (short-horizon return forecasting ~0 edge after costs)",
+  "NNPredict memory (fit metrics decoupled from P&L; single-horizon H=4 best on its own 4/8-window walk-forwards)",
+  "no 15-fold harness result for any NNPredict class",
+  "a 30-day smoke run of NNPredict_LSTM_Raw on 2025-01 (pipeline check: 26 trades; trained and tested on the same window, not a result)",
+  "nnp_ridge as-is 15-fold trade counts (152 total) and its f00 entry-condition counts",
+  "nnp_ridge_op, nnp_ridge_sa_op, nnp_lstm_raw_op 15-fold verdicts (all FAIL); nnp_lstm_ind_op f00-f06 trade counts only (verdict pending the outage rerun)",
+  "the decile check on NNP_RIDGE early folds: Spearman(decile, return) -0.73 (H=4) / -0.62 (H=8), bottom decile edge +4.3 / +3.1 bp, no decile net of 30 bp > -23.9 bp"
+ ],
+ "why": "The decile check found the operating-point gate is not the binding problem: Ridge's predicted gain ranks outcomes inverted and weakly. The user asked to try all three fixes offered: flip the sign (cheap, chosen AFTER seeing the inversion on the early half, so its late half is the honest test), change the target to one matching the ~6 h hold, and screen the model inside width-book trades in both directions. Nothing here is tuned: the flip is the sign only, excursion is an existing target mode, H=24 is the median hold rounded, and the screen rule is unchanged.",
+ "late_half_note": "the late half f08-f14 of nnp_ridge_op is already read (op stage); the flip arm's early half is NOT independent of the decile check that motivated it -- its verdict is reported with that caveat and its late-half result is the one that counts"
+}

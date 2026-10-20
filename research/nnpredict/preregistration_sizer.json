@@ -1,0 +1,79 @@
+{
+ "title": "039 NNPredict -- sizer stage: the R7-selected model's predicted move as a width-book sizer (cs_aro pattern)",
+ "date": "2026-10-19",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it selects the model the framework and sizer stages use.",
+ "model": "selected_union from verdicts_threshold.json (else verdicts_op.json selected)",
+ "screen": "research/nnpredict/screen.py on the 412 early width-book trades (research.new_inputs.trades), score = predict_gain ('up') and -predict_gain ('flip'); no training, no backtest, late half blind",
+ "screen_rule": {
+  "min_gap_share50": 0.05,
+  "min_sign_folds": 5,
+  "also": "pooled partial Spearman given bb_width > 0"
+ },
+ "screen_decision": "pass if either direction passes; the passing direction (the larger gap_share50 if both) is the sizer's score sign",
+ "sizer_arm": "{selected}_cs",
+ "sizer_control": "{selected}_wb",
+ "secondary": [
+  "w_aro",
+  "cs_aro"
+ ],
+ "sizer_threshold": "per fold, the 0.5 agree-share threshold of the (signed) score at width-book run starts on the training validation tail (research/nnpredict/pick.py)",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "alone": "judge_one(sizer_arm, sizer_control) must PASS; judge_one vs w_aro and cs_aro reported",
+ "seed_rule_pp": 1.0,
+ "seed_rule": "a PASS with whole-period gain < 1 pp needs a seed-2 rerun before any adoption",
+ "fallback": "screen fails in both directions -> no sizer backtest; recorded as the stage result"
+}
