@@ -472,7 +472,7 @@ class TrainingEngine:
         from Framework import ModelKey as MK
 
         loc = getattr(self, "_model_location", None)
-        fresh = loc is not None and loc.kind == "absent"
+        fresh = loc is not None and loc.kind in ("absent", "mainline-absent")
         pooled = getattr(self, "POOLED_LABEL", None)
         if pooled is not None:  # feature 033: relabel relative to a reference, pooled over pairs
             from Framework.PooledLabel import relabel

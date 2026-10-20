@@ -416,7 +416,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
             if MK.report_mode():
                 try:
                     MK.check_manifest(loc)
-                    verdict = "manifest OK" if loc.kind in ("keyed", "migrated") else "no manifest"
+                    verdict = "manifest OK" if loc.kind in ("keyed", "migrated", "mainline") else "no manifest"
                 except MK.ModelKeyError as exc:
                     verdict = f"MANIFEST MISMATCH {exc}"
                 print(f"[model-key report] {name}: {loc.kind} {loc.prefix}__{loc.hash} "
@@ -428,7 +428,10 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         return loc.path
 
     def _check_whitelist(self, MK) -> None:
-        """The key reads the config whitelist; the run must actually trade that list."""
+        """The key reads the config whitelist; the run must actually trade that list. Not for a
+        mainline model: its name excludes the pairs (any pairlist, incl. dynamic, finds it)."""
+        if MK.is_mainline(type(self)):
+            return
         dp = getattr(self, "dp", None)
         wl = (self.config.get("exchange") or {}).get("pair_whitelist")
         if dp is not None and wl is not None:

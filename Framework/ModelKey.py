@@ -24,6 +24,18 @@ This module is generic: it reads only the declarations; it knows no strategy fam
 Lookup order (``locate``): the model index entry for the key -> the class-named legacy directory
 -> the keyed location ``models/<prefix>__<hash>/``. In strict mode (``FT_MODEL_EVAL_STRICT=1``,
 set by walk-forward evaluation) a missing model raises ``ModelMissing`` instead of training.
+
+MAINLINE MODELS (for strategies that may run dry/live, usually on a dynamic pairlist). A class that
+declares ``MODEL_MAINLINE = True`` and pins no ``MODEL_TRAIN_TIMERANGE`` is named by its SHAPE: the key
+without the run's whitelist, training window and seed (``shape_of``), at
+``mainline/<prefix>__<shape hash>/``. The readable prefix carries the major label parameters (e.g.
+gains and horizon); the hash covers every other weight-shaping input, so a variant that changes any of
+them can never load another's weights, while one that changes only post-model settings shares them.
+The pairs and window the weights were trained on are recorded in the manifest, not in the name, so
+any pairlist finds them. Fold and arm classes always pin a window, so they keep the keyed scheme
+(investigations are unchanged). A dry/live run with no mainline weights refuses (``ModelMissing``)
+instead of training; train with a backtest, or adopt existing keyed weights (``python -m
+Framework.ModelKey adopt-mainline``).
 """
 
 from __future__ import annotations
@@ -49,10 +61,15 @@ LOCK_NAME = ".training.lock"
 MODELS_SUBDIR = "models"
 WEIGHT_SUFFIXES = (".keras", ".safetensors", ".sav", ".joblib", ".h5")
 RUN_FIELDS = ("train_timerange", "whitelist", "timeframe", "startup_candle_count", "seed")
+MAINLINE_SUBDIR = "mainline"
+#: run fields a mainline name ignores: where and when it was trained (recorded in the manifest)
+MAINLINE_FREE = ("train_timerange", "whitelist", "seed")
+#: the whitelist recorded when the run has none (a dynamic pairlist)
+DYNAMIC_WHITELIST = ["<dynamic pairlist>"]
 #: Names the resolver reads itself (run inputs and the declarations): classified by definition.
 RUN_NAMES = ("timeframe", "startup_candle_count", "MODEL_TRAIN_TIMERANGE", "MODEL_SEED",
              "MODEL_TRAINED_WITH", "MODEL_CODE_VERSION", "MODEL_KEY_ATTRIBUTES",
-             "MODEL_KEY_IGNORED", "MODEL_KEY_METHODS", "MODEL_KEY_METHODS_IGNORED")
+             "MODEL_KEY_IGNORED", "MODEL_KEY_METHODS", "MODEL_KEY_METHODS_IGNORED", "MODEL_MAINLINE")
 
 
 class ModelKeyError(RuntimeError):
@@ -243,9 +260,28 @@ def _key_whitelist(config: dict):
     return wl
 
 
+def is_mainline(cls) -> bool:
+    """A mainline class: declares MODEL_MAINLINE (inherited) and pins no training window."""
+    return bool(declared(cls, "MODEL_MAINLINE", False)) and not declared(cls, "MODEL_TRAIN_TIMERANGE", None)
+
+
+def shape_of(key: dict) -> dict:
+    """The key without where/when the weights were trained (MAINLINE_FREE): what names a mainline model."""
+    out = copy.deepcopy(key)
+    for f in MAINLINE_FREE:
+        out["run"].pop(f, None)
+    return out
+
+
+def _live(config: dict) -> bool:
+    mode = config.get("runmode")
+    return getattr(mode, "value", mode) in ("dry_run", "live")
+
+
 def resolve(cls, config: dict, storage: Path | None = None) -> dict:
     """The model key of strategy class `cls` under freqtrade `config`. Never instantiates.
-    `storage` overrides the class's storage root (an instance-level override)."""
+    `storage` overrides the class's storage root (an instance-level override). A mainline class
+    may run without a configured whitelist (a dynamic pairlist); it is recorded as such."""
     names = merged(cls, "MODEL_KEY_ATTRIBUTES")
     pins = merged_dict(cls, "MODEL_TRAINED_WITH")
     unknown = [p for p in pins if p not in names and p not in ("startup_candle_count", "timeframe")]
@@ -268,7 +304,9 @@ def resolve(cls, config: dict, storage: Path | None = None) -> dict:
         seed = int(os.environ.get("MLX_SEED", "42"))
     wl = _key_whitelist(config)
     if not wl:
-        raise ModelKeyError("config has no exchange.pair_whitelist; the model key needs it")
+        if not is_mainline(cls):
+            raise ModelKeyError("config has no exchange.pair_whitelist; the model key needs it")
+        wl = DYNAMIC_WHITELIST
     run = {
         "train_timerange": declared(cls, "MODEL_TRAIN_TIMERANGE", None) or "unpinned",
         "whitelist": list(wl),
@@ -324,13 +362,30 @@ def _legacy_stem(storage: Path, name: str) -> Path:
     return Path(storage) / name / name
 
 
+def mainline_stem(storage: Path, key: dict) -> Path:
+    d = f"{key_prefix(key)}__{key_hash(shape_of(key))}"
+    return Path(storage) / MAINLINE_SUBDIR / d / d
+
+
 def locate_for(cls, config: dict, class_name: str | None = None,
-               storage: Path | None = None) -> Location:
-    """Where `cls`'s weights are (see module docstring). Never trains; strict mode raises."""
+               storage: Path | None = None, keyed_only: bool = False) -> Location:
+    """Where `cls`'s weights are (see module docstring). Never trains; strict mode raises.
+    `keyed_only` ignores the mainline scheme (adopt-mainline reads the keyed weights)."""
     name = class_name or cls.__name__
     storage = Path(storage) if storage is not None else storage_of(cls)
     key = resolve(cls, config, storage)
     h, prefix = key_hash(key), key_prefix(key)
+    if is_mainline(cls) and not keyed_only:
+        stem = mainline_stem(storage, key)
+        hs = key_hash(shape_of(key))
+        if weights_exist(stem):
+            return Location(f"{stem}.keras", "mainline", hs, prefix, key)
+        if strict() or _live(config):
+            raise ModelMissing(
+                f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}). A dry/live run "
+                f"never trains: train with a backtest of this class, or adopt existing keyed weights "
+                f"(python -m Framework.ModelKey adopt-mainline --strategy {name} --config <config>).")
+        return Location(f"{stem}.keras", "mainline-absent", hs, prefix, key)
     idx = load_index(storage)
     conflicted = {c["hash"] for c in idx.get("conflicts", [])}
     ent = idx["entries"].get(h)
@@ -369,7 +424,18 @@ def diff_keys(a: dict, b: dict, path: str = "") -> list[str]:
 
 
 def check_manifest(location: Location) -> None:
-    """Halt when the weights' manifest records a different key (FR-008). Legacy is exempt."""
+    """Halt when the weights' manifest records a different key (FR-008). Legacy is exempt. Mainline
+    weights must match in shape only: their pairs and window are provenance, not identity."""
+    if location.kind == "mainline":
+        mp = manifest_path(location)
+        if not mp.is_file():
+            raise ModelKeyMismatch(f"{location.path}: mainline weights without a manifest")
+        man = json.loads(mp.read_text())
+        if shape_of(man.get("key") or {"run": {}}) != shape_of(location.key):
+            raise ModelKeyMismatch(
+                f"{location.path}: mainline weights were trained with a different shape: "
+                f"{diff_keys(shape_of(man.get('key') or {'run': {}}), shape_of(location.key))}")
+        return
     if location.kind not in ("keyed", "migrated"):
         return
     mp = manifest_path(location)
@@ -412,10 +478,18 @@ def training_lock(location: Location):
 
 
 def record_training(location: Location, class_name: str, timerange: str | None) -> None:
-    """After a successful train into a keyed location: manifest + index entry (FR-010)."""
+    """After a successful train into a keyed location: manifest + index entry (FR-010). A mainline
+    train writes its manifest only (the name is the shape; nothing to index)."""
     if location.kind == "legacy":
         return
     stem = Path(location.path).with_suffix("")
+    if location.kind == "mainline-absent":
+        files = [Path(f"{stem}{s}") for s in WEIGHT_SUFFIXES if Path(f"{stem}{s}").is_file()]
+        write_manifest(stem.parent, location.key, "mainline",
+                       {"kind": "trained", "timerange": timerange, "class": class_name,
+                        "pairs": location.key["run"]["whitelist"]},
+                       {f.name: file_sha(f) for f in files}, [class_name])
+        return
     storage = Path(location.path).parents[2]
     files = [Path(f"{stem}{s}") for s in WEIGHT_SUFFIXES if Path(f"{stem}{s}").is_file()]
     write_manifest(stem.parent, location.key, "keyed",
@@ -435,3 +509,69 @@ def emit_sink(class_name: str, location: Location) -> None:
     (Path(d) / f"{class_name}_modelkey.json").write_text(json.dumps(
         {"class": class_name, "hash": location.hash, "prefix": location.prefix,
          "kind": location.kind, "path": location.path}) + "\n")
+
+
+# ------------------------------------------------------------------------------ mainline adoption
+
+
+def adopt_mainline(cls, config: dict, storage: Path | None = None) -> Path:
+    """Copy `cls`'s KEYED weights under `config` (e.g. the backtest that trained them) to its mainline
+    location, with a mainline manifest that records the source key. Refuses if the mainline location
+    already has weights."""
+    import shutil
+
+    if not is_mainline(cls):
+        raise ModelKeyError(f"{cls.__name__} is not mainline (MODEL_MAINLINE, no MODEL_TRAIN_TIMERANGE)")
+    storage = Path(storage) if storage is not None else storage_of(cls)
+    src = locate_for(cls, config, storage=storage, keyed_only=True)
+    if src.kind not in ("keyed", "migrated"):
+        raise ModelMissing(f"{cls.__name__}: no keyed weights under this config ({src.prefix}__{src.hash})")
+    check_manifest(src)
+    sstem = Path(src.path).with_suffix("")
+    dstem = mainline_stem(storage, src.key)
+    if weights_exist(dstem):
+        raise ModelKeyError(f"{dstem.parent} already has weights; remove them first to replace")
+    dstem.parent.mkdir(parents=True, exist_ok=True)
+    copied = {}
+    for f in sorted(sstem.parent.iterdir()):
+        if f.name in (MANIFEST_NAME, LOCK_NAME) or not f.is_file():
+            continue
+        name = f.name.replace(sstem.name, dstem.name, 1) if f.name.startswith(sstem.name) else f.name
+        shutil.copy2(f, dstem.parent / name)
+        copied[name] = file_sha(dstem.parent / name)
+    write_manifest(dstem.parent, src.key, "mainline",
+                   {"kind": "adopted", "from": f"{src.prefix}__{src.hash}", "class": cls.__name__,
+                    "pairs": src.key["run"]["whitelist"], "timerange": src.key["run"]["train_timerange"]},
+                   copied, [cls.__name__])
+    return dstem.parent
+
+
+def main(argv=None) -> int:
+    import argparse
+    import importlib
+    import sys as _sys
+
+    ap = argparse.ArgumentParser(prog="python -m Framework.ModelKey")
+    ap.add_argument("command", choices=("adopt-mainline", "where"))
+    ap.add_argument("--strategy", required=True, help="strategy class (module of the same name)")
+    ap.add_argument("--strategy-path", default=None, help="directory holding the strategy module")
+    ap.add_argument("--config", required=True)
+    a = ap.parse_args(argv)
+    for d in ([a.strategy_path] if a.strategy_path else []) + [str(STRAT_DIR)] + \
+            [str(p) for p in STRAT_DIR.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))]:
+        if d not in _sys.path:
+            _sys.path.append(d)
+    from evaluation.fingerprint import load_config
+
+    cls = getattr(importlib.import_module(a.strategy), a.strategy)
+    config = load_config(a.config)
+    if a.command == "where":
+        loc = locate_for(cls, config)
+        print(f"{a.strategy}: {loc.kind} {loc.prefix}__{loc.hash} -> {loc.path}")
+        return 0
+    print(f"adopted -> {adopt_mainline(cls, config)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

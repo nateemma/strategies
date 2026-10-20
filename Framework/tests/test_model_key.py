@@ -274,3 +274,105 @@ def test_index_round_trip_is_atomic(storage):
     MK.save_index(storage, idx)
     assert MK.load_index(storage) == idx
     assert not list(storage.glob("*.tmp"))
+
+
+# ------------------------------------------------------------------------------ mainline models
+
+
+def _ml(**attrs):
+    return _cls("Main", MODEL_MAINLINE=True, **attrs)
+
+
+def _with_wl(pairs, runmode=None):
+    cfg = {"exchange": {"pair_whitelist": pairs}, "timeframe": "15m"}
+    if runmode is not None:
+        cfg["runmode"] = runmode
+    return cfg
+
+
+def test_mainline_name_ignores_pairs_window_and_seed(storage, monkeypatch):
+    a = MK.locate_for(_ml(), CONFIG)
+    b = MK.locate_for(_ml(), _with_wl(["BTC/USDT", "ETH/USDT", "XRP/USDT"]))
+    monkeypatch.setenv("MLX_SEED", "7")
+    c = MK.locate_for(_ml(), _with_wl([]))  # a dynamic pairlist configures no whitelist
+    assert a.kind == b.kind == c.kind == "mainline-absent"
+    assert a.path == b.path == c.path and f"/{MK.MAINLINE_SUBDIR}/" in a.path
+    assert Path(a.path).parent.name.startswith(a.prefix + "__")  # readable major params first
+    assert c.key["run"]["whitelist"] == MK.DYNAMIC_WHITELIST
+
+
+def test_mainline_name_moves_with_every_weight_shaping_input(storage):
+    base = MK.locate_for(_ml(), CONFIG).path
+    assert MK.locate_for(_ml(MIN_BUY_GAIN_THRESHOLD=0.03), CONFIG).path != base   # the gains
+    assert MK.locate_for(_ml(HORIZON=BaseNNStrategy.HORIZON + 1), CONFIG).path != base
+    assert MK.locate_for(_ml(get_training_labels=lambda self, df: None), CONFIG).path != base
+    assert MK.locate_for(_ml(), {**CONFIG, "timeframe": "1h"}).path != base
+    (storage / "main_scaler.pkl").write_bytes(b"scaler-v2")
+    assert MK.locate_for(_ml(), CONFIG).path != base
+
+
+def test_mainline_variant_with_post_model_changes_shares_the_weights(storage):
+    ign = next(n for n in MK.merged(BaseNNStrategy, "MODEL_KEY_IGNORED")
+               if isinstance(MK.declared(BaseNNStrategy, n, None), (int, float)))
+    v = MK.declared(BaseNNStrategy, ign)
+    variant = type("MainVariant", (_ml(),), {ign: v + 1, "get_entry_conditions": lambda self, df: None})
+    assert MK.locate_for(variant, CONFIG).path == MK.locate_for(_ml(), CONFIG).path
+
+
+def test_a_fold_of_a_mainline_class_keeps_the_keyed_scheme(storage):
+    fold = type("Main_f00", (_ml(),), {"MODEL_TRAIN_TIMERANGE": "20210101-20230101"})
+    assert not MK.is_mainline(fold)
+    loc = MK.locate_for(fold, CONFIG)
+    assert loc.kind == "absent" and "/models/" in loc.path
+    with pytest.raises(MK.ModelKeyError):
+        MK.resolve(fold, _with_wl([]))  # keyed: the whitelist is still required
+
+
+def test_mainline_flag_does_not_shape_the_keyed_weights(storage):
+    assert MK.key_hash(MK.resolve(_ml(), CONFIG)) == _h(_cls())
+
+
+def test_mainline_dry_and_live_runs_never_train(storage):
+    from freqtrade.enums import RunMode
+
+    for mode in (RunMode.DRY_RUN, RunMode.LIVE):
+        with pytest.raises(MK.ModelMissing):
+            MK.locate_for(_ml(), _with_wl([], mode))
+    assert MK.locate_for(_ml(), _with_wl(["SOL/USDT"], RunMode.BACKTEST)).kind == "mainline-absent"
+
+
+def test_mainline_training_writes_a_manifest_and_is_found_under_any_pairlist(storage):
+    from freqtrade.enums import RunMode
+
+    loc = _train_stub(storage, _ml(), "Main")
+    assert loc.kind == "mainline"
+    MK.check_manifest(loc)
+    man = json.loads(MK.manifest_path(loc).read_text())
+    assert man["kind"] == "mainline" and man["provenance"]["pairs"] == CONFIG["exchange"]["pair_whitelist"]
+    live = MK.locate_for(_ml(), _with_wl([], RunMode.LIVE))
+    assert live.kind == "mainline" and live.path == loc.path
+    MK.check_manifest(live)
+
+
+def test_mainline_manifest_of_another_shape_halts(storage):
+    loc = _train_stub(storage, _ml(), "Main")
+    mp = MK.manifest_path(loc)
+    man = json.loads(mp.read_text())
+    man["key"]["attributes"]["HORIZON"] = 999
+    mp.write_text(json.dumps(man))
+    with pytest.raises(MK.ModelKeyMismatch):
+        MK.check_manifest(MK.locate_for(_ml(), CONFIG))
+
+
+def test_adopt_mainline_copies_the_keyed_weights(storage):
+    keyed = _train_stub(storage, _cls("Main"), "Main")  # trained as an ordinary keyed model
+    assert keyed.kind == "keyed"
+    d = MK.adopt_mainline(_ml(), CONFIG)
+    loc = MK.locate_for(_ml(), _with_wl([]))
+    assert loc.kind == "mainline" and Path(loc.path).parent == d
+    assert Path(loc.path).with_suffix(".safetensors").read_bytes() == b"weights"
+    MK.check_manifest(loc)
+    man = json.loads(MK.manifest_path(loc).read_text())
+    assert man["provenance"]["kind"] == "adopted" and man["provenance"]["from"] == f"{keyed.prefix}__{keyed.hash}"
+    with pytest.raises(MK.ModelKeyError):
+        MK.adopt_mainline(_ml(), CONFIG)  # never overwrites
