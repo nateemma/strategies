@@ -1,0 +1,93 @@
+{
+ "title": "039 NNPredict -- follow-ups 2 (user request 2026-10-21: 'do both'): the excursion-H32 Ridge as the gbb gate on st_g24_rev's exact exits",
+ "date": "2026-10-21",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "selected": "nnp_ridge_exc32_op",
+ "arms": {
+  "nnp_ridge_exc32_op_revx": {
+   "class": "NNPredict_Ridge_Exc32_OP_REVX",
+   "role": "identity",
+   "change": "st_g24_rev's framework on the exc32 Ridge class, trigger entry only: must reproduce st_g24_rev"
+  },
+  "nnp_ridge_exc32_op_revg": {
+   "class": "NNPredict_Ridge_Exc32_OP_REVG",
+   "comparator": "st_g24_rev",
+   "change": "the same framework, model AND gbb: st_g24_rev's entries filtered by the excursion-H32 Ridge (z-score + percentile floor, as every 039 arm)",
+   "also_reported_vs": [
+    "nnp_lstm_ind_op_revg"
+   ]
+  }
+ },
+ "identity": {
+  "arm": "nnp_ridge_exc32_op_revx",
+  "reference": "st_g24_rev",
+  "rule": "nnp_ridge_exc32_op_revx trades_hash == st_g24_rev's on all 15 folds; otherwise the copied framework is a defect: it is fixed (instrument only, rules unchanged) and rerun before nnp_ridge_exc32_op_revg is read"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, comparator) with the rule maps; liveness: an arm whose trades change on no fold vs its comparator is INERT (a defect)",
+ "decision": {
+  "nnp_ridge_exc32_op_revg": "identity must hold. PASS (both halves gain, paired not WORSENED) -> the exc32 model adds value over the gbb trigger on identical exits (candidate; user's call); FAIL -> its filter costs P&L vs the trigger alone"
+ },
+ "seed_rule_pp": 1.0,
+ "seen_before": [
+  "every 039 verdict incl. follow-ups: nnp_lstm_ind_op_revg 50.57 vs st_g24_rev 71.50 (FAIL both halves)",
+  "nnp_ridge_exc32_op standalone -10.99 (PASS vs nnp_ridge_op), its early-half deciles: 8 h Spearman +0.95, gated entries +14.07 bp edge at 8 h"
+ ],
+ "why": "the deciles say the excursion-H32 prediction ranks the 8 h hold the right way, unlike the LSTM's; the test is whether that makes it a useful filter on gbb reversion entries. Nothing tuned: the gate is the existing trigger_and_model switch with the arm's own operating point.",
+ "caveat": "chosen after seeing the exc32 deciles (early half) and the LSTM revg result; the late half is the cleaner test"
+}

@@ -171,10 +171,10 @@ def framework() -> int:
     return 0
 
 
-def followups() -> int:
+def followups(stage: str = "followups") -> int:
     from research.nnnc_switches.judge import judge_one
 
-    path, pr = _prereg("followups")
+    path, pr = _prereg(stage)
     bad = _refused(path, pr)
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
@@ -207,17 +207,19 @@ def followups() -> int:
             for c, w in r["also"].items():
                 print(f"  vs {c}: {w}", flush=True)
         out["arms"][arm] = r
-    (HERE / "verdicts_followups.json").write_text(json.dumps(out, indent=1, default=str))
+    (HERE / f"verdicts_{stage}.json").write_text(json.dumps(out, indent=1, default=str))
     return 0
 
 
-def sizer() -> int:
+def sizer(stage: str = "sizer") -> int:
+    """`stage` names the pre-registration; one that declares "selected" sizes that model (follow-ups
+    2: sizer_exc32), else the selected model; its screen file is pr["screen_file"] (default screen.json)."""
     from research.nnnc_switches.judge import judge_one
 
     from research.nnpredict.build_arms import selected
 
-    path, pr = _prereg("sizer")
-    sel = selected()[0]
+    path, pr = _prereg(stage)
+    sel = pr.get("selected") or selected()[0]
     pr = {**pr, "sizer_arm": pr["sizer_arm"].format(selected=sel),
           "sizer_control": pr["sizer_control"].format(selected=sel)}
     pr["arms"] = {pr["sizer_arm"]: {}, pr["sizer_control"]: {}}
@@ -225,7 +227,8 @@ def sizer() -> int:
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
-    scr = json.loads((HERE / "screen.json").read_text()) if (HERE / "screen.json").exists() else {}
+    sf = HERE / pr.get("screen_file", "screen.json")
+    scr = json.loads(sf.read_text()) if sf.exists() else {}
     out = {"label": pr["label"], "selected": sel, "screen": {k: v for k, v in scr.items() if k != "directions"},
            "screen_directions": {d: {k: v for k, v in x.items() if k != "per_fold"}
                                  for d, x in scr.get("directions", {}).items()}}
@@ -249,7 +252,7 @@ def sizer() -> int:
                 print(f"  vs {c}: {w['verdict']} {w['arm_pp']} vs {w['ctl_pp']}", flush=True)
         else:
             out["decision"] = "INCONCLUSIVE (instrument)"
-    (HERE / "verdicts_sizer.json").write_text(json.dumps(out, indent=1, default=str))
+    (HERE / f"verdicts_{stage}.json").write_text(json.dumps(out, indent=1, default=str))
     return 0
 
 
@@ -259,10 +262,10 @@ def main(argv=None) -> int:
         return models(stage)
     if stage == "framework":
         return framework()
-    if stage == "sizer":
-        return sizer()
-    if stage == "followups":
-        return followups()
+    if stage.startswith("sizer"):
+        return sizer(stage)
+    if stage.startswith("followups"):
+        return followups(stage)
     raise SystemExit(f"unknown stage {stage!r}")
 
 

@@ -8,7 +8,7 @@ operating-point stage selected (research R6-R8; verdicts_op.json "selected").
              sized by NNPredict's predicted move, AGREE_RULE p_buy, sizer_score = %predict_gain, a
              per-fold 0.5-agree-share threshold picked by research.nnpredict.pick).
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer|followups
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer|followups|rev [--model TAG --cls CLASS]
 """
 from __future__ import annotations
 
@@ -141,14 +141,17 @@ def width_cuts() -> dict:
     return {k: float(v) for k, v in re.findall(r"'(\d{8}-\d{8})': ([0-9.eE-]+)", body)}
 
 
-def sizer(thresholds: dict | None = None) -> dict:
-    tag, base = selected()
+def sizer(thresholds: dict | None = None, tag: str | None = None, base: str | None = None) -> dict:
+    """On the selected model by default, or on (tag, base) (follow-ups 2). The parent is <base>_FW0
+    where the framework stage wrote one, else <base> (every NNPredict class carries the framework)."""
+    if tag is None:
+        tag, base = selected()
     cuts = json.dumps(width_cuts(), indent=8, sort_keys=True)
-    fw0 = f"{base}_FW0"
+    fw0 = f"{base}_FW0" if (FAMILY_DIR / f"{base}_FW0.py").exists() else base
     wb, cs = f"{base}_WB", f"{base}_CS"
     imports = "from _width_book import WidthBookMixin\n"
     _write_class(wb, fw0, "sizer", "the width book on the NNPredict model's own exits (the sizer's control)",
-                 imports, f"    WIDTH_CUTS = {cuts}\n").write_text(
+                 imports, "    WIDTH_CUTS = " + cuts.replace("{", "{{").replace("}", "}}") + "\n").write_text(
         (FAMILY_DIR / f"{wb}.py").read_text().replace(f"class {wb}({fw0}):", f"class {wb}(WidthBookMixin, {fw0}):"))
     _plan(tag, f"{tag}_wb", wb, "039 sizer stage: the width book on the selected model's exits")
     if thresholds is not None:
@@ -202,13 +205,42 @@ def _st_framework(base_cls, st_cls) -> str:
     return "\n".join(lines).replace("{", "{{").replace("}", "}}") + "\n"
 
 
+def _rev_arms(tag: str, base: str) -> dict:
+    """<base>_REVX (st_g24_rev's framework, trigger entry only: the identity twin of st_g24_rev) and
+    <base>_REVG (the same framework, model AND the trigger), on <base>'s weights."""
+    import importlib
+
+    mod = REV_REFERENCE[1]
+    st_cls = getattr(importlib.import_module(mod), mod.rsplit(".", 1)[1])
+    base_cls = getattr(importlib.import_module(base), base)
+    fw = _st_framework(base_cls, st_cls)
+    imports = "from freqtrade.strategy import DecimalParameter\n"
+    arms = {}
+    for suffix, mode, what in (("REVX", "triggers", "st_g24_rev's framework, trigger entry only (identity twin)"),
+                               ("REVG", "trigger_and_model", "st_g24_rev's framework, model AND the gbb trigger")):
+        name = f"{base}_{suffix}"
+        _write_class(name, base, "follow-up", what, imports, f"    ENTRY_MODE = \"{mode}\"\n" + fw)
+        _plan(tag, f"{tag}_{suffix.lower()}", name, f"039 follow-up: {what}")
+        arms[f"{tag}_{suffix.lower()}"] = name
+    return arms
+
+
+def rev(tag: str, base: str) -> dict:
+    """The REV pair on any model (follow-ups 2: the excursion-H32 Ridge); keys asserted equal."""
+    out = {"model": tag, "base": base, "arms": _rev_arms(tag, base)}
+    k0 = _key(base)
+    bad = {a: c for a, c in out["arms"].items() if _key(c) != k0}
+    if bad:
+        raise SystemExit(f"REFUSED: arms that would not reuse {base}'s weights: {bad}")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def followups() -> dict:
     """The three follow-ups (preregistration_followups.json), on the framework stage's model:
     _GATE_G24 (gate + 24 h grace), _REVX (st_g24_rev's framework, trigger entry only: the identity
     twin of st_g24_rev) and _REVG (the same framework, model AND the trigger). The Ridge excursion
     H=32 arm is a hand-written class (NNPredict_Ridge_Exc32_OP); only its plan is written here."""
-    import importlib
-
     tag, base = selected()
     gate = f"{base}_GATE"
     out = {"selected": tag, "base": base, "arms": {}}
@@ -218,17 +250,7 @@ def followups() -> dict:
     _plan(tag, f"{tag}_gate_g24", f"{gate}_G24", "039 follow-up 1: gbb gate + 24 h grace")
     out["arms"][f"{tag}_gate_g24"] = f"{gate}_G24"
 
-    mod = REV_REFERENCE[1]
-    st_cls = getattr(importlib.import_module(mod), mod.rsplit(".", 1)[1])
-    base_cls = getattr(importlib.import_module(base), base)
-    fw = _st_framework(base_cls, st_cls)
-    imports = "from freqtrade.strategy import DecimalParameter\n"
-    for suffix, mode, what in (("REVX", "triggers", "st_g24_rev's framework, trigger entry only (identity twin)"),
-                               ("REVG", "trigger_and_model", "st_g24_rev's framework, model AND the gbb trigger")):
-        name = f"{base}_{suffix}"
-        _write_class(name, base, "follow-up", what, imports, f"    ENTRY_MODE = \"{mode}\"\n" + fw)
-        _plan(tag, f"{tag}_{suffix.lower()}", name, f"039 follow-up 2: {what}")
-        out["arms"][f"{tag}_{suffix.lower()}"] = name
+    out["arms"].update(_rev_arms(tag, base))
     _plan("nnp_ridge_exc_op", "nnp_ridge_exc32_op", "NNPredict_Ridge_Exc32_OP",
           "039 follow-up 3: Ridge, excursion target at HORIZON 32 (8 h)")
     out["arms"]["nnp_ridge_exc32_op"] = "NNPredict_Ridge_Exc32_OP"
@@ -241,15 +263,25 @@ def followups() -> dict:
 
 
 def main(argv=None) -> int:
-    stage = (argv or sys.argv[1:] or [""])[0]
-    if stage == "framework":
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("stage", choices=("framework", "sizer", "followups", "rev"))
+    ap.add_argument("--model", help="arm tag of the model (rev, sizer); default: the selected model")
+    ap.add_argument("--cls", help="its strategy class")
+    ap.add_argument("--thresholds", help="sizer: a pick.py output file; writes the _CS arm too")
+    a = ap.parse_args(argv)
+    if a.stage == "framework":
         framework()
-    elif stage == "sizer":
-        sizer()
-    elif stage == "followups":
+    elif a.stage == "followups":
         followups()
+    elif a.stage == "rev":
+        rev(a.model, a.cls)
     else:
-        raise SystemExit("usage: build_arms framework|sizer|followups")
+        thr = None
+        if a.thresholds:
+            thr = {k: v["threshold"] for k, v in json.loads(Path(a.thresholds).read_text()).items()}
+        sizer(thr, a.model, a.cls)
     return 0
 
 

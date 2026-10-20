@@ -52,16 +52,19 @@ def main(argv=None) -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--folds")
+    ap.add_argument("--model", help="arm tag (default: the selected model)")
+    ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args(argv)
-    tag, _ = selected()
+    tag = a.model or selected()[0]
     plan = json.loads((STRAT / "evaluation" / "folds" / f"plan_{tag}_wb.json").read_text())
-    out = json.loads(OUT.read_text()) if OUT.exists() else {}
+    out_p = Path(a.out)
+    out = json.loads(out_p.read_text()) if out_p.exists() else {}
     for f in plan["folds"]:
         if a.folds and f["fold_id"] not in a.folds.split(","):
             continue
         r = pick_fold(plan, f["fold_id"])
         out[r["train_timerange"]] = r
-        OUT.write_text(json.dumps(out, indent=1))
+        out_p.write_text(json.dumps(out, indent=1))
         print(json.dumps(r), flush=True)
     return 0
 

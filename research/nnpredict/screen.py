@@ -16,7 +16,8 @@ registered) and "flip" (score = -predict_gain; the decile check found Ridge's ra
 screen passes if either direction passes; the passing direction (the larger gap_share50 if both) is
 the one the sizer arm uses.
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.screen
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.screen \
+        [--model NNP_RIDGE_EXC32 --prereg sizer_exc32 --out screen_exc32.json]
 """
 from __future__ import annotations
 
@@ -77,22 +78,30 @@ def decide(r: dict, pr: dict) -> dict:
 
 
 def main(argv=None) -> int:
+    import argparse
+
     from research.new_inputs import trades as TR
     from research.nnpredict import judge as J
 
-    path, pr = J._prereg("sizer")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default="NNP", help="signal-table prefix (research/nnnc_framework/signals.py)")
+    ap.add_argument("--prereg", default="sizer")
+    ap.add_argument("--out", default="screen.json")
+    a = ap.parse_args(argv)
+    path, pr = J._prereg(a.prereg)
     bad = J._refused(path, {**pr, "arms": {}})
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
     t = TR.trades()
-    tables = {f: pd.read_parquet(SIG / f"NNP_{f}.parquet") for f in sorted(t["fold"].unique())}
+    tables = {f: pd.read_parquet(SIG / f"{a.model}_{f}.parquet") for f in sorted(t["fold"].unique())}
     a = attach(t, tables)
     dirs = {"up": decide(score(a), pr), "flip": decide(score(a.assign(score=-a["score"])), pr)}
     passed = [d for d in dirs if dirs[d]["pass"]]
     best = max(passed, key=lambda d: dirs[d]["gap_share50"]) if passed else None
-    r = {"pass": bool(passed), "direction": best, "directions": dirs, "instrument": t.attrs.get("check")}
-    (HERE / "screen.json").write_text(json.dumps(r, indent=1, default=str))
+    r = {"pass": bool(passed), "direction": best, "model": a.model, "directions": dirs,
+         "instrument": t.attrs.get("check")}
+    (HERE / a.out).write_text(json.dumps(r, indent=1, default=str))
     print(json.dumps({"pass": r["pass"], "direction": best,
                       **{d: {k: v for k, v in x.items() if k != "per_fold"} for d, x in dirs.items()}}, default=str))
     return 0
