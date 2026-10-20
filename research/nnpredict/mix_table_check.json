@@ -1,0 +1,83 @@
+{
+ "trades": 930,
+ "missing": 0,
+ "match_share": 1.0,
+ "pass": true,
+ "per_fold": {
+  "f00": {
+   "trades": 27,
+   "missing": 0,
+   "match": 27
+  },
+  "f01": {
+   "trades": 25,
+   "missing": 0,
+   "match": 25
+  },
+  "f02": {
+   "trades": 10,
+   "missing": 0,
+   "match": 10
+  },
+  "f03": {
+   "trades": 16,
+   "missing": 0,
+   "match": 16
+  },
+  "f04": {
+   "trades": 128,
+   "missing": 0,
+   "match": 128
+  },
+  "f05": {
+   "trades": 60,
+   "missing": 0,
+   "match": 60
+  },
+  "f06": {
+   "trades": 46,
+   "missing": 0,
+   "match": 46
+  },
+  "f07": {
+   "trades": 99,
+   "missing": 0,
+   "match": 99
+  },
+  "f08": {
+   "trades": 147,
+   "missing": 0,
+   "match": 147
+  },
+  "f09": {
+   "trades": 39,
+   "missing": 0,
+   "match": 39
+  },
+  "f10": {
+   "trades": 3,
+   "missing": 0,
+   "match": 3
+  },
+  "f11": {
+   "trades": 208,
+   "missing": 0,
+   "match": 208
+  },
+  "f12": {
+   "trades": 39,
+   "missing": 0,
+   "match": 39
+  },
+  "f13": {
+   "trades": 37,
+   "missing": 0,
+   "match": 37
+  },
+  "f14": {
+   "trades": 46,
+   "missing": 0,
+   "match": 46
+  }
+ }
+}
