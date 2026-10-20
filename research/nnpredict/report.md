@@ -12,7 +12,8 @@ amendments say what had been seen first). Records are local (`regime/arms/`); ve
 - **The NNNC framework helps a lot, but not enough.** It ports with byte-identical trades. Gating the
   model by the gbb trigger takes the selected model from −12.7 to **+29.7 pp**: IMPROVED, p = 0.003,
   better in both halves. That still trails the width book (`w_aro` 51.4), `cs_aro` (59.9) and the gbb
-  reversion book (`st_g24_rev` 71.5).
+  reversion book (`st_g24_rev` 71.5). On `st_g24_rev`'s exact exits, adding the model to the gbb
+  trigger loses 20.9 pp (follow-ups, section 5): the gain is the trigger's, not the model's.
 - **The predicted move doesn't work as a width-book sizer.** The screen fails in both directions.
 - **Why:** the predictions rank 1–2 h outcomes inverted, and 8 h outcomes the right way but weakly.
   The best decile is 7–12 bp short of the 30 bp round trip. This matches 038.
@@ -105,16 +106,38 @@ the late half stays unread.
 1. **Keep the framework port** on `NNPredictStrategy` (done, everything off, identical trades). This
    makes every NNNC feature declarable on NNPredict.
 2. **Candidate defaults for the user to decide:** the gbb trigger gate (`ENTRY_MODE =
-   "trigger_and_model"`, `TRIGGER_NAME = "gbb"`) and the 24 h grace, on `nnp_lstm_ind_op`. The gate
+   "trigger_and_model"`, `TRIGGER_NAME = "gbb"`) and the 24 h grace, on `nnp_lstm_ind_op`. Each
+   passed alone; combined they FAIL vs the gate alone (section 5), so they are alternatives, not a pair. The gate
    is the only strong result (IMPROVED, both halves).
 3. **Not for deployment:** gated, NNPredict still trails the width book and the gbb reversion book.
    NNNC's `cs_aro` remains the reference.
-4. **Open, not run:**
-   - gate + 24 h grace combined (each passed alone; not pre-registered as a pair);
-   - the gated model vs `st_g24_rev` with the same exits (the reference comparison above mixes exit
-     stacks);
-   - a target aligned with the 8 h ranking (excursion at H = 32), the one place the deciles point the
-     right way.
+4. The three open ideas were run as follow-ups (section 5): the gate stays the only candidate
+   default; on identical exits the model's filter costs P&L vs the gbb trigger alone; excursion H=32
+   is the best standalone target but still loses.
+
+## 5. Follow-ups (`preregistration_followups.json`, `verdicts_followups.json`)
+
+Run on the user's request ("do all 3") after the framework verdicts; the pre-registration was
+committed before any run (8ec08733).
+
+| Arm | Change | Trades | Total pp | vs | Δ early | Δ late | Paired | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| `_gate_g24` | gate + 24 h grace | 3,563 | 29.97 | `_gate` 29.75 (4,913) | +1.44 | −1.22 | UNCHANGED (p 0.99) | FAIL |
+| `_revx` | `st_g24_rev`'s framework, trigger entry only | — | — | `st_g24_rev` | | | identical trades 15/15 | identity holds |
+| `_revg` | the same framework, model AND gbb | 1,351 | 50.57 | `st_g24_rev` 71.50 (2,518) | −17.82 | −3.12 | UNCHANGED (p 0.12) | FAIL |
+| `nnp_ridge_exc32_op` | Ridge, excursion target, H = 32 | 9,131 | −10.99 | `nnp_ridge_op` −25.64 | +13.00 | +1.66 | INCONCLUSIVE_ARM_LOSES | PASS |
+
+- **Gate + 24 h grace:** the grace adds nothing on top of the gate (+0.2 pp, late half negative). Beside
+  `fw0` it is IMPROVED in both halves, but so is the gate alone, so the gate alone stays the candidate.
+- **Gated model vs the trigger on identical exits:** the copied framework reproduces `st_g24_rev`
+  exactly, so the only difference is the model. The model keeps 54% of the trigger's trades and loses
+  20.9 pp, worse in both halves (not significant). The filter removes profitable reversion entries;
+  the gate arm's +42 pp in section 3 came from the trigger, not the model.
+- **Excursion H = 32:** the best standalone NNPredict result in the study (also beats excursion H = 4 by
+  +14.1 pp, both halves), but it still loses money and the paired test says the arm loses. Deciles
+  (early half): it ranks 8 h outcomes almost perfectly (Spearman +0.95, top–bottom 16.9 bp) but the
+  top decile nets −6.0 bp after 30 bp; its gated entries carry +14.1 bp edge over random at 8 h. No
+  model selection was re-run (pre-registered).
 
 ## Limitations
 
