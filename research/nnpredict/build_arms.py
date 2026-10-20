@@ -8,7 +8,7 @@ operating-point stage selected (research R6-R8; verdicts_op.json "selected").
              sized by NNPredict's predicted move, AGREE_RULE p_buy, sizer_score = %predict_gain, a
              per-fold 0.5-agree-share threshold picked by research.nnpredict.pick).
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer|followups|rev [--model TAG --cls CLASS]
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer|followups|rev|waro [--model TAG --cls CLASS] [--thresholds F]
 """
 from __future__ import annotations
 
@@ -271,11 +271,75 @@ def followups() -> dict:
     return out
 
 
+#: follow-ups 3: the reference width book whose resolved framework the WA arms copy (every fold
+#: resolves to one framework_sha, asserted).
+WA_REFERENCE = ("w_aro", "NNNC_W_ARO")
+
+
+def _fingerprint_framework(base_cls, ref: str) -> tuple[str, str]:
+    """(framework_sha, class body) putting `ref`'s RESOLVED framework (evaluation.fingerprint: class
+    attributes + params JSON as freqtrade merges them) on an NNPredict class, as literals."""
+    from evaluation import fingerprint as F
+
+    cfg = str(STRAT / "config" / "config_wf.json")
+    shas = {F.resolve_by_name(f"{ref}_f{i:02d}", cfg)[0] for i in range(15)}
+    if len(shas) != 1:
+        raise SystemExit(f"REFUSED: {ref}'s folds resolve to {len(shas)} frameworks")
+    sha, d = F.resolve_by_name(f"{ref}_f00", cfg)
+    lines = [f"    {k} = {v!r}" for k, v in sorted(d["attributes"].items())
+             if v is not None and not (hasattr(base_cls, k) and getattr(base_cls, k) == v)]
+    lines += [
+        "    stoploss_grace_hours = DecimalParameter(0.0, 48.0, default=24.0, decimals=1, space=\"sell\",",
+        "                                            load=True, optimize=False)",
+        f"    buy_params = {{**{base_cls.__name__}.buy_params, **{d['buy']!r}}}",
+        f"    sell_params = {{**{base_cls.__name__}.sell_params, **{d['sell']!r}}}",
+    ]
+    return sha, "\n".join(lines).replace("{", "{{").replace("}", "}}") + "\n"
+
+
+def waro(tag: str, base: str, thresholds: dict) -> dict:
+    """<base>_WA: w_aro's width book and resolved framework on <base> (the identity twin of w_aro);
+    <base>_CSA: the same, sized by <base>'s predicted move with `thresholds`."""
+    import importlib
+
+    from evaluation import fingerprint as F
+
+    base_cls = getattr(importlib.import_module(base), base)
+    sha, fw = _fingerprint_framework(base_cls, WA_REFERENCE[1])
+    cuts = json.dumps(width_cuts(), indent=8, sort_keys=True)
+    esc = cuts.replace("{", "{{").replace("}", "}}")
+    wa, csa = f"{base}_WA", f"{base}_CSA"
+    imports = "from freqtrade.strategy import DecimalParameter\n\nfrom _width_book import WidthBookMixin\n"
+    p = _write_class(wa, base, "follow-up", "w_aro's width book and framework (identity twin of w_aro)", imports,
+                     FAMILY_LINE + "    WIDTH_CUTS = " + esc + "\n" + fw)
+    p.write_text(p.read_text().replace(f"class {wa}({base}):", f"class {wa}(WidthBookMixin, {base}):"))
+    _plan(tag, f"{tag}_wa", wa, "039 follow-ups 3: w_aro's width book + framework on the NNPredict class")
+    imports_cs = ("from types import SimpleNamespace\n\nfrom freqtrade.strategy import DecimalParameter\n\n"
+                  "from _width_book import WidthBookMixin\nfrom _width_sizer import WidthSizerMixin\n")
+    body = SIZER_BODY.replace("{thresholds}", json.dumps(thresholds, indent=8, sort_keys=True)).replace("{cuts}", cuts)
+    p = _write_class(csa, base, "follow-up", "w_aro's width book sized by the predicted move", imports_cs, "    pass\n")
+    p.write_text(p.read_text().replace(f"class {csa}({base}):\n    pass\n",
+                                       f"class {csa}(WidthSizerMixin, WidthBookMixin, {base}):\n" + body
+                                       + fw.replace("{{", "{").replace("}}", "}")))
+    _plan(tag, f"{tag}_csa", csa, "039 follow-ups 3: the predicted-move sizer on w_aro's width book")
+    cfg = str(STRAT / "config" / "config_wf.json")
+    got = {c: F.resolve_by_name(c, cfg)[0] for c in (wa, csa)}
+    if any(v != sha for v in got.values()):
+        raise SystemExit(f"REFUSED: framework_sha {got} != {WA_REFERENCE[0]}'s {sha}")
+    k0 = _key(base)
+    bad = {c: _key(c) for c in (wa, csa) if _key(c) != k0}
+    if bad:
+        raise SystemExit(f"REFUSED: arms that would not reuse {base}'s weights: {bad}")
+    out = {"model": tag, "framework_sha": sha, "arms": {f"{tag}_wa": wa, f"{tag}_csa": csa}}
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     import argparse
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=("framework", "sizer", "followups", "rev"))
+    ap.add_argument("stage", choices=("framework", "sizer", "followups", "rev", "waro"))
     ap.add_argument("--model", help="arm tag of the model (rev, sizer); default: the selected model")
     ap.add_argument("--cls", help="its strategy class")
     ap.add_argument("--thresholds", help="sizer: a pick.py output file; writes the _CS arm too")
@@ -286,6 +350,8 @@ def main(argv=None) -> int:
         followups()
     elif a.stage == "rev":
         rev(a.model, a.cls)
+    elif a.stage == "waro":
+        waro(a.model, a.cls, {k: v["threshold"] for k, v in json.loads(Path(a.thresholds).read_text()).items()})
     else:
         thr = None
         if a.thresholds:

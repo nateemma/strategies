@@ -398,6 +398,8 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "NNPredict/NNPredict_LSTM_RawInd_OP_REVX.py",
     "NNPredict/NNPredict_Ridge_Exc32_OP_REVG.py",
     "NNPredict/NNPredict_Ridge_Exc32_OP_REVX.py",
+    "NNPredict/NNPredict_Ridge_Exc32_OP_WA.py",
+    "NNPredict/NNPredict_Ridge_Exc32_OP_CSA.py",
     "research/nnpredict/build_arms.py",
     "research/nnnc_framework/build_arms.py",   # writes those declarations and .json/snapshot
                                                  # values (grace hours, take-profit); computes none.

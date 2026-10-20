@@ -1,0 +1,96 @@
+{
+ "title": "039 NNPredict -- follow-ups 3 (user request 2026-10-21: 'run the exc32 sizer on w_aro's width book'): the excursion-H32 Ridge's predicted move sizing w_aro's own width book and exits",
+ "date": "2026-10-21",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "selected": "nnp_ridge_exc32_op",
+ "arms": {
+  "nnp_ridge_exc32_op_wa": {
+   "class": "NNPredict_Ridge_Exc32_OP_WA",
+   "role": "identity",
+   "change": "w_aro's width book (same per-fold cuts) and resolved framework (framework_sha 7de225f72b71eef4, asserted by build_arms.waro) on the exc32 class, unsized: must reproduce w_aro"
+  },
+  "nnp_ridge_exc32_op_csa": {
+   "class": "NNPredict_Ridge_Exc32_OP_CSA",
+   "comparator": "w_aro",
+   "change": "the same, sized by %predict_gain: agree (score > the fold's threshold) stake 1.0, disagree 0.5, AGREE_SHARE 0.5 -- cs_aro's sizer with the exc32 score in place of ARO's p_buy",
+   "also_reported_vs": [
+    "cs_aro",
+    "nnp_ridge_exc32_op_cs"
+   ]
+  }
+ },
+ "identity": {
+  "arm": "nnp_ridge_exc32_op_wa",
+  "reference": "w_aro",
+  "rule": "wa trades_hash == w_aro's on all 15 folds; otherwise the copy is a defect, fixed (instrument only) and rerun before csa is read"
+ },
+ "thresholds": "sizer_thresholds_exc32.json, unchanged (picked before follow-ups 2's sizer backtest, on the width-book run starts of the training validation tail; the width rule and guards are the same here)",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, comparator) with the rule maps; liveness: an arm whose trades change on no fold vs its comparator is INERT (a defect)",
+ "decision": {
+  "nnp_ridge_exc32_op_csa": "identity must hold. PASS vs w_aro -> the exc32 score is a working width-book sizer on NNNC's exits; then vs cs_aro (reported): PASS there -> a candidate alternative to ARO's p_buy (user's call); FAIL vs w_aro -> it does not size w_aro's book"
+ },
+ "seed_rule_pp": 1.0,
+ "seen_before": [
+  "follow-ups 2: the exc32 sizer on NNPredict's own exits, +2.21 pp vs its width book (PASS, paired p 0.39), 32.99 vs w_aro 51.44 / cs_aro 59.95",
+  "the exc32 screen (early 412 width-book trades): gap_share50 0.054, partial +0.088, rho with cs_aro's p_buy 0.36",
+  "w_aro's and cs_aro's 15-fold records"
+ ],
+ "why": "follow-ups 2 left the exit stack and the score confounded; this holds w_aro's book and exits fixed, so the only difference from w_aro is the stake, and from cs_aro only the score.",
+ "caveat": "the sizer's own-exits result (follow-ups 2) and both halves of w_aro/cs_aro are seen"
+}
