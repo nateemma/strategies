@@ -131,7 +131,7 @@ def cmd_key(a) -> int:
     print(f"class   {cls.__name__}\nprefix  {loc.prefix}\nhash    {MK.key_hash(loc.key)}\n"
           f"kind    {loc.kind}\npath    {loc.path}")
     print("key     " + MK.canonical(loc.key))
-    return 0 if loc.kind != "absent" else 1
+    return 0 if loc.kind not in ("absent", "mainline-absent") else 1
 
 
 def cmd_path(a) -> int:

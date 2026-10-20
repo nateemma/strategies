@@ -26,14 +26,14 @@ Lookup order (``locate``): the model index entry for the key -> the class-named 
 set by walk-forward evaluation) a missing model raises ``ModelMissing`` instead of training.
 
 MAINLINE MODELS (for strategies that may run dry/live, usually on a dynamic pairlist). A class that
-declares ``MODEL_MAINLINE = True`` and pins no ``MODEL_TRAIN_TIMERANGE`` is named by its SHAPE: the key
-without the run's whitelist, training window and seed (``shape_of``), at
+pins no ``MODEL_TRAIN_TIMERANGE`` is mainline and is named by its SHAPE: the key without the run's whitelist, training window and seed (``shape_of``), at
 ``mainline/<prefix>__<shape hash>/``. The readable prefix carries the major label parameters (e.g.
 gains and horizon); the hash covers every other weight-shaping input, so a variant that changes any of
 them can never load another's weights, while one that changes only post-model settings shares them.
 The pairs and window the weights were trained on are recorded in the manifest, not in the name, so
 any pairlist finds them. Fold and arm classes always pin a window, so they keep the keyed scheme
-(investigations are unchanged). A dry/live run with no mainline weights refuses (``ModelMissing``)
+(investigations are unchanged). Until it has mainline weights, a mainline class still finds weights it
+had before (index, class-named legacy directory, keyed directory). A dry/live run with no mainline weights refuses (``ModelMissing``)
 instead of training; train with a backtest, or adopt existing keyed weights (``python -m
 Framework.ModelKey adopt-mainline``).
 """
@@ -69,7 +69,7 @@ DYNAMIC_WHITELIST = ["<dynamic pairlist>"]
 #: Names the resolver reads itself (run inputs and the declarations): classified by definition.
 RUN_NAMES = ("timeframe", "startup_candle_count", "MODEL_TRAIN_TIMERANGE", "MODEL_SEED",
              "MODEL_TRAINED_WITH", "MODEL_CODE_VERSION", "MODEL_KEY_ATTRIBUTES",
-             "MODEL_KEY_IGNORED", "MODEL_KEY_METHODS", "MODEL_KEY_METHODS_IGNORED", "MODEL_MAINLINE")
+             "MODEL_KEY_IGNORED", "MODEL_KEY_METHODS", "MODEL_KEY_METHODS_IGNORED")
 
 
 class ModelKeyError(RuntimeError):
@@ -261,8 +261,8 @@ def _key_whitelist(config: dict):
 
 
 def is_mainline(cls) -> bool:
-    """A mainline class: declares MODEL_MAINLINE (inherited) and pins no training window."""
-    return bool(declared(cls, "MODEL_MAINLINE", False)) and not declared(cls, "MODEL_TRAIN_TIMERANGE", None)
+    """A mainline class pins no training window (fold and arm classes always pin one)."""
+    return not declared(cls, "MODEL_TRAIN_TIMERANGE", None)
 
 
 def shape_of(key: dict) -> dict:
@@ -370,22 +370,41 @@ def mainline_stem(storage: Path, key: dict) -> Path:
 def locate_for(cls, config: dict, class_name: str | None = None,
                storage: Path | None = None, keyed_only: bool = False) -> Location:
     """Where `cls`'s weights are (see module docstring). Never trains; strict mode raises.
-    `keyed_only` ignores the mainline scheme (adopt-mainline reads the keyed weights)."""
+    `keyed_only` ignores the mainline scheme (adopt-mainline reads the keyed weights). A mainline
+    class with no mainline weights still finds weights it already has (index, class-named legacy
+    directory, keyed directory), so nothing trained before mainline naming is orphaned."""
     name = class_name or cls.__name__
     storage = Path(storage) if storage is not None else storage_of(cls)
     key = resolve(cls, config, storage)
     h, prefix = key_hash(key), key_prefix(key)
+    new = Path(storage) / MODELS_SUBDIR / f"{prefix}__{h}" / f"{prefix}__{h}"
     if is_mainline(cls) and not keyed_only:
         stem = mainline_stem(storage, key)
         hs = key_hash(shape_of(key))
         if weights_exist(stem):
             return Location(f"{stem}.keras", "mainline", hs, prefix, key)
+        found = _existing(storage, name, key, h, prefix, new)
+        if found is not None:
+            return found
         if strict() or _live(config):
             raise ModelMissing(
                 f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}). A dry/live run "
                 f"never trains: train with a backtest of this class, or adopt existing keyed weights "
                 f"(python -m Framework.ModelKey adopt-mainline --strategy {name} --config <config>).")
         return Location(f"{stem}.keras", "mainline-absent", hs, prefix, key)
+    found = _existing(storage, name, key, h, prefix, new)
+    if found is not None:
+        return found
+    if strict():
+        raise ModelMissing(
+            f"{name}: no weights for model key {prefix}__{h} (strict walk-forward evaluation "
+            f"refuses to train). Key: {canonical(key)}")
+    return Location(f"{new}.keras", "absent", h, prefix, key)
+
+
+def _existing(storage: Path, name: str, key: dict, h: str, prefix: str, new: Path) -> Location | None:
+    """Weights the key scheme already has: the index entry, the class-named legacy directory, the
+    keyed directory (in that order)."""
     idx = load_index(storage)
     conflicted = {c["hash"] for c in idx.get("conflicts", [])}
     ent = idx["entries"].get(h)
@@ -396,14 +415,9 @@ def locate_for(cls, config: dict, class_name: str | None = None,
     leg = _legacy_stem(storage, name)
     if weights_exist(leg):
         return Location(f"{leg}.keras", "legacy", f"legacy:{name}", prefix, key)
-    new = Path(storage) / MODELS_SUBDIR / f"{prefix}__{h}" / f"{prefix}__{h}"
     if weights_exist(new):
         return Location(f"{new}.keras", "keyed", h, prefix, key)
-    if strict():
-        raise ModelMissing(
-            f"{name}: no weights for model key {prefix}__{h} (strict walk-forward evaluation "
-            f"refuses to train). Key: {canonical(key)}")
-    return Location(f"{new}.keras", "absent", h, prefix, key)
+    return None
 
 
 def manifest_path(location: Location) -> Path:
@@ -521,7 +535,7 @@ def adopt_mainline(cls, config: dict, storage: Path | None = None) -> Path:
     import shutil
 
     if not is_mainline(cls):
-        raise ModelKeyError(f"{cls.__name__} is not mainline (MODEL_MAINLINE, no MODEL_TRAIN_TIMERANGE)")
+        raise ModelKeyError(f"{cls.__name__} is not mainline (it pins MODEL_TRAIN_TIMERANGE)")
     storage = Path(storage) if storage is not None else storage_of(cls)
     src = locate_for(cls, config, storage=storage, keyed_only=True)
     if src.kind not in ("keyed", "migrated"):

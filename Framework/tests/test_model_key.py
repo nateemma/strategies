@@ -39,6 +39,11 @@ def _cls(name="Stub", base=BaseNNStrategy, **attrs):
     return type(name, (base,), dict(attrs))
 
 
+def _pinned(name="Stub", **attrs):
+    """A class on the keyed scheme (a fold or arm: it pins its training window)."""
+    return _cls(name, MODEL_TRAIN_TIMERANGE="20210101-20230101", **attrs)
+
+
 def _h(cls, config=CONFIG):
     return MK.key_hash(MK.resolve(cls, config))
 
@@ -194,16 +199,16 @@ def test_instance_mutation_of_a_list_does_not_move_the_key(storage):
 # ------------------------------------------------------------------- index, manifest, strict
 
 
-def _train_stub(storage, cls, name="Stub"):
-    loc = MK.locate_for(cls, CONFIG, name)
+def _train_stub(storage, cls, name="Stub", keyed_only=False):
+    loc = MK.locate_for(cls, CONFIG, name, keyed_only=keyed_only)
     Path(loc.path).parent.mkdir(parents=True, exist_ok=True)
     Path(loc.path).with_suffix(".safetensors").write_bytes(b"weights")
     MK.record_training(loc, name, "20210101-20230101")
-    return MK.locate_for(cls, CONFIG, name)
+    return MK.locate_for(cls, CONFIG, name, keyed_only=keyed_only)
 
 
 def test_absent_then_keyed_after_training(storage):
-    cls = _cls()
+    cls = _pinned()
     assert MK.locate_for(cls, CONFIG).kind == "absent"
     loc = _train_stub(storage, cls)
     assert loc.kind == "keyed" and "/models/" in loc.path
@@ -213,15 +218,15 @@ def test_absent_then_keyed_after_training(storage):
 
 
 def test_renamed_class_with_same_inputs_finds_the_weights(storage):
-    loc = _train_stub(storage, _cls("Original"), "Original")
-    again = MK.locate_for(_cls("Renamed"), CONFIG, "Renamed")
+    loc = _train_stub(storage, _pinned("Original"), "Original")
+    again = MK.locate_for(_pinned("Renamed"), CONFIG, "Renamed")
     assert again.path == loc.path and again.kind == "keyed"
 
 
 def test_strict_mode_raises_before_training(storage, monkeypatch):
     monkeypatch.setenv("FT_MODEL_EVAL_STRICT", "1")
     with pytest.raises(MK.ModelMissing, match="refuses to train"):
-        MK.locate_for(_cls(), CONFIG)
+        MK.locate_for(_pinned(), CONFIG)
     assert not (storage / "models").exists()
 
 
@@ -229,12 +234,12 @@ def test_legacy_directory_resolves_only_for_its_own_class(storage):
     d = storage / "OldClass"
     d.mkdir()
     (d / "OldClass.safetensors").write_bytes(b"old")
-    assert MK.locate_for(_cls("OldClass"), CONFIG, "OldClass").kind == "legacy"
-    assert MK.locate_for(_cls("Other"), CONFIG, "Other").kind == "absent"
+    assert MK.locate_for(_pinned("OldClass"), CONFIG, "OldClass").kind == "legacy"
+    assert MK.locate_for(_pinned("Other"), CONFIG, "Other").kind == "absent"
 
 
 def test_conflicted_hash_is_never_served(storage):
-    loc = _train_stub(storage, _cls())
+    loc = _train_stub(storage, _pinned())
     idx = MK.load_index(storage)
     idx["conflicts"] = [{"hash": loc.hash, "paths": ["a", "b"], "reason": "test"}]
     MK.save_index(storage, idx)
@@ -247,11 +252,11 @@ def test_conflicted_hash_is_never_served(storage):
     (storage / "elsewhere").mkdir()
     (storage / "elsewhere" / "x.safetensors").write_bytes(b"w")
     MK.save_index(storage, idx)
-    assert MK.locate_for(_cls(), CONFIG).kind == "absent"
+    assert MK.locate_for(_pinned(), CONFIG).kind == "absent"
 
 
 def test_manifest_mismatch_halts_and_names_fields(storage):
-    loc = _train_stub(storage, _cls())
+    loc = _train_stub(storage, _pinned())
     man = json.loads(MK.manifest_path(loc).read_text())
     man["key"]["run"]["seed"] = 999
     MK.manifest_path(loc).write_text(json.dumps(man))
@@ -280,7 +285,7 @@ def test_index_round_trip_is_atomic(storage):
 
 
 def _ml(**attrs):
-    return _cls("Main", MODEL_MAINLINE=True, **attrs)
+    return _cls("Main", **attrs)  # no pinned training window: mainline
 
 
 def _with_wl(pairs, runmode=None):
@@ -328,10 +333,6 @@ def test_a_fold_of_a_mainline_class_keeps_the_keyed_scheme(storage):
         MK.resolve(fold, _with_wl([]))  # keyed: the whitelist is still required
 
 
-def test_mainline_flag_does_not_shape_the_keyed_weights(storage):
-    assert MK.key_hash(MK.resolve(_ml(), CONFIG)) == _h(_cls())
-
-
 def test_mainline_dry_and_live_runs_never_train(storage):
     from freqtrade.enums import RunMode
 
@@ -365,7 +366,7 @@ def test_mainline_manifest_of_another_shape_halts(storage):
 
 
 def test_adopt_mainline_copies_the_keyed_weights(storage):
-    keyed = _train_stub(storage, _cls("Main"), "Main")  # trained as an ordinary keyed model
+    keyed = _train_stub(storage, _ml(), "Main", keyed_only=True)  # trained before mainline naming
     assert keyed.kind == "keyed"
     d = MK.adopt_mainline(_ml(), CONFIG)
     loc = MK.locate_for(_ml(), _with_wl([]))
@@ -376,3 +377,17 @@ def test_adopt_mainline_copies_the_keyed_weights(storage):
     assert man["provenance"]["kind"] == "adopted" and man["provenance"]["from"] == f"{keyed.prefix}__{keyed.hash}"
     with pytest.raises(MK.ModelKeyError):
         MK.adopt_mainline(_ml(), CONFIG)  # never overwrites
+
+
+def test_mainline_class_still_finds_weights_it_had_before(storage):
+    from freqtrade.enums import RunMode
+
+    keyed = _train_stub(storage, _ml(), "Main", keyed_only=True)
+    assert MK.locate_for(_ml(), CONFIG, "Main").path == keyed.path   # same pairs: served as before
+    d = storage / "Main"
+    d.mkdir()
+    (d / "Main.safetensors").write_bytes(b"old")
+    other = _with_wl(["BTC/USDT"])
+    assert MK.locate_for(_ml(), other, "Main").kind == "legacy"       # class-named pre-030 weights
+    assert MK.locate_for(_ml(), _with_wl([], RunMode.LIVE), "Main").kind == "legacy"
+    assert MK.locate_for(_ml(), other, "Fresh").kind == "mainline-absent"
