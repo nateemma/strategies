@@ -258,6 +258,7 @@ outputs, and has a distinct model key.
 - [ ] T050 [P] Update `NNMT/README.md` (status, framework, variants, heads, transition, pointer to the report), `AGENT_GUIDE.md` (a 040 row and current state) and `README.md` (the NNMT directory status line)
 - [ ] T051 Memory: write `project_040_nnmt.md`; correct `project_nnmt_task_audit.md` (the trading label is NOT task-filtered since 2618e0eb); add the MEMORY.md index line
 - [ ] T052 Commit each stage as it completes (named files only). Push only when the user asks
+- [ ] T053 AFTER the study (user decision 2026-10-20): fix the walk-forward training window so no training bar or label reaches the test window (research/nnmt/compute.md § Fold boundary). freqtrade trims with `date <= stop`, so `train_timerange` must end at least H (= 48) bars before `test_start`. This is a harness change (`evaluation/foldplan.py` / `run_folds.py`, family-agnostic) with a test, and then a plan for re-running the comparators (`cs_aro`, `w_aro`, `wf_aro_g24`, `st_g24_rev`) so later studies compare like-for-like. Do NOT apply it during 040
 
 ---
 
