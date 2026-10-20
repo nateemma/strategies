@@ -118,6 +118,13 @@ trained fresh in this study, so nothing is lost.
   `OperatingPointMixin` that merges them. Exits stay NNMT's.
 - Both arms reuse one set of per-fold weights (`mt_op` differs only in post-model settings).
 
+**No leakage across the fold boundary (Principle XI)**: each fold trains with `train_timerange`
+ending at `test_start`. The training dataframe holds no candle at or after `test_start`, so the
+forward labels of the last 48 bars (gbb_path H = 48) and the auxiliary labels' centred windows are
+truncated, not filled from test bars. That is a purge of at least the label horizon. T011 verifies it
+on f00: the last training bar's date is < `test_start`, and the label tail is HOLD/NaN rather than
+looking past it.
+
 **Model-decided share (FR-004)**: from per-fold signal tables (R8), the share of guard-passing bars
 on which the model declines to enter: 1 − entries ÷ guard-passing bars. Near 0 means the guards
 choose the entries. It is reported per arm. The pre-registered minimum for model and head arms to be
@@ -244,6 +251,12 @@ head:
 The arms read per-fold head tables (the `MixSizerMixin` table pattern of 039) and are judged against
 their unmodified book.
 
+**Thresholds come from a held-out training tail, never in-sample.** The NNMT weights never fit the last
+20% of each pair's training data (`TRAIN_DATA_SPLIT` 0.8), so the head probabilities on that tail are
+out-of-sample. 039's `mix.py tables` step produced exactly this (the fold strategy run over its
+validation tail). A `heads tail` step writes `user_data/data/nnmt_heads/tail_<M>_ah_fNN.parquet`, and
+every head-arm percentile is taken from it.
+
 ## R11 — Regime-transition target (FR-010, FR-011)
 
 **Causal regime state** `S_L(t)` for a trailing window L ending at t:
@@ -271,8 +284,13 @@ next H", which a trader could have known at t+H.
 - 037's per-fold HistGradientBoosting (`research/indicator_screen/screen_models.fit_fold` settings),
   one-vs-rest per direction, trained on each fold's training window with a purge of H bars.
 - Inputs: the deployed model's inputs (the 24 indicators + raw8) plus BTC's raw8 and BTC's
-  `S_L(t)` z for L ∈ {96, 288, 672}. Rows: tradeable bars (volume > 0, `meta:data_ok`), hourly
-  subsample for training.
+  `S_L(t)` z for L ∈ {96, 288, 672}. They are read from 037's panel (`research/indicator_screen`
+  `base:*` and `raw8:*` columns, the same causal-checked harvest). BTC's z is computed by
+  `transition.py` itself. Rows: tradeable bars (volume > 0, `meta:data_ok`), hourly subsample for
+  training.
+- **Held-out tail for thresholds:** each fold's HGB is fit on its training window minus the last 90
+  days (purge H before that tail). The tail's predictions set the R12 percentiles, and the test-window
+  predictions come from the same fit.
 
 **Baselines**:
 - (a) the base rate (AUC 0.5);
@@ -301,7 +319,7 @@ prediction tables of the passing model.
 |---|---|---|
 | `tr_gate` | `cs_aro`'s book skips entries while P(DOWN) ≥ the tail 80th percentile | `cs_aro` |
 | `tr_scale` | `cs_aro`'s stake × 1.333 when P(UP) ≥ the tail 80th percentile, × 0.667 when P(DOWN) ≥ it (capital-neutral to first order) | `cs_aro` |
-| `tr_long` | standalone long entry when P(UP) ≥ the tail 99th percentile, shared exits (`st_g24_rev`'s stack) | `st_g24_rev` (reported), sign test against 0 in both halves |
+| `tr_long` | standalone long entry when P(UP) ≥ the tail 99th percentile, shared exits (`st_g24_rev`'s stack) | PASS if the pooled pp is > 0 in both halves AND the bootstrap 95% CI of the per-trade mean pp (`evaluation/bootstrap.py`, seed 0) excludes 0; `st_g24_rev` reported |
 | `tr_exit` | `cs_aro` closes an open trade when P(DOWN) ≥ the tail 90th percentile | `cs_aro` |
 
 **NNMT head version (only if a stand-in cell passes)**:

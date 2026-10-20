@@ -47,8 +47,8 @@
   only at 48- and 288-bar horizons (12 h and 3 days). Price-level and calendar columns produced
   spurious "winners" there.
 - **Where NNNC stands.** NNNC carries the entry framework: the model or a trigger as the entry
-  source, per-family exits, the held-pair add, and an operating point with guards open and a
-  percentile floor. Its adopted defaults are:
+  source, per-family exits, the held-pair add, and an operating point with guards open and a 0.80
+  prediction threshold (ARO's). Its adopted defaults are:
   - 24 h stop-loss grace (NNMT has 3 h);
   - in-profit held-pair add.
 
@@ -104,8 +104,8 @@ entries that the model rather than the guards decided.
 
 1. **Given** the 15-fold plan, **When** the baseline runs, **Then** each fold trains on its own
    training window only and is evaluated on its test window.
-2. **Given** the operating-point arm (guards open, percentile floor, as NNNC's), **When** it is
-   reported, **Then** it shows per-half totals, trades and the share of model-decided entries,
+2. **Given** the operating-point arm (guards open and ARO's prediction threshold of 0.80, as
+   NNNC's), **When** it is reported, **Then** it shows per-half totals, trades and the share of model-decided entries,
    against the baseline and the references.
 
 ---
@@ -157,7 +157,7 @@ resolves to its own model key.
 **Acceptance Scenarios**:
 
 1. **Given** each variant, **When** it runs on all 15 folds at the selected operating point,
-   **Then** it receives one verdict against current NNMT. It is also reported against ARO and the
+   **Then** it receives one verdict against current NNMT at that operating point. It is also reported against ARO and the
    width book.
 2. **Given** the best variant and its trading-head-only twin, **When** they are compared, **Then**
    the report says whether the auxiliary heads help, hurt or do nothing, in each half.
@@ -264,7 +264,7 @@ own forward horizon.
   NNMT base classes MUST work with mainline model naming.
 - **FR-003**: A baseline of current NNMT (`NNMT_MLX` at its defaults) MUST be scored on the 15-fold
   harness, with one model per fold trained on that fold's training window only.
-- **FR-004**: An operating-point arm (guards open, percentile floor) MUST be scored. The report MUST
+- **FR-004**: An operating-point arm (guards open, ARO's prediction threshold 0.80) MUST be scored. The report MUST
   give the share of entries the model decides under the baseline and the operating point.
 - **FR-005**: Each NNNC framework feature MUST be tested on NNMT as its own arm: 24 h grace,
   in-profit held-pair add, gbb trigger gate and C2 ATR take-profit. An arm whose trades are
@@ -281,7 +281,8 @@ own forward horizon.
   `cs_aro`.
 - **FR-009**: Every auxiliary head MUST be screened on held-out folds for two things:
   - skill against a persistence or trailing baseline;
-  - ranking of width-book and NNNC trade outcomes.
+  - ranking of width-book trade outcomes. The NNNC reference book `cs_aro` trades exactly the width
+    book's trades, so this one set covers both.
 
   A head MUST get a backtest arm only if it passes.
 - **FR-010**: A regime-transition target MUST be defined causally. The regime at each end of the

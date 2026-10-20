@@ -15,10 +15,11 @@ or dirty, or when a record it reads predates that commit (the `research.nnnc_swi
 | `research.nnmt.screen sizer` | the signal tables, `research.new_inputs.trades` | `screens_sizer.json` | `preregistration_screens.json` is uncommitted; 412 trades or the 0.1004 gap is not reproduced |
 | `research.nnmt.build_arms sizer` | `screens_sizer.json` (must pass) | the `<M>_cs` class, plan and thresholds | the screen did not pass |
 | `research.nnmt.head_screen` | `<M>_ah` signal tables, the auxiliary labels (recomputed) | `screens_heads.json` | an uncommitted pre-registration; any head column all-NaN |
+| `research.nnmt.build_arms heads tail` | `<M>_ah` fold classes (strict mode) | `user_data/data/nnmt_heads/tail_<M>_ah_fNN.parquet` (each fold's `TRAIN_DATA_SPLIT` holdout, out of sample) | a fold model is missing |
 | `research.nnmt.build_arms heads` | `screens_heads.json` | `hd_<head>` classes and plans (passing heads only) | no head passed (writes nothing, exits 0) |
 | `research.nnmt.transition labels` | OHLCV (config_wf pairs + BTC) | `user_data/data/nnmt_transition/labels_<H>.parquet`, base rates | `preregistration_transition.json` is uncommitted |
 | `research.nnmt.transition causality` | the label builder and inputs | `screens_transition.json["truncation"]` | — (exit 1 on any mismatch) |
-| `research.nnmt.transition screen --fold fNN` | labels, inputs | stand-in predictions `user_data/data/nnmt_transition/pred_<cell>_fNN.parquet` | the truncation test has not passed |
+| `research.nnmt.transition screen --fold fNN` | labels, 037 panel inputs | stand-in predictions for the held-out 90-day training tail and the test window, `user_data/data/nnmt_transition/pred_<cell>_fNN.parquet` | the truncation test has not passed |
 | `research.nnmt.transition judge` | stand-in predictions | `screens_transition.json` (pass, selected cells) | — |
 | `research.nnmt.build_arms transition` | `screens_transition.json` | `tr_*` and `<M>_trh` classes and plans (passing cells only) | no cell passed |
 | `research.nnmt.judge {sizer,heads,transition}` | their records | `verdicts_<stage>.json` | an uncommitted pre-registration |
