@@ -123,11 +123,13 @@ SIZER_BODY = '''    """The width book sized by NNPredict's predicted move (cs_ar
     def sizer_score(self, dataframe):
         return dataframe["%predict_gain"].to_numpy(float)
 
-    def bot_start(self, **kwargs) -> None:
-        super().bot_start(**kwargs)
+    def get_entry_conditions(self, dataframe):
+        # the fold's picked threshold, set here (after the model) and not in bot_start, a
+        # weight-shaping method whose override would re-key the model (ModelMissing)
         key = getattr(self, "MODEL_TRAIN_TIMERANGE", None)
-        if key in self.SIZER_THRESHOLDS:  # a fold class: its own picked threshold
+        if key in self.SIZER_THRESHOLDS:
             self.prediction_threshold = SimpleNamespace(value=float(self.SIZER_THRESHOLDS[key]))
+        return super().get_entry_conditions(dataframe)
 '''
 
 
