@@ -1,0 +1,190 @@
+{
+ "title": "040 screens (research R9, R10): the selected model's p_buy as a width-book sizer; the five auxiliary heads' skill over causal trailing baselines and their ranking of width-book trades; the arms that follow passing screens",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL. Committed before the selected model's signal tables and the heads-trained model exist. Screens can only ELIMINATE (constitution III); a pass earns a P&L arm, nothing more.",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "relevance_rule": {
+  "trades": 412,
+  "control_gap": 0.1004,
+  "population": "the 412 early width-book trades (research.new_inputs.trades.trades(); refuses unless count and the 0.1004 control-at-share gap reproduce)",
+  "min_gap_share50": 0.05,
+  "min_sign_folds": 5,
+  "pass": "gap_share50 >= 0.05 AND partial Spearman (given bb_width) > 0 AND that sign in >= 5 of 8 folds, in the ONE pre-declared direction; early half only (late stays blind)"
+ },
+ "sizer": {
+  "score": "p_buy of the selected model <M> (signal tables <M>_fNN)",
+  "direction": "+",
+  "arm": "{M}_cs",
+  "arm_spec": "WidthSizerMixin, WidthBookMixin over <M>, AGREE_RULE p_buy, per-fold 0.5-agree-share threshold (research.control_sizer.pick); width cuts = w_aro's; exits = w_aro's framework copied by framework_sha; its unsized twin {M}_wb must equal w_aro on 15/15 folds (identity) before the sizer is read",
+  "comparator": "w_aro",
+  "also_reported_vs": [
+   "cs_aro"
+  ]
+ },
+ "heads_model": {
+  "arm": "{M}_ah",
+  "task_weights": {
+   "trading": 4.0,
+   "regime": 1.0,
+   "risk": 1.0,
+   "momentum": 1.0,
+   "flow": 1.0,
+   "profit": 1.0
+  },
+  "side_check": "its trading head (judge_one({M}_ah, {M})) is reported, not a verdict"
+ },
+ "heads": {
+  "regime": {
+   "column": "p_regime_bull",
+   "class_index": 2,
+   "direction": "+",
+   "arm": "hd_regime",
+   "use": "entry gate on cs_aro's width book: skip entries whose BEAR probability >= that fold's tail 80th percentile",
+   "comparator": "cs_aro"
+  },
+  "risk": {
+   "column": "p_risk_high",
+   "class_index": 2,
+   "direction": "-",
+   "arm": "hd_risk",
+   "use": "stake sizer on w_aro (cs pattern): low risk -> 1.333x, else 0.667x, 0.5-share threshold on P(HIGH) from the tail",
+   "comparator": "w_aro"
+  },
+  "momentum": {
+   "column": "p_momentum_up",
+   "class_index": 2,
+   "direction": "+",
+   "arm": "hd_momentum",
+   "use": "stake sizer on w_aro (cs pattern) on P(up), 0.5-share threshold from the tail",
+   "comparator": "w_aro"
+  },
+  "flow": {
+   "column": "p_flow_up",
+   "class_index": 2,
+   "direction": "+",
+   "arm": "hd_flow",
+   "use": "stake sizer on w_aro (cs pattern) on P(up), 0.5-share threshold from the tail",
+   "comparator": "w_aro"
+  },
+  "profit": {
+   "column": "p_profit_profit",
+   "class_index": 2,
+   "direction": "+",
+   "arm": "hd_profit",
+   "use": "bail-out exit on cs_aro: close at the first candle >= 2 bars after entry with P(LOSS) >= the tail 90th percentile",
+   "comparator": "cs_aro"
+  }
+ },
+ "skill_rule": {
+  "min_auc_margin": 0.02,
+  "auc": "one-vs-rest AUC of the head's class_index probability against the head's own training label (NNMT's target methods), on tradeable test bars, pooled per half",
+  "pass": "margin = AUC(head) - AUC(causal baseline) >= 0.02 in BOTH halves"
+ },
+ "baseline_windows": {
+  "regime": 200,
+  "risk": 50,
+  "flow": 24,
+  "momentum": 24,
+  "profit": 8,
+  "note": "trailing analogues of each label's centred window (regime: close / trailing 200-bar mean - 1; risk / flow / momentum: trailing mean of atr_norm / di_diff_scaled / aroonosc_scaled; profit: trailing 8-bar return)"
+ },
+ "head_pass": "skill_pass AND relevance pass -> the head's arm runs; otherwise recorded with no arm",
+ "tails": "head-arm percentiles come from out-of-sample tail tables: each fold's TRAIN_DATA_SPLIT holdout (the last 20% of each pair's training data, never fit), as 039's mix.py tables",
+ "arms": {
+  "{M}_cs": {
+   "comparator": "w_aro",
+   "also_reported_vs": [
+    "cs_aro"
+   ]
+  },
+  "hd_regime": {
+   "comparator": "cs_aro"
+  },
+  "hd_risk": {
+   "comparator": "w_aro",
+   "also_reported_vs": [
+    "cs_aro"
+   ]
+  },
+  "hd_momentum": {
+   "comparator": "w_aro",
+   "also_reported_vs": [
+    "cs_aro"
+   ]
+  },
+  "hd_flow": {
+   "comparator": "w_aro",
+   "also_reported_vs": [
+    "cs_aro"
+   ]
+  },
+  "hd_profit": {
+   "comparator": "cs_aro"
+  }
+ },
+ "instrument_files": [
+  "screens_sizer.json",
+  "screens_heads.json"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seeds": "any PASS is re-run on seed 2",
+ "seen_before": [
+  "039 sizer screens (NNPredict p: gap 0.028 fail; exc32 0.054 pass)",
+  "034/035 screens on the same 412 trades",
+  "NNMT single-window studies: apply_task_filters on heads -14 pp; regime/profit heads untrained by default"
+ ]
+}
