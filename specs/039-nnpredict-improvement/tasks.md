@@ -83,8 +83,8 @@ predictions. Every input column is causal.
   Write `research/nnpredict/judge.py` (the `models` stage: instrument = all 15 records, plus a check per arm that trades are not 0; `judge_one` vs `nnp_ridge`; the R7 selection; output `verdicts_models.json`; baseline reported beside `w_aro`/`cs_aro`/`st_g24_mom` pooled totals) and its test `research/nnpredict/tests/test_judge.py` (R7 on synthetic verdicts; refusal when the pre-registration is dirty).
 
   Commit T001–T013 (named files) before any fold runs
-- [ ] T014 [US2] Run `nnp_ridge` on f00 only first, and confirm training, the artifact check and evaluation all succeed. Then run the full chain of the 5 arms (Ridge arms first, then the 3 LSTM arms), checking the bots after each
-- [ ] T015 [US2] Run `judge models` and record the R7-selected model `<M>`
+- [X] T014 [US2] Run `nnp_ridge` on f00 only first, and confirm training, the artifact check and evaluation all succeed. Then run the full chain of the 5 arms (Ridge arms first, then the 3 LSTM arms), checking the bots after each
+- [X] T015 [US2] Run `judge models` and record the R7-selected model `<M>`
 
 ---
 
@@ -92,31 +92,31 @@ predictions. Every input column is causal.
 
 **Independent test**: `<M>_fw0` trades are identical to `<M>` on 15/15 folds.
 
-- [ ] T016 [US4] Port: `NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy)`, `ENTRY_MODE = "model"`, `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`. Test `NNPredict/tests/test_framework_port.py`:
+- [X] T016 [US4] Port: `NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy)`, `ENTRY_MODE = "model"`, `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`. Test `NNPredict/tests/test_framework_port.py`:
   - on a synthetic frame, `get_entry_conditions` equals `BaseNNStrategy`'s mask exactly;
   - `enter_tag` is unchanged;
   - the model key is unchanged by the port (framework names are IGNORED)
-- [ ] T017 [US4] Write `research/nnpredict/build_arms.py framework`: from `verdicts_models.json` `<M>`, write the arm classes `<M>_FW0` (no declaration), `_G24` (sell_params merged with `stoploss_grace_hours` 24.0), `_HPA` (`HELD_PAIR_ADD = {"in_profit_only": True}`), `_FAMM` (`MODEL_ENTRY_FAMILY = "momentum"` + `FAMILY_EXIT_OVERRIDES` momentum set) and `_GATE` (`ENTRY_MODE = "trigger_and_model"`, `TRIGGER_NAME = "gbb"`), plus their plans. Each arm reuses `<M>`'s weights: assert that the model keys are equal
-- [ ] T018 [US4] Write `research/nnpredict/preregistration_framework.json` (identity rule: equal `trades_hash` on 15/15; feature arms vs fw0; PASS → candidate default; liveness: an arm with `folds_changed == 0` is INERT, a defect, with no verdict; seed robustness: a PASS whose whole-period gain is < 1 pp needs a seed-2 rerun of the arm and its fw0 that also PASSes) and the `judge.py framework` stage (identity first; refuses feature verdicts if identity fails; applies liveness). Commit before running fw0
-- [ ] T019 [US4] Run fw0, then the 4 feature arms (backtest only), then `judge framework`. For any PASS under 1 pp, run the seed-2 pair (`run_folds --seed 2`, which trains new seed-2 weights) and judge again
+- [X] T017 [US4] Write `research/nnpredict/build_arms.py framework`: from `verdicts_models.json` `<M>`, write the arm classes `<M>_FW0` (no declaration), `_G24` (sell_params merged with `stoploss_grace_hours` 24.0), `_HPA` (`HELD_PAIR_ADD = {"in_profit_only": True}`), `_FAMM` (`MODEL_ENTRY_FAMILY = "momentum"` + `FAMILY_EXIT_OVERRIDES` momentum set) and `_GATE` (`ENTRY_MODE = "trigger_and_model"`, `TRIGGER_NAME = "gbb"`), plus their plans. Each arm reuses `<M>`'s weights: assert that the model keys are equal
+- [X] T018 [US4] Write `research/nnpredict/preregistration_framework.json` (identity rule: equal `trades_hash` on 15/15; feature arms vs fw0; PASS → candidate default; liveness: an arm with `folds_changed == 0` is INERT, a defect, with no verdict; seed robustness: a PASS whose whole-period gain is < 1 pp needs a seed-2 rerun of the arm and its fw0 that also PASSes) and the `judge.py framework` stage (identity first; refuses feature verdicts if identity fails; applies liveness). Commit before running fw0
+- [X] T019 [US4] Run fw0, then the 4 feature arms (backtest only), then `judge framework`. For any PASS under 1 pp, run the seed-2 pair (`run_folds --seed 2`, which trains new seed-2 weights) and judge again
 
 ---
 
 ## Phase 6: User Story 5 — sizer (P1)
 
-- [ ] T020 [US5] `research/nnnc_framework/signals.py`: add the plan entry `NNP` → `<M>`'s plan (or the fw0 plan) and keep `%predict_gain` as `predict_gain` in the table when present. Test that the existing models' tables are unchanged (the column is absent there)
-- [ ] T021 [US5] Write `research/nnpredict/screen.py` (R8) and `research/nnpredict/preregistration_sizer.json` (the pass rule: gap ≥ 0.05, partial > 0, ≥ 5/8 sign folds; early half only; the sizer arm and its comparators). Test `research/nnpredict/tests/test_screen.py`: gap and partial on synthetic trades. Commit before the screen runs
-- [ ] T022 [US5] Run the signals for NNP (strict mode), then the screen
-- [ ] T023 [US5] Only if the screen passes: `build_arms.py sizer` writes `NNPredict/NNP_CS.py` (`WidthSizerMixin, WidthBookMixin, <M>_FW0`, `AGREE_RULE = "p_buy"`, `sizer_score` = `%predict_gain`, `WIDTH_CUTS` as `cs_aro`), with per-fold thresholds at 0.5 agree share over each fold's TRAINING-window width-book signal rows. Use `research.control_sizer.pick` if it accepts a score column; otherwise extend it minimally (score column parameter, tested, default unchanged). Then run `nnp_cs` and `judge sizer`; a PASS under 1 pp needs a seed-2 rerun that also PASSes
+- [X] T020 [US5] `research/nnnc_framework/signals.py`: add the plan entry `NNP` → `<M>`'s plan (or the fw0 plan) and keep `%predict_gain` as `predict_gain` in the table when present. Test that the existing models' tables are unchanged (the column is absent there)
+- [X] T021 [US5] Write `research/nnpredict/screen.py` (R8) and `research/nnpredict/preregistration_sizer.json` (the pass rule: gap ≥ 0.05, partial > 0, ≥ 5/8 sign folds; early half only; the sizer arm and its comparators). Test `research/nnpredict/tests/test_screen.py`: gap and partial on synthetic trades. Commit before the screen runs
+- [X] T022 [US5] Run the signals for NNP (strict mode), then the screen
+- [X] T023 (screen FAILED both directions: no sizer arm, per the pre-registration) [US5] Only if the screen passes: `build_arms.py sizer` writes `NNPredict/NNP_CS.py` (`WidthSizerMixin, WidthBookMixin, <M>_FW0`, `AGREE_RULE = "p_buy"`, `sizer_score` = `%predict_gain`, `WIDTH_CUTS` as `cs_aro`), with per-fold thresholds at 0.5 agree share over each fold's TRAINING-window width-book signal rows. Use `research.control_sizer.pick` if it accepts a score column; otherwise extend it minimally (score column parameter, tested, default unchanged). Then run `nnp_cs` and `judge sizer`; a PASS under 1 pp needs a seed-2 rerun that also PASSes
 
 ---
 
 ## Phase 7: Polish
 
-- [ ] T024 Write `research/nnpredict/report.md`: one table of every arm (per half vs comparator), the identity result, the screen, the recommendation (FR-012), prediction spread per arm, and limitations
-- [ ] T025 Adopt (only what PASSed and the rule says): set the recommended default on `NNPredictStrategy` / `<M>`, recorded in the report. If nothing passed, the framework port stays with everything off
-- [ ] T026 [P] Run all tests (`NNPredict/tests`, `Framework/tests`, `utils/tests`, `evaluation/test_*.py`, `research/nnpredict/tests`); all green
-- [ ] T027 Update AGENT_GUIDE (a 039 row) and memory (project_039 file, MEMORY.md line). Commit the named files and push
+- [X] T024 Write `research/nnpredict/report.md`: one table of every arm (per half vs comparator), the identity result, the screen, the recommendation (FR-012), prediction spread per arm, and limitations
+- [X] T025 (nothing changed: the framework pre-registration makes adoption of the two PASSes -- gbb gate, 24 h grace -- the user's call; report.md recommendation) Adopt (only what PASSed and the rule says): set the recommended default on `NNPredictStrategy` / `<M>`, recorded in the report. If nothing passed, the framework port stays with everything off
+- [X] T026 [P] Run all tests (`NNPredict/tests`, `Framework/tests`, `utils/tests`, `evaluation/test_*.py`, `research/nnpredict/tests`); all green
+- [X] T027 Update AGENT_GUIDE (a 039 row) and memory (project_039 file, MEMORY.md line). Commit the named files and push
 
 ## Dependencies
 
@@ -129,3 +129,10 @@ predictions. Every input column is causal.
 - **MVP:** US1 fixes + the `nnp_ridge` baseline on the harness. That alone makes NNPredict comparable.
 - **Then:** the model variants → the framework → the sizer, each stage behind its own committed
   pre-registration.
+
+
+## Execution notes (2026-10-20)
+
+- T014/T015 ran as the operating-point amendment (preregistration_op.json) after the as-is Ridge made 152 trades; the threshold amendment (preregistration_threshold.json) added flip / excursion / H24 at the user's request. R7 over all eight: nnp_lstm_ind_op.
+- T026: 039's tests all pass. Pre-existing failures outside 039 remain in Framework/tests (exit-policy allowlist: NNNC_W_ARO_TP2, _atr14_take_profit, SimpleTrigger_MofN4of8_C2, research/tb_model/*; model-key audit: MIX_KNOTS/_knots/HGB_SIGNALS, _apply_atr_take_profit, _filtered).
+- Results: research/nnpredict/report.md.

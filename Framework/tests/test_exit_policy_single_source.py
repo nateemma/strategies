@@ -390,6 +390,9 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "NNNC/NNNC_FS2_GBR_TK.py",
     "NNNC/NNNC_FS2_GFM_TK.py",
     "NNNC/NNNC_FS2_MLX_TK.py",
+    # 039 NNPredict framework stage: the 24 h grace arm declares the value; its generator writes it.
+    "NNPredict/NNPredict_LSTM_RawInd_OP_G24.py",
+    "research/nnpredict/build_arms.py",
     "research/nnnc_framework/build_arms.py",   # writes those declarations and .json/snapshot
                                                  # values (grace hours, take-profit); computes none.
     "research/nnnc_framework/diagnose.py",     # builds ExitParams levers (scaled K/floor/cap,
