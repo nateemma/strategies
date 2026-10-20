@@ -1,0 +1,190 @@
+{
+ "title": "040 NNMT parity and head study -- model stage: the NNMT baseline on the 15-fold harness, the framework-port identity proof, ARO's operating point, and four model variants (raw8; plain multi-task LSTM on the 24 indicators, raw8, and both)",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it proves the port inert and selects the model (R7) the later stages use.",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "baseline_report": "mt pooled per half beside wf_aro_g24, cs_aro, w_aro and st_g24_rev (judge_one(mt, comparator), reported only -- no verdict on the baseline)",
+ "identity": {
+  "reference": "mt",
+  "arm": "mt_fw0",
+  "rule": "trades_hash equal on 15/15 folds (mt recorded BEFORE the framework port lands, mt_fw0 after; same weights by model key). If it fails, no later verdict of this stage is read until the port is fixed."
+ },
+ "arms": {
+  "mt": {
+   "class": "NNMT_MLX",
+   "role": "baseline: NNMT at its defaults (guards on, threshold 0.5, grace 3 h), before the port",
+   "buy": {
+    "entry_adx_threshold": 38.0,
+    "entry_atr_pct": 0.006,
+    "entry_bb_width_threshold": 0.06,
+    "entry_close_norm_threshold": -0.1,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 0.3,
+    "entry_rvol_threshold": 0.2
+   }
+  },
+  "mt_fw0": {
+   "class": "NNMT_MLX",
+   "role": "identity arm: the same class after the port (EntryFrameworkMixin, everything off)",
+   "buy": {
+    "entry_adx_threshold": 38.0,
+    "entry_atr_pct": 0.006,
+    "entry_bb_width_threshold": 0.06,
+    "entry_close_norm_threshold": -0.1,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 0.3,
+    "entry_rvol_threshold": 0.2
+   }
+  },
+  "mt_op": {
+   "class": "NNMT_MLX_OP",
+   "comparator": "mt_fw0",
+   "change": "ARO's operating point: NNNC_A_Raw_Open.json buy params (guards open, prediction_threshold 0.80); exits stay NNMT's",
+   "buy": {
+    "entry_adx_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_close_norm_threshold": 5.0,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 5.0,
+    "entry_rvol_threshold": -1.0
+   }
+  },
+  "mt_raw": {
+   "class": "NNMT_Raw",
+   "comparator": "mt_op",
+   "change": "inputs = raw8 (causal-normalised, NNPredict/_inputs.py) in the current network",
+   "buy": {
+    "entry_adx_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_close_norm_threshold": 5.0,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 5.0,
+    "entry_rvol_threshold": -1.0
+   }
+  },
+  "mt_lr": {
+   "class": "NNMT_LR",
+   "comparator": "mt_op",
+   "change": "classifier LSTM_RAW (multi-task plain LSTM, no resize/conv, linear heads) on the 24 indicators (ARO's design)",
+   "buy": {
+    "entry_adx_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_close_norm_threshold": 5.0,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 5.0,
+    "entry_rvol_threshold": -1.0
+   }
+  },
+  "mt_lr_raw": {
+   "class": "NNMT_LR_Raw",
+   "comparator": "mt_op",
+   "change": "LSTM_RAW on raw8",
+   "buy": {
+    "entry_adx_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_close_norm_threshold": 5.0,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 5.0,
+    "entry_rvol_threshold": -1.0
+   }
+  },
+  "mt_lr_ri": {
+   "class": "NNMT_LR_RI",
+   "comparator": "mt_op",
+   "change": "LSTM_RAW on the 24 indicators + raw8",
+   "buy": {
+    "entry_adx_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_close_norm_threshold": 5.0,
+    "entry_enable_guards": true,
+    "entry_guard_threshold": 5.0,
+    "entry_rvol_threshold": -1.0
+   }
+  }
+ },
+ "comparators_reported": [
+  "wf_aro_g24",
+  "cs_aro",
+  "w_aro",
+  "st_g24_rev"
+ ],
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "model_share": "per arm, from the signal tables: 1 - entries / guard-passing bars (research R4). Reported for every arm. A variant whose share is below min_model_share is INCONCLUSIVE (the guards, not the model, would decide its entries); mt_op is always judged.",
+ "min_model_share": 0.5,
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "selection": {
+  "candidates": [
+   "mt_op",
+   "mt_raw",
+   "mt_lr",
+   "mt_lr_raw",
+   "mt_lr_ri"
+  ],
+  "R7": "the candidate with the highest pooled total pp over f00-f14 among those whose judge_one halves vs mt_op have no WORSENED verdict and whose instrument passed (mt_op itself qualifies); ties -> mt_op."
+ },
+ "seeds": "the selected model and mt_op are re-run on seed 2 (research R13); the seed-2 result is reported beside seed 1. Any later PASS (or delta < 1 pp) needs seed 2.",
+ "seen_before": [
+  "NNMT single-window studies W1-W3 (memory: guards pick ~93% of entries; model headroom +0.02 pp; task weights unresolvable; apply_task_filters -14 pp)",
+  "no 15-fold harness result for any NNMT class",
+  "NNNC ARO (wf_aro_g24), cs_aro, w_aro, st_g24_rev records (comparators, existing)"
+ ]
+}

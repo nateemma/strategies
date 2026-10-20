@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -68,8 +69,20 @@ def _nnp_plans() -> dict:
 
 
 NNP_PLANS = _nnp_plans()
+
+
+def _nnmt_plans() -> dict:
+    """040: every NNMT study plan (evaluation/folds/plan_mt*.json), tabled as MODEL = TAG.upper() with
+    its heads' class probabilities (`p_<head>_<class>`). research/nnmt reads <TAG.upper()>_fNN.parquet."""
+    return {p.stem[len("plan_"):].upper(): p.stem[len("plan_"):]
+            for p in sorted((STRAT / "evaluation" / "folds").glob("plan_mt*.json"))}
+
+
+NNMT_PLANS = _nnmt_plans()
 #: plan name -> strategy family directory (default NNNC)
-PLAN_FAMILY = {plan: "NNPredict" for plan in NNP_PLANS.values()}
+PLAN_FAMILY = {plan: "NNPredict" for plan in NNP_PLANS.values()} | {plan: "NNMT" for plan in NNMT_PLANS.values()}
+#: 040: NNMT auxiliary-head probability columns (NNMTStrategy._write_head_probabilities)
+HEAD_PROB = re.compile(r"^%p_(regime|risk|momentum|flow|profit)_[a-z]+$")
 KEEP = ["volume", "close", "rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx",
         "bb_width"]
 PROB_COLS = ["%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy"]
@@ -111,6 +124,9 @@ def fold_table(cls: str, test_timerange: str, family: str = "NNNC") -> pd.DataFr
         out["enter_tag"] = sig.get("enter_tag", "").fillna("").astype(str).values
         for c in KEEP:
             out[c] = sig[c].values if c in sig.columns else np.nan
+        for c in sig.columns:  # 040: NNMT head probabilities (absent for every other family)
+            if HEAD_PROB.match(c):
+                out[c[1:]] = sig[c].to_numpy(float)
         rows.append(out)
     t = pd.concat(rows, ignore_index=True)
     t.attrs["threshold"] = float(getattr(getattr(strat, "prediction_threshold", None), "value", np.nan))
@@ -128,8 +144,8 @@ def main(argv=None) -> int:
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     for m in a.models.split(","):
         plan = json.loads((STRAT / "evaluation/folds" /
-                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS)[m]}.json").read_text())
-        family = PLAN_FAMILY.get((PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS)[m], "NNNC")
+                           f"plan_{(PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS | NNMT_PLANS)[m]}.json").read_text())
+        family = PLAN_FAMILY.get((PLANS | CO_PLANS | WR_PLANS | LS_PLANS | NI_PLANS | NNP_PLANS | NNMT_PLANS)[m], "NNNC")
         for f in plan["folds"]:
             if only and f["fold_id"] not in only:
                 continue

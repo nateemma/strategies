@@ -1,0 +1,5 @@
+# 040 T002 baseline (2026-10-20): pytest NNMT Framework/tests utils/tests (pre-existing failures)
+FAILED Framework/tests/test_exit_policy_single_source.py::test_exit_parameter_references_match_allowlist
+FAILED Framework/tests/test_model_key_audit.py::test_every_multiply_defined_name_is_classified_exactly_once[attributes]
+FAILED Framework/tests/test_model_key_audit.py::test_every_multiply_defined_name_is_classified_exactly_once[methods]
+3 failed, 689 passed, 9 skipped, 20 warnings in 24.06s

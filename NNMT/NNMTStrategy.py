@@ -339,12 +339,16 @@ class NNMTStrategy(BaseNNStrategy):
         "PROFIT_STOP_LOSS_THRESHOLD", "PROFIT_TAKE_THRESHOLD", "PROFIT_HEAD_GAIN_THRESHOLD",
         "_CLASSIFIER_ENTROPY_PENALTY", "_CLASSIFIER_MAX_EPOCHS", "_CLASSIFIER_TASK_WEIGHTS",
         "_FILTER_TASKS", "class_weights", "regime_lookback", "risk_threshold",
-        "volatility_lookback", "use_forward_peak_regressor_filter", "profit_conflict_to_neutral",
-        "learning_rate",
+        "volatility_lookback", "profit_conflict_to_neutral", "learning_rate",
     )
+    # 040 R2: use_forward_peak_regressor_filter is read only in process_predictions (after the
+    # model), so it was re-keying identical weights; the rest act on the predictions or the exits.
     MODEL_KEY_IGNORED = (
         "bailout_min_bars", "bailout_min_loss", "bailout_require_consensus", "optimize_bias",
-        "_forward_peak_regressor_cache",
+        "_forward_peak_regressor_cache", "use_forward_peak_regressor_filter",
+        "prediction_threshold", "profit_prediction_threshold", "min_consecutive_buys",
+        "apply_task_filters", "forward_peak_regressor_threshold", "enable_exit_signal",
+        "exit_rvol_threshold", "stoploss_grace_hours", "stoploss_grace_level", "HEAD_CLASSES",
     )
     MODEL_KEY_METHODS = (
         "get_profit_target", "_get_profit_target_peak", "get_market_target", "get_risk_target",
@@ -1120,6 +1124,15 @@ class NNMTStrategy(BaseNNStrategy):
             flow_predictions, nan=0.0, posinf=0.0, neginf=0.0
         )
 
+        # 040 R8: keep every head's class probabilities (rows aligned with the predictions) so
+        # process_predictions can expose them as %-columns -- for screens and table-reading arms,
+        # never as model inputs (every ^% column is dropped from the features).
+        self._head_probs = {
+            "trading": trading_predictions, "regime": regime_predictions,
+            "risk": risk_predictions, "momentum": momentum_predictions,
+            "flow": flow_predictions, "profit": profit_predictions,
+        }
+
         # convert the probability matrices into classes
         # Note the use of hyperparameters for the tasks that use bias
 
@@ -1266,6 +1279,8 @@ class NNMTStrategy(BaseNNStrategy):
         self.print_distribution_compact("  Flow", flow_predictions)
         self.print_distribution_compact("  Profit", profit_predictions)
 
+        self._write_head_probabilities(dataframe)
+
         # add results to the main dataframe
         dataframe.loc[offset:, "predict_buy"] = np.where(
             trading_predictions == TradingAction.BUY, 1, 0
@@ -1274,6 +1289,33 @@ class NNMTStrategy(BaseNNStrategy):
             trading_predictions == TradingAction.SELL, 1, 0
         )
         return dataframe
+
+    #: 040 R8: head -> class names, in class-index order (the column suffixes of %p_<head>_<class>)
+    HEAD_CLASSES = {
+        "regime": ("bear", "side", "bull"), "risk": ("low", "normal", "high"),
+        "momentum": ("down", "stable", "up"), "flow": ("down", "neutral", "up"),
+        "profit": ("loss", "neutral", "profit"),
+    }
+
+    def _write_head_probabilities(self, dataframe: DataFrame) -> None:
+        """040 R8: the trading head as %predict_prob_sell/hold/buy (the NNNC columns the signal
+        tables and the width sizer read) and every auxiliary head as %p_<head>_<class>. NaN outside
+        the predicted rows (0.0 would read as "confidently not this class"). Display/research
+        columns only: entries still come from predict_buy."""
+        probs = getattr(self, "_head_probs", None) or {}
+        n = len(dataframe)
+        cols = {}
+        for head, names in (("trading", ("%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy")),
+                            *((h, tuple(f"%p_{h}_{c}" for c in cl)) for h, cl in self.HEAD_CLASSES.items())):
+            p = probs.get(head)
+            ok = p is not None and np.ndim(p) == 2 and np.shape(p)[1] == len(names) and len(p) <= n
+            for k, name in enumerate(names):
+                col = np.full(n, np.nan, dtype=float)
+                if ok:
+                    col[n - len(p):] = p[:, k]
+                cols[name] = col
+        for name, col in cols.items():
+            dataframe[name] = col
 
     # -----------
     # Forward-peak-gain regressor filter
