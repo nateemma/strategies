@@ -1,0 +1,107 @@
+{
+ "title": "039 NNPredict -- framework stage (research R6): the NNNC entry framework on NNPredict, identity first, then one feature per arm on the R7-selected model",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it selects the model the framework and sizer stages use.",
+ "selected": "nnp_lstm_ind_op",
+ "selected_from": "verdicts_threshold.json selected_union (R7 over the 5 op arms + 3 threshold arms): nnp_lstm_ind_op, -12.73 pp, every model arm FAILs vs nnp_ridge_op on paired verdicts",
+ "identity_arm": "nnp_lstm_ind_op_fw0",
+ "identity_rule": "fw0 (NNPredictStrategy with EntryFrameworkMixin, everything off) must reproduce nnp_lstm_ind_op's trades_hash on all 15 folds; otherwise the port is a defect and no feature verdict is read",
+ "arms": {
+  "nnp_lstm_ind_op_fw0": {
+   "class": "NNPredict_LSTM_RawInd_OP_FW0",
+   "role": "identity"
+  },
+  "nnp_lstm_ind_op_g24": {
+   "class": "NNPredict_LSTM_RawInd_OP_G24",
+   "comparator": "nnp_lstm_ind_op_fw0",
+   "change": "stoploss grace 24 h (NNNC default since the framework study)"
+  },
+  "nnp_lstm_ind_op_hpa": {
+   "class": "NNPredict_LSTM_RawInd_OP_HPA",
+   "comparator": "nnp_lstm_ind_op_fw0",
+   "change": "in-profit held-pair add (NNNC default since 031)"
+  },
+  "nnp_lstm_ind_op_famm": {
+   "class": "NNPredict_LSTM_RawInd_OP_FAMM",
+   "comparator": "nnp_lstm_ind_op_fw0",
+   "change": "momentum family exits (no take-profit, 24 h unclog)"
+  },
+  "nnp_lstm_ind_op_gate": {
+   "class": "NNPredict_LSTM_RawInd_OP_GATE",
+   "comparator": "nnp_lstm_ind_op_fw0",
+   "change": "entry = model AND the gbb trigger (trigger_and_model)"
+  }
+ },
+ "feature_arms": [
+  "nnp_lstm_ind_op_g24",
+  "nnp_lstm_ind_op_hpa",
+  "nnp_lstm_ind_op_famm",
+  "nnp_lstm_ind_op_gate"
+ ],
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, nnp_lstm_ind_op_fw0) with the rule maps; liveness: an arm whose trades change on no fold is INERT (a defect, not a null)",
+ "decision": "PASS -> candidate NNPredict default (reported; adoption is the user's call); PASS with whole-period gain < seed_rule_pp needs a seed-2 rerun",
+ "seed_rule_pp": 1.0,
+ "all_arms_reuse_weights": "asserted by build_arms (model keys equal) and by the recorded model_key hash 50ccbec98c1fbdc4 at f00 after the port",
+ "seen_before": [
+  "every 039 model, operating-point and threshold verdict (verdicts_op.json, verdicts_threshold.json)",
+  "the decile checks (early half) and the failed sizer screen (screen.json)",
+  "NNNC's results for these four features (grace 24 h adopted; in-profit add default; momentum exits for breakout entries; trigger gate)"
+ ],
+ "note": "the selected model loses money standalone (-12.73 pp); this stage tests whether NNNC's framework features improve it, not whether it is deployable"
+}

@@ -1,0 +1,268 @@
+{
+ "model": "NNP_RIDGE_EXC",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "note": "diagnostic, early half only; no verdict",
+ "results": [
+  {
+   "horizon": 4,
+   "candles": 357369,
+   "deciles": {
+    "0": {
+     "candles": 35740.0,
+     "gross_bp": 2.57,
+     "edge_bp": 1.03,
+     "net_bp": -27.43
+    },
+    "1": {
+     "candles": 35736.0,
+     "gross_bp": 1.46,
+     "edge_bp": -0.08,
+     "net_bp": -28.54
+    },
+    "2": {
+     "candles": 35738.0,
+     "gross_bp": 1.69,
+     "edge_bp": 0.15,
+     "net_bp": -28.31
+    },
+    "3": {
+     "candles": 35734.0,
+     "gross_bp": 2.63,
+     "edge_bp": 1.09,
+     "net_bp": -27.37
+    },
+    "4": {
+     "candles": 35739.0,
+     "gross_bp": 1.54,
+     "edge_bp": 0.0,
+     "net_bp": -28.46
+    },
+    "5": {
+     "candles": 35734.0,
+     "gross_bp": 0.92,
+     "edge_bp": -0.62,
+     "net_bp": -29.08
+    },
+    "6": {
+     "candles": 35734.0,
+     "gross_bp": 0.09,
+     "edge_bp": -1.45,
+     "net_bp": -29.91
+    },
+    "7": {
+     "candles": 35738.0,
+     "gross_bp": 0.45,
+     "edge_bp": -1.09,
+     "net_bp": -29.55
+    },
+    "8": {
+     "candles": 35736.0,
+     "gross_bp": 1.73,
+     "edge_bp": 0.2,
+     "net_bp": -28.27
+    },
+    "9": {
+     "candles": 35740.0,
+     "gross_bp": 2.31,
+     "edge_bp": 0.77,
+     "net_bp": -27.69
+    }
+   },
+   "spearman_decile_return": -0.224,
+   "top_minus_bottom_bp": -0.26,
+   "top_decile_edge_bp_per_fold": {
+    "f00": 2.75,
+    "f01": 6.45,
+    "f02": -1.51,
+    "f03": 1.74,
+    "f04": -0.01,
+    "f05": -1.26,
+    "f06": 0.47,
+    "f07": -0.23
+   },
+   "top_decile_edge_positive_folds": 4,
+   "gated": {
+    "candles": 33220,
+    "gross_bp": 2.69,
+    "edge_bp": 1.01
+   }
+  },
+  {
+   "horizon": 8,
+   "candles": 355082,
+   "deciles": {
+    "0": {
+     "candles": 35512.0,
+     "gross_bp": 3.09,
+     "edge_bp": 0.07,
+     "net_bp": -26.91
+    },
+    "1": {
+     "candles": 35508.0,
+     "gross_bp": 2.07,
+     "edge_bp": -0.94,
+     "net_bp": -27.93
+    },
+    "2": {
+     "candles": 35506.0,
+     "gross_bp": 3.27,
+     "edge_bp": 0.25,
+     "net_bp": -26.73
+    },
+    "3": {
+     "candles": 35508.0,
+     "gross_bp": 2.91,
+     "edge_bp": -0.1,
+     "net_bp": -27.09
+    },
+    "4": {
+     "candles": 35510.0,
+     "gross_bp": 2.54,
+     "edge_bp": -0.47,
+     "net_bp": -27.46
+    },
+    "5": {
+     "candles": 35505.0,
+     "gross_bp": 2.14,
+     "edge_bp": -0.88,
+     "net_bp": -27.86
+    },
+    "6": {
+     "candles": 35508.0,
+     "gross_bp": 2.22,
+     "edge_bp": -0.79,
+     "net_bp": -27.78
+    },
+    "7": {
+     "candles": 35506.0,
+     "gross_bp": 2.81,
+     "edge_bp": -0.2,
+     "net_bp": -27.19
+    },
+    "8": {
+     "candles": 35508.0,
+     "gross_bp": 4.3,
+     "edge_bp": 1.28,
+     "net_bp": -25.7
+    },
+    "9": {
+     "candles": 35511.0,
+     "gross_bp": 4.8,
+     "edge_bp": 1.78,
+     "net_bp": -25.2
+    }
+   },
+   "spearman_decile_return": 0.345,
+   "top_minus_bottom_bp": 1.71,
+   "top_decile_edge_bp_per_fold": {
+    "f00": 4.54,
+    "f01": 9.68,
+    "f02": 2.67,
+    "f03": -0.3,
+    "f04": 0.84,
+    "f05": -5.33,
+    "f06": -4.4,
+    "f07": 9.39
+   },
+   "top_decile_edge_positive_folds": 5,
+   "gated": {
+    "candles": 32793,
+    "gross_bp": 5.98,
+    "edge_bp": 2.7
+   }
+  },
+  {
+   "horizon": 32,
+   "candles": 350491,
+   "deciles": {
+    "0": {
+     "candles": 35053.0,
+     "gross_bp": 11.48,
+     "edge_bp": -1.24,
+     "net_bp": -18.52
+    },
+    "1": {
+     "candles": 35047.0,
+     "gross_bp": 10.98,
+     "edge_bp": -1.74,
+     "net_bp": -19.02
+    },
+    "2": {
+     "candles": 35050.0,
+     "gross_bp": 11.88,
+     "edge_bp": -0.84,
+     "net_bp": -18.12
+    },
+    "3": {
+     "candles": 35047.0,
+     "gross_bp": 12.34,
+     "edge_bp": -0.39,
+     "net_bp": -17.66
+    },
+    "4": {
+     "candles": 35051.0,
+     "gross_bp": 11.48,
+     "edge_bp": -1.24,
+     "net_bp": -18.52
+    },
+    "5": {
+     "candles": 35046.0,
+     "gross_bp": 11.45,
+     "edge_bp": -1.27,
+     "net_bp": -18.55
+    },
+    "6": {
+     "candles": 35047.0,
+     "gross_bp": 11.35,
+     "edge_bp": -1.38,
+     "net_bp": -18.65
+    },
+    "7": {
+     "candles": 35050.0,
+     "gross_bp": 14.95,
+     "edge_bp": 2.23,
+     "net_bp": -15.05
+    },
+    "8": {
+     "candles": 35047.0,
+     "gross_bp": 13.29,
+     "edge_bp": 0.57,
+     "net_bp": -16.71
+    },
+    "9": {
+     "candles": 35053.0,
+     "gross_bp": 18.01,
+     "edge_bp": 5.29,
+     "net_bp": -11.99
+    }
+   },
+   "spearman_decile_return": 0.612,
+   "top_minus_bottom_bp": 6.53,
+   "top_decile_edge_bp_per_fold": {
+    "f00": 5.76,
+    "f01": 14.98,
+    "f02": 8.18,
+    "f03": -2.34,
+    "f04": 1.04,
+    "f05": -7.79,
+    "f06": -0.09,
+    "f07": 25.98
+   },
+   "top_decile_edge_positive_folds": 5,
+   "gated": {
+    "candles": 31996,
+    "gross_bp": 20.61,
+    "edge_bp": 6.88
+   }
+  }
+ ]
+}

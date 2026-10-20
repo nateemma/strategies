@@ -43,6 +43,7 @@ sys.path.append(group_dir)
 sys.path.append(str(Path(__file__).parent.parent))
 
 from Framework.BaseNNStrategy import BaseNNStrategy, StrategyConfig
+from utils.EntryFramework import EntryFrameworkMixin
 from Framework.BaseStrategy import (
     ModelType,
     NormalizationType,
@@ -53,7 +54,17 @@ import NNPredictRegressor
 from utils.ExitPolicy import ExitParams, atr_stop_fraction_array
 
 
-class NNPredictStrategy(BaseNNStrategy):
+class NNPredictStrategy(EntryFrameworkMixin, BaseNNStrategy):
+    # 039 (research R6): NNPredict shares NNNC's entry framework (utils.EntryFramework, feature 029) with
+    # the MODEL as its entry source -- per-family exits, the trigger gate, the held-pair add, the regime
+    # gate and the stop invariants become declarable. Everything is OFF here: the entry is exactly
+    # BaseNNStrategy's (the model's predict_buy), entries keep BaseStrategy's tag (no label family),
+    # and no held-pair add. Proven identical to the pre-port trades on 15/15 folds before any feature
+    # arm (research/nnpredict/preregistration_framework.json).
+    ENTRY_MODE = "model"
+    MODEL_ENTRY_FAMILY = None
+    HELD_PAIR_ADD = None
+
 
     plot_config = {
         "main_plot": {

@@ -44,10 +44,10 @@ FRAMEWORK = {
             "                                            load=True, optimize=False)\n"
             "    sell_params = {{**{base}.sell_params, \"stoploss_grace_hours\": 24.0}}\n"),
     "HPA": ("in-profit held-pair add (NNNC default since 2026-10-13)", "",
-            "    HELD_PAIR_ADD = {\"in_profit_only\": True}\n"),
+            "    HELD_PAIR_ADD = {{\"in_profit_only\": True}}\n"),
     "FAMM": ("momentum family exits (ARM_D_FAMILY momentum set: no take-profit, 24 h unclog)", "",
              "    MODEL_ENTRY_FAMILY = \"momentum\"\n"
-             "    FAMILY_EXIT_OVERRIDES = {\"momentum\": {\"take_profit\": 10.0, \"unclog_12h_hours\": 24.0}}\n"),
+             "    FAMILY_EXIT_OVERRIDES = {{\"momentum\": {{\"take_profit\": 10.0, \"unclog_12h_hours\": 24.0}}}}\n"),
     "GATE": ("the model entry AND the gbb trigger (trigger_and_model)", "",
              "    ENTRY_MODE = \"trigger_and_model\"\n    TRIGGER_NAME = \"gbb\"\n"),
 }
