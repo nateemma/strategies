@@ -1,0 +1,92 @@
+{
+ "title": "040 framework stage (research R5, R6): NNNC's adopted framework features on the R7-selected NNMT model, and its trading-head-only twin",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL. Committed before the selection exists; {M} = verdicts_models.json 'selected' (R7). All NNMT classes carry the framework since the port, so {M} itself is each feature arm's control.",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "arms": {
+  "{M}_g24": {
+   "comparator": "{M}",
+   "change": "stoploss_grace_hours 24.0 (sell_params merged)"
+  },
+  "{M}_hpa": {
+   "comparator": "{M}",
+   "change": "HELD_PAIR_ADD = {'in_profit_only': True}"
+  },
+  "{M}_gate": {
+   "comparator": "{M}",
+   "change": "ENTRY_MODE trigger_and_model, TRIGGER_NAME gbb"
+  },
+  "{M}_tp": {
+   "comparator": "{M}",
+   "change": "take_profit_atr_mult 2.897 (C2, feature 028)"
+  },
+  "{M}_tr": {
+   "comparator": "{M}",
+   "also_reported_vs": [
+    "wf_aro_g24"
+   ],
+   "change": "trading head only: every auxiliary task weight 0 (its own weights, trained per fold) -- does multi-task training help?"
+  }
+ },
+ "liveness": "an arm whose trades_hash equals {M}'s on every fold is INERT (a defect), no verdict",
+ "decision": "PASS -> candidate NNMT default (adoption is the user's call), seed 2 required",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seen_before": [
+  "NNNC: grace 24 h adopted, in-profit add adopted, C2 default-off, gbb gate adopted for NNPredict",
+  "families tune independently (memory): NNNC verdicts are not copied"
+ ]
+}
