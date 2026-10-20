@@ -149,3 +149,46 @@ committed before any run (8ec08733).
 - One seed. The two PASSes gained ≥ 1 pp, so no seed-2 rerun was required.
 - The binance.us outage (2026-10-19 20:18–20:29) failed some LSTM folds; they were re-run before
   being judged.
+
+## 6. Follow-ups 2 (`preregistration_followups2.json`, `preregistration_sizer_exc32.json`)
+
+The user's "do both" on section 5's two leads, both on `nnp_ridge_exc32_op`. The pre-registrations
+were committed before any run (ebcc3062).
+
+**The excursion-H32 model as the gbb gate, on `st_g24_rev`'s exact exits.** The identity twin
+reproduces `st_g24_rev` on 15/15 folds.
+
+| Arm | Trades | Total pp | vs | Δ early | Δ late | Paired | Verdict |
+|---|---|---|---|---|---|---|---|
+| `nnp_ridge_exc32_op_revg` | 1,166 | 48.56 | `st_g24_rev` 71.50 (2,518) | −20.04 | −2.90 | UNCHANGED (p 0.052) | FAIL |
+| | | | `nnp_lstm_ind_op_revg` 50.57 | −2.22 | +0.22 | UNCHANGED | (reported) |
+
+Ranking the 8 h hold the right way does not make the model a useful filter on gbb reversion
+entries: it removes 54% of them and loses 22.9 pp, like the LSTM.
+
+**The width-book sizer.**
+- The screen PASSES in the "up" direction: gap_share50 0.054 (bar 0.05), partial +0.088, 6/8 folds,
+  ρ with `cs_aro`'s p_buy 0.36. The LSTM failed (0.028).
+- Per-fold thresholds were picked by `pick.py`, at a 0.50 agree share on every fold.
+
+| Arm | Trades | Total pp | vs | Δ early | Δ late | Paired | Verdict |
+|---|---|---|---|---|---|---|---|
+| `nnp_ridge_exc32_op_cs` | 1,211 | 32.99 | `_wb` 30.78 (1,212) | +1.64 | +0.56 | UNCHANGED (p 0.39) | PASS (primary) |
+| | | | `w_aro` 51.44 | −14.54 | −3.91 | WORSENED (p 0.049) | FAIL |
+| | | | `cs_aro` 59.95 | −19.39 | −7.57 | WORSENED (p 0.004) | FAIL |
+
+- The sizer improves its own width book in both halves (+2.2 pp, not significant). It is the first
+  NNPredict PASS in a role where NNNC's model earns its keep.
+- Most of the gap to `w_aro` / `cs_aro` is the exit stack, not the sizer. The same width book on
+  NNPredict's exits (`_wb`: 3-day max hold, 2% take-profit, exit signal on) makes 30.78 vs 51.44
+  on NNNC's.
+- The sizer on NNNC's own width book (`w_aro`'s exits) is the comparison that would isolate the
+  score. It is not run.
+
+Instrument notes:
+- The first sizer run failed on every fold. NNPredict trains a regressor, so it has no label family
+  and its width-book entries had no tags for the sizer to split. Both sizer arms now declare
+  MODEL_ENTRY_FAMILY "reversion", the gbb width book's family. This only sets the entry tag:
+  `_wb`'s trades are identical to the untagged run on 15/15 folds, and the model key is unchanged.
+- The CS template set its threshold in `bot_start`, a weight-shaping method, which re-keyed the
+  model. It now sets it in `get_entry_conditions`.

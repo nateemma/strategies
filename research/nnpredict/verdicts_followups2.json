@@ -1,0 +1,124 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "identity": {
+  "pass": true,
+  "folds_differing": [],
+  "folds": 15
+ },
+ "arms": {
+  "nnp_ridge_exc32_op_revg": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 642,
+     "late": 524
+    },
+    "trades": 1166,
+    "pooled_pp": null
+   },
+   "alone": {
+    "arm": "nnp_ridge_exc32_op_revg",
+    "control": "st_g24_rev",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain",
+     "late gain"
+    ],
+    "arm_trades": 1166,
+    "ctl_trades": 2518,
+    "arm_pp": 48.563,
+    "ctl_pp": 71.503,
+    "early_gain_pp": -20.040999999999997,
+    "late_gain_pp": -2.898999999999999,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": -22.93907999583217,
+     "ci_pp_yr": [
+      -12.450742891588282,
+      0.0475350348403814
+     ],
+     "p": 0.0523
+    },
+    "risk": {
+     "days": 1341,
+     "arm": {
+      "sharpe": 1.870322693436675,
+      "maxdd": 12.25914323257463,
+      "daily_sd": 0.3699189831721927
+     },
+     "ctl": {
+      "sharpe": 2.241095163657603,
+      "maxdd": 7.628068490098158,
+      "daily_sd": 0.4545499554768981
+     },
+     "sharpe_delta": -0.3707724702209281,
+     "sharpe_ci": [
+      -1.276732412166303,
+      0.6813174320763786
+     ],
+     "sharpe_p": 0.584,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 4.631074742476471,
+     "maxdd_ci": [
+      -4.610041762938066,
+      10.588254281757393
+     ],
+     "maxdd_p": 0.595,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "WORSENED",
+      "p": 0.0067,
+      "risk": [
+       "UNCHANGED",
+       "IMPROVED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.7348,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "roi": 84,
+     "take_profit": 575,
+     "trailing_stop_loss": 201,
+     "unclog_12h": 259,
+     "unclog_1d": 32,
+     "stop_loss": 10,
+     "force_exit": 4,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "roi": 91,
+     "take_profit": 1311,
+     "trailing_stop_loss": 501,
+     "unclog_12h": 514,
+     "unclog_1d": 72,
+     "stop_loss": 18,
+     "force_exit": 8,
+     "metric_overbought": 3
+    }
+   },
+   "decision": "FAIL",
+   "paired": "UNCHANGED",
+   "also": {
+    "nnp_lstm_ind_op_revg": {
+     "verdict": "FAIL",
+     "arm_pp": 48.563,
+     "ctl_pp": 50.568,
+     "early_gain_pp": -2.2220000000000013,
+     "late_gain_pp": 0.21700000000000053,
+     "paired": "UNCHANGED"
+    }
+   }
+  }
+ }
+}
