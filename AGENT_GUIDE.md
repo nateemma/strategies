@@ -42,7 +42,7 @@ gap, add a pointer to this file.
 
 ---
 
-## Current state (2026-10-19)
+## Current state (2026-10-20)
 
 - **Live (two dry-run bots, no real money):**
   - the momentum basket (`Basket/`, `config/config_mom_dryrun_15m.json`, port 8080). Never kill
@@ -72,6 +72,10 @@ gap, add a pointer to this file.
   the plain model book live1 runs). `cs_aro_all3k` (stake up to 3,000 x weight, fillable cap,
   wallet: 114.17, seed 2 113.83) is NOT the default: its gain is larger orders on liquid candles
   and waits for 036's cost-by-volume model (`research/tb_model/report.md`).
+- **Mainline models (2026-10-20):** a class that pins no `MODEL_TRAIN_TIMERANGE` (i.e. not a fold
+  or arm) names its weights by SHAPE, `saved_data/mainline/<prefix>__<shape hash>/`, so any pairlist
+  (including a dynamic one) finds them; see **Model keys**. `NNPredict_LSTM_RawInd` (11 pairs) is
+  adopted there.
 - **Primary model:** ARO (`NNNC_A_Raw_Open`, a plain LSTM on raw inputs; control arm
   `wf_aro_g24`). GBR (`NNNC_GbbRaw_Open`, control `fs_gbr_gr`) is the usual replication.
 - **Results are PROVISIONAL.** The data has no distant era (see Walk-forward folds), so nothing
@@ -82,7 +86,7 @@ Recent features, newest first (each `specs/NNN-*` or the named `research/` direc
 | # | topic | outcome |
 |---|---|---|
 | 038 | close-price forecast study: N-candle return of close, N = 1–96 (15 min – 1 day), 2 baselines + 7 statistical forecasters (64-candle window) + LightGBM on lagged returns / + ARO inputs / + wavelet-FFT, long-only next-open trades vs random entry (`research/forecast/report.md`, `closing.md`) | all 104 cells FAIL (zero forecast INCONCLUSIVE, null clean): no viable N. Trend models (Holt/AR/Theta) beat random entry by ~10–25 bp at N ≥ 16 but gross < 30 bp round trip late. Fixed 7 defects in `utils/Forecasters.py` (off-by-one horizon, ARIMA zeros, stale ARIMA/Theta model, …): pre-2026-10-19 TSPredict results ran on the broken library. Post-hoc follow-ups (harmonic regression, Ridge, N-of-M votes, causal à trous): all FAIL; Holt 32/64/128/256 vote at N=48 is the only both-halves-positive cell (INCONCLUSIVE, −42 bp forward). Base `smooth`/`retrend` broken at the window edge (D9/D10, not fixed). Cross-asset inputs raise N=1 R² 5× (0.7%→3.8%) but edge stays ~2 bp; 2–4 day horizons' early gains are drift (null positive too); no PASS in ~280 cells. Plot: `TSPredict/TS_ForecastPlot.py` |
-| 039 | NNPredict improvement: fixes (post-model gate names out of the model key, Ridge `.joblib` artifact check, class-level `include_list` mutation), 15-fold harness at the NNNC operating point, 3 plain-LSTM input sets, flip/excursion/H24 amendment, NNNC framework port, width-book sizer screen (`research/nnpredict/report.md`) | every model loses standalone (−12.7 to −74.1 pp; R7 picks `nnp_lstm_ind_op`). Deciles: 1–2 h ranking inverted, 8 h right-way but best decile 7–12 bp short of 30 bp. Framework port identical 15/15 (now on `NNPredictStrategy`, all off). gbb gate +42.5 pp IMPROVED (→ +29.7 total) and 24 h grace +12.7 PASS = candidate defaults (user's call); held-pair add, momentum exits FAIL. Gated still < `w_aro`/`cs_aro`/`st_g24_rev`. Sizer screen fails both directions (gap 0.028 < 0.05) |
+| 039 | NNPredict improvement: fixes (post-model gate names out of the model key, Ridge `.joblib` artifact check, class-level `include_list` mutation), 15-fold harness at the NNNC operating point, 3 plain-LSTM input sets, flip/excursion/H24 amendment, NNNC framework port, follow-ups (gate + 24 h grace, gate on `st_g24_rev`'s exits, excursion H=32), width-book sizers (`research/nnpredict/report.md`) | DONE. Every model loses standalone (best excursion-H32 Ridge −11.0 pp; −12.7 to −74.1 for the rest). Deciles: 1–2 h ranking inverted, 8 h right-way but the best decile is short of the 30 bp round trip. gbb gate +42.5 pp IMPROVED (→ +29.7) — but on `st_g24_rev`'s exact exits model-AND-gbb 50.6 < trigger alone 71.5 (the gain is the trigger's); gate + 24 h grace FAIL. **ADOPTED as `NNPredictStrategy` defaults (607bd5fe):** gbb gate (`trigger_and_model`), guards open, percentile floor; 039 record classes pin what they ran (`_OP` model-only, `<Class>_Pre039`). Sizer: exc32 on `w_aro`'s book 57.0 vs 51.4 IMPROVED (p 0.03, both halves), < `cs_aro` 59.9; combined with ARO (`cs_aro_nnp`, cs_mix design) 59.6 ties `cs_aro` (FAIL). `cs_aro` stays the reference. Not tested on the harness: the wavelet `Coeff` family (`utils/Wavelets.py` has uncommitted edits) |
 | — | liquidity guards and sizing (`research/tb_model`, liq / liqnz / liqsr / liqsr2 / liqsz_s2) | nothing adopted: refusing thin-candle signals FAILs on reversion (the refused trades earn); liquidity-rank sizing gains ~+3 pp, repeats on seed 2 but stays INCONCLUSIVE (cs_aro) / FAILs early (all3k); momentum guards PASS (PROVISIONAL) n.s. Backtest fills ignore volume, so the real test waits for 036's cost model |
 | 037 | indicator screen: ~800 columns from 67 SimpleStrategies classes (+ raw8, 035 inputs, price/close ratios added after the lock) scored against the NNNC labels and 18 regime targets; signal pairs; per-fold tree/HGB models (`research/indicator_screen/report.md`) | SCREEN only, no backtest. label:buy candidate bars: best single column `atr_pct_roll` (AUC ≈ 0.59); HGB on all columns 0.62 early / 0.625 late vs ARO 0.61 / 0.60 vs width 0.55. Price-level and calendar columns dominate naive regime results (tagged, not counted). Regime models that beat the persistence baseline: 9 blocks, all at 48/288 bars; none for A2 |
 | 036 | realistic P&L: live NNNC dry-run recording depth, an execution-cost model, and a cost-budget stake cap (`research/live_pnl`) | recording since 2026-10-16; US2/US3 wait for the gate (≥ 4 weeks and ≥ 5 orders per pair) |
@@ -146,7 +150,9 @@ A subclass that changes anything weight-shaping (label, targets, features, class
 seed) gets a new key and has no weights: outside walk-forward it then **trains inside its own
 backtest**, fitting the evaluation window, and reports different numbers without error. Check
 with `scripts/model_index.py key <Class>` before a backtest. Walk-forward runs are strict and
-halt with `ModelMissing` instead. Details: **Model keys** below.
+halt with `ModelMissing` instead. A class with no pinned window is *mainline*: its name ignores
+pairs, window and seed, so a backtest over 2022 reuses weights trained to 2026 (that was already
+true of unpinned classes) — pin a window (folds) for any out-of-sample claim. Details: **Model keys** below.
 
 **`<Strategy>.json` beats the class, and a *missing* json is not neutral.**
 Params load as `deep_merge_dicts(file_params, class_params)` — the file wins, the class only
@@ -431,7 +437,7 @@ BaseStrategy(StrategyDiagnostics, IStrategy)            (Framework/BaseStrategy.
 │   ├── NNMTStrategy (NNMT/NNMTStrategy.py)
 │   │   └── NNMT_WGAN, NNMT_WGAN_MLX, NNMT_CGP, ... (concrete strategies)
 │   ├── NNPredictStrategy (NNPredict/NNPredictStrategy.py)  ← regression family
-│   │   └── NNPredict_LSTM, NNPredict_MLX_LSTM, NNPredict_Ridge
+│   │   └── NNPredict_LSTM_Raw*, NNPredict_LSTM, NNPredict_MLX_LSTM, NNPredict_Ridge
 │   ├── NNAnomalyStrategy (Anomaly/NNAnomalyStrategy.py)
 │   └── SklearnStrategy (Sklearn/SklearnStrategy.py)
 │       └── Skl_RandomForest, Skl_XGBoost, Skl_RandomForest_WGAN, ...
@@ -654,6 +660,19 @@ What follows:
   the key's own location `saved_data/models/<prefix>__<hash>/`, with a `manifest.json`.
 - **Generated fold classes pin their key.** They carry `MODEL_TRAIN_TIMERANGE` and `MODEL_SEED`,
   written by `run_folds`.
+- **Mainline models (unpinned classes).** A class that pins no `MODEL_TRAIN_TIMERANGE` is mainline:
+  its weights are named by the key WITHOUT whitelist, training window and seed (`shape_of`), at
+  `saved_data/mainline/<prefix>__<shape hash>/`. The readable prefix carries the gains/horizon; the
+  hash covers every other weight-shaping input, so variants that change only post-model settings
+  share weights and anything weight-shaping gets a new name. Pairs and window go in the manifest.
+  - No whitelist needed (dynamic pairlists work) and the pairlist check is skipped.
+  - With no mainline weights it falls back to what it had (index, `legacy:<Class>` directory,
+    keyed directory), so pre-mainline weights still load; otherwise a backtest trains into the
+    mainline location, and a dry/live run refuses (`ModelMissing`) instead of training.
+  - Copy keyed weights in: `python -m Framework.ModelKey adopt-mainline --strategy <Class> --config
+    <config>` (never overwrites); `… where --strategy <Class> --config <config>` shows what loads.
+  - The live fold (`NNNC_LIVE_*`) pins its window, so it stays keyed; on a dynamic pairlist the
+    live-fold generator would have to stop pinning it.
 - **Training inputs your run changes.** If your run changes a training input that the weights
   did not see (e.g. a 4096-candle warm-up on weights trained with 64: warm-up IS a training input,
   because freqtrade trains before trimming startup bars), declare

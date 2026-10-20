@@ -107,8 +107,9 @@ tree -d -L 1
 - _MLX_ — Apple MLX neural network components (Mamba, etc.) shared across strategy families
 - _NNMT_ — Neural Network Multi-Task classification strategies
 - _NNNC_ — Neural Network N-ary (trinary) classification strategies
+- _NNPredict_ — Neural Network regression strategies (predicted future gain). **Status (2026-10-20): every model loses standalone; its use is as a width-book stake sizer** (feature 039); see [NNPredict/README.md](NNPredict/README.md)
 - _reference_ — example strategies from other authors (for learning purposes)
-- _saved_data_ — saved model files, scalers, and GAN state; keyed by strategy name
+- _saved_data_ — saved model files, scalers, and GAN state; models are named by model key (`models/`, `mainline/`), not by strategy name
 - _scripts_ — shell scripts for backtesting, hyperopt, dry-run, and live trading
 - _SimpleStrategies_ — indicator-driven strategies (no ML); each file is a standalone strategy
 - _Sklearn_ — sklearn-based classifier strategies (RandomForest, XGBoost, etc.) sharing the NN training/augmentation pipeline
@@ -223,9 +224,12 @@ points of annual return on its own.
 
 ### Model Management
 
-Neural net strategies train a model on first run and save it to `saved_data/<StrategyName>/`.  Subsequent runs load the saved model.
+Neural net strategies train a model on first run and save it; subsequent runs load it. Weights are found by a **model key** (a hash of everything that shapes them), not by class name, so a variant that changes only exits, guards or thresholds reuses its parent's weights (`Framework/ModelKey.py`; details in `AGENT_GUIDE.md`, "Model keys"):
 
-To retrain: delete the files in `saved_data/<StrategyName>/`.
+- **Walk-forward folds and arms** pin their training window and live under `saved_data/models/<prefix>__<hash>/`; the key includes the pairs, window and seed.
+- **Mainline strategies** (any class that pins no training window — the ones you would dry-run or trade) live under `saved_data/mainline/<prefix>__<shape hash>/`. The name ignores the pairs, window and seed, so a dynamic pairlist finds them, but still changes with every weight-shaping parameter (e.g. the label gains and horizon). A dry or live run with no weights refuses rather than training.
+
+To see where a strategy's weights are: `../../.venv/bin/python -m Framework.ModelKey where --strategy <Class> --config <config>` (run from `user_data/strategies`). To reuse weights trained under a fixed pairlist for a mainline strategy: `… adopt-mainline` with the same arguments. To retrain: delete that directory (or use `test_strat.sh -f`).
 
 When training, use a long timerange (at least 1 year). Use the training config:
 

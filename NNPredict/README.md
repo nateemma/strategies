@@ -4,11 +4,11 @@ The regression counterpart of `NNNC`: the model predicts a **continuous** future
 than a class, and a per-pair gate turns unusually strong predictions into entries. For setup, data,
 backtesting and the shared framework, see the [main README](../README.md).
 
-> **Status (2026-10-21, feature 039, `research/nnpredict/report.md`):** on the 15-fold harness every
+> **Status (2026-10-20, feature 039 DONE, `research/nnpredict/report.md`):** on the 15-fold harness every
 > NNPredict model loses money standalone (best: Ridge on the excursion target at H = 32, −11.0 pp).
 > `NNPredictStrategy` carries the NNNC entry framework.
 >
-> **Defaults since 2026-10-21 (039 adopted):** entry = the model AND the gbb trigger
+> **Defaults since 2026-10-20 (039 adopted):** entry = the model AND the gbb trigger
 > (`ENTRY_MODE = "trigger_and_model"`, `TRIGGER_NAME = "gbb"`), guards open, percentile magnitude
 > floor. On `NNPredict_LSTM_RawInd` that is −12.7 → +29.7 pp (IMPROVED, both halves), and the plain
 > class reproduces the 039 gate arm's trades on 15/15 folds. On `st_g24_rev`'s exits the gbb trigger
@@ -16,6 +16,14 @@ backtesting and the shared framework, see the [main README](../README.md).
 >
 > **Where NNPredict earns its keep is as a width-book sizer.** The excursion-H32 Ridge's predicted move
 > sizes `w_aro`'s book to 57.0 vs 51.4 pp (IMPROVED), still below `cs_aro` 59.9.
+>
+> Combined with ARO's p_buy (`cs_aro_nnp`, the cs_mix design) it ties `cs_aro` (59.6 vs 59.9, FAIL),
+> so `cs_aro` stays the NNNC reference. The wavelet `Coeff` family is the one line not yet run on the
+> 15 folds.
+>
+> **Weights:** `NNPredict_*` base classes pin no training window, so they are *mainline* models
+> (`saved_data/mainline/`, found under any pairlist). `NNPredict_LSTM_RawInd`'s 11-pair weights are
+> adopted there (2026-10-20).
 >
 > The 039 record classes pin what they ran: `_OP` arms are model-only (`_operating_point.py`), and the
 > as-shipped models stage runs `<Class>_Pre039` (`_pre039.py`).

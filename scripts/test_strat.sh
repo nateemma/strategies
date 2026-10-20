@@ -190,20 +190,28 @@ echo "Testing strategy:$strategy for exchange:$exchange..."
 # force-retrain: remove the existing saved model so the strategy retrains from scratch.
 # Feature 030: the model lives where its MODEL KEY resolves (scripts/model_index.py path), not
 # necessarily saved_data/<strategy>/ -- delete and later check THAT path.
+# A mainline class (no pinned training window) falls back to older weights (keyed / legacy) when
+# its mainline weights are gone, so repeat until the resolved path has nothing to load: the last
+# path resolved is where training will write.
 model_stem=""
 if [[ $force_retrain -ne 0 ]]; then
-    model_stem=$(PYTHONPATH="${strat_dir}:${PYTHONPATH}" python "${strat_dir}/scripts/model_index.py" path "${strategy}" --config "${config_file}" 2>/dev/null | tail -1)
-    model_stem="${model_stem%.keras}"
-    if [ -z "${model_stem}" ]; then
-        echo "test_strat.sh: could not resolve the model path for ${strategy}" >&2
-        exit 2
-    fi
-    for ext in keras sav safetensors; do
-        model_file="${model_stem}.${ext}"
-        if [ -f "${model_file}" ]; then
-            echo "force-retrain: removing ${model_file}"
-            rm -f "${model_file}"
+    for attempt in 1 2 3 4; do
+        model_stem=$(PYTHONPATH="${strat_dir}:${PYTHONPATH}" python "${strat_dir}/scripts/model_index.py" path "${strategy}" --config "${config_file}" 2>/dev/null | tail -1)
+        model_stem="${model_stem%.keras}"
+        if [ -z "${model_stem}" ]; then
+            echo "test_strat.sh: could not resolve the model path for ${strategy}" >&2
+            exit 2
         fi
+        removed=0
+        for ext in keras sav safetensors joblib; do
+            model_file="${model_stem}.${ext}"
+            if [ -f "${model_file}" ]; then
+                echo "force-retrain: removing ${model_file}"
+                rm -f "${model_file}"
+                removed=1
+            fi
+        done
+        [[ ${removed} -eq 0 ]] && break
     done
 fi
 
@@ -241,7 +249,7 @@ fi
 
 if [[ $force_retrain -ne 0 ]]; then
     found=0
-    for ext in keras sav safetensors; do
+    for ext in keras sav safetensors joblib; do
         [ -f "${model_stem}.${ext}" ] && found=1
     done
     if [[ ${found} -eq 0 ]]; then
