@@ -219,3 +219,40 @@ stake, and from `cs_aro` only in the score.
   makes it a candidate input for the composite/mixed sizer route (cs_mix), not tested here.
 - Follow-ups 2's weak own-exits result (+2.2 pp) was the NNPredict exit stack: on NNNC's exits the
   same score is worth +5.6 pp.
+
+## 8. Adoption and the combined sizer (2026-10-21)
+
+**Adopted as `NNPredictStrategy` defaults** (607bd5fe, the user's decision): entry = the model AND the gbb
+trigger, guards open, percentile magnitude floor.
+- Not adopted: the 24 h grace (fails on top of the gate) and the excursion-H32 target (weight-shaping:
+  it would re-key every model; its use is as the sizer's score).
+- Every model key is unchanged.
+- A before/after snapshot of all NNPredict classes shows that only the plain model classes changed
+  (including the non-039 Coeff and MultiHorizon families).
+- Plain `NNPredict_LSTM_RawInd` reproduces `nnp_lstm_ind_op_gate`'s trades on 15/15 folds.
+- The 039 record classes pin what they ran: `OperatingPointMixin` stays model-only, and the as-shipped
+  models stage runs `<Class>_Pre039` (`_pre039.py`), with its plans repointed.
+
+**Combined sizer** (`preregistration_mix.json`, `research/nnpredict/mix.py`, arm `cs_aro_nnp` =
+`NNNC_CS_ARO_NNP`):
+- Design: `cs_aro`'s book, weights and framework, with the agree score = the mean of ARO's p_buy
+  percentile and the exc32 predicted-move percentile. This is `cs_mix`'s design with exc32 in place
+  of the 037 composite.
+- Instrument: the exc32 tables reproduce `nnp_ridge_exc32_op_csa`'s in-backtest tags on 930/930
+  trades; tail-tag verification passes 15/15; run starts equal `cs_mix`'s.
+- On the validation-tail run starts the two scores correlate at ρ 0.06–0.39 per fold.
+
+| vs | Total pp | Δ early | Δ late | Paired | Verdict |
+|---|---|---|---|---|---|
+| **`cs_aro`** (primary) | 59.58 vs 59.95 | −1.42 | +1.05 | UNCHANGED (p 0.82) | **FAIL** |
+| `w_aro` | 59.58 vs 51.44 | +3.43 | +4.71 | IMPROVED | PASS (reported) |
+| `nnp_ridge_exc32_op_csa` | 59.58 vs 57.01 | +2.36 | +0.21 | UNCHANGED | PASS (reported) |
+| `cs_mix` | 59.58 vs 61.07 | −0.84 | −0.65 | UNCHANGED | FAIL (reported) |
+
+- Combining the scores ties `cs_aro`. It is behind early and ahead late, the same pattern as
+  cs_hgb/cs_cmp/cs_mix.
+- Risk vs `cs_aro` is slightly better but unresolved: Sharpe 2.73 vs 2.59 (p 0.09), max drawdown
+  3.93 vs 4.49.
+- It is behind `cs_mix` in both halves.
+- `cs_aro` stays the reference. NNPredict's best role remains the standalone exc32 sizer on `w_aro`'s
+  book (+5.6 pp over flat stakes).
