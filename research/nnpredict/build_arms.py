@@ -8,7 +8,7 @@ operating-point stage selected (research R6-R8; verdicts_op.json "selected").
              sized by NNPredict's predicted move, AGREE_RULE p_buy, sizer_score = %predict_gain, a
              per-fold 0.5-agree-share threshold picked by research.nnpredict.pick).
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnpredict.build_arms framework|sizer|followups
 """
 from __future__ import annotations
 
@@ -164,14 +164,92 @@ def sizer(thresholds: dict | None = None) -> dict:
     return out
 
 
+#: The reference whose framework the REV arms copy: st_g24_rev (gbb reversion, volreg2 gate, C2 ATR
+#: take-profit, 24 h grace) -- research/nnpredict/preregistration_followups.json.
+REV_REFERENCE = ("st_g24_rev", "SimpleTrigger.SimpleTrigger_RevOnlyVolreg2_P2_G24")
+
+
+def _st_framework(base_cls, st_cls) -> str:
+    """Class body that puts `st_cls`'s resolved framework (preset attributes, guard and exit params,
+    family exits, regime gate, triggers) on an NNPredict class, as literals (attributes only where
+    they differ from the base's). The model's own entry
+    params (buy_params beyond the guards) are kept, so only the entry source can differ."""
+    from SimpleTrigger import presets as P
+
+    preset = P.get(st_cls.PRESET)
+    lines = []
+    for k in sorted(preset["attributes"]):
+        if not hasattr(st_cls, k):  # the preset leaves it unset (freqtrade's default)
+            continue
+        v = getattr(st_cls, k)
+        if hasattr(base_cls, k) and getattr(base_cls, k) == v:  # already the base's value
+            continue
+        lines.append(f"    {k} = {v!r}")
+    guards = {k: st_cls.buy_params[k] for k in preset["buy"]}
+    pin = {"startup_candle_count": int(getattr(base_cls, "startup_candle_count"))}
+    lines += [
+        f"    MODEL_TRAINED_WITH = {pin!r}  # the weights were trained with the base warm-up",
+        f"    TRIGGERS = {tuple(st_cls.TRIGGERS)!r}",
+        f"    DISABLED_TRIGGERS = {tuple(st_cls.DISABLED_TRIGGERS)!r}",
+        "    MODEL_ENTRY_FAMILY = \"reversion\"  # the reversion exits and regime gate apply to model entries",
+        f"    FAMILY_EXIT_OVERRIDES = {dict(st_cls.FAMILY_EXITS)!r}",
+        f"    REVERSION_REGIME_GATE = {dict(st_cls.REVERSION_REGIME_GATE)!r}",
+        "    stoploss_grace_hours = DecimalParameter(0.0, 48.0, default=24.0, decimals=1, space=\"sell\",",
+        "                                            load=True, optimize=False)",
+        f"    buy_params = {{**{base_cls.__name__}.buy_params, **{guards!r}}}",
+        f"    sell_params = {{**{base_cls.__name__}.sell_params, **{dict(st_cls.sell_params)!r}}}",
+    ]
+    return "\n".join(lines).replace("{", "{{").replace("}", "}}") + "\n"
+
+
+def followups() -> dict:
+    """The three follow-ups (preregistration_followups.json), on the framework stage's model:
+    _GATE_G24 (gate + 24 h grace), _REVX (st_g24_rev's framework, trigger entry only: the identity
+    twin of st_g24_rev) and _REVG (the same framework, model AND the trigger). The Ridge excursion
+    H=32 arm is a hand-written class (NNPredict_Ridge_Exc32_OP); only its plan is written here."""
+    import importlib
+
+    tag, base = selected()
+    gate = f"{base}_GATE"
+    out = {"selected": tag, "base": base, "arms": {}}
+    what, imports, body = FRAMEWORK["G24"]
+    _write_class(f"{gate}_G24", gate, "follow-up", "the gbb gate AND 24 h stoploss grace", imports,
+                 body.replace("{base}", "{base}"))
+    _plan(tag, f"{tag}_gate_g24", f"{gate}_G24", "039 follow-up 1: gbb gate + 24 h grace")
+    out["arms"][f"{tag}_gate_g24"] = f"{gate}_G24"
+
+    mod = REV_REFERENCE[1]
+    st_cls = getattr(importlib.import_module(mod), mod.rsplit(".", 1)[1])
+    base_cls = getattr(importlib.import_module(base), base)
+    fw = _st_framework(base_cls, st_cls)
+    imports = "from freqtrade.strategy import DecimalParameter\n"
+    for suffix, mode, what in (("REVX", "triggers", "st_g24_rev's framework, trigger entry only (identity twin)"),
+                               ("REVG", "trigger_and_model", "st_g24_rev's framework, model AND the gbb trigger")):
+        name = f"{base}_{suffix}"
+        _write_class(name, base, "follow-up", what, imports, f"    ENTRY_MODE = \"{mode}\"\n" + fw)
+        _plan(tag, f"{tag}_{suffix.lower()}", name, f"039 follow-up 2: {what}")
+        out["arms"][f"{tag}_{suffix.lower()}"] = name
+    _plan("nnp_ridge_exc_op", "nnp_ridge_exc32_op", "NNPredict_Ridge_Exc32_OP",
+          "039 follow-up 3: Ridge, excursion target at HORIZON 32 (8 h)")
+    out["arms"]["nnp_ridge_exc32_op"] = "NNPredict_Ridge_Exc32_OP"
+    k0 = _key(base)
+    bad = {a: c for a, c in out["arms"].items() if a != "nnp_ridge_exc32_op" and _key(c) != k0}
+    if bad:
+        raise SystemExit(f"REFUSED: arms that would not reuse {base}'s weights: {bad}")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or [""])[0]
     if stage == "framework":
         framework()
     elif stage == "sizer":
         sizer()
+    elif stage == "followups":
+        followups()
     else:
-        raise SystemExit("usage: build_arms framework|sizer")
+        raise SystemExit("usage: build_arms framework|sizer|followups")
     return 0
 
 

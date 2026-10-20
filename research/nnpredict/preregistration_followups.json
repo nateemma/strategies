@@ -1,0 +1,112 @@
+{
+ "title": "039 NNPredict -- follow-ups (user request 2026-10-20: 'do all 3'): gate + 24 h grace; the gated model vs st_g24_rev on identical exits; excursion target at H=32",
+ "date": "2026-10-20",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; adoption is the user's call.",
+ "selected": "nnp_lstm_ind_op",
+ "arms": {
+  "nnp_lstm_ind_op_gate_g24": {
+   "class": "NNPredict_LSTM_RawInd_OP_GATE_G24",
+   "comparator": "nnp_lstm_ind_op_gate",
+   "change": "follow-up 1: the gbb gate AND 24 h stoploss grace (each passed alone vs fw0)",
+   "also_reported_vs": [
+    "nnp_lstm_ind_op_fw0",
+    "nnp_lstm_ind_op_g24"
+   ]
+  },
+  "nnp_lstm_ind_op_revx": {
+   "class": "NNPredict_LSTM_RawInd_OP_REVX",
+   "role": "identity",
+   "change": "follow-up 2 instrument: st_g24_rev's resolved framework (ARM_D_FAMILY preset, C2 ATR take-profit, volreg2 regime gate, 24 h grace, 4096 startup) on the NNPredict class, ENTRY_MODE triggers (gbb): must reproduce st_g24_rev"
+  },
+  "nnp_lstm_ind_op_revg": {
+   "class": "NNPredict_LSTM_RawInd_OP_REVG",
+   "comparator": "st_g24_rev",
+   "change": "follow-up 2: the same framework, ENTRY_MODE trigger_and_model: st_g24_rev's entries filtered by the model; the only difference from the control is the model"
+  },
+  "nnp_ridge_exc32_op": {
+   "class": "NNPredict_Ridge_Exc32_OP",
+   "comparator": "nnp_ridge_op",
+   "change": "follow-up 3: Ridge retrained on target_mode excursion, HORIZON 32 (8 h); new weights",
+   "also_reported_vs": [
+    "nnp_ridge_exc_op"
+   ]
+  }
+ },
+ "identity": {
+  "arm": "nnp_lstm_ind_op_revx",
+  "reference": "st_g24_rev",
+  "rule": "revx trades_hash == st_g24_rev's on all 15 folds; otherwise the copied framework is a defect: it is fixed (instrument only, rules unchanged) and rerun before revg is read"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "instrument": "per arm: a record for all 15 folds, model trained per fold on its training window (run_folds strict artefact check), and trades in both halves; otherwise INCONCLUSIVE (no P&L read)",
+ "alone": "judge_one(arm, comparator) with the rule maps; liveness: an arm whose trades change on no fold vs its comparator is INERT (a defect)",
+ "decision": {
+  "nnp_lstm_ind_op_gate_g24": "PASS vs the gate -> gate + 24 h grace is the combined candidate default (user's call); FAIL -> the gate alone stays the candidate",
+  "nnp_lstm_ind_op_revg": "identity must hold. Then PASS with paired IMPROVED -> the model adds value over the gbb trigger on identical exits; PASS otherwise -> the model's filter is no worse than the trigger (reported, nothing claimed); FAIL -> the model's filter costs P&L vs the trigger alone",
+  "nnp_ridge_exc32_op": "same rule as the threshold amendment: PASS vs nnp_ridge_op -> a candidate target (no selection is re-run; the framework stage's model is unchanged)"
+ },
+ "seed_rule_pp": 1.0,
+ "diagnostic": "deciles (research/nnpredict/deciles.py, early f00-f07 only, H = 4, 8, 32) for nnp_ridge_exc32_op, reported, no verdict",
+ "seen_before": [
+  "every 039 verdict (verdicts_op/threshold/framework.json): gate +42.47 vs fw0 IMPROVED p 0.003 (total +29.75); g24 +12.71 PASS (paired INCONCLUSIVE); hpa/famm FAIL",
+  "the gate arm beside st_g24_rev on mixed exits: 29.75 vs 71.50, early -35.31 / late -6.44, WORSENED",
+  "the decile checks: excursion H=4 ranks 8 h outcomes +0.61, top decile net -12.0 bp; no decile clears 30 bp",
+  "st_g24_rev's own 15-fold record (SimpleTrigger grace study)"
+ ],
+ "why": "The three open ideas in report.md, run as the user asked. Nothing is tuned: 24 h is NNNC's adopted grace, the REV framework is copied from st_g24_rev's resolved class (build_arms._st_framework), and H=32 is the decile tool's 8 h horizon.",
+ "caveat": "follow-up 1 and 2 were chosen after seeing the framework verdicts; follow-up 3's horizon after seeing the early-half deciles, so its late half is the cleaner test"
+}

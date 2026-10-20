@@ -7,6 +7,8 @@
   threshold  the threshold amendment (preregistration_threshold.json): flip / excursion / H24 arms vs
              nnp_ridge_op, as the op stage; R7 re-applied over the op arms + these
                                                                      -> verdicts_threshold.json
+  followups  identity (revx trades_hash == st_g24_rev's, 15/15) gates revg; then each arm judge_one(arm,
+             comparator), plus the also_reported_vs comparisons    -> verdicts_followups.json
   sizer      judge_one(nnp_cs, w_aro) (must PASS); judge_one(nnp_cs, cs_aro) reported
                                                                      -> verdicts_sizer.json
 
@@ -169,6 +171,46 @@ def framework() -> int:
     return 0
 
 
+def followups() -> int:
+    from research.nnnc_switches.judge import judge_one
+
+    path, pr = _prereg("followups")
+    bad = _refused(path, pr)
+    if bad:
+        print("REFUSED:\n  " + "\n  ".join(bad))
+        return 2
+    idn = pr["identity"]
+    out = {"label": pr["label"], "identity": identity(pr, idn["reference"], idn["arm"]), "arms": {}}
+    print("identity:", out["identity"], flush=True)
+    for arm, spec in pr["arms"].items():
+        if "comparator" not in spec:
+            continue
+        inst = instrument(pr, arm)
+        r = {"instrument": inst}
+        if not inst["pass"]:
+            r["decision"] = "INCONCLUSIVE (instrument)"
+        elif spec["comparator"] == idn["reference"] and not out["identity"]["pass"]:
+            r["decision"] = "NOT READ (identity failed)"
+        else:
+            v = judge_one(pr, arm, spec["comparator"])
+            r["alone"] = v
+            whole = (v["arm_pp"] or 0) - (v["ctl_pp"] or 0)
+            r["decision"] = ("INERT (defect: no fold's trades changed)" if not v.get("folds_changed")
+                             else "PASS, seed-2 rerun required (gain < 1 pp)"
+                             if v["verdict"] == "PASS" and whole < pr["seed_rule_pp"] else v["verdict"])
+            r["paired"] = (v.get("paired") or {}).get("verdict")
+            r["also"] = {c: {k: w.get(k) for k in ("verdict", "arm_pp", "ctl_pp", "early_gain_pp", "late_gain_pp")}
+                         | {"paired": (w.get("paired") or {}).get("verdict")}
+                         for c in spec.get("also_reported_vs", []) for w in [judge_one(pr, arm, c)]}
+            print(f"{arm} vs {spec['comparator']}: {r['decision']} {v['arm_pp']} vs {v['ctl_pp']} early "
+                  f"{v['early_gain_pp']} late {v['late_gain_pp']} paired {r['paired']}", flush=True)
+            for c, w in r["also"].items():
+                print(f"  vs {c}: {w}", flush=True)
+        out["arms"][arm] = r
+    (HERE / "verdicts_followups.json").write_text(json.dumps(out, indent=1, default=str))
+    return 0
+
+
 def sizer() -> int:
     from research.nnnc_switches.judge import judge_one
 
@@ -219,6 +261,8 @@ def main(argv=None) -> int:
         return framework()
     if stage == "sizer":
         return sizer()
+    if stage == "followups":
+        return followups()
     raise SystemExit(f"unknown stage {stage!r}")
 
 

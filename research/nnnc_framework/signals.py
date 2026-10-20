@@ -62,7 +62,8 @@ def _nnp_plans() -> dict:
     sel = (json.loads(th.read_text()).get("selected_union") if th.exists()
            else json.loads(v.read_text()).get("selected") if v.exists() else None)
     # the decile check (research/nnpredict/deciles.py): Ridge and the threshold amendment's retrains
-    out = {"NNP_RIDGE": "nnp_ridge_op", "NNP_RIDGE_EXC": "nnp_ridge_exc_op", "NNP_RIDGE_H24": "nnp_ridge_h24_op"}
+    out = {"NNP_RIDGE": "nnp_ridge_op", "NNP_RIDGE_EXC": "nnp_ridge_exc_op", "NNP_RIDGE_H24": "nnp_ridge_h24_op",
+           "NNP_RIDGE_EXC32": "nnp_ridge_exc32_op"}
     return out | ({"NNP": sel} if sel else {})
 
 
