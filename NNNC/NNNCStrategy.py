@@ -254,6 +254,20 @@ class NNNCStrategy(EntryFrameworkMixin, BaseNNStrategy):
         "prediction_threshold": 0.8,
     }
 
+    plot_config = {
+        "main_plot": {
+            "close": {"color": "lightsteelblue"},
+        },
+        "subplots": {
+            "Diff": {
+                "%train_buy": {"color": "lightgreen"},
+                "%predict_prob_buy": {"color": "green"},
+                "%train_sell": {"color": "orange"},
+                "%predict_prob_sell": {"color": "red"},
+            },
+        },
+    }
+
     # Label: gain threshold 0.02 rather than the framework default 0.007.
     # A 0.7% target against a -4%..-6% ATR stop plus round-trip fees cannot pay
     # however perfectly it is predicted -- at the ceiling, 0.02 turns W1 from

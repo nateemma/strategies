@@ -17,11 +17,19 @@ import scipy
 from scipy.fft import fft, hfft, ifft, ihfft, rfft, irfft, fftfreq
 from scipy.fft import fht, ifht
 
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__)))
+sys.path.append(str(Path(__file__).parent))
+
+
 # Local vendored module (utils/modwt.py). Import via the package path rather than
 # a bare `from modwt import ...`, which only resolves when `utils/` itself happens
 # to be on sys.path — that held for some strategies' load order but broke others
 # (e.g. TS_Wavelet_DWTA) with "No module named 'modwt'".
-from utils.modwt import modwt, imodwt, modwtmra
+# from utils.modwt import modwt, imodwt, modwtmra
+from modwt import modwt, imodwt, modwtmra
 
 # all actual instantiations follow this base class
 

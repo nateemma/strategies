@@ -11,10 +11,17 @@ from sklearn.discriminant_analysis import StandardScaler
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 import xarray
 
-import Wavelets
-import Forecasters
+import sys
+
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent))
 
 from sklearn.metrics import mean_squared_error
+
+
+import Wavelets
+import Forecasters
 
 #------------------------------
 
