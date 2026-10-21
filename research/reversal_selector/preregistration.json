@@ -1,0 +1,36 @@
+{
+ "title": "Reversal selector screen: does the 1-day cross-sectional return rank separate width-book (gbb) trades?",
+ "date": "2026-10-21",
+ "origin": "research/xsec_screen (af0fcec1): 1-day momentum is reversal across the 10 wf pairs (pooled t -4.9, both halves) but a standalone daily book loses to costs. A selector re-orders trades NNNC already takes, so it adds no turnover.",
+ "label": "PROVISIONAL -- one era (2023-26). A PASS here licenses only a separately pre-registered sizer backtest arm; nothing is adopted.",
+ "instrument": {
+  "book": "the ARO width book (034 S1 instrument, research/label_screen/separation.py): gbb rule + gates + bb_width >= previous fold's count-matched cut (width_twin.json), simulated once per fold from the wf_aro_g24 tables with the 24 h stop-loss grace",
+  "folds": {"early": ["f00","f01","f02","f03","f04","f05","f06","f07"], "late": ["f08","f09","f10","f11","f12","f13","f14"]},
+  "sanity": "early trade count must equal 034's 412; otherwise INCONCLUSIVE (instrument drift)",
+  "outcome": "pp per trade (the simulator's pp column)"
+ },
+ "signal": {
+  "bars": "research.exit_coupling.feasibility.bars_for (15m, the simulator's own bars)",
+  "pairs": ["ZEC/USDT","XRP/USDT","SOL/USDT","LINK/USDT","NEAR/USDT","AAVE/USDT","AVAX/USDT","LTC/USDT","BCH/USDT","DOT/USDT"],
+  "at": "the trade's signal bar s = entry bar - 1 (its close is known when the entry bar opens)",
+  "r1d": "log close[s] - log close[s-96] for every pair that has both bars at those timestamps",
+  "rank_pct": "(rank of the trade pair's r1d among them, ascending, ties averaged - 1) / (n - 1); 0 = fell most",
+  "min_pairs": 6,
+  "agree": "rank_pct <= 0.5 (the half that fell more)",
+  "score_for_auc": "-rank_pct"
+ },
+ "rule": {
+  "primary": "PASS iff ALL: (1) gap = agree - disagree pp/trade > 0 in BOTH halves; (2) AUC of score vs pp > 0 above 0.5 in BOTH halves; (3) pooled one-sided permutation p <= 0.05 for the gap (agree labels shuffled within fold, 10000 permutations, seed 0)",
+  "inconclusive": "early trade count != 412, or > 5% of trades without a rank (fewer than 6 pairs), or any fold whose agree share is 0 or 1",
+  "otherwise": "FAIL"
+ },
+ "descriptive": [
+  "agree share per half",
+  "the gap within the control's own agree and disagree trades (does the rank add to ARO's decision?)",
+  "Spearman of rank_pct with the control's p_buy (orthogonality)",
+  "the control-at-share gap 0.100 (034, early) for scale only -- not a pass condition",
+  "3-day variant (r3d over 288 bars), same split -- not a pass condition"
+ ],
+ "next_on_pass": "pre-register a width-book sizer arm (stake up for agree trades) on the 15-fold backtest vs w_aro and cs_aro; seed-free (model-free signal)",
+ "not_done": "no backtest P&L is read by this screen; no parameter is fitted"
+}
