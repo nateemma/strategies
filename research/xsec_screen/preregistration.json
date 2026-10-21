@@ -16,7 +16,7 @@
   "DOT/USDT"
  ],
  "btc": "BTC/USDT",
- "data": "freqtrade 15m feathers (user_data/data/binance); daily close = last 15m close of the UTC day; bars with volume == 0 excluded from the variance and illiquidity sums",
+ "data": "freqtrade 15m feathers (user_data/data/binanceus, the harness exchange); daily close = last 15m close of the UTC day; bars with volume == 0 excluded from the variance and illiquidity sums",
  "early": [
   "2023-01-01",
   "2024-12-21"
