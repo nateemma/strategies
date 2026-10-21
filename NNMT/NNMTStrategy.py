@@ -34,6 +34,7 @@ from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, M
 from Predictors.KerasBasePredictor import KerasBasePredictor
 import NNMTClassifier
 from utils import ForwardPeakRegressor as _FPR
+from utils.EntryFramework import EntryFrameworkMixin
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
 from GANs.GANType import GANType
 from GANs.mt_label_wrappers import _UnflattenedGenerateWrapper
@@ -45,7 +46,17 @@ class ProfitDirection(IntEnum):
     PROFIT = 2
 
 
-class NNMTStrategy(BaseNNStrategy):
+class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy):
+    # 040 (research R1): NNMT shares NNNC's entry framework (utils.EntryFramework, feature 029) with the
+    # MODEL as its entry source -- per-family exits, the trigger gate, the held-pair add, the regime gate
+    # and the stop invariants become declarable. Everything is OFF here: the entry is exactly
+    # BaseNNStrategy's (the trading head's predict_buy), entries keep BaseStrategy's tag (no label
+    # family), and no held-pair add. Must be trade-identical to the pre-port `mt` record on 15/15 folds
+    # before any framework arm is read (research/nnmt/preregistration_models.json "identity").
+    ENTRY_MODE = "model"
+    MODEL_ENTRY_FAMILY = None
+    HELD_PAIR_ADD = None
+
     """
     Neural Network Multi-Task (NNMT) base strategy that predicts:
     - Trading action (Sell/Hold/Buy) for trading decisions

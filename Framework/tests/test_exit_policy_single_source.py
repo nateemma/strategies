@@ -163,6 +163,10 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # value for a derived bound, or mentions the pinned value in a comment/docstring --
     # none compute the take_profit/max_hold comparison itself (that is
     # `utils.ExitPolicy.custom_exit_decision`'s job as of this amendment).
+    "research/nnmt/build_arms.py",         # 040 arm generator: writes the G24 grace and C2
+                                             # take-profit VALUES into fold classes; no stop arithmetic.
+    "NNMT/tests/test_model_key_nnmt.py",   # 040 key test: sets take_profit_atr_mult on a probe
+                                             # class to show it does not move the model key.
     "SimpleStrategies/TriggerOnly.py",     # feature 021's trigger-only arms: pins the
                                              # Open operating point as class attributes
                                              # (minimal_roi/stoploss/atr_*/sell_params) so

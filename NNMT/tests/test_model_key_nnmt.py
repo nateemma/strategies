@@ -30,6 +30,13 @@ def base():
     return _key()
 
 
+@pytest.mark.parametrize("attrs", [
+    {"ENTRY_MODE": "trigger_and_model", "TRIGGER_NAME": "gbb"},  # the framework accepts them only together
+])
+def test_entry_framework_settings_share_the_weights(base, attrs):
+    assert _key(**attrs) == base
+
+
 @pytest.mark.parametrize("name, value", [
     ("prediction_threshold", "probe"),
     ("profit_prediction_threshold", "probe"),
@@ -40,8 +47,6 @@ def base():
     ("enable_exit_signal", "probe"),
     ("exit_rvol_threshold", "probe"),
     ("bailout_min_loss", -0.5),
-    ("ENTRY_MODE", "trigger_and_model"),
-    ("TRIGGER_NAME", "gbb"),
     ("HELD_PAIR_ADD", {"in_profit_only": True}),
     ("take_profit_atr_mult", 2.897),
 ])

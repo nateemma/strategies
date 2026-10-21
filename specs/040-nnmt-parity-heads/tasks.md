@@ -90,7 +90,7 @@ classification (FR-002) and the transition truncation test (SC-005).
   - check both bots.
 
   Then run f01–f14 in one background chain
-- [ ] T012 [US2] Verify 15 `mt` records, each with a model artifact and a non-zero trade count. Record the totals in `research/nnmt/report.md` §1 beside the four comparators
+- [X] T012 [US2] Verify 15 `mt` records, each with a model artifact and a non-zero trade count. Record the totals in `research/nnmt/report.md` §1 beside the four comparators
 
 ---
 
@@ -102,7 +102,7 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 (T013 and T014, key hygiene, were done in Foundational, before `mt` trained.)
 
-- [ ] T015 [US1] R1 in `NNMT/NNMTStrategy.py`: `class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy)` with `ENTRY_MODE = "model"`, `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`. Update `Framework/tests/test_exit_policy_single_source.py`'s allowlist only if it flags NNMT, with a comment
+- [X] T015 [US1] R1 in `NNMT/NNMTStrategy.py`: `class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy)` with `ENTRY_MODE = "model"`, `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`. Update `Framework/tests/test_exit_policy_single_source.py`'s allowlist only if it flags NNMT, with a comment
 - [X] T016 [P] [US1] Test `NNMT/tests/test_framework_port.py`:
   - `NNMTStrategy` is an `EntryFrameworkMixin`;
   - `ENTRY_MODE == "model"`, `MODEL_ENTRY_FAMILY is None`, `HELD_PAIR_ADD_RESOLVED is None`, `FAMILY_EXITS == {}`;
