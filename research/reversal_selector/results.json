@@ -1,0 +1,134 @@
+{
+ "prereg": "728887e4",
+ "trades": {
+  "early": 412,
+  "late": 519
+ },
+ "unranked_share": 0.0,
+ "halves": {
+  "early": {
+   "trades": 412,
+   "agree": {
+    "n": 216,
+    "pp_per_trade": 0.101
+   },
+   "disagree": {
+    "n": 196,
+    "pp_per_trade": 0.0709
+   },
+   "gap": 0.0301,
+   "auc": 0.5829503335804299,
+   "agree_share": 0.5243,
+   "within_ctl_agree": {
+    "trades": 73,
+    "agree": {
+     "n": 34,
+     "pp_per_trade": 0.1508
+    },
+    "disagree": {
+     "n": 39,
+     "pp_per_trade": 0.1414
+    },
+    "gap": 0.0094,
+    "auc": null
+   },
+   "within_ctl_disagree": {
+    "trades": 339,
+    "agree": {
+     "n": 182,
+     "pp_per_trade": 0.0917
+    },
+    "disagree": {
+     "n": 157,
+     "pp_per_trade": 0.0534
+    },
+    "gap": 0.0383,
+    "auc": null
+   },
+   "spearman_rank_vs_p_ctl": 0.0707,
+   "r3d_variant": {
+    "trades": 412,
+    "agree": {
+     "n": 192,
+     "pp_per_trade": 0.0824
+    },
+    "disagree": {
+     "n": 220,
+     "pp_per_trade": 0.0904
+    },
+    "gap": -0.008,
+    "auc": 0.492636520879664
+   }
+  },
+  "late": {
+   "trades": 519,
+   "agree": {
+    "n": 265,
+    "pp_per_trade": 0.0252
+   },
+   "disagree": {
+    "n": 254,
+    "pp_per_trade": 0.0351
+   },
+   "gap": -0.0099,
+   "auc": 0.4262474826583128,
+   "agree_share": 0.5106,
+   "within_ctl_agree": {
+    "trades": 118,
+    "agree": {
+     "n": 50,
+     "pp_per_trade": 0.0817
+    },
+    "disagree": {
+     "n": 68,
+     "pp_per_trade": 0.1061
+    },
+    "gap": -0.0244,
+    "auc": null
+   },
+   "within_ctl_disagree": {
+    "trades": 401,
+    "agree": {
+     "n": 215,
+     "pp_per_trade": 0.0121
+    },
+    "disagree": {
+     "n": 186,
+     "pp_per_trade": 0.0092
+    },
+    "gap": 0.0029,
+    "auc": null
+   },
+   "spearman_rank_vs_p_ctl": 0.0682,
+   "r3d_variant": {
+    "trades": 519,
+    "agree": {
+     "n": 253,
+     "pp_per_trade": 0.0414
+    },
+    "disagree": {
+     "n": 266,
+     "pp_per_trade": 0.0193
+    },
+    "gap": 0.0221,
+    "auc": 0.48319534571492506
+   }
+  }
+ },
+ "pooled": {
+  "trades": 931,
+  "agree": {
+   "n": 481,
+   "pp_per_trade": 0.0593
+  },
+  "disagree": {
+   "n": 450,
+   "pp_per_trade": 0.0507
+  },
+  "gap": 0.0086,
+  "auc": 0.4786636743050634,
+  "perm_p_one_sided": 0.3712
+ },
+ "verdict": "FAIL",
+ "inconclusive_reasons": []
+}

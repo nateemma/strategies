@@ -106,6 +106,9 @@ Every "reshape or re-extract from OHLCV" lever was tested and found not to add r
     −42/−32 %/yr net. Daily turnover at 30 bp costs about 78 %/yr.
   - Why it doesn't transfer: the papers' effects are long-short across hundreds of mostly illiquid coins.
     Ten liquid alts traded long-only only get the ranking within the group (walls 2 and 3).
+  - The same 1-day reversal rank as a **selector inside the gbb width book** *(`research/reversal_selector`,
+    pre-registered)*: FAIL. The gap is +0.030 pp/trade early and −0.010 late, permutation p 0.37. gbb
+    entries already follow a fall, so the rank carries no extra information there.
 
 ## Recurring structural walls (why edges can't be captured here)
 
