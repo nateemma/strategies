@@ -34,3 +34,9 @@ Per fold, wallet profit % (trades):
 
 Descriptive only (no rule is applied to the baseline): NNMT trails cs_aro by ~39 pp, in both halves;
 most of the gap is f04/f07/f08, where all three books trade most.
+
+## 2. Framework port is inert (T017-T018)
+
+`mt_fw0` (NNMT with EntryFrameworkMixin, every switch off, same model key -> same weights) is
+trade-identical to `mt` on 15/15 folds (`trades_hash`; `verdicts_models.json["identity"]`). Run with
+`FT_STOP_INVARIANTS=report` and a sink: 0 stop-invariant violations on all 15 folds.

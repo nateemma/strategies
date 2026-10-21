@@ -108,8 +108,8 @@ classification (FR-002) and the transition truncation test (SC-005).
   - `ENTRY_MODE == "model"`, `MODEL_ENTRY_FAMILY is None`, `HELD_PAIR_ADD_RESOLVED is None`, `FAMILY_EXITS == {}`;
   - `_model_tags` returns None;
   - `NNMT_MLX`'s model key is unchanged by the port (computed before and after, recorded in the test)
-- [ ] T017 [US1] Run `plan_mt_fw0` on f00 with `FT_STOP_INVARIANTS=report` and inspect the log for stop-invariant violations. Fix or record any before going on. Then run all 15 folds (no training: same key)
-- [ ] T018 [US1] `research.nnmt.judge identity`: `mt_fw0` vs `mt` must be 15/15 equal. If not, STOP, diagnose the differing fold (enter_tag, entries, exits) and fix the port. The identity result is written to `verdicts_models.json`
+- [X] T017 [US1] Run `plan_mt_fw0` on f00 with `FT_STOP_INVARIANTS=report` and inspect the log for stop-invariant violations. Fix or record any before going on. Then run all 15 folds (no training: same key)
+- [X] T018 [US1] `research.nnmt.judge identity`: `mt_fw0` vs `mt` must be 15/15 equal. If not, STOP, diagnose the differing fold (enter_tag, entries, exits) and fix the port. The identity result is written to `verdicts_models.json`
 
 **Checkpoint**: the port is proven inert. Every later arm runs on the framework base.
 
