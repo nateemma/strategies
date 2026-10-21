@@ -18,7 +18,7 @@ import pandas as pd
 
 STRAT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-DATA = STRAT.parent / "data" / "binance"
+DATA = STRAT.parent / "data" / "binanceus"  # config_wf's exchange
 PREREG = HERE / "preregistration.json"
 
 
