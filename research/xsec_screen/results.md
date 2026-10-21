@@ -11,8 +11,14 @@ No signal has its declared sign in both halves with pooled |t| >= 3.
   pooled -4.94); `mom_3d@1d` pooled t -3.92; `resmom_7d@1d` early t -3.86 (late -1.11). Opposite to the declared
   sign, so FAIL by rule -- and the most persistent effect in the panel.
 - **Illiquidity (Amihud, +):** nothing (|t| <= 1.85, wrong sign).
-- **Realized variance / upside semivariance (declared -):** weakly POSITIVE (pooled t +2.1 / +2.3 at 1d), wrong
-  sign, below the bar. **Signed jump:** flips sign between halves.
+- **Realized variance / upside semivariance (declared -):** the declared direction, weakly (sign-adjusted
+  pooled t +2.1 / +2.3 at 1d: high variance is followed by lower returns), but below the bar (pooled t < 3,
+  early t 1.2 / 1.3 < 1.5). **Signed jump (declared -):** declared direction early (t +2.7 at 1d), opposite
+  late (t -0.4); flips between halves.
+
+  *Correction 2026-10-21:* `results.json` stores ICs of `sign × signal`, so a positive IC means the declared
+  direction. The first version of this file read the variance rows as the wrong sign. The verdict (FAIL) is
+  unchanged.
 - **Baseline `mom_90d`** (the live basket's ranking): IC ~ 0 at every horizon on these 10 pairs (the basket
   trades a broad universe; this says nothing about the basket itself).
 

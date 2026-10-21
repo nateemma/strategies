@@ -6,6 +6,7 @@ Date: 2026-10-21. Scope: classifier/signal study for 15m long-only spot alts (SO
 
 - Built from ~20 searches/fetches. **[F]** = I fetched the abstract/page this session. **[S]** = search-result snippet only; details unread. Full texts were not read for most items, so effect sizes are as the abstracts report them. Nothing here was checked against this project's data.
 - Already covered in the repo and NOT re-reviewed: `research/label-free-study/01-literature-review.md` (direct policy, RL, DFL, generative, TSFM), `research/forecast/literature.md` (Guo et al. 2024, Fischer-Krauss-Deinert 2019, Hudson-Urquhart, Shen-Urquhart-Wang, Cont-Kukanov-Stoikov, Kolm et al.). Where I cite those it is to add newer evidence or to say how a candidate differs.
+- **Tested here since (2026-10-21):** items 1 and 2 FAILED as standalone rank signals on the 10 pairs (`research/xsec_screen`, 0/30; momentum is 1-3 day reversal, the reversal book loses to costs). See the dead-ends list in `us_spot_market_study.md`.
 - Structural caveat that applies to nearly every cross-sectional paper below: they report long-SHORT portfolios on hundreds or thousands of coins, with alpha concentrated in small illiquid coins. This project is long-only on ~10 liquid large caps, so the usable part is (i) ranking within the 10 and (ii) the long leg. Effect sizes will not transfer one-for-one.
 
 ## Ranked candidates (credibility x fit x novelty)

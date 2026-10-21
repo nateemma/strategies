@@ -92,6 +92,20 @@ Every "reshape or re-extract from OHLCV" lever was tested and found not to add r
   two *adjacent* windows *flipped* in a distant era. No temporal edge.
 - **Exit tuning** — the deployed exit is already well-calibrated; an apparent "tighten the stop" win
   was pair-mix overfit that flipped in a distant era.
+- **Literature cross-sectional factors** *(2026-10-21, `research/xsec_screen`, pre-registered)* — daily
+  rank IC across the 10 core pairs, 2023–26 in two halves, pass = declared sign in both halves with pooled
+  t ≥ 3. **0 of 30 passed.**
+  - Short-horizon and BTC-residual momentum (1–14 days) run backwards: they reverse at 1–3 days (1-day
+    pooled t −4.9, both halves). The papers' "large coins have momentum" result doesn't hold here.
+  - The Amihud illiquidity premium is absent.
+  - Realized variance and upside semivariance point the way the papers say (high variance, lower return)
+    but are too weak (pooled t ≈ 2).
+  - Signed jumps flip between halves.
+  - 90-day momentum has no IC within these 10 pairs.
+  - A daily-rebalanced 1-day-reversal book (exploratory, not pre-registered) makes +36/+46 %/yr gross and
+    −42/−32 %/yr net. Daily turnover at 30 bp costs about 78 %/yr.
+  - Why it doesn't transfer: the papers' effects are long-short across hundreds of mostly illiquid coins.
+    Ten liquid alts traded long-only only get the ranking within the group (walls 2 and 3).
 
 ## Recurring structural walls (why edges can't be captured here)
 
