@@ -1,0 +1,83 @@
+{
+ "title": "040 architecture amendment -- option 3 (shared LSTM + an LSTM per task head, NNMT_LS / LSTM_STACK) vs option 1 (shared LSTM + MLP head per task, NNMT_LR / LSTM_RAW), same 24 indicators, operating point, label, task weights and exits",
+ "date": "2026-10-21",
+ "label": "PROVISIONAL -- one era (2023-26). Added after mt_op's verdict and BEFORE any mt_lr / variant result was read. Not an R7 candidate: R7 (preregistration_models.json) is unchanged; a PASS here is reported and substituting mt_ls for the selected model is the user's call.",
+ "why": "user question 2026-10-21: which of (1) shared LSTM + MLP heads, (2) separate LSTM per task, no shared trunk, (3) shared LSTM + LSTM per task is best. (2)'s trading head never sees the auxiliary losses, i.e. it is the trading-head-only twin already pre-registered (preregistration_framework.json, suffix TR); only (3) needs a new arm.",
+ "arm": "mt_ls",
+ "control": "mt_lr",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "stages": {
+  "screen": "train and evaluate mt_ls on f00-f07 ONLY (the late half stays untrained and unread for mt_ls). PASS if: 8 records with trades; mt_ls model share >= min_model_share on f00-f07; pooled early gain vs mt_lr > 0; paired verdict over f00-f07 maps to pass; both risk verdicts map to pass. INCONCLUSIVE under the same conditions as judge_one (control < min_control_trades, no fold changed, an inconclusive map).",
+  "confirm": "ONLY if the screen passes: train f08-f14, then judge_one(mt_ls, mt_lr) with the models rule over f00-f14 (early and late gain > 0, paired and risk not WORSENED). A PASS (or |delta| < seed_rule_pp) needs seed 2 of mt_ls and mt_lr before it is reported as a result.",
+  "descriptive": "the relevance screen (research.nnmt.screen metrics: gap_share50, partial, sign_folds) of p_buy on the 412 early width-book trades, for mt_ls and mt_lr -- reported, no rule"
+ },
+ "min_model_share": 0.5,
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "buy": {
+  "entry_adx_threshold": -1.0,
+  "entry_atr_pct": -1.0,
+  "entry_bb_width_threshold": -1.0,
+  "entry_close_norm_threshold": 5.0,
+  "entry_enable_guards": true,
+  "entry_guard_threshold": 5.0,
+  "entry_rvol_threshold": -1.0
+ },
+ "seen_before": [
+  "mt, mt_fw0, mt_op 15-fold results and mt_op's FAIL (report.md 1-3)",
+  "mt_lr f00 only as an instrument check (504 trades, heads finite) -- its P&L not compared with anything"
+ ]
+}

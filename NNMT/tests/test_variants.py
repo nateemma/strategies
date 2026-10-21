@@ -20,6 +20,7 @@ from Framework import ModelKey as MK  # noqa: E402
 from NNMT.NNMT_LR import NNMT_LR  # noqa: E402
 from NNMT.NNMT_LR_Raw import NNMT_LR_Raw  # noqa: E402
 from NNMT.NNMT_LR_RI import NNMT_LR_RI  # noqa: E402
+from NNMT.NNMT_LS import NNMT_LS  # noqa: E402
 from NNMT.NNMT_MLX import NNMT_MLX  # noqa: E402
 from NNMT.NNMT_MLX_OP import NNMT_MLX_OP  # noqa: E402
 from NNMT.NNMT_Raw import NNMT_Raw  # noqa: E402
@@ -48,8 +49,8 @@ def test_operating_point_reuses_the_weights():
 
 
 def test_variant_keys_are_distinct():
-    keys = {c.__name__: _key(c) for c in (NNMT_MLX, NNMT_Raw, NNMT_LR, NNMT_LR_Raw, NNMT_LR_RI)}
-    assert len(set(keys.values())) == 5, keys
+    keys = {c.__name__: _key(c) for c in (NNMT_MLX, NNMT_Raw, NNMT_LR, NNMT_LR_Raw, NNMT_LR_RI, NNMT_LS)}
+    assert len(set(keys.values())) == 6, keys
 
 
 def _inputs(cls, df):

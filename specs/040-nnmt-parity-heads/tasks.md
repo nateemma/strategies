@@ -258,6 +258,8 @@ outputs, and has a distinct model key.
 - [ ] T050 [P] Update `NNMT/README.md` (status, framework, variants, heads, transition, pointer to the report), `AGENT_GUIDE.md` (a 040 row and current state) and `README.md` (the NNMT directory status line)
 - [ ] T051 Memory: write `project_040_nnmt.md`; correct `project_nnmt_task_audit.md` (the trading label is NOT task-filtered since 2618e0eb); add the MEMORY.md index line
 - [ ] T052 Commit each stage as it completes (named files only). Push only when the user asks
+- [X] T054 [US4] Architecture amendment (user request 2026-10-21): option 3 = shared LSTM + an LSTM per task (`ClassifierTypeMLX.LSTM_STACK`, `NNMT/NNMT_LS.py`, `NNMT/tests/test_lstm_stack.py`), pre-registered in `research/nnmt/preregistration_arch.json` vs `mt_lr` (option 1); option 2 (no shared LSTM) = the TR twin (T030-T031). `plan_mt_ls.json`; `judge arch`
+- [ ] T055 [US4] After the variant chain (T027): run `mt_ls` f00-f07 (screen), `signals --models MT_LS,MT_LR --folds f00..f07`, `judge arch`. Only on a screen PASS: f08-f14 and `judge arch` again (confirm), then seed 2 of `mt_ls` and `mt_lr`. Report in report.md; not an R7 candidate
 - [ ] T053 AFTER the study (user decision 2026-10-20): fix the walk-forward training window so no training bar or label reaches the test window (research/nnmt/compute.md § Fold boundary). freqtrade trims with `date <= stop`, so `train_timerange` must end at least H (= 48) bars before `test_start`. This is a harness change (`evaluation/foldplan.py` / `run_folds.py`, family-agnostic) with a test, and then a plan for re-running the comparators (`cs_aro`, `w_aro`, `wf_aro_g24`, `st_g24_rev`) so later studies compare like-for-like. Do NOT apply it during 040
 
 ---

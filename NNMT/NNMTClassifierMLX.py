@@ -890,6 +890,37 @@ class NNMTClassifierMLX_LSTM_Raw(NNMTClassifierMLX_Base):
         return _NNMTRawLSTMModel(num_features, num_filters)
 
 
+# 040 architecture amendment (research/nnmt/preregistration_arch.json): option 3 -- the shared LSTM
+# returns the whole sequence and each task runs its OWN LSTM over it, then LayerNorm -> Dropout -> ARO's
+# decode head on the task LSTM's last step. LSTM_RAW above is option 1 (shared LSTM, MLP head per task).
+class _NNMTStackedLSTMModel(nn.Module):
+    """Input (B, S, F) -> LSTM(F -> nf) -> per task: LSTM(nf -> nf) -> last step -> LN -> Dropout -> head."""
+
+    def __init__(self, num_features: int, num_filters: int):
+        super().__init__()
+        self.lstm = nn.LSTM(num_features, num_filters)
+        self.task_lstms = [nn.LSTM(num_filters, num_filters) for _ in TASK_NAMES]
+        self.task_lns = [nn.LayerNorm(num_filters) for _ in TASK_NAMES]
+        self.drop = nn.Dropout(RAW_DROPOUT)
+        self.task_heads = [_RawLSTMTaskHead(num_filters) for _ in TASK_NAMES]
+
+    def __call__(self, x: mx.array):  # type: ignore[override]
+        seq, _ = self.lstm(x)
+        out = {}
+        for task, lstm, ln, head in zip(TASK_NAMES, self.task_lstms, self.task_lns, self.task_heads):
+            t, _ = lstm(seq)
+            out[task] = head(self.drop(ln(t[:, -1, :])))
+        return out
+
+
+class NNMTClassifierMLX_LSTM_Stack(NNMTClassifierMLX_Base):
+    """Multi-task LSTM with a shared LSTM and an LSTM per task (040 option 3)."""
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _NNMTStackedLSTMModel(num_features, num_filters)
+
+
 # ---------------------------------------------------------------------------
 # ClassifierTypeMLX enum + factory
 # ---------------------------------------------------------------------------
@@ -911,6 +942,7 @@ class ClassifierTypeMLX(Enum):
     Multi_Attention = NNMTClassifierMLX_Multi_Attention
     Multi_Transformer = NNMTClassifierMLX_Multi_Transformer
     LSTM_RAW = NNMTClassifierMLX_LSTM_Raw
+    LSTM_STACK = NNMTClassifierMLX_LSTM_Stack
 
 
 def create_classifier_mlx(

@@ -294,6 +294,75 @@ def sign_vs_zero(pr: dict, arm: str) -> dict:
             "ci_mean_pp": [float(lo), float(hi)]}
 
 
+def _early_view(tag: str, folds: list[str]) -> dict:
+    from research.nnnc_switches.judge import _plan
+
+    p = _plan(tag)
+    return {**p, "folds": [f for f in p["folds"] if f["fold_id"] in folds]}
+
+
+def arch_screen(pr: dict) -> dict:
+    """preregistration_arch.json "screen": mt_ls vs mt_lr on the early folds only."""
+    from evaluation import risk
+    from evaluation.compare_pooled import compare_data
+    from evaluation.pool import pool
+    from research.nnnc_switches.judge import _recs
+
+    arm, ctl, early, rule = pr["arm"], pr["control"], pr["early"], pr["rule"]
+    ap, cp = pool(_early_view(arm, early)), pool(_early_view(ctl, early))
+    if ap["folds_missing"] or cp["folds_missing"]:
+        return {"verdict": "MISSING", "missing": ap["folds_missing"] + cp["folds_missing"]}
+    share = arm_share(arm, pr["buy"], early)
+    ra, rc = _recs(arm, early), _recs(ctl, early)
+    changed = sum(ra[f]["trades_hash"] != rc[f]["trades_hash"] for f in early)
+    gain = sum(ra[f]["wallet_profit_pct"] for f in early) - sum(rc[f]["wallet_profit_pct"] for f in early)
+    cmp, rk = compare_data(ap, cp), risk.compare(ap["trades"], cp["trades"])
+    p = rule["paired_map"][cmp["verdict"]]
+    r = [rule["risk_map"][rk["verdict_sharpe"]], rule["risk_map"][rk["verdict_maxdd"]]]
+    failed = []
+    if not all(ra[f]["n_trades"] for f in early):
+        failed.append("instrument")
+    if share["folds"] < len(early) or share["model_share"] is None or share["model_share"] < pr["min_model_share"]:
+        failed.append("model share")
+    if cp["n_trades_pooled"] < pr["min_control_trades"] or changed == 0 \
+            or p == "inconclusive" or "inconclusive" in r:
+        verdict = "INCONCLUSIVE"
+    else:
+        if not gain > 0:
+            failed.append("early gain")
+        if p == "fail":
+            failed.append("paired")
+        if "fail" in r:
+            failed.append("risk")
+        verdict = "FAIL" if failed else "PASS"
+    return {"arm": arm, "control": ctl, "verdict": verdict, "failed": failed, "folds": early,
+            "arm_pp": round(sum(ra[f]["wallet_profit_pct"] for f in early), 3),
+            "ctl_pp": round(sum(rc[f]["wallet_profit_pct"] for f in early), 3), "early_gain_pp": round(gain, 3),
+            "arm_trades": ap["n_trades_pooled"], "ctl_trades": cp["n_trades_pooled"], "folds_changed": changed,
+            "model_share": share["model_share"],
+            "paired": {"verdict": cmp["verdict"], "delta_pp": cmp.get("delta_pp"), "ci_pp_yr": cmp.get("ci_pp_yr"),
+                       "p": (cmp.get("bootstrap") or {}).get("p")},
+            "risk": {"sharpe": rk["verdict_sharpe"], "maxdd": rk["verdict_maxdd"]}}
+
+
+def arch() -> int:
+    """preregistration_arch.json: the screen on f00-f07; the 15-fold confirmation once mt_ls has every fold."""
+    from research.nnnc_switches.judge import judge_one
+
+    path, pr = _prereg("arch")
+    bad = _refused(path, {**pr, "arms": {pr["arm"]: {}}})
+    if bad:
+        print("REFUSED:\n  " + "\n  ".join(bad))
+        return 2
+    out = {"label": pr["label"], "screen": arch_screen(pr)}
+    if out["screen"]["verdict"] == "PASS" and not instrument(pr, pr["arm"])["folds_missing"]:
+        out["confirm"] = judge_one(pr, pr["arm"], pr["control"])
+    _write("verdicts_arch.json", out)
+    print(json.dumps({k: v.get("verdict") for k, v in out.items() if isinstance(v, dict)}),
+          json.dumps({k: out["screen"].get(k) for k in ("arm_pp", "ctl_pp", "early_gain_pp", "model_share", "failed")}))
+    return 0
+
+
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
     if stage == "identity":
@@ -302,6 +371,8 @@ def main(argv=None) -> int:
         return models()
     if stage == "framework":
         return framework()
+    if stage == "arch":
+        return arch()
     if stage in ("sizer", "heads", "transition"):
         return arms(stage)
     raise SystemExit(f"unknown stage {stage!r}")

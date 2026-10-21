@@ -36,6 +36,8 @@ MODELS = {
     "mt_lr": ("NNMT_LR", "plain multi-task LSTM (LSTM_RAW) on the 24 indicators, at the operating point"),
     "mt_lr_raw": ("NNMT_LR_Raw", "LSTM_RAW on raw8, at the operating point"),
     "mt_lr_ri": ("NNMT_LR_RI", "LSTM_RAW on the 24 indicators + raw8, at the operating point"),
+    # architecture amendment (preregistration_arch.json); not an R7 candidate
+    "mt_ls": ("NNMT_LS", "LSTM_STACK (shared LSTM + an LSTM per task) on the 24 indicators, at the operating point"),
 }
 
 HEADER = '''# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
