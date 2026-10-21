@@ -1,0 +1,37 @@
+{
+ "title": "Donchian multi-lookback ensemble, long-only, inverse-vol weights, with a no-trade band (lit review 2026-10-21 candidate 3)",
+ "date": "2026-10-21",
+ "source": "Zarattini, Pagani, Barbon (2025) 'Catching Crypto Trends' SFI RP 25-80 (unreplicated, numbers unverified); arXiv 2602.11708 (vol-scaled crypto trend)",
+ "label": "PROVISIONAL -- one era (2023-26). Daily vectorised simulation, not a freqtrade backtest; a PASS licenses a separately pre-registered freqtrade strategy, nothing is adopted.",
+ "universe": ["ZEC/USDT","XRP/USDT","SOL/USDT","LINK/USDT","NEAR/USDT","AAVE/USDT","AVAX/USDT","LTC/USDT","BCH/USDT","DOT/USDT"],
+ "data": "user_data/data/binanceus 15m, aggregated to UTC days (open = first bar open, high max, low min, close = last close)",
+ "halves": {"early": ["2023-01-01", "2024-12-21"], "late": ["2024-12-21", "2026-09-07"]},
+ "signal": {
+  "lookbacks_days": [5, 10, 20, 40, 80, 160],
+  "per_lookback_state": "goes 1 when close_t >= max(high over the L days before t); goes 0 when close_t <= min(low over the ceil(L/2) days before t); otherwise unchanged; starts 0",
+  "ensemble": "s_i,t = mean of the six states, in [0, 1]",
+  "eligible": "pair has at least 160 prior days of data and a 30-day vol"
+ },
+ "weights": {
+  "vol": "sigma_i = std of the last 30 daily log close returns (min 20)",
+  "target": "w_i = s_i * (1/sigma_i) / sum over ELIGIBLE j of (1/sigma_j); sum <= 1, remainder in cash at 0 %",
+  "timing": "weights from day t's bars fill at day t+1's open (first 15m bar) and earn open(t+1) -> open(t+2)"
+ },
+ "arms": {
+  "band (PRIMARY)": "held weights drift with returns; pair i is traded to its target only if |target - held| > 0.02",
+  "noband (descriptive)": "every pair traded to target every day"
+ },
+ "costs": "15 bp per unit of |weight traded| (30 bp round trip), every arm and comparator",
+ "comparator": {
+  "EW (primary)": "equal weight over the same eligible pairs, rebalanced on the first day of each month, same fill timing and costs",
+  "live basket (descriptive only)": "freqtrade backtesting of Basket/MomentumRegimeBasket15m with config/config_mom_15m.json (75 pairs, current defaults) on each half; total return, Sharpe, max DD from its report. Different universe -- context, not a pass condition."
+ },
+ "start": "every book starts in cash on the early start; both halves are scored on one continuous run (positions carry across the boundary)",
+ "metrics": "per half: net and gross CAGR, Sharpe of daily net returns (x sqrt 365), max drawdown, turnover per year, cost per year, mean exposure",
+ "rule": {
+  "primary": "PASS iff, for the band arm, in BOTH halves: net Sharpe > 0 AND net Sharpe > EW net Sharpe; AND pooled over both halves a paired stationary block bootstrap (mean block 20 days, 5000 draws, seed 0) gives one-sided p <= 0.05 for net Sharpe(band) - net Sharpe(EW) > 0",
+  "otherwise": "FAIL",
+  "inconclusive": "fewer than 6 eligible pairs on more than 10 % of days in either half"
+ },
+ "run": "queued after the 040 mt_ls queue (with the live-basket freqtrade backtests); CPU only"
+}
