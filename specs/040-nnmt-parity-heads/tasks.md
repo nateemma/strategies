@@ -119,8 +119,8 @@ classification (FR-002) and the transition truncation test (SC-005).
 
 - [X] T019 [US2] Write `NNMT/_nnmt_operating_point.py`: an `OperatingPointMixin` that merges `NNNC_A_Raw_Open.json`'s buy params (guards open, `prediction_threshold` 0.80) into the class's `buy_params` (039 pattern, `__init_subclass__`). Exits stay NNMT's
 - [X] T020 [P] [US2] Test `NNMT/tests/test_operating_point.py`: the merged buy params equal ARO's open values, every parent key survives, and the model key equals `NNMT_MLX`'s
-- [ ] T021 [US2] `NNMT/NNMT_MLX_OP.py` and `plan_mt_op.json`. Run 15 folds (no training). Run `signals --models mt,mt_op` and record each arm's model-decided share
-- [ ] T022 [US2] `judge models` (partial): `mt_op` vs `mt_fw0`, with the shares. If `mt_op`'s share is < 0.5, record it. Model and head arms at that operating point are then INCONCLUSIVE by rule, and the report says the guards decide (no further tuning, Principle VI)
+- [X] T021 [US2] `NNMT/NNMT_MLX_OP.py` and `plan_mt_op.json`. Run 15 folds (no training). Run `signals --models mt,mt_op` and record each arm's model-decided share
+- [X] T022 [US2] `judge models` (partial): `mt_op` vs `mt_fw0`, with the shares. If `mt_op`'s share is < 0.5, record it. Model and head arms at that operating point are then INCONCLUSIVE by rule, and the report says the guards decide (no further tuning, Principle VI)
 
 ---
 

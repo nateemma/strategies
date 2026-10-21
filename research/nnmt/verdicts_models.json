@@ -4,5 +4,310 @@
   "folds_differing": [],
   "folds_missing": [],
   "folds": 15
- }
+ },
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test (constitution gate 2). Nothing is adopted by this stage; it proves the port inert and selects the model (R7) the later stages use.",
+ "baseline": {
+  "instrument": {
+   "pass": true,
+   "folds_missing": [],
+   "trades_by_half": {
+    "early": 445,
+    "late": 350
+   },
+   "trades": 795
+  },
+  "beside": {
+   "wf_aro_g24": {
+    "verdict": "FAIL",
+    "arm_pp": 20.995,
+    "ctl_pp": 49.965,
+    "early_gain_pp": -22.852999999999994,
+    "late_gain_pp": -6.116999999999999,
+    "arm_trades": 795,
+    "ctl_trades": 1176,
+    "folds_changed": 15,
+    "paired": "WORSENED"
+   },
+   "cs_aro": {
+    "verdict": "FAIL",
+    "arm_pp": 20.995,
+    "ctl_pp": 59.949,
+    "early_gain_pp": -28.272,
+    "late_gain_pp": -10.682,
+    "arm_trades": 795,
+    "ctl_trades": 930,
+    "folds_changed": 15,
+    "paired": "WORSENED"
+   },
+   "w_aro": {
+    "verdict": "FAIL",
+    "arm_pp": 20.995,
+    "ctl_pp": 51.443,
+    "early_gain_pp": -23.421999999999997,
+    "late_gain_pp": -7.026,
+    "arm_trades": 795,
+    "ctl_trades": 930,
+    "folds_changed": 15,
+    "paired": "WORSENED"
+   },
+   "st_g24_rev": {
+    "verdict": "FAIL",
+    "arm_pp": 20.995,
+    "ctl_pp": 71.503,
+    "early_gain_pp": -51.135999999999996,
+    "late_gain_pp": 0.628000000000001,
+    "arm_trades": 795,
+    "ctl_trades": 2518,
+    "folds_changed": 15,
+    "paired": "WORSENED"
+   }
+  }
+ },
+ "arms": {
+  "mt_op": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 5673,
+     "late": 4975
+    },
+    "trades": 10648
+   },
+   "alone": {
+    "arm": "mt_op",
+    "control": "mt_fw0",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain",
+     "risk"
+    ],
+    "arm_trades": 10648,
+    "ctl_trades": 795,
+    "arm_pp": 8.55,
+    "ctl_pp": 20.995,
+    "early_gain_pp": 14.952,
+    "late_gain_pp": -27.397,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": -12.448590708856349,
+     "ci_pp_yr": [
+      -12.558022851782157,
+      5.712464877985432
+     ],
+     "p": 0.4689
+    },
+    "risk": {
+     "days": 1345,
+     "arm": {
+      "sharpe": 0.19230745292216359,
+      "maxdd": 32.135733622828745,
+      "daily_sd": 0.6315302339683947
+     },
+     "ctl": {
+      "sharpe": 1.2654619254636612,
+      "maxdd": 4.5287373095657735,
+      "daily_sd": 0.23566275148648624
+     },
+     "sharpe_delta": -1.0731544725414977,
+     "sharpe_ci": [
+      -2.2114320360802635,
+      0.042762987194494964
+     ],
+     "sharpe_p": 0.059,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 27.60699631326297,
+     "maxdd_ci": [
+      6.097990546641256,
+      43.64065831386298
+     ],
+     "maxdd_p": 0.0,
+     "verdict_maxdd": "WORSENED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.2292,
+      "risk": [
+       "UNCHANGED",
+       "WORSENED"
+      ]
+     },
+     "late": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.0195,
+      "risk": [
+       "WORSENED",
+       "WORSENED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "model_exit ": 1449,
+     "roi": 519,
+     "take_profit": 2879,
+     "trailing_stop_loss": 4717,
+     "unclog_12h": 979,
+     "stop_loss": 26,
+     "unclog_1d": 50,
+     "force_exit": 22,
+     "metric_overbought": 7
+    },
+    "exits_ctl": {
+     "model_exit ": 93,
+     "roi": 68,
+     "take_profit": 312,
+     "trailing_stop_loss": 285,
+     "unclog_12h": 26,
+     "stop_loss": 10,
+     "metric_overbought": 1
+    }
+   },
+   "decision": "FAIL"
+  },
+  "mt_raw": {
+   "instrument": {
+    "pass": false,
+    "folds_missing": [
+     "f00",
+     "f01",
+     "f02",
+     "f03",
+     "f04",
+     "f05",
+     "f06",
+     "f07",
+     "f08",
+     "f09",
+     "f10",
+     "f11",
+     "f12",
+     "f13",
+     "f14"
+    ],
+    "trades_by_half": {
+     "early": 0,
+     "late": 0
+    },
+    "trades": 0
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  },
+  "mt_lr": {
+   "instrument": {
+    "pass": false,
+    "folds_missing": [
+     "f00",
+     "f01",
+     "f02",
+     "f03",
+     "f04",
+     "f05",
+     "f06",
+     "f07",
+     "f08",
+     "f09",
+     "f10",
+     "f11",
+     "f12",
+     "f13",
+     "f14"
+    ],
+    "trades_by_half": {
+     "early": 0,
+     "late": 0
+    },
+    "trades": 0
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  },
+  "mt_lr_raw": {
+   "instrument": {
+    "pass": false,
+    "folds_missing": [
+     "f00",
+     "f01",
+     "f02",
+     "f03",
+     "f04",
+     "f05",
+     "f06",
+     "f07",
+     "f08",
+     "f09",
+     "f10",
+     "f11",
+     "f12",
+     "f13",
+     "f14"
+    ],
+    "trades_by_half": {
+     "early": 0,
+     "late": 0
+    },
+    "trades": 0
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  },
+  "mt_lr_ri": {
+   "instrument": {
+    "pass": false,
+    "folds_missing": [
+     "f00",
+     "f01",
+     "f02",
+     "f03",
+     "f04",
+     "f05",
+     "f06",
+     "f07",
+     "f08",
+     "f09",
+     "f10",
+     "f11",
+     "f12",
+     "f13",
+     "f14"
+    ],
+    "trades_by_half": {
+     "early": 0,
+     "late": 0
+    },
+    "trades": 0
+   },
+   "decision": "INCONCLUSIVE (instrument)"
+  }
+ },
+ "model_share": {
+  "mt": {
+   "model_share": 0.0012111425111021035,
+   "folds": 15
+  },
+  "mt_fw0": {
+   "model_share": null,
+   "folds": 0
+  },
+  "mt_op": {
+   "model_share": 0.8408755435092933,
+   "folds": 15
+  },
+  "mt_raw": {
+   "model_share": null,
+   "folds": 0
+  },
+  "mt_lr": {
+   "model_share": null,
+   "folds": 0
+  },
+  "mt_lr_raw": {
+   "model_share": null,
+   "folds": 0
+  },
+  "mt_lr_ri": {
+   "model_share": null,
+   "folds": 0
+  }
+ },
+ "selected": "mt_op"
 }

@@ -40,3 +40,17 @@ most of the gap is f04/f07/f08, where all three books trade most.
 `mt_fw0` (NNMT with EntryFrameworkMixin, every switch off, same model key -> same weights) is
 trade-identical to `mt` on 15/15 folds (`trades_hash`; `verdicts_models.json["identity"]`). Run with
 `FT_STOP_INVARIANTS=report` and a sink: 0 stop-invariant violations on all 15 folds.
+
+## 3. Operating point (T021-T022)
+
+Model-decided share (1 - entries / guard-passing bars): `mt` **0.001** -- today's NNMT entries are
+decided by the guard chain, not the model -- vs `mt_op` (guards open, threshold 0.80) **0.841** (>= 0.5:
+model and head arms at the operating point are readable).
+
+| arm | early | late | total | trades | verdict vs mt_fw0 |
+|---|---|---|---|---|---|
+| mt_fw0 | +12.43 | +8.57 | +21.00 | 795 | -- |
+| mt_op | +27.38 | -18.83 | +8.55 | 10,648 | **FAIL** (late gain -27.40, INCONCLUSIVE_ARM_LOSES p 0.02; maxDD 4.5 -> 32.1 % WORSENED) |
+
+Beside the comparators, `mt` FAILs vs cs_aro, w_aro, wf_aro_g24 and st_g24_rev (all WORSENED).
+The R7 selection is re-run after the variants (T028); `mt_op` is its reference.
