@@ -245,6 +245,13 @@ outputs, and has a distinct model key.
 - [ ] T045 [US6] Only if a stand-in cell passes: `NNMT/_transition.py` retargets the regime head with the R11 label for that cell (3 classes, task weight 1) as `<M>_trh`. Run 15 trainings and `signals`, and screen it with the same rules. If it matches the stand-in (AUC within 0.01 both halves), re-run the passing arms on its tables (tail tables from its `TRAIN_DATA_SPLIT` holdout), with seed 2 for any PASS. Otherwise record the gap
 - [ ] T046 [US6] Write `verdicts_transition.json` with the verdict per cell and arm, including "not predictable at this horizon" for failing cells, with their numbers
 
+### Regime-state amendment (user request 2026-10-22; `research/nnmt/preregistration_regime_state.json`)
+
+- [X] T056 [US6] Pre-register the future-state target Y = S_H(t+H) (3 classes, 6 cells), its Markov / trailing-z baselines, the stand-in, the two NN models (`<M>_rg` regime-only, `<M>_rgm` multi-task), the shared-vs-separate comparison and the arms (`rs_gate`, `rs_scale`, `{M}_rgm`). COMMITTED before any label is built
+- [ ] T057 [US6] `transition.py state-screen --fold fNN` (f00–f14, after T042's causality PASS): multiclass HGB stand-in, both baselines fit on the fold's fit rows, `screens_regime_state.json`; then `state-judge` applies the screen rule and selection. Tests first: the Markov baseline uses only fit rows; Y is NaN within H of the end; the target never enters the inputs
+- [ ] T058 [US6] `NNMT/_regime_state.py` mixin (regime head label = Y for the selected or fallback cell, masked beyond the training range) and the classes `<M>_rg` / `<M>_rgm` with merged task weights; a test that both get new model keys and that no regime label reads a bar after `train_timerange`. 30 trainings, sequential, after the seed-2 chain and T035; `signals`; screen both on the cell; write shared-vs-separate
+- [ ] T059 [US6] Arms per the pre-registration: `rs_gate` / `rs_scale` only for passing classes (tables: stand-in or a qualifying NN); `{M}_rgm` vs `{M}` whenever `<M>_rgm` is trained. `judge` with `judge_one`; seed 2 for any PASS. `verdicts_regime_state.json`, report §7
+
 ---
 
 ## Phase 11: Polish & cross-cutting

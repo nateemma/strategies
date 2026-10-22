@@ -1,0 +1,103 @@
+{
+ "title": "040 regime-state amendment (user request 2026-10-22): predict the FUTURE bear/sideways/bull state S_H(t+H) with a stand-in, a regime-only NNMT and the multi-task NNMT; trading arms only for passing cells",
+ "date": "2026-10-22",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test. Committed before any future-state label is built or scored.",
+ "why": "NNMT's regime label is a centred 200-bar mean (~95 future bars inside the label) and its head has task weight 0 (never trained): heads_descriptive_mt_lr_ri.json, regime AUC 0.64/0.66 < trailing baseline 0.79/0.78. A gate or sizer needs the state AHEAD; the current causal state needs no model.",
+ "amends": "preregistration_transition.json (same folds, halves, rows, state definition, causality check, stand-in inputs, fit/tail windows, paired/risk maps). Nothing in the transition study changes.",
+ "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "definition": {
+  "state": "S_H(t) exactly as preregistration_transition.json definition (z_H with sigma_window 2880 / min 960, deadband 0.5): BEAR -1, SIDEWAYS 0, BULL +1",
+  "target": "Y = S_H(t+H), 3 classes; NaN where S_H(t) or S_H(t+H) is unknown",
+  "classes_scored": ["BULL", "BEAR"]
+ },
+ "grid": {
+  "H": [96, 288, 672],
+  "level": ["pair", "btc"],
+  "note": "6 cells; 96/288/672 bars = 1/3/7 days; btc = BTC's state joined by date, predicted on every pair's rows"
+ },
+ "rows": "as preregistration_transition.json: tradeable bars (meta:data_ok, volume > 0) of the 10 screen pairs",
+ "causality": "transition causality must PASS (T042) before any screen here runs; the target's future end is the label by design and never an input",
+ "stand_in": {
+  "model": "sklearn HistGradientBoostingClassifier, ONE multiclass (3-class) model per cell and fold; hyperparameters, inputs (24 indicators + raw8 + BTC raw8 + z_L state inputs), fit window (purge H), hourly subsample, tail_days 90 and random_state 0 exactly as preregistration_transition.json stand_in",
+  "scores": "P(BULL), P(BEAR) per test bar"
+ },
+ "baselines": {
+  "markov": "P(Y = k | S_H(t) = j): empirical 3x3 transition matrix estimated on the same fit rows as the stand-in (per fold, cell); score = the row of the current state",
+  "trailing_z": "z_H(t) for BULL, -z_H(t) for BEAR (continuous persistence)",
+  "baseline_auc": "max(0.5, AUC(markov), AUC(trailing_z)) per class and half"
+ },
+ "screen_rule": {
+  "auc": "one-vs-rest AUC of P(class) against (Y == class), tradeable test bars pooled per half",
+  "min_auc_margin": 0.02,
+  "margin": "AUC - baseline_auc, per class (BULL, BEAR) and half",
+  "min_events_per_half": 200,
+  "events": "run starts of (Y == class) per pair",
+  "proxy_top_share": 0.1,
+  "round_trip_bp": 30,
+  "proxy": "top decile of each fold's scored test bars by P(class), pooled per half: BULL -> mean forward H-bar log return of the pair in bp minus 30 > 0; BEAR -> top-decile mean minus all-bar mean <= -30",
+  "pass": "per (cell, class): margin >= 0.02 in BOTH halves AND events >= 200 in both halves AND the proxy passes in both halves",
+  "selection": "per class, the passing cell with the largest late-half margin goes forward"
+ },
+ "nn": {
+  "M": "the R7 selection in verdicts_models.json at build time (mt_lr_ri as of this commit; follows the seed-2 result if it changes)",
+  "cell": "the selected cell of either class (BEAR first if both classes select different cells, since the gate uses BEAR); if NO cell passes, the declared fallback cell H = 288, level pair (037: predictable horizon) -- then the NN results are descriptive only and no arm runs",
+  "models": {
+   "<M>_rg": "regime-only: the regime head retargeted to Y (3 classes), task weights trading 0, regime 1, risk 0, momentum 0, flow 0, profit 0",
+   "<M>_rgm": "multi-task: <M>'s task weights (trading 4, risk 1, momentum 1, flow 1, profit 0) with the retargeted regime head at weight 1"
+  },
+  "label_rule": "the regime label of a training row is Y; rows whose t+H lies after the fold's train_timerange end, or where Y is NaN, carry no regime loss (masked or dropped) -- never filled from bars outside the training range",
+  "model_key": "the retargeted label and the task weights are weight-shaping: both NN models must get new model keys (no reuse of <M>'s weights); a test asserts it",
+  "training": "15 folds each, seed 1, one trainer at a time, sequential after the seed-2 chain and T035",
+  "screen": "each NN's P(BULL), P(BEAR) are screened with screen_rule on the selected cell (same baselines, same proxy)",
+  "shared_vs_separate": "descriptive: per class and half, AUC(<M>_rgm) - AUC(<M>_rg); 'sharing helps' if >= +0.01 in both halves, 'sharing hurts' if <= -0.01 in both, else 'no difference'",
+  "replaces_stand_in": "an NN's tables replace the stand-in's in the arms if its AUC is >= the stand-in's minus 0.01 in both halves (if both NNs qualify: the higher late-half AUC); tail percentiles from its TRAIN_DATA_SPLIT holdout"
+ },
+ "arms": {
+  "rs_gate": {
+   "comparator": "cs_aro",
+   "needs": "a passing BEAR cell",
+   "use": "cs_aro's book skips an entry while P(BEAR, selected cell) >= the 80th percentile of that fold's tail predictions"
+  },
+  "rs_scale": {
+   "comparator": "cs_aro",
+   "needs": "a passing BULL or BEAR cell (a class with no passing cell leaves its side unscaled)",
+   "use": "cs_aro's stake x1.333 when P(BULL) >= tail p80, x0.667 when P(BEAR) >= tail p80 (both: unchanged)"
+  },
+  "{M}_rgm": {
+   "comparator": "{M}",
+   "needs": "nothing (runs whenever <M>_rgm is trained, at the operating point): does training a real regime head change the trading head's P&L?",
+   "use": "the <M>_rgm model as entry source, operating point exactly as {M}"
+  }
+ },
+ "rule": {
+  "decision": "research.nnnc_switches.judge.judge_one with these maps (as the transition study): PASS = early gain > 0 AND late gain > 0 AND paired not WORSENED AND Sharpe and maxDD not WORSENED; INCONCLUSIVE if control trades < min_control_trades, no fold changed, or a map gives 'inconclusive'; a PASS with total gain < seed_rule_pp needs a seed-2 rerun before any claim",
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seeds": "any arm PASS is re-run on seed 2 (stand-in: random_state 1; NN: MODEL_SEED 2)",
+ "instrument_files": ["screens_regime_state.json"],
+ "outputs": ["screens_regime_state.json", "verdicts_regime_state.json", "report.md section 7"],
+ "seen_before": [
+  "heads_descriptive_mt_lr_ri.json (abbc0516): NNMT's centred regime head, untrained, AUC 0.64/0.66 vs trailing baseline 0.79/0.78 -- a different target; no future-state label has been built or scored",
+  "037: regime-style targets beat persistence only at 48/288 bars (12 h / 3 days); price-level and calendar columns made spurious winners (not inputs here)",
+  "the transition study (preregistration_transition.json) is committed but not yet run: no transition label or screen result exists"
+ ]
+}
