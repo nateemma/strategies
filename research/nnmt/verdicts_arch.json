@@ -1,0 +1,41 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26). Added after mt_op's verdict and BEFORE any mt_lr / variant result was read. Not an R7 candidate: R7 (preregistration_models.json) is unchanged; a PASS here is reported and substituting mt_ls for the selected model is the user's call.",
+ "screen": {
+  "arm": "mt_ls",
+  "control": "mt_lr",
+  "verdict": "FAIL",
+  "failed": [
+   "early gain"
+  ],
+  "folds": [
+   "f00",
+   "f01",
+   "f02",
+   "f03",
+   "f04",
+   "f05",
+   "f06",
+   "f07"
+  ],
+  "arm_pp": 26.024,
+  "ctl_pp": 27.218,
+  "early_gain_pp": -1.194,
+  "arm_trades": 5696,
+  "ctl_trades": 5861,
+  "folds_changed": 8,
+  "model_share": 0.8547674874280548,
+  "paired": {
+   "verdict": "UNCHANGED",
+   "delta_pp": -1.2358933418595612,
+   "ci_pp_yr": [
+    -6.880290835706424,
+    5.540027278191342
+   ],
+   "p": 0.8355
+  },
+  "risk": {
+   "sharpe": "UNCHANGED",
+   "maxdd": "UNCHANGED"
+  }
+ }
+}

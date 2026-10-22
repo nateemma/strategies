@@ -54,3 +54,17 @@ model and head arms at the operating point are readable).
 
 Beside the comparators, `mt` FAILs vs cs_aro, w_aro, wf_aro_g24 and st_g24_rev (all WORSENED).
 The R7 selection is re-run after the variants (T028); `mt_op` is its reference.
+
+## §4 Architecture amendment: shared LSTM + per-task LSTM (`mt_ls`), screen
+
+Pre-registration `preregistration_arch.json` (b5b640a6); verdict `verdicts_arch.json`. Early half f00–f07, at the
+operating point, vs `mt_lr` (shared LSTM + MLP per task).
+
+| arm | early pp | trades | model share |
+|---|---|---|---|
+| `mt_ls` | 26.02 | 5,696 | 0.85 |
+| `mt_lr` (control) | 27.22 | 5,861 | — |
+
+**Screen: FAIL** (early gain −1.19 pp; paired UNCHANGED, Δ −1.24, CI [−6.9, +5.5] pp/yr, p 0.84; risk UNCHANGED).
+By rule there is no confirmation stage and no seed 2. Per-task LSTMs neither help nor clearly hurt; together with
+`mt_lr` ≈ `mt_op`, the network design inside the multi-task heads moves the early half by about a point.
