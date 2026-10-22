@@ -109,6 +109,12 @@ Every "reshape or re-extract from OHLCV" lever was tested and found not to add r
   - The same 1-day reversal rank as a **selector inside the gbb width book** *(`research/reversal_selector`,
     pre-registered)*: FAIL. The gap is +0.030 pp/trade early and −0.010 late, permutation p 0.37. gbb
     entries already follow a fall, so the rank carries no extra information there.
+- **Donchian trend ensemble** *(2026-10-22, `research/donchian_screen`, pre-registered; literature review
+  candidate 3)* — six lookbacks (5–160 days), long-only, inverse-vol weights, 2-point no-trade band, on the
+  10 core pairs: **FAIL**. Sharpe 1.25 / −0.03 vs 1.66 / 0.33 for monthly equal weight (early / late);
+  bootstrap p 0.87. It halves the drawdown (−27 % vs −42 / −56 %) but gives up more return than it saves:
+  a de-risked copy of the market (correlation 0.84, ~35 % exposure). The band cuts turnover as claimed
+  (9 vs 15 per year) without rescuing the signal.
 
 ## Recurring structural walls (why edges can't be captured here)
 

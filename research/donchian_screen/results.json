@@ -1,0 +1,73 @@
+{
+ "prereg": "3e3a7777",
+ "halves": {
+  "early": {
+   "thin_day_share": 0.0,
+   "band": {
+    "days": 720,
+    "net_cagr_pct": 46.56,
+    "gross_cagr_pct": 48.63,
+    "sharpe": 1.254,
+    "max_dd_pct": -27.08,
+    "turnover_per_yr": 9.34,
+    "mean_exposure": 0.404
+   },
+   "noband": {
+    "days": 720,
+    "net_cagr_pct": 48.25,
+    "gross_cagr_pct": 51.58,
+    "sharpe": 1.284,
+    "max_dd_pct": -28.3,
+    "turnover_per_yr": 14.81,
+    "mean_exposure": 0.401
+   },
+   "EW": {
+    "days": 720,
+    "net_cagr_pct": 143.07,
+    "gross_cagr_pct": 143.78,
+    "sharpe": 1.657,
+    "max_dd_pct": -41.72,
+    "turnover_per_yr": 1.96,
+    "mean_exposure": 1.0
+   }
+  },
+  "late": {
+   "thin_day_share": 0.0,
+   "band": {
+    "days": 625,
+    "net_cagr_pct": -3.83,
+    "gross_cagr_pct": -2.66,
+    "sharpe": -0.029,
+    "max_dd_pct": -27.93,
+    "turnover_per_yr": 8.1,
+    "mean_exposure": 0.31
+   },
+   "noband": {
+    "days": 625,
+    "net_cagr_pct": -8.78,
+    "gross_cagr_pct": -6.89,
+    "sharpe": -0.242,
+    "max_dd_pct": -34.85,
+    "turnover_per_yr": 13.66,
+    "mean_exposure": 0.299
+   },
+   "EW": {
+    "days": 625,
+    "net_cagr_pct": -1.93,
+    "gross_cagr_pct": -1.68,
+    "sharpe": 0.329,
+    "max_dd_pct": -55.97,
+    "turnover_per_yr": 1.69,
+    "mean_exposure": 1.0
+   }
+  }
+ },
+ "inconclusive_reasons": [],
+ "pooled": {
+  "sharpe_band": 0.754,
+  "sharpe_EW": 1.02,
+  "bootstrap_p_one_sided": 0.865,
+  "corr_band_EW": 0.841
+ },
+ "verdict": "FAIL"
+}
