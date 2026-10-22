@@ -51,3 +51,11 @@ def test_margin_behaves():
     oracle = y + rng.normal(0, 0.2, 5000)          # a head that knows the label
     assert HS._auc(oracle, y) - HS._auc(trailing, y) > 0.02
     assert abs(HS._auc(trailing, y) - HS._auc(trailing, y)) < 1e-12
+
+
+def test_precision_recall_counts():
+    score = np.array([0.9, 0.85, 0.7, 0.2, np.nan])
+    y = np.array([1.0, 0.0, 1.0, 0.0, 1.0])
+    r = HS.precision_recall(score, y, [0.8, 0.5])
+    assert r[0] == {"threshold": 0.8, "flagged_share": 0.5, "precision": 0.5, "recall": 0.5}
+    assert r[1] == {"threshold": 0.5, "flagged_share": 0.75, "precision": round(2 / 3, 4), "recall": 1.0}

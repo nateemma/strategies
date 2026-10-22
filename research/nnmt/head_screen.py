@@ -9,7 +9,11 @@ indicators, so the screen scores exactly what the head was trained to predict.
 
   margin = AUC(head) - AUC(baseline), per half; skill passes if margin >= min_auc_margin in both halves.
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.head_screen
+`--model TAG` (e.g. mt_lr_ri) runs the same scoring on another model's tables as a DESCRIPTIVE look: it writes
+heads_descriptive_<tag>.json, never screens_heads.json, and adds the trading head's AUC and precision/recall
+against `label:buy` (037 cache) by threshold, on all tradeable bars and on gbb candidate bars.
+
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.head_screen [--model mt_lr_ri]
 """
 from __future__ import annotations
 
@@ -26,6 +30,8 @@ sys.path[:0] = [str(STRAT), str(STRAT / "evaluation"), str(STRAT / "NNMT")]
 HERE = Path(__file__).resolve().parent
 SIG = STRAT / "research" / "nnnc_framework" / "signals"
 NEED = ["close", "high", "low", "volume", "base:atr_norm", "base:di_diff_scaled", "base:aroonosc_scaled"]
+TRADING = ["label:buy", "base:gbb_candidate"]
+THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 
 
 def _strategy():
@@ -74,6 +80,35 @@ def _auc(score, y) -> float | None:
     return float(roc_auc_score(yy, score[ok]))
 
 
+def precision_recall(score, y, thresholds) -> list[dict]:
+    """Per threshold: share of bars flagged, precision (flagged bars that are positive) and recall."""
+    score, y = np.asarray(score, float), np.asarray(y, float)
+    ok = np.isfinite(score) & np.isfinite(y)
+    score, pos = score[ok], y[ok] > 0.5
+    out = []
+    for t in thresholds:
+        f = score >= t
+        out.append({"threshold": t, "flagged_share": round(float(f.mean()), 4),
+                    "precision": round(float(pos[f].mean()), 4) if f.any() else None,
+                    "recall": round(float(f[pos].mean()), 4) if pos.any() else None})
+    return out
+
+
+def trading_quality(t: pd.DataFrame, halves: dict) -> dict:
+    """Trading head vs the gbb buy label, per half and population (descriptive)."""
+    out = {}
+    for half, folds in halves.items():
+        h = t[t["fold"].isin(folds) & t["label:buy"].notna()]
+        for pop, g in (("all", h), ("candidate", h[h["base:gbb_candidate"] > 0.5])):
+            y = g["label:buy"]
+            entry = g["enter_long"].fillna(0).astype(float)
+            out[f"{half}/{pop}"] = {
+                "bars": len(g), "base_rate": round(float(y.mean()), 4), "auc_p_buy": _auc(g["p_buy"], y),
+                "by_threshold": precision_recall(g["p_buy"], y, THRESHOLDS),
+                "entries": precision_recall(entry, y, [1.0])[0] | {"threshold": "enter_long"}}
+    return out
+
+
 def main(argv=None) -> int:
     from research.indicator_screen import harvest as H
     from research.nnmt import judge as J
@@ -83,21 +118,27 @@ def main(argv=None) -> int:
     if bad:
         print("REFUSED:\n  " + "\n  ".join(bad))
         return 2
-    sel = json.loads((HERE / "verdicts_models.json").read_text())["selected"]
-    model = f"{sel}_ah".upper()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", help="descriptive run on this model tag's tables (e.g. mt_lr_ri)")
+    args = ap.parse_args(argv)
+    tag = args.model or json.loads((HERE / "verdicts_models.json").read_text())["selected"] + "_ah"
+    model = tag.upper()
     s = _strategy()
-    folds = json.loads((STRAT / "evaluation" / "folds" / f"plan_{sel}_ah.json").read_text())["folds"]
+    folds = json.loads((STRAT / "evaluation" / "folds" / f"plan_{tag}.json").read_text())["folds"]
     tables = pd.concat([pd.read_parquet(SIG / f"{model}_{f['fold_id']}.parquet").assign(fold=f["fold_id"])
                         for f in folds], ignore_index=True)
     tables["date"] = pd.to_datetime(tables["date"], utc=True)
     rows = []
     for pair, g in tables.groupby("pair"):
-        c = H.read_cache(pair, NEED)
+        c = H.read_cache(pair, NEED + (TRADING if args.model else []))
         c["date"] = pd.to_datetime(c["date"], utc=True)
         lab, base = head_labels(c, s), baselines(c, s, pr)
         lab.columns = [f"lab_{x}" for x in lab.columns]
         base.columns = [f"base_{x}" for x in base.columns]
-        full = pd.concat([c[["date", "volume"]].reset_index(drop=True), lab, base], axis=1)
+        keep = ["date", "volume"] + (TRADING if args.model else [])
+        full = pd.concat([c[keep].reset_index(drop=True), lab, base], axis=1)
         rows.append(g.merge(full, on="date", how="left", suffixes=("", "_c")))
     t = pd.concat(rows, ignore_index=True)
     t = t[t["volume"] > 0]
@@ -116,6 +157,12 @@ def main(argv=None) -> int:
         r["skill_pass"] = all(r["margin"][x] is not None and r["margin"][x] >= pr["skill_rule"]["min_auc_margin"]
                               for x in ("early", "late"))
         out[head] = r
+    if args.model:
+        res = {"model": tag, "descriptive": True, "heads": out,
+               "trading": trading_quality(t, {"early": pr["early"], "late": pr["late"]})}
+        (HERE / f"heads_descriptive_{tag}.json").write_text(json.dumps(res, indent=1, default=str))
+        print(json.dumps(res, indent=1, default=str))
+        return 0
     p = HERE / "screens_heads.json"
     prev = json.loads(p.read_text()) if p.exists() else {}
     prev["skill"] = out
