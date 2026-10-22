@@ -149,7 +149,7 @@ outputs, and has a distinct model key.
   - the four keys are distinct from each other and from `NNMT_MLX`;
   - raw8 columns pass a truncation test (reuse `NNPredict/tests/test_inputs.py`'s helper)
 - [ ] T027 [US4] Train f00 for `mt_lr` first, timing it and checking the predictions are finite and non-constant on every head. Then run all four variant plans in one sequential chain (60 trainings)
-- [ ] T028 [US4] `judge models`: the four variants vs `mt_op`, then the R7 selection `<M>` written to `verdicts_models.json`. Re-run `<M>` and `mt_op` on seed 2 (R13) and record the seed-2 result beside the seed-1 one
+- [ ] T028 [US4] `judge models`: the four variants vs `mt_op`, then the R7 selection `<M>` written to `verdicts_models.json`. Re-run `<M>` and `mt_op` on seed 2 (R13) and record the seed-2 result beside the seed-1 one — seed 1 DONE 2026-10-22: R7 = mt_lr_ri (+0.93 pp vs mt_op, paired UNCHANGED; PASS needs seed 2); seed 2 running
 
 **Checkpoint**: `<M>` is selected and has a seed-2 replicate.
 

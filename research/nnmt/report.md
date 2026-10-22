@@ -68,3 +68,24 @@ operating point, vs `mt_lr` (shared LSTM + MLP per task).
 **Screen: FAIL** (early gain −1.19 pp; paired UNCHANGED, Δ −1.24, CI [−6.9, +5.5] pp/yr, p 0.84; risk UNCHANGED).
 By rule there is no confirmation stage and no seed 2. Per-task LSTMs neither help nor clearly hurt; together with
 `mt_lr` ≈ `mt_op`, the network design inside the multi-task heads moves the early half by about a point.
+
+## §5 Model variants vs `mt_op` and the R7 selection (T028, seed 1)
+
+Pre-registration `preregistration_models.json`; verdicts `verdicts_models.json` (`judge models`, 2026-10-22).
+All arms at the operating point, 15 folds, model share 0.84 for every arm.
+
+| arm | total pp | early gain vs `mt_op` | late gain | paired | decision |
+|---|---|---|---|---|---|
+| `mt_op` (control) | 8.55 | — | — | — | (FAIL vs `mt_fw0`, §3) |
+| `mt_lr` plain LSTM | 8.29 | −0.16 | −0.10 | UNCHANGED p 0.97 | FAIL |
+| `mt_lr_ri` plain LSTM, raw + 24 indicators | 9.48 | +0.25 | +0.68 | UNCHANGED p 0.89 | **PASS, seed 2 required (gain < 1 pp)** |
+| `mt_raw` raw inputs, original network | −11.77 | −20.78 | +0.46 | — | FAIL |
+| `mt_lr_raw` plain LSTM, raw only | −18.56 | −18.33 | −8.78 | — | FAIL |
+
+**R7 selection: `mt_lr_ri`** (highest pooled pp among arms with no WORSENED half). Its margin is noise-sized
+(+0.93 pp over 15 folds, CI [−3.5, +4.1] pp/yr; Sharpe and maxDD UNCHANGED), which is what the seed-2 rule is
+for: seed 2 of `mt_lr_ri` and `mt_op` started 2026-10-22 01:23.
+
+**Reading:** with indicators in the input, the network barely matters (three designs within 1.2 pp). Raw-only
+inputs lose ~19-21 pp early. Every variant keeps the operating point's late loss (≈ −18 pp), so the late
+failure in §3 belongs to the operating point, not the network.
