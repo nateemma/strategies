@@ -41,3 +41,10 @@ def test_bootstrap_identical_books_is_not_significant():
     r = np.random.default_rng(1).normal(0.001, 0.02, 400)
     assert block_bootstrap_p(r, r, n=200) == 1.0
     assert block_bootstrap_p(r + 0.01, r, n=200) < 0.05
+
+
+def test_returns_are_aligned_by_date_not_position():
+    idx = pd.date_range("2024-01-01", periods=6, freq="D", tz="UTC")
+    ret = pd.DataFrame({"A": [-0.5, -0.5, -0.5, 0.0, 0.1, 0.0]}, index=idx)  # longer history than the targets
+    tgt = pd.DataFrame({"A": [1.0, 1.0, 1.0]}, index=idx[3:])
+    assert simulate(tgt, ret, cost=0.0)["gross"].tolist() == [0.1, 0.0]

@@ -61,7 +61,7 @@ def simulate(target: pd.DataFrame, ret: pd.DataFrame, cost: float, band: float =
     cols = target.columns
     w = np.zeros(len(cols))
     out = []
-    tgt, R = target.to_numpy(float), ret[cols].fillna(0.0).to_numpy(float)
+    tgt, R = target.to_numpy(float), ret[cols].reindex(target.index).fillna(0.0).to_numpy(float)
     td = None if trade_days is None else trade_days.reindex(target.index).fillna(False).to_numpy(bool)
     for k in range(1, len(target)):
         traded = 0.0
