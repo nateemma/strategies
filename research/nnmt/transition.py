@@ -23,6 +23,10 @@ Regime-state amendment (preregistration_regime_state.json): the FUTURE state Y =
   state-judge   AUC per class (BULL, BEAR) vs max(0.5, Markov, trailing z_H), events, proxy, pass, selection
                                                                                     -> screens_regime_state.json
 
+  state-nn      --models MT_LR_RI_RG,MT_LR_RI_RGM --cell pair_288: each NN's regime head (signal tables) scored with
+                the same rule on that cell (Markov fit on the fold's training rows), plus shared-vs-separate
+                                                                                    -> screens_regime_state.json["nn"]
+
     PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition labels|causality|judge|state-judge
     PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition screen|state-screen --fold f00
 """
@@ -462,6 +466,65 @@ def state_judge() -> dict:
     return out
 
 
+def _score_state(h: pd.DataFrame, level: str, H: int, rule: dict, k: str, sign: float, dirn: str) -> dict:
+    y = (h[f"fstate_{level}_{H}"] == CLASSES[k.upper()]).astype(float).where(h[f"fstate_{level}_{H}"].notna())
+    h = h.assign(y=y)
+    a = _auc(h[f"p_{k}"].to_numpy(float), y.to_numpy(float))
+    bm = _auc(h[f"markov_{k}"].to_numpy(float), y.to_numpy(float))
+    bz = _auc(sign * h[f"z_{level}_{H}"].to_numpy(float), y.to_numpy(float))
+    base = max(0.5, bm if bm is not None else 0.5, bz if bz is not None else 0.5)
+    return {"auc": a, "markov_auc": bm, "trailing_z_auc": bz, "margin": None if a is None else a - base,
+            "events": int(_events(h, "y")), "proxy_bp": _proxy(h.assign(p=h[f"p_{k}"]), dirn, H, rule)}
+
+
+def state_nn(models: list[str], cell: str) -> dict:
+    """The regime NNs' heads on one cell, scored like the stand-in (screen_rule); Markov fit per fold on the
+    fold's training rows (dates < test_start - H), the NN's own training range."""
+    pr = _pr()
+    rule = json.loads(PREREG_STATE.read_text())["screen_rule"]
+    level, H = cell.split("_")
+    H = int(H)
+    lab = pd.read_parquet(OUT / "labels.parquet")
+    sig = STRAT / "research" / "nnnc_framework" / "signals"
+    out = {"cell": cell, "models": {}}
+    for m in models:
+        parts = []
+        for f in _folds():
+            t = pd.read_parquet(sig / f"{m}_{f['fold_id']}.parquet")[["date", "pair", "p_regime_bull", "p_regime_bear"]]
+            t["date"] = pd.to_datetime(t["date"], utc=True)
+            g = t.merge(lab, on=["date", "pair"], how="inner")
+            g = g[g["tradeable"]].rename(columns={"p_regime_bull": "p_bull", "p_regime_bear": "p_bear"})
+            fit = lab[lab["tradeable"] & (lab["date"] < _ts(f["test_start"]) - H * BAR)]
+            mk = markov_scores(fit[f"state_{level}_{H}"].to_numpy(), fit[f"fstate_{level}_{H}"].to_numpy(),
+                               g[f"state_{level}_{H}"].to_numpy())
+            g["markov_bull"], g["markov_bear"] = mk["BULL"].to_numpy(), mk["BEAR"].to_numpy()
+            parts.append(g.assign(fold=f["fold_id"]))
+        g = pd.concat(parts, ignore_index=True)
+        res = {}
+        for cls, sign, dirn in (("BULL", 1.0, "up"), ("BEAR", -1.0, "down")):
+            r = {half: _score_state(g[g["fold"].map(lambda x: _half(x, pr)) == half], level, H, rule, cls.lower(), sign, dirn)
+                 for half in ("early", "late")}
+            ok = all(r[x]["margin"] is not None and r[x]["margin"] >= rule["min_auc_margin"] for x in r)
+            ok &= all(r[x]["events"] >= rule["min_events_per_half"] for x in r)
+            ok &= all(r[x]["proxy_bp"] is not None and r[x]["proxy_bp"]["pass"] for x in r)
+            res[cls] = {"halves": r, "pass": bool(ok)}
+        out["models"][m] = res
+    if len(models) == 2:
+        sep, shared = models  # (<M>_RG, <M>_RGM)
+        out["shared_vs_separate"] = {}
+        for cls in ("BULL", "BEAR"):
+            d = {h: (out["models"][shared][cls]["halves"][h]["auc"] or np.nan) - (out["models"][sep][cls]["halves"][h]["auc"] or np.nan)
+                 for h in ("early", "late")}
+            verdict = ("sharing helps" if all(v >= 0.01 for v in d.values()) else
+                       "sharing hurts" if all(v <= -0.01 for v in d.values()) else "no difference")
+            out["shared_vs_separate"][cls] = {"delta_auc": d, "verdict": verdict}
+    path = HERE / "screens_regime_state.json"
+    prev = json.loads(path.read_text()) if path.exists() else {}
+    prev["nn"] = out
+    path.write_text(json.dumps(prev, indent=1, default=str))
+    return out
+
+
 # ---------------------------------------------------------------------------- CLI
 
 
@@ -482,8 +545,10 @@ def _refusals() -> list[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge"))
+    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn"))
     ap.add_argument("--fold")
+    ap.add_argument("--models")
+    ap.add_argument("--cell")
     a = ap.parse_args(argv)
     bad = _refusals()
     if bad:
@@ -508,6 +573,10 @@ def main(argv=None) -> int:
             print("REFUSED: the truncation test has not passed")
             return 2
         (screen_fold if a.step == "screen" else state_screen_fold)(a.fold)
+        return 0
+    if a.step == "state-nn":
+        r = state_nn(a.models.split(","), a.cell)
+        print(json.dumps(r, indent=1, default=str))
         return 0
     if a.step == "state-judge":
         r = state_judge()
