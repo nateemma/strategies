@@ -1206,12 +1206,12 @@
     "folds_changed": 14,
     "paired": {
      "verdict": "UNCHANGED",
-     "delta_pp": -4.365291887747482,
+     "delta_pp": -4.365291887747481,
      "ci_pp_yr": [
-      -3.1711713686460374,
-      0.7722424892925068
+      -3.1686006157585718,
+      0.7265201316236565
      ],
-     "p": 0.2429
+     "p": 0.2299
     },
     "risk": {
      "days": 1343,
@@ -1243,7 +1243,7 @@
     "halves": {
      "early": {
       "verdict": "UNCHANGED",
-      "p": 0.3939,
+      "p": 0.4031,
       "risk": [
        "UNCHANGED",
        "UNCHANGED"
@@ -1251,7 +1251,7 @@
      },
      "late": {
       "verdict": "UNCHANGED",
-      "p": 0.4136,
+      "p": 0.4053,
       "risk": [
        "UNCHANGED",
        "UNCHANGED"
@@ -1306,12 +1306,12 @@
     "folds_changed": 13,
     "paired": {
      "verdict": "IMPROVED",
-     "delta_pp": 5.4050504100964,
+     "delta_pp": 5.405050410096399,
      "ci_pp_yr": [
-      0.2529040592572031,
-      2.7305108918416163
+      0.23299911237439744,
+      2.7326073094397927
      ],
-     "p": 0.0178
+     "p": 0.0213
     },
     "risk": {
      "days": 1343,
@@ -1343,7 +1343,7 @@
     "halves": {
      "early": {
       "verdict": "IMPROVED",
-      "p": 0.0049,
+      "p": 0.0058,
       "risk": [
        "UNCHANGED",
        "UNCHANGED"
@@ -1351,7 +1351,7 @@
      },
      "late": {
       "verdict": "UNCHANGED",
-      "p": 0.1106,
+      "p": 0.1107,
       "risk": [
        "UNCHANGED",
        "UNCHANGED"
@@ -1379,8 +1379,107 @@
      "metric_overbought": 2
     }
    },
-   "decision": "PASS",
-   "also": {}
+   "decision": "PASS (both seeds)",
+   "also": {},
+   "seed_rs1": {
+    "instrument": {
+     "pass": true,
+     "folds_missing": [],
+     "trades_by_half": {
+      "early": 411,
+      "late": 519
+     },
+     "trades": 930
+    },
+    "alone": {
+     "arm": "tr_scale_rs1",
+     "control": "cs_aro",
+     "verdict": "PASS",
+     "failed": [],
+     "arm_trades": 930,
+     "ctl_trades": 930,
+     "arm_pp": 65.261,
+     "ctl_pp": 59.949,
+     "early_gain_pp": 1.9099999999999966,
+     "late_gain_pp": 3.4019999999999975,
+     "folds_changed": 13,
+     "paired": {
+      "verdict": "IMPROVED",
+      "delta_pp": 5.3158916689526166,
+      "ci_pp_yr": [
+       0.21714603595931745,
+       2.703722964960772
+      ],
+      "p": 0.0235
+     },
+     "risk": {
+      "days": 1343,
+      "arm": {
+       "sharpe": 2.574650012431321,
+       "maxdd": 4.29179908074488,
+       "daily_sd": 0.3605835770183192
+      },
+      "ctl": {
+       "sharpe": 2.588177302461619,
+       "maxdd": 4.489445186897925,
+       "daily_sd": 0.3295022150154822
+      },
+      "sharpe_delta": -0.013527290030297845,
+      "sharpe_ci": [
+       -0.13925228653471008,
+       0.09257506722398352
+      ],
+      "sharpe_p": 0.789,
+      "verdict_sharpe": "UNCHANGED",
+      "maxdd_delta": -0.19764610615304434,
+      "maxdd_ci": [
+       -0.26437649185504764,
+       0.6468654494455436
+      ],
+      "maxdd_p": 0.443,
+      "verdict_maxdd": "UNCHANGED"
+     },
+     "halves": {
+      "early": {
+       "verdict": "IMPROVED",
+       "p": 0.0058,
+       "risk": [
+        "UNCHANGED",
+        "UNCHANGED"
+       ]
+      },
+      "late": {
+       "verdict": "UNCHANGED",
+       "p": 0.1263,
+       "risk": [
+        "UNCHANGED",
+        "UNCHANGED"
+       ]
+      }
+     },
+     "exits_arm": {
+      "take_profit": 557,
+      "trailing_stop_loss": 151,
+      "unclog_12h": 165,
+      "unclog_1d": 19,
+      "roi": 18,
+      "force_exit": 5,
+      "stop_loss": 13,
+      "metric_overbought": 2
+     },
+     "exits_ctl": {
+      "take_profit": 557,
+      "trailing_stop_loss": 151,
+      "unclog_12h": 165,
+      "unclog_1d": 19,
+      "roi": 18,
+      "force_exit": 5,
+      "stop_loss": 13,
+      "metric_overbought": 2
+     }
+    },
+    "decision": "PASS"
+   }
   },
   "tr_long": {
    "instrument": {
@@ -1402,7 +1501,41 @@
      0.9065129814087807
     ]
    },
-   "decision": "PASS"
+   "decision": "PASS (both seeds)",
+   "comparator_reported": {
+    "st_g24_rev": {
+     "verdict": "PASS",
+     "early_pp": 63.565,
+     "late_pp": 7.938,
+     "trades": 2518,
+     "ci_mean_pp": [
+      0.31995720057551885,
+      0.6524589769601591
+     ]
+    }
+   },
+   "seed_rs1": {
+    "instrument": {
+     "pass": true,
+     "folds_missing": [],
+     "trades_by_half": {
+      "early": 596,
+      "late": 432
+     },
+     "trades": 1028
+    },
+    "alone": {
+     "verdict": "PASS",
+     "early_pp": 21.392,
+     "late_pp": 14.092,
+     "trades": 1028,
+     "ci_mean_pp": [
+      0.3224228329826213,
+      0.8748669542551186
+     ]
+    },
+    "decision": "PASS"
+   }
   },
   "tr_exit": {
    "instrument": {
@@ -1435,10 +1568,10 @@
      "verdict": "WORSENED",
      "delta_pp": -16.19700477970466,
      "ci_pp_yr": [
-      -8.511666212674497,
-      -0.8922055182216927
+      -8.460931155827447,
+      -0.8202939599937402
      ],
-     "p": 0.0119
+     "p": 0.0117
     },
     "risk": {
      "days": 1343,
@@ -1470,7 +1603,7 @@
     "halves": {
      "early": {
       "verdict": "WORSENED",
-      "p": 0.0013,
+      "p": 0.0015,
       "risk": [
        "WORSENED",
        "UNCHANGED"
@@ -1478,7 +1611,7 @@
      },
      "late": {
       "verdict": "UNCHANGED",
-      "p": 0.2518,
+      "p": 0.2461,
       "risk": [
        "UNCHANGED",
        "UNCHANGED"
@@ -1510,5 +1643,6 @@
    "decision": "FAIL",
    "also": {}
   }
- }
+ },
+ "seed_note": "The seed rerun is degenerate on f00-f08: with early_stopping False and no feature subsampling, HistGradientBoosting's random_state only enters through the bin-threshold subsample, taken when a fit has more than 200,000 rows. The stand-in fits have 172k (f07) / 187k (f08) / 203k (f09) rows, so the rs1 tables are bit-identical to seed 1 on f00-f08 and differ only on f09-f14 (max |dp| 0.37-0.62). 'PASS (both seeds)' is therefore a seed check of f09-f14 only; the early half and f08 were not re-tested."
 }
