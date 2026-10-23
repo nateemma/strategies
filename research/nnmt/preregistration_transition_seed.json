@@ -1,0 +1,15 @@
+{
+ "title": "040 transition arms: seed-rule amendment (bootstrap seed)",
+ "date": "2026-10-23",
+ "amends": "preregistration_transition.json \"seeds\" (\"any PASS is re-run with the HGB re-fit at random_state 1\")",
+ "why": "random_state alone does not perturb the stand-in on f00-f08: with early_stopping False and no feature subsampling, HistGradientBoosting uses it only for the bin-threshold subsample, taken above 200,000 fit rows (f07 172k, f08 187k, f09 203k). The rs1 tables are bit-identical to seed 1 on f00-f08 (verdicts_transition.json seed_note), so the rs1 rerun re-tested f09-f14 only.",
+ "seen_before": "seed-1 and rs1 results of tr_gate / tr_scale / tr_long / tr_exit (verdicts_transition.json at ec435bc9). This amendment is written after them; it changes only how the seed-2 stand-in is drawn, not any arm, threshold, cell or rule.",
+ "seed": {
+  "draw": "per fold and cell, the stand-in is fit on a bootstrap resample (with replacement, same size) of that cell's fit rows, drawn from numpy default_rng([1, fold number, H, level index, direction index]); HGB random_state 1; every other setting as the seed-1 stand-in",
+  "tables": "user_data/data/nnmt_transition_bs1/pred_fNN.parquet (tail and test rows as seed 1; the tail percentiles come from the bootstrap model's tail predictions)",
+  "arms": "every seed-1 PASS (tr_scale, tr_long) re-run unchanged on these tables as <arm>_bs1"
+ },
+ "rule": "the arm's own pre-registered rule applied to <arm>_bs1. A seed-1 PASS stays a PASS only if <arm>_bs1 also PASSes; otherwise 'FAIL at seed 2'. The rs1 result stays in the record as reported, not decisive.",
+ "arms": ["tr_scale_bs1", "tr_long_bs1"],
+ "folds": ["f00","f01","f02","f03","f04","f05","f06","f07","f08","f09","f10","f11","f12","f13","f14"]
+}
