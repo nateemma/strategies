@@ -1,0 +1,1514 @@
+{
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test. Committed before any transition label is built.",
+ "selected": "mt_lr_ri",
+ "screens": {
+  "screens_transition.json": {
+   "base_rates": {
+    "f00": {
+     "up_pair_96": {
+      "rate": 0.11788050414805361,
+      "events": 825
+     },
+     "down_pair_96": {
+      "rate": 0.11012284620293554,
+      "events": 851
+     },
+     "up_btc_96": {
+      "rate": 0.13140156349712828,
+      "events": 874
+     },
+     "down_btc_96": {
+      "rate": 0.0965020740268028,
+      "events": 783
+     },
+     "up_pair_288": {
+      "rate": 0.13100271218889598,
+      "events": 399
+     },
+     "down_pair_288": {
+      "rate": 0.09733966177409062,
+      "events": 482
+     },
+     "up_btc_288": {
+      "rate": 0.15100510529674538,
+      "events": 448
+     },
+     "down_btc_288": {
+      "rate": 0.0926531589023612,
+      "events": 347
+     },
+     "up_pair_672": {
+      "rate": 0.1118379068283344,
+      "events": 363
+     },
+     "down_pair_672": {
+      "rate": 0.0767589342693044,
+      "events": 291
+     },
+     "up_btc_672": {
+      "rate": 0.20540842373962986,
+      "events": 168
+     },
+     "down_btc_672": {
+      "rate": 0.07616065730695597,
+      "events": 214
+     }
+    },
+    "f01": {
+     "up_pair_96": {
+      "rate": 0.08751021520021793,
+      "events": 581
+     },
+     "down_pair_96": {
+      "rate": 0.10943884500136203,
+      "events": 660
+     },
+     "up_btc_96": {
+      "rate": 0.10374103332425315,
+      "events": 650
+     },
+     "down_btc_96": {
+      "rate": 0.11708889494234087,
+      "events": 663
+     },
+     "up_pair_288": {
+      "rate": 0.08312902932897485,
+      "events": 319
+     },
+     "down_pair_288": {
+      "rate": 0.11688459093798238,
+      "events": 321
+     },
+     "up_btc_288": {
+      "rate": 0.11027876146372469,
+      "events": 287
+     },
+     "down_btc_288": {
+      "rate": 0.13506764732588758,
+      "events": 365
+     },
+     "up_pair_672": {
+      "rate": 0.098065922092073,
+      "events": 198
+     },
+     "down_pair_672": {
+      "rate": 0.1500726414237719,
+      "events": 254
+     },
+     "up_btc_672": {
+      "rate": 0.18516752928357397,
+      "events": 351
+     },
+     "down_btc_672": {
+      "rate": 0.15011804231362935,
+      "events": 303
+     }
+    },
+    "f02": {
+     "up_pair_96": {
+      "rate": 0.06516429612298093,
+      "events": 460
+     },
+     "down_pair_96": {
+      "rate": 0.07302506003324918,
+      "events": 557
+     },
+     "up_btc_96": {
+      "rate": 0.07544691418837099,
+      "events": 444
+     },
+     "down_btc_96": {
+      "rate": 0.09570428750282207,
+      "events": 585
+     },
+     "up_pair_288": {
+      "rate": 0.07251195533936744,
+      "events": 321
+     },
+     "down_pair_288": {
+      "rate": 0.09332348172321081,
+      "events": 334
+     },
+     "up_btc_288": {
+      "rate": 0.08400550048231842,
+      "events": 372
+     },
+     "down_btc_288": {
+      "rate": 0.09297457053137122,
+      "events": 325
+     },
+     "up_pair_672": {
+      "rate": 0.07388707591897051,
+      "events": 213
+     },
+     "down_pair_672": {
+      "rate": 0.10075323769061839,
+      "events": 217
+     },
+     "up_btc_672": {
+      "rate": 0.08213779939658888,
+      "events": 333
+     },
+     "down_btc_672": {
+      "rate": 0.10563799437637256,
+      "events": 274
+     }
+    },
+    "f03": {
+     "up_pair_96": {
+      "rate": 0.12166378376630725,
+      "events": 1055
+     },
+     "down_pair_96": {
+      "rate": 0.09161156824390954,
+      "events": 960
+     },
+     "up_btc_96": {
+      "rate": 0.14901631128857562,
+      "events": 1046
+     },
+     "down_btc_96": {
+      "rate": 0.09254918443557122,
+      "events": 773
+     },
+     "up_pair_288": {
+      "rate": 0.1272733151198694,
+      "events": 621
+     },
+     "down_pair_288": {
+      "rate": 0.07914773921337234,
+      "events": 383
+     },
+     "up_btc_288": {
+      "rate": 0.15595143794759048,
+      "events": 844
+     },
+     "down_btc_288": {
+      "rate": 0.07761198855461614,
+      "events": 372
+     },
+     "up_pair_672": {
+      "rate": 0.1578105045345059,
+      "events": 448
+     },
+     "down_pair_672": {
+      "rate": 0.04699397015793983,
+      "events": 189
+     },
+     "up_btc_672": {
+      "rate": 0.20095701514735123,
+      "events": 415
+     },
+     "down_btc_672": {
+      "rate": 0.06196349763171083,
+      "events": 244
+     }
+    },
+    "f04": {
+     "up_pair_96": {
+      "rate": 0.12300137213836933,
+      "events": 1028
+     },
+     "down_pair_96": {
+      "rate": 0.09986278616306782,
+      "events": 1091
+     },
+     "up_btc_96": {
+      "rate": 0.1569870730122048,
+      "events": 1060
+     },
+     "down_btc_96": {
+      "rate": 0.10314147468765798,
+      "events": 959
+     },
+     "up_pair_288": {
+      "rate": 0.12183144363400014,
+      "events": 702
+     },
+     "down_pair_288": {
+      "rate": 0.0868924676825305,
+      "events": 584
+     },
+     "up_btc_288": {
+      "rate": 0.17023181916660649,
+      "events": 498
+     },
+     "down_btc_288": {
+      "rate": 0.09355094966418719,
+      "events": 412
+     },
+     "up_pair_672": {
+      "rate": 0.14489781180038996,
+      "events": 479
+     },
+     "down_pair_672": {
+      "rate": 0.09028670470137937,
+      "events": 431
+     },
+     "up_btc_672": {
+      "rate": 0.21115042969596304,
+      "events": 382
+     },
+     "down_btc_672": {
+      "rate": 0.0898967285332563,
+      "events": 297
+     }
+    },
+    "f05": {
+     "up_pair_96": {
+      "rate": 0.07105926452530215,
+      "events": 570
+     },
+     "down_pair_96": {
+      "rate": 0.09797712143734247,
+      "events": 977
+     },
+     "up_btc_96": {
+      "rate": 0.09747624894978349,
+      "events": 802
+     },
+     "down_btc_96": {
+      "rate": 0.1243294771537517,
+      "events": 985
+     },
+     "up_pair_288": {
+      "rate": 0.06882957409681381,
+      "events": 390
+     },
+     "down_pair_288": {
+      "rate": 0.10036838363601111,
+      "events": 497
+     },
+     "up_btc_288": {
+      "rate": 0.09582821689394429,
+      "events": 534
+     },
+     "down_btc_288": {
+      "rate": 0.12610676662573514,
+      "events": 646
+     },
+     "up_pair_672": {
+      "rate": 0.07280423964324953,
+      "events": 286
+     },
+     "down_pair_672": {
+      "rate": 0.14029276804756674,
+      "events": 446
+     },
+     "up_btc_672": {
+      "rate": 0.11920765203903574,
+      "events": 298
+     },
+     "down_btc_672": {
+      "rate": 0.17105603308989853,
+      "events": 664
+     }
+    },
+    "f06": {
+     "up_pair_96": {
+      "rate": 0.11692739314949305,
+      "events": 838
+     },
+     "down_pair_96": {
+      "rate": 0.097199779817817,
+      "events": 843
+     },
+     "up_btc_96": {
+      "rate": 0.1536125858976863,
+      "events": 1226
+     },
+     "down_btc_96": {
+      "rate": 0.1189871619582009,
+      "events": 951
+     },
+     "up_pair_288": {
+      "rate": 0.11992826322424845,
+      "events": 546
+     },
+     "down_pair_288": {
+      "rate": 0.10820888896780724,
+      "events": 501
+     },
+     "up_btc_288": {
+      "rate": 0.17270096063355647,
+      "events": 611
+     },
+     "down_btc_288": {
+      "rate": 0.1290374132144823,
+      "events": 564
+     },
+     "up_pair_672": {
+      "rate": 0.134062538842623,
+      "events": 346
+     },
+     "down_pair_672": {
+      "rate": 0.12992524459754604,
+      "events": 286
+     },
+     "up_btc_672": {
+      "rate": 0.17880924054903494,
+      "events": 602
+     },
+     "down_btc_672": {
+      "rate": 0.15902835733437506,
+      "events": 544
+     }
+    },
+    "f07": {
+     "up_pair_96": {
+      "rate": 0.13753221446979697,
+      "events": 1147
+     },
+     "down_pair_96": {
+      "rate": 0.10500345716261236,
+      "events": 1114
+     },
+     "up_btc_96": {
+      "rate": 0.14636369350682005,
+      "events": 1195
+     },
+     "down_btc_96": {
+      "rate": 0.09433339619083538,
+      "events": 775
+     },
+     "up_pair_288": {
+      "rate": 0.14983657049468854,
+      "events": 664
+     },
+     "down_pair_288": {
+      "rate": 0.12338927651015148,
+      "events": 537
+     },
+     "up_btc_288": {
+      "rate": 0.18329247595700546,
+      "events": 696
+     },
+     "down_btc_288": {
+      "rate": 0.11779495882833617,
+      "events": 510
+     },
+     "up_pair_672": {
+      "rate": 0.1379250738575649,
+      "events": 477
+     },
+     "down_pair_672": {
+      "rate": 0.11960211201206863,
+      "events": 313
+     },
+     "up_btc_672": {
+      "rate": 0.17675529574454713,
+      "events": 277
+     },
+     "down_btc_672": {
+      "rate": 0.1067791815953234,
+      "events": 256
+     }
+    },
+    "f08": {
+     "up_pair_96": {
+      "rate": 0.09286085846246,
+      "events": 808
+     },
+     "down_pair_96": {
+      "rate": 0.10952253345733697,
+      "events": 980
+     },
+     "up_btc_96": {
+      "rate": 0.12881665852236007,
+      "events": 890
+     },
+     "down_btc_96": {
+      "rate": 0.1203203076971579,
+      "events": 1069
+     },
+     "up_pair_288": {
+      "rate": 0.08248868992260282,
+      "events": 362
+     },
+     "down_pair_288": {
+      "rate": 0.13384511105156136,
+      "events": 524
+     },
+     "up_btc_288": {
+      "rate": 0.07909960749696558,
+      "events": 762
+     },
+     "down_btc_288": {
+      "rate": 0.1298412648370876,
+      "events": 487
+     },
+     "up_pair_672": {
+      "rate": 0.08113305695234793,
+      "events": 262
+     },
+     "down_pair_672": {
+      "rate": 0.14801620454294676,
+      "events": 588
+     },
+     "up_btc_672": {
+      "rate": 0.08527877173347626,
+      "events": 231
+     },
+     "down_btc_672": {
+      "rate": 0.11450369646432006,
+      "events": 323
+     }
+    },
+    "f09": {
+     "up_pair_96": {
+      "rate": 0.1023524874662553,
+      "events": 730
+     },
+     "down_pair_96": {
+      "rate": 0.10480138835325878,
+      "events": 828
+     },
+     "up_btc_96": {
+      "rate": 0.11756652526031623,
+      "events": 776
+     },
+     "down_btc_96": {
+      "rate": 0.09382954107211725,
+      "events": 694
+     },
+     "up_pair_288": {
+      "rate": 0.10308522946394139,
+      "events": 380
+     },
+     "down_pair_288": {
+      "rate": 0.13150790590050135,
+      "events": 596
+     },
+     "up_btc_288": {
+      "rate": 0.14070574623987658,
+      "events": 571
+     },
+     "down_btc_288": {
+      "rate": 0.08756266872348631,
+      "events": 482
+     },
+     "up_pair_672": {
+      "rate": 0.11812572310065561,
+      "events": 274
+     },
+     "down_pair_672": {
+      "rate": 0.12311993829541072,
+      "events": 464
+     },
+     "up_btc_672": {
+      "rate": 0.18173929811029696,
+      "events": 386
+     },
+     "down_btc_672": {
+      "rate": 0.06910913999228693,
+      "events": 451
+     }
+    },
+    "f10": {
+     "up_pair_96": {
+      "rate": 0.1214649620301836,
+      "events": 956
+     },
+     "down_pair_96": {
+      "rate": 0.11198692684802461,
+      "events": 872
+     },
+     "up_btc_96": {
+      "rate": 0.10054791886955686,
+      "events": 1053
+     },
+     "down_btc_96": {
+      "rate": 0.10079784677496875,
+      "events": 711
+     },
+     "up_pair_288": {
+      "rate": 0.14913005863693166,
+      "events": 569
+     },
+     "down_pair_288": {
+      "rate": 0.09393444198788811,
+      "events": 503
+     },
+     "up_btc_288": {
+      "rate": 0.10287417091223686,
+      "events": 681
+     },
+     "down_btc_288": {
+      "rate": 0.10612323368259156,
+      "events": 502
+     },
+     "up_pair_672": {
+      "rate": 0.1400173027011439,
+      "events": 454
+     },
+     "down_pair_672": {
+      "rate": 0.06815341728347592,
+      "events": 246
+     },
+     "up_btc_672": {
+      "rate": 0.08378352398346631,
+      "events": 318
+     },
+     "down_btc_672": {
+      "rate": 0.0920888205325387,
+      "events": 481
+     }
+    },
+    "f11": {
+     "up_pair_96": {
+      "rate": 0.10015152608413305,
+      "events": 687
+     },
+     "down_pair_96": {
+      "rate": 0.13047478173028357,
+      "events": 919
+     },
+     "up_btc_96": {
+      "rate": 0.10449888159318854,
+      "events": 838
+     },
+     "down_btc_96": {
+      "rate": 0.13024027707626812,
+      "events": 1058
+     },
+     "up_pair_288": {
+      "rate": 0.09060899054765856,
+      "events": 400
+     },
+     "down_pair_288": {
+      "rate": 0.1524641027491161,
+      "events": 613
+     },
+     "up_btc_288": {
+      "rate": 0.09192582437405296,
+      "events": 543
+     },
+     "down_btc_288": {
+      "rate": 0.1608341150155134,
+      "events": 770
+     },
+     "up_pair_672": {
+      "rate": 0.06741106861966953,
+      "events": 268
+     },
+     "down_pair_672": {
+      "rate": 0.1797748755321452,
+      "events": 491
+     },
+     "up_btc_672": {
+      "rate": 0.09362147341078,
+      "events": 265
+     },
+     "down_btc_672": {
+      "rate": 0.20643625081174688,
+      "events": 671
+     }
+    },
+    "f12": {
+     "up_pair_96": {
+      "rate": 0.09005120865851204,
+      "events": 535
+     },
+     "down_pair_96": {
+      "rate": 0.08935799101053243,
+      "events": 701
+     },
+     "up_btc_96": {
+      "rate": 0.10237259330485923,
+      "events": 733
+     },
+     "down_btc_96": {
+      "rate": 0.08823989802992017,
+      "events": 829
+     },
+     "up_pair_288": {
+      "rate": 0.08097229365594043,
+      "events": 309
+     },
+     "down_pair_288": {
+      "rate": 0.10440752252957355,
+      "events": 328
+     },
+     "up_btc_288": {
+      "rate": 0.09508262707126725,
+      "events": 415
+     },
+     "down_btc_288": {
+      "rate": 0.12392942597106375,
+      "events": 294
+     },
+     "up_pair_672": {
+      "rate": 0.07041749591896063,
+      "events": 180
+     },
+     "down_pair_672": {
+      "rate": 0.11659473601824728,
+      "events": 285
+     },
+     "up_btc_672": {
+      "rate": 0.07448735436838927,
+      "events": 229
+     },
+     "down_btc_672": {
+      "rate": 0.116751269035533,
+      "events": 214
+     }
+    },
+    "f13": {
+     "up_pair_96": {
+      "rate": 0.09671669603613457,
+      "events": 726
+     },
+     "down_pair_96": {
+      "rate": 0.12098195296834174,
+      "events": 846
+     },
+     "up_btc_96": {
+      "rate": 0.09855988333232059,
+      "events": 696
+     },
+     "down_btc_96": {
+      "rate": 0.12126552024467804,
+      "events": 917
+     },
+     "up_pair_288": {
+      "rate": 0.09400255210548703,
+      "events": 458
+     },
+     "down_pair_288": {
+      "rate": 0.12306819792995888,
+      "events": 508
+     },
+     "up_btc_288": {
+      "rate": 0.09481274432359077,
+      "events": 693
+     },
+     "down_btc_288": {
+      "rate": 0.1376111482449211,
+      "events": 540
+     },
+     "up_pair_672": {
+      "rate": 0.09165299467298617,
+      "events": 245
+     },
+     "down_pair_672": {
+      "rate": 0.13309432662899273,
+      "events": 326
+     },
+     "up_btc_672": {
+      "rate": 0.1058313584898017,
+      "events": 216
+     },
+     "down_btc_672": {
+      "rate": 0.14259383038625914,
+      "events": 328
+     }
+    },
+    "f14": {
+     "up_pair_96": {
+      "rate": 0.09775808668184521,
+      "events": 681
+     },
+     "down_pair_96": {
+      "rate": 0.08912272065308802,
+      "events": 767
+     },
+     "up_btc_96": {
+      "rate": 0.09982975406641642,
+      "events": 703
+     },
+     "down_btc_96": {
+      "rate": 0.09624023137037721,
+      "events": 719
+     },
+     "up_pair_288": {
+      "rate": 0.10131268933019186,
+      "events": 338
+     },
+     "down_pair_288": {
+      "rate": 0.07966593739481656,
+      "events": 424
+     },
+     "up_btc_288": {
+      "rate": 0.08862756647593403,
+      "events": 470
+     },
+     "down_btc_288": {
+      "rate": 0.09899865365196904,
+      "events": 546
+     },
+     "up_pair_672": {
+      "rate": 0.12681710894933051,
+      "events": 219
+     },
+     "down_pair_672": {
+      "rate": 0.05750777579246906,
+      "events": 203
+     },
+     "up_btc_672": {
+      "rate": 0.1150596695563938,
+      "events": 232
+     },
+     "down_btc_672": {
+      "rate": 0.04396355855557761,
+      "events": 255
+     }
+    }
+   },
+   "truncation": {
+    "z_state": {
+     "pass": true,
+     "comparisons": 288
+    },
+    "label": {
+     "pass": true,
+     "comparisons": 288
+    },
+    "inputs": {
+     "pass": true,
+     "not_pass": {},
+     "checked": 32,
+     "source": "research/indicator_screen/causality{,_extras}.json"
+    },
+    "pass": true
+   },
+   "cells": {
+    "down_btc_288": {
+     "auc": {
+      "early": 0.5621273336042129,
+      "late": 0.5735989794059061
+     },
+     "baseline_trend_auc": {
+      "early": 0.46342802328783145,
+      "late": 0.4310035569887296
+     },
+     "margin": {
+      "early": 0.06212733360421285,
+      "late": 0.0735989794059061
+     },
+     "events": {
+      "early": 3541,
+      "late": 3607
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 85.3199878981754,
+       "all_bp": 63.39590403991208,
+       "pass": false,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -91.39856926300467,
+       "all_bp": -27.84542078272319,
+       "pass": true,
+       "n_top": 36440
+      }
+     },
+     "pass": false
+    },
+    "down_btc_672": {
+     "auc": {
+      "early": 0.5658414184652525,
+      "late": 0.5599848779119223
+     },
+     "baseline_trend_auc": {
+      "early": 0.47271392387376154,
+      "late": 0.45690259768451746
+     },
+     "margin": {
+      "early": 0.06584141846525249,
+      "late": 0.05998487791192231
+     },
+     "events": {
+      "early": 2796,
+      "late": 2705
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 56.58825396424252,
+       "all_bp": 141.2523591384441,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -32.238720838302484,
+       "all_bp": -89.54999484781712,
+       "pass": false,
+       "n_top": 36220
+      }
+     },
+     "pass": false
+    },
+    "down_btc_96": {
+     "auc": {
+      "early": 0.577242682235396,
+      "late": 0.5997096856140923
+     },
+     "baseline_trend_auc": {
+      "early": 0.4381820936895008,
+      "late": 0.4345440103297822
+     },
+     "margin": {
+      "early": 0.07724268223539599,
+      "late": 0.09970968561409232
+     },
+     "events": {
+      "early": 6474,
+      "late": 5997
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 24.569157710916837,
+       "all_bp": 21.958721605517983,
+       "pass": false,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -0.6178938435346618,
+       "all_bp": -6.710414427161788,
+       "pass": false,
+       "n_top": 36562
+      }
+     },
+     "pass": false
+    },
+    "down_pair_288": {
+     "auc": {
+      "early": 0.5724892737762963,
+      "late": 0.5759473207543029
+     },
+     "baseline_trend_auc": {
+      "early": 0.45015642449960774,
+      "late": 0.41925276783678633
+     },
+     "margin": {
+      "early": 0.07248927377629633,
+      "late": 0.07594732075430288
+     },
+     "events": {
+      "early": 3637,
+      "late": 3486
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 87.22670660396412,
+       "all_bp": 63.39590403991208,
+       "pass": false,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -98.46434988532037,
+       "all_bp": -27.84542078272319,
+       "pass": true,
+       "n_top": 36440
+      }
+     },
+     "pass": false
+    },
+    "down_pair_672": {
+     "auc": {
+      "early": 0.5628932628358598,
+      "late": 0.5849143145277704
+     },
+     "baseline_trend_auc": {
+      "early": 0.45527023209830003,
+      "late": 0.4295751704134119
+     },
+     "margin": {
+      "early": 0.06289326283585983,
+      "late": 0.08491431452777043
+     },
+     "events": {
+      "early": 2425,
+      "late": 2591
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 93.74201670560521,
+       "all_bp": 141.2523591384441,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -125.01327601049435,
+       "all_bp": -89.54999484781712,
+       "pass": true,
+       "n_top": 36220
+      }
+     },
+     "pass": true
+    },
+    "down_pair_96": {
+     "auc": {
+      "early": 0.5958108866399663,
+      "late": 0.6097650252574485
+     },
+     "baseline_trend_auc": {
+      "early": 0.4451978389264072,
+      "late": 0.4268421093388103
+     },
+     "margin": {
+      "early": 0.09581088663996629,
+      "late": 0.10976502525744847
+     },
+     "events": {
+      "early": 7053,
+      "late": 5913
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 25.472429479298015,
+       "all_bp": 21.958721605517983,
+       "pass": false,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": 17.249958625913163,
+       "all_bp": -6.710414427161788,
+       "pass": false,
+       "n_top": 36562
+      }
+     },
+     "pass": false
+    },
+    "up_btc_288": {
+     "auc": {
+      "early": 0.6312527493289102,
+      "late": 0.5903882012788819
+     },
+     "baseline_trend_auc": {
+      "early": 0.4358436261208699,
+      "late": 0.4281376756297896
+     },
+     "margin": {
+      "early": 0.13125274932891018,
+      "late": 0.09038820127888192
+     },
+     "events": {
+      "early": 4290,
+      "late": 4135
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 67.51901020582048,
+       "all_bp": 63.39590403991208,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -153.12959020585745,
+       "all_bp": -27.84542078272319,
+       "pass": false,
+       "n_top": 36440
+      }
+     },
+     "pass": false
+    },
+    "up_btc_672": {
+     "auc": {
+      "early": 0.6455819249249699,
+      "late": 0.5969126773623439
+     },
+     "baseline_trend_auc": {
+      "early": 0.3684884992993057,
+      "late": 0.47366365285036655
+     },
+     "margin": {
+      "early": 0.1455819249249699,
+      "late": 0.09691267736234388
+     },
+     "events": {
+      "early": 2816,
+      "late": 1867
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": -0.8290829418545879,
+       "all_bp": 141.2523591384441,
+       "pass": false,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -103.90580484779468,
+       "all_bp": -89.54999484781712,
+       "pass": false,
+       "n_top": 36220
+      }
+     },
+     "pass": false
+    },
+    "up_btc_96": {
+     "auc": {
+      "early": 0.6205851651058918,
+      "late": 0.6189521509122462
+     },
+     "baseline_trend_auc": {
+      "early": 0.4154066598497856,
+      "late": 0.4194088321591644
+     },
+     "margin": {
+      "early": 0.12058516510589179,
+      "late": 0.1189521509122462
+     },
+     "events": {
+      "early": 7277,
+      "late": 5680
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 48.00379845731626,
+       "all_bp": 21.958721605517983,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": 24.145656424967523,
+       "all_bp": -6.710414427161788,
+       "pass": false,
+       "n_top": 36562
+      }
+     },
+     "pass": false
+    },
+    "up_pair_288": {
+     "auc": {
+      "early": 0.6167526289677299,
+      "late": 0.5898889141535528
+     },
+     "baseline_trend_auc": {
+      "early": 0.45072411586387495,
+      "late": 0.44075347917636704
+     },
+     "margin": {
+      "early": 0.11675262896772987,
+      "late": 0.08988891415355282
+     },
+     "events": {
+      "early": 3955,
+      "late": 2815
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 101.0068686170739,
+       "all_bp": 63.39590403991208,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -62.55751100728792,
+       "all_bp": -27.84542078272319,
+       "pass": false,
+       "n_top": 36440
+      }
+     },
+     "pass": false
+    },
+    "up_pair_672": {
+     "auc": {
+      "early": 0.6044350444440186,
+      "late": 0.5858253657848077
+     },
+     "baseline_trend_auc": {
+      "early": 0.4332619018559504,
+      "late": 0.46490000683902144
+     },
+     "margin": {
+      "early": 0.10443504444401863,
+      "late": 0.0858253657848077
+     },
+     "events": {
+      "early": 2804,
+      "late": 1901
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 45.77899772243296,
+       "all_bp": 141.2523591384441,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": -179.95401248357194,
+       "all_bp": -89.54999484781712,
+       "pass": false,
+       "n_top": 36220
+      }
+     },
+     "pass": false
+    },
+    "up_pair_96": {
+     "auc": {
+      "early": 0.6351463884038323,
+      "late": 0.6255502695798143
+     },
+     "baseline_trend_auc": {
+      "early": 0.4341076319542708,
+      "late": 0.4186538913229398
+     },
+     "margin": {
+      "early": 0.1351463884038323,
+      "late": 0.1255502695798143
+     },
+     "events": {
+      "early": 6489,
+      "late": 5107
+     },
+     "proxy_bp": {
+      "early": {
+       "top_bp": 76.25777527358643,
+       "all_bp": 21.958721605517983,
+       "pass": true,
+       "n_top": 45590
+      },
+      "late": {
+       "top_bp": 38.66276077986803,
+       "all_bp": -6.710414427161788,
+       "pass": true,
+       "n_top": 36562
+      }
+     },
+     "pass": true
+    }
+   },
+   "selected": {
+    "up": "up_pair_96",
+    "down": "down_pair_672"
+   },
+   "pass": true
+  }
+ },
+ "arms": {
+  "tr_gate": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 394,
+     "late": 502
+    },
+    "trades": 896
+   },
+   "alone": {
+    "arm": "tr_gate",
+    "control": "cs_aro",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain",
+     "late gain",
+     "risk"
+    ],
+    "arm_trades": 896,
+    "ctl_trades": 930,
+    "arm_pp": 55.578,
+    "ctl_pp": 59.949,
+    "early_gain_pp": -2.3870000000000005,
+    "late_gain_pp": -1.9840000000000018,
+    "folds_changed": 14,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": -4.365291887747482,
+     "ci_pp_yr": [
+      -3.1711713686460374,
+      0.7722424892925068
+     ],
+     "p": 0.2429
+    },
+    "risk": {
+     "days": 1343,
+     "arm": {
+      "sharpe": 2.393723657781139,
+      "maxdd": 4.290863721865989,
+      "daily_sd": 0.3302929637103541
+     },
+     "ctl": {
+      "sharpe": 2.588177302461619,
+      "maxdd": 4.489445186897925,
+      "daily_sd": 0.3295022150154822
+     },
+     "sharpe_delta": -0.19445364468047988,
+     "sharpe_ci": [
+      -0.3681693089498489,
+      -0.017671783205303947
+     ],
+     "sharpe_p": 0.039,
+     "verdict_sharpe": "WORSENED",
+     "maxdd_delta": -0.19858146503193552,
+     "maxdd_ci": [
+      -0.7766889511258432,
+      0.6599680981135451
+     ],
+     "maxdd_p": 0.737,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.3939,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.4136,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 537,
+     "trailing_stop_loss": 149,
+     "unclog_12h": 156,
+     "unclog_1d": 18,
+     "roi": 17,
+     "force_exit": 5,
+     "stop_loss": 12,
+     "metric_overbought": 2
+    },
+    "exits_ctl": {
+     "take_profit": 557,
+     "trailing_stop_loss": 151,
+     "unclog_12h": 165,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    }
+   },
+   "decision": "FAIL",
+   "also": {}
+  },
+  "tr_scale": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 411,
+     "late": 519
+    },
+    "trades": 930
+   },
+   "alone": {
+    "arm": "tr_scale",
+    "control": "cs_aro",
+    "verdict": "PASS",
+    "failed": [],
+    "arm_trades": 930,
+    "ctl_trades": 930,
+    "arm_pp": 65.351,
+    "ctl_pp": 59.949,
+    "early_gain_pp": 1.9099999999999966,
+    "late_gain_pp": 3.492000000000001,
+    "folds_changed": 13,
+    "paired": {
+     "verdict": "IMPROVED",
+     "delta_pp": 5.4050504100964,
+     "ci_pp_yr": [
+      0.2529040592572031,
+      2.7305108918416163
+     ],
+     "p": 0.0178
+    },
+    "risk": {
+     "days": 1343,
+     "arm": {
+      "sharpe": 2.579773590593441,
+      "maxdd": 4.29179908074488,
+      "daily_sd": 0.3603637225884918
+     },
+     "ctl": {
+      "sharpe": 2.588177302461619,
+      "maxdd": 4.489445186897925,
+      "daily_sd": 0.3295022150154822
+     },
+     "sharpe_delta": -0.008403711868177677,
+     "sharpe_ci": [
+      -0.13788332700097913,
+      0.102675295386673
+     ],
+     "sharpe_p": 0.862,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": -0.19764610615304434,
+     "maxdd_ci": [
+      -0.2838671238549912,
+      0.6324437411886409
+     ],
+     "maxdd_p": 0.572,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "IMPROVED",
+      "p": 0.0049,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.1106,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 557,
+     "trailing_stop_loss": 151,
+     "unclog_12h": 165,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    },
+    "exits_ctl": {
+     "take_profit": 557,
+     "trailing_stop_loss": 151,
+     "unclog_12h": 165,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    }
+   },
+   "decision": "PASS",
+   "also": {}
+  },
+  "tr_long": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 596,
+     "late": 381
+    },
+    "trades": 977
+   },
+   "alone": {
+    "verdict": "PASS",
+    "early_pp": 21.392,
+    "late_pp": 10.642,
+    "trades": 977,
+    "ci_mean_pp": [
+     0.36352018234729494,
+     0.9065129814087807
+    ]
+   },
+   "decision": "PASS"
+  },
+  "tr_exit": {
+   "instrument": {
+    "pass": true,
+    "folds_missing": [],
+    "trades_by_half": {
+     "early": 453,
+     "late": 560
+    },
+    "trades": 1013
+   },
+   "alone": {
+    "arm": "tr_exit",
+    "control": "cs_aro",
+    "verdict": "FAIL",
+    "failed": [
+     "early gain",
+     "late gain",
+     "paired",
+     "risk"
+    ],
+    "arm_trades": 1013,
+    "ctl_trades": 930,
+    "arm_pp": 43.748,
+    "ctl_pp": 59.949,
+    "early_gain_pp": -8.916,
+    "late_gain_pp": -7.285,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "WORSENED",
+     "delta_pp": -16.19700477970466,
+     "ci_pp_yr": [
+      -8.511666212674497,
+      -0.8922055182216927
+     ],
+     "p": 0.0119
+    },
+    "risk": {
+     "days": 1343,
+     "arm": {
+      "sharpe": 1.9884258792211345,
+      "maxdd": 6.307177479753692,
+      "daily_sd": 0.312981895330079
+     },
+     "ctl": {
+      "sharpe": 2.588177302461619,
+      "maxdd": 4.489445186897925,
+      "daily_sd": 0.3295022150154822
+     },
+     "sharpe_delta": -0.5997514232404844,
+     "sharpe_ci": [
+      -1.2532166197466952,
+      -0.05442124348678921
+     ],
+     "sharpe_p": 0.021,
+     "verdict_sharpe": "WORSENED",
+     "maxdd_delta": 1.8177322928557675,
+     "maxdd_ci": [
+      -0.8239170208829945,
+      4.406494666348389
+     ],
+     "maxdd_p": 0.48,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "WORSENED",
+      "p": 0.0013,
+      "risk": [
+       "WORSENED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "UNCHANGED",
+      "p": 0.2518,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "take_profit": 506,
+     "tr_exit": 258,
+     "trailing_stop_loss": 82,
+     "unclog_12h": 123,
+     "roi": 15,
+     "unclog_1d": 10,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 1
+    },
+    "exits_ctl": {
+     "take_profit": 557,
+     "trailing_stop_loss": 151,
+     "unclog_12h": 165,
+     "unclog_1d": 19,
+     "roi": 18,
+     "force_exit": 5,
+     "stop_loss": 13,
+     "metric_overbought": 2
+    }
+   },
+   "decision": "FAIL",
+   "also": {}
+  }
+ }
+}

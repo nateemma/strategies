@@ -268,8 +268,47 @@ def transition() -> dict:
     return out
 
 
+def transition_seed(arms: list[str], rs: int) -> dict:
+    """The pre-registered seed rerun of passing transition arms: the same arm on the stand-in re-fit at
+    random_state `rs` (tables in nnmt_transition_rs<rs>/, from `transition.py screen --random-state rs`),
+    as `<arm>_rs<rs>` with fold classes `<ARM>_RS<rs>_fNN`."""
+    out = {}
+    head = HEADER.format(stage="transition seed rerun", what="{what}")
+    decl = f'    TR_TABLES = TABLES.parent / "nnmt_transition_rs{rs}"\n'
+    for arm in arms:
+        what = f"{TRANSITION[arm][2]} -- stand-in re-fit at random_state {rs}"
+        tag, sfx = f"{arm}_rs{rs}", f"_RS{rs}"
+        if arm == "tr_long":
+            src, name = "SimpleTrigger_TR_LONG", f"SimpleTrigger_TR_LONG{sfx}"
+            (ST_DIR / f"{name}.py").write_text(
+                head.format(what=what) + "sys.path.append(str(Path(__file__).parent.parent))\n"
+                f"\nfrom _transition_signal import TABLES\nfrom {src} import {src}\n\n\nclass {name}({src}):\n{decl}")
+            for f in json.loads((FOLDS / "plan_st_g24_rev.json").read_text())["folds"]:
+                fc = f"TR_LONG{sfx}_{f['fold_id']}"
+                (ST_DIR / f"{fc}.py").write_text(
+                    head.format(what=f"{what} -- fold {f['fold_id']}") + f"\nfrom {name} import {name}\n\n\n"
+                    f"class {fc}({name}):\n    pass\n")
+            out[tag] = str(_derived_plan("st_g24_rev", tag, name, what,
+                                         lambda fid: f"TR_LONG{sfx}_{fid}").relative_to(STRAT))
+            continue
+        src, name = f"NNNC_{arm.upper()}", f"NNNC_{arm.upper()}{sfx}"
+        (STRAT / "NNNC" / f"{name}.py").write_text(
+            head.format(what=what) + f"\nfrom _transition_signal import TABLES\nfrom {src} import {src}\n"
+            f"\n\nclass {name}({src}):\n{decl}")
+        if key_of(name) != key_of("NNNC_CS_ARO"):
+            raise SystemExit(f"REFUSED: {name} does not reuse NNNC_CS_ARO's weights")
+        out[tag] = str(_derived_plan("cs_aro", tag, name, what,
+                                     lambda fid, a=arm: f"{a.upper()}{sfx}_{fid}").relative_to(STRAT))
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
-    stage = (argv or sys.argv[1:] or ["models"])[0]
+    args = argv or sys.argv[1:] or ["models"]
+    stage = args[0]
+    if stage == "transition-seed":
+        transition_seed(args[1].split(","), int(args[2]))
+        return 0
     {"models": models, "framework": framework, "heads": heads, "regime": regime,
      "transition": transition}[stage]()
     return 0

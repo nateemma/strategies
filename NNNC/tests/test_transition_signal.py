@@ -19,7 +19,7 @@ def tables(tmp_path, monkeypatch):
     test = pd.DataFrame({"date": DATES[:5], "pair": "A/USDT", "part": "test", "p": [0.1, 0.95, 0.5, 0.85, 0.99]})
     t = pd.concat([tail.assign(cell=c) for c in ("up_x", "down_x")] + [test.assign(cell=c) for c in ("up_x", "down_x")])
     t.to_parquet(tmp_path / "pred_f03.parquet")
-    monkeypatch.setattr(TS, "TABLES", tmp_path)
+    monkeypatch.setattr(TS.TransitionSignalMixin, "TR_TABLES", tmp_path)
     return tmp_path
 
 
@@ -75,3 +75,12 @@ def test_long_entries_at_p99(tables):
 def test_fold_id_from_class_name(tables):
     with pytest.raises(ValueError):
         type("NoFold", (TS.TrGateMixin, _Book), {})()._tr_fold()
+
+
+def test_tr_tables_redirects_to_the_seed_rerun_tables(tables, tmp_path_factory):
+    rs1 = tmp_path_factory.mktemp("rs1")
+    t = pd.read_parquet(tables / "pred_f03.parquet")
+    t.assign(p=1.0 - t["p"]).to_parquet(rs1 / "pred_f03.parquet")
+    a, b = _cls(TS.TrGateMixin), _cls(TS.TrGateMixin, TR_TABLES=rs1)
+    pa, pb = a._tr_p("down_x", "A/USDT", DATES[:5]), b._tr_p("down_x", "A/USDT", DATES[:5])
+    np.testing.assert_allclose(pb, 1.0 - pa)

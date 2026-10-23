@@ -34,7 +34,8 @@ TABLES = Path(__file__).resolve().parents[2] / "data" / "nnmt_transition"
 class TransitionSignalMixin:
     TR_UP_CELL = None
     TR_DOWN_CELL = None
-    MODEL_KEY_IGNORED = ("TR_UP_CELL", "TR_DOWN_CELL", "TR_GATE_Q", "TR_SCALE_Q", "TR_SCALE_WEIGHTS",
+    TR_TABLES = TABLES  # the seed-2 arms point at nnmt_transition_rs1/
+    MODEL_KEY_IGNORED = ("TR_UP_CELL", "TR_DOWN_CELL", "TR_TABLES", "TR_GATE_Q", "TR_SCALE_Q", "TR_SCALE_WEIGHTS",
                          "TR_EXIT_Q", "TR_LONG_Q")
     MODEL_KEY_METHODS_IGNORED = ("_tr_fold", "_tr_cell", "_tr_threshold", "_tr_p", "_tr_fires")
 
@@ -47,7 +48,7 @@ class TransitionSignalMixin:
     def _tr_cell(self, cell: str) -> pd.DataFrame:
         cache = self.__dict__.setdefault("_tr_cache", {})
         if cell not in cache:
-            t = pd.read_parquet(TABLES / f"pred_{self._tr_fold()}.parquet")
+            t = pd.read_parquet(Path(self.TR_TABLES) / f"pred_{self._tr_fold()}.parquet")
             t = t[t["cell"] == cell]
             if t.empty:
                 raise ValueError(f"{type(self).__name__}: no predictions for cell {cell!r}")

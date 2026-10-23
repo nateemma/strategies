@@ -262,10 +262,14 @@ def _features(pair: str, pr: dict, btc: pd.DataFrame) -> pd.DataFrame:
     return X
 
 
-def screen_fold(fid: str) -> Path:
+def screen_fold(fid: str, random_state: int | None = None) -> Path:
+    """`random_state` re-fits the stand-in at another seed (the pre-registered seed-2 rerun) and writes its
+    tables to nnmt_transition_rs<N>/, leaving the seed-1 tables untouched."""
     from sklearn.ensemble import HistGradientBoostingClassifier
 
     pr = _pr()
+    hgb = pr["stand_in"]["hgb"] if random_state is None else {**pr["stand_in"]["hgb"], "random_state": random_state}
+    out_dir = OUT if random_state is None else OUT.parent / f"nnmt_transition_rs{random_state}"
     f = next(x for x in _folds() if x["fold_id"] == fid)
     lab = pd.read_parquet(OUT / "labels.parquet")
     btc_cols = ["close", *[c[4:] for c in stand_in_columns(pr) if c.startswith("btc:")]]
@@ -289,7 +293,7 @@ def screen_fold(fid: str) -> Path:
                 y = t.loc[m, col].to_numpy() > 0.5
                 if y.all() or not y.any():
                     continue
-                clf = HistGradientBoostingClassifier(**pr["stand_in"]["hgb"])
+                clf = HistGradientBoostingClassifier(**hgb)
                 clf.fit(t.loc[m, feats].to_numpy(np.float32), y)
                 for part, mask in (("tail", tail), ("test", test)):
                     g = t.loc[mask, ["date", "pair"]].copy()
@@ -298,8 +302,8 @@ def screen_fold(fid: str) -> Path:
                     g["p"] = clf.predict_proba(t.loc[mask, feats].to_numpy(np.float32))[:, 1]
                     rows.append(g)
     out = pd.concat(rows, ignore_index=True)
-    OUT.mkdir(parents=True, exist_ok=True)
-    p = OUT / f"pred_{fid}.parquet"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    p = out_dir / f"pred_{fid}.parquet"
     out.to_parquet(p, index=False)
     print(fid, len(out), "rows", flush=True)
     return p
@@ -549,6 +553,7 @@ def main(argv=None) -> int:
     ap.add_argument("--fold")
     ap.add_argument("--models")
     ap.add_argument("--cell")
+    ap.add_argument("--random-state", type=int, help="screen only: re-fit the stand-in at this seed")
     a = ap.parse_args(argv)
     bad = _refusals()
     if bad:
@@ -572,7 +577,10 @@ def main(argv=None) -> int:
         if not (prev.get("truncation") or {}).get("pass"):
             print("REFUSED: the truncation test has not passed")
             return 2
-        (screen_fold if a.step == "screen" else state_screen_fold)(a.fold)
+        if a.step == "screen":
+            screen_fold(a.fold, a.random_state)
+        else:
+            state_screen_fold(a.fold)
         return 0
     if a.step == "state-nn":
         r = state_nn(a.models.split(","), a.cell)
