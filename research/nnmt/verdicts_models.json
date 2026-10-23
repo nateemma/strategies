@@ -610,5 +610,109 @@
    "folds": 15
   }
  },
- "selected": "mt_lr_ri"
+ "selected": "mt_lr_ri",
+ "seed2": {
+  "date": "2026-10-22",
+  "how": "judge_one on the run_folds --seed 2 records (arm tags *_fNN_s2), same pre-registration and maps",
+  "mt_lr_ri_s2_vs_mt_op_s2": {
+   "verdict": "PASS",
+   "decision": "PASS",
+   "failed": [],
+   "arm_pp": 13.754,
+   "ctl_pp": 10.041999999999998,
+   "early_gain_pp": 3.0770000000000017,
+   "late_gain_pp": 0.634999999999998,
+   "arm_trades": 10623,
+   "ctl_trades": 10551,
+   "folds_changed": 15,
+   "paired": {
+    "verdict": "UNCHANGED",
+    "delta_pp": 3.7114014530745294,
+    "ci_pp_yr": [
+     -2.6922153528188844,
+     4.645586833366461
+    ],
+    "p": 0.5964
+   },
+   "risk": {
+    "days": 1346,
+    "arm": {
+     "sharpe": 0.3080497691476771,
+     "maxdd": 31.977757043171245,
+     "daily_sd": 0.6337376435682202
+    },
+    "ctl": {
+     "sharpe": 0.22561641341317915,
+     "maxdd": 33.498053645240255,
+     "daily_sd": 0.6317582155999182
+    },
+    "sharpe_delta": 0.08243335573449798,
+    "sharpe_ci": [
+     -0.1426319332537565,
+     0.2845587472886816
+    ],
+    "sharpe_p": 0.442,
+    "verdict_sharpe": "UNCHANGED",
+    "maxdd_delta": -1.5202966020690099,
+    "maxdd_ci": [
+     -7.973599625537487,
+     3.327328493786191
+    ],
+    "maxdd_p": 0.62,
+    "verdict_maxdd": "UNCHANGED"
+   }
+  },
+  "mt_op_s2_vs_mt_fw0": {
+   "verdict": "FAIL",
+   "decision": "FAIL",
+   "failed": [
+    "late gain",
+    "risk"
+   ],
+   "arm_pp": 10.041999999999998,
+   "ctl_pp": 20.995,
+   "early_gain_pp": 17.232,
+   "late_gain_pp": -28.185000000000002,
+   "arm_trades": 10551,
+   "ctl_trades": 795,
+   "folds_changed": 15,
+   "paired": {
+    "verdict": "UNCHANGED",
+    "delta_pp": -10.953936779892839,
+    "ci_pp_yr": [
+     -12.143692897353747,
+     6.083751883120231
+    ],
+    "p": 0.5149
+   },
+   "risk": {
+    "days": 1346,
+    "arm": {
+     "sharpe": 0.22561641341317915,
+     "maxdd": 33.498053645240255,
+     "daily_sd": 0.6317582155999182
+    },
+    "ctl": {
+     "sharpe": 1.264990042121298,
+     "maxdd": 4.5287373095657735,
+     "daily_sd": 0.23557551244789537
+    },
+    "sharpe_delta": -1.039373628708119,
+    "sharpe_ci": [
+     -2.171672462059182,
+     0.08448271449110462
+    ],
+    "sharpe_p": 0.067,
+    "verdict_sharpe": "UNCHANGED",
+    "maxdd_delta": 28.96931633567448,
+    "maxdd_ci": [
+     6.103437007688662,
+     43.816563744330445
+    ],
+    "maxdd_p": 0.001,
+    "verdict_maxdd": "WORSENED"
+   }
+  },
+  "selection_confirmed": "mt_lr_ri"
+ }
 }

@@ -86,6 +86,18 @@ All arms at the operating point, 15 folds, model share 0.84 for every arm.
 (+0.93 pp over 15 folds, CI [−3.5, +4.1] pp/yr; Sharpe and maxDD UNCHANGED), which is what the seed-2 rule is
 for: seed 2 of `mt_lr_ri` and `mt_op` started 2026-10-22 01:23.
 
+**Seed 2 (finished 2026-10-22 21:18; `verdicts_models.json` → `seed2`): selection CONFIRMED.**
+
+| seed | `mt_lr_ri` | `mt_op` | gain (early / late) | paired | Sharpe / maxDD |
+|---|---|---|---|---|---|
+| 1 | 9.48 | 8.55 | +0.93 (+0.25 / +0.68) | UNCHANGED, CI [−3.5, +4.1], p 0.89 | UNCHANGED |
+| 2 | 13.75 | 10.04 | +3.71 (+3.08 / +0.63) | UNCHANGED, CI [−2.7, +4.6], p 0.60 | UNCHANGED (0.31 vs 0.23; 32.0 vs 33.5 %) |
+
+`mt_lr_ri` beats `mt_op` in both halves on both seeds; seed 2's gain clears the 1 pp seed rule, so it PASSES
+and stays `<M>`. The difference is not significant on either seed (paired UNCHANGED): "no worse, consistently
+slightly better", not a demonstrated improvement. `mt_op` seed 2 vs `mt_fw0` FAILs again (late −28.2 pp, risk),
+so the late loss of the operating point replicates.
+
 **Reading:** with indicators in the input, the network barely matters (three designs within 1.2 pp). Raw-only
 inputs lose ~19-21 pp early. Every variant keeps the operating point's late loss (≈ −18 pp), so the late
 failure in §3 belongs to the operating point, not the network.
