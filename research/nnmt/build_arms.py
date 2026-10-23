@@ -202,6 +202,35 @@ def regime() -> dict:
     return out
 
 
+def trh() -> dict:
+    """T045 (preregistration_transition.json "head_version"): <M>_trh<H> retargets the regime head to the
+    R11 label of each selected cell's (H, level) -- DOWN / NONE / UP, task weight 1, <M>'s other weights.
+    One model per distinct (H, level): the selected UP and DOWN cells may differ in horizon."""
+    tag, base = selected()
+    sel = json.loads((HERE / "screens_transition.json").read_text())["selected"]
+    cells = sorted({tuple(c.split("_")[1:]) for c in sel.values() if c}, key=lambda x: int(x[1]))
+    out = {"selected": tag, "base": base, "cells": sel, "arms": {}}
+    for level, H in cells:
+        if level != "pair":
+            raise SystemExit(f"REFUSED: only the pair level is wired (cell {level}_{H})")
+        name = f"{base}_TRH{H}"
+        what = f"regime head retargeted to the H={H} pair transition label (DOWN/NONE/UP), weight 1"
+        (FAMILY_DIR / f"{name}.py").write_text(
+            HEADER.format(stage="transition head", what=what) + "from _transition import TransitionHeadMixin\n"
+            f"\nfrom {base} import {base}\n\n\nclass {name}(TransitionHeadMixin, {base}):\n"
+            f"    REGIME_STATE_H = {int(H)}\n    REGIME_STATE_LEVEL = \"pair\"\n"
+            f"    _CLASSIFIER_TASK_WEIGHTS = {{**{base}._CLASSIFIER_TASK_WEIGHTS, \"regime\": 1.0}}\n")
+        arm = f"{tag}_trh{H}"
+        plan(arm, name, f"T045 transition head: {what}")
+        out["arms"][arm] = name
+    others = [c for c in (f"{base}_RGM",) if (FAMILY_DIR / f"{c}.py").exists()]
+    keys = {c: key_of(c) for c in [base, *others, *out["arms"].values()]}
+    if len(set(keys.values())) != len(keys):
+        raise SystemExit(f"REFUSED: transition-head classes share model keys: {keys}")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 #: transition stage (T044; preregistration_transition.json "arms"): arm -> (mixin, needs, what)
 TRANSITION = {
     "tr_gate": ("TrGateMixin", ("down",), "cs_aro's book skips an entry while P(DOWN) >= tail p80"),
@@ -310,7 +339,7 @@ def main(argv=None) -> int:
         transition_seed(args[1].split(","), int(args[2]), *(args[3:4] or []))
         return 0
     {"models": models, "framework": framework, "heads": heads, "regime": regime,
-     "transition": transition}[stage]()
+     "transition": transition, "trh": trh}[stage]()
     return 0
 
 
