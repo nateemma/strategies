@@ -271,7 +271,7 @@ def screen_fold(fid: str) -> Path:
     btc_cols = ["close", *[c[4:] for c in stand_in_columns(pr) if c.startswith("btc:")]]
     btc = _read("BTC/USDT", btc_cols).set_index("date")
     X = pd.concat([_features(p, pr, btc).assign(pair=p) for p in _pairs()], ignore_index=True)
-    t = lab.merge(X, on=["date", "pair"], how="left")
+    t = lab.drop(columns=[c for c in X.columns if c in lab.columns and c not in ("date", "pair")]).merge(X, on=["date", "pair"], how="left")
     feats = [c for c in X.columns if c not in ("date", "pair")]
     ts, te = _ts(f["test_start"]), _ts(f["test_end"])
     tail0 = ts - pd.Timedelta(days=pr["stand_in"]["tail_days"])
@@ -388,7 +388,7 @@ def state_screen_fold(fid: str) -> Path:
     btc_cols = ["close", *[c[4:] for c in stand_in_columns(pr) if c.startswith("btc:")]]
     btc = _read("BTC/USDT", btc_cols).set_index("date")
     X = pd.concat([_features(p, pr, btc).assign(pair=p) for p in _pairs()], ignore_index=True)
-    t = lab.merge(X, on=["date", "pair"], how="left")
+    t = lab.drop(columns=[c for c in X.columns if c in lab.columns and c not in ("date", "pair")]).merge(X, on=["date", "pair"], how="left")
     feats = [c for c in X.columns if c not in ("date", "pair")]
     ts, te = _ts(f["test_start"]), _ts(f["test_end"])
     tail0 = ts - pd.Timedelta(days=pr["stand_in"]["tail_days"])
