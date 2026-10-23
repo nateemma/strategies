@@ -17,6 +17,11 @@ Reported, raw vs filtered, per head and half: one-vs-rest AUC per class (trading
 and flicker = changes per pair-day of the argmax class (trading: of p_buy >= the operating threshold 0.80),
 plus the flagged share / precision / recall at 0.80 and 0.90.
 
+"tempered" (fix 1): the same filter with the likelihood raised to 1 / n_eff, n_eff = (1 + rho) / (1 - rho) the
+AR(1) decorrelation length of the head's own log-probabilities (lag-1 autocorrelation, mean over classes, per
+pair, trailing 30 days ending at the previous bar; no labels; the first 20 bars pass raw). Consecutive LSTM
+outputs share almost their whole input window, so the plain filter counts one observation many times.
+
     PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.markov_filter --models mt_lr_ri,mt_lr_ri_ah
 """
 from __future__ import annotations
@@ -39,6 +44,7 @@ HEADS = ["regime", "risk", "momentum", "flow", "profit"]
 BAR = pd.Timedelta(minutes=15)
 LOOKAHEAD_BARS = 192  # >= every auxiliary/trading label's future reach (regime: centred 200 + 5 shift; gbb h48)
 OP_THRESHOLD, THRESHOLDS = 0.80, [0.8, 0.9]
+NEFF_WINDOW, NEFF_MIN, RHO_MAX = 2880, 20, 0.999  # 30 days trailing; tempering: gamma = 1 / n_eff
 EPS = 1e-6
 
 
@@ -59,20 +65,32 @@ def transition_matrix(seqs: list[np.ndarray], k: int) -> tuple[np.ndarray, np.nd
     return T, pi
 
 
-def forward_filter(p: np.ndarray, T: np.ndarray, pi: np.ndarray) -> np.ndarray:
-    """Causal forward filter of an (n, k) posterior sequence; NaN rows pass the prediction step only."""
+def forward_filter(p: np.ndarray, T: np.ndarray, pi: np.ndarray, gamma: np.ndarray | None = None) -> np.ndarray:
+    """Causal forward filter of an (n, k) posterior sequence; NaN rows pass the prediction step only.
+    gamma (per bar, default 1) tempers the likelihood: (p_t / pi) ** gamma_t; a NaN gamma passes p_t raw."""
     p = np.asarray(p, float)
+    g = np.ones(len(p)) if gamma is None else np.asarray(gamma, float)
     out = np.full_like(p, np.nan)
     f = pi.copy()
     for t in range(len(p)):
         prior = f @ T
         if np.isfinite(p[t]).all():
-            f = np.clip(p[t], EPS, None) / pi * prior
+            pt = np.clip(p[t], EPS, None)
+            f = pt / pt.sum() if not np.isfinite(g[t]) else (pt / pi) ** g[t] * prior
             f /= f.sum()
             out[t] = f
         else:
             f = prior
     return out
+
+
+def n_eff_series(p: np.ndarray, window: int = NEFF_WINDOW, min_periods: int = NEFF_MIN) -> np.ndarray:
+    """Causal decorrelation length per bar: (1 + rho) / (1 - rho), rho = the lag-1 autocorrelation of
+    log p (mean over classes) on the trailing window ENDING AT THE PREVIOUS BAR; NaN before min_periods."""
+    lp = pd.DataFrame(np.log(np.clip(np.asarray(p, float), EPS, None)))
+    rho = pd.concat([lp[c].rolling(window, min_periods=min_periods).corr(lp[c].shift(1)) for c in lp], axis=1)
+    rho = rho.mean(axis=1).shift(1).clip(0.0, RHO_MAX).to_numpy()
+    return (1.0 + rho) / (1.0 - rho)
 
 
 def _flicker(state: pd.Series, g: pd.DataFrame) -> float:
@@ -108,7 +126,7 @@ def _seq(x: pd.Series) -> np.ndarray:
 def run_model(tag: str, halves: dict) -> dict:
     folds = json.loads((STRAT / "evaluation" / "folds" / f"plan_{tag}.json").read_text())["folds"]
     lab = _labels(tag, folds)
-    scored, Ts = [], {}
+    scored, Ts, neff = [], {}, {}
     for f in folds:
         t = pd.read_parquet(SIG / f"{tag.upper()}_{f['fold_id']}.parquet")
         t["date"] = pd.to_datetime(t["date"], utc=True)
@@ -131,15 +149,20 @@ def run_model(tag: str, halves: dict) -> dict:
                 p = g[cols].to_numpy(float)
                 if head == "trading":
                     p = np.column_stack([1.0 - p[:, 0], p[:, 0]])
-                    t.loc[g.index, "f_buy"] = forward_filter(p, T, pi)[:, 1]
+                gamma = 1.0 / n_eff_series(p)
+                ff, tf = forward_filter(p, T, pi), forward_filter(p, T, pi, gamma)
+                if head == "trading":
+                    t.loc[g.index, "f_buy"], t.loc[g.index, "g_buy"] = ff[:, 1], tf[:, 1]
+                    neff.setdefault(head, []).extend(1.0 / gamma[np.isfinite(gamma)])
                 else:
-                    ff = forward_filter(p, T, pi)
                     for j, c in enumerate(cols):
-                        t.loc[g.index, "f" + c[1:]] = ff[:, j]
+                        t.loc[g.index, "f" + c[1:]], t.loc[g.index, "g" + c[1:]] = ff[:, j], tf[:, j]
+                    neff.setdefault(head, []).extend(1.0 / gamma[np.isfinite(gamma)])
         scored.append(t.assign(fold=f["fold_id"]))
     t = pd.concat(scored, ignore_index=True)
     t = t[t["volume"] > 0]
-    out = {"heads": {}, "trading": {}, "transition": Ts}
+    out = {"heads": {}, "trading": {}, "transition": Ts,
+           "n_eff": {h: {q: round(float(np.percentile(v, q)), 1) for q in (10, 50, 90)} for h, v in neff.items()}}
     for head in HEADS:
         cols = [c for c in t.columns if c.startswith(f"p_{head}_")]
         r = {}
@@ -148,23 +171,28 @@ def run_model(tag: str, halves: dict) -> dict:
             auc = {}
             for j, c in enumerate(cols):
                 y = (h[f"lab_{head}"] == j).astype(float)
-                a, b = _auc(h[c], y), _auc(h["f" + c[1:]], y)
-                auc[c[len(f"p_{head}_"):]] = {"raw": a, "filtered": b, "delta": None if a is None or b is None else b - a}
+                a, b, d = _auc(h[c], y), _auc(h["f" + c[1:]], y), _auc(h["g" + c[1:]], y)
+                auc[c[len(f"p_{head}_"):]] = {"raw": a, "filtered": b, "tempered": d,
+                                              "delta": None if a is None or b is None else b - a,
+                                              "delta_tempered": None if a is None or d is None else d - a}
             raw_s = pd.Series(np.argmax(h[cols].to_numpy(float), axis=1), index=h.index)
             fil_s = pd.Series(np.argmax(np.nan_to_num(h[["f" + c[1:] for c in cols]].to_numpy(float), nan=-1), axis=1),
                               index=h.index)
-            r[half] = {"auc": auc, "flicker_per_pair_day": {"raw": _flicker(raw_s, h), "filtered": _flicker(fil_s, h)}}
+            tem_s = pd.Series(np.argmax(np.nan_to_num(h[["g" + c[1:] for c in cols]].to_numpy(float), nan=-1), axis=1),
+                              index=h.index)
+            r[half] = {"auc": auc, "flicker_per_pair_day": {"raw": _flicker(raw_s, h), "filtered": _flicker(fil_s, h),
+                                                            "tempered": _flicker(tem_s, h)}}
         out["heads"][head] = r
     for half, fl in halves.items():
         h = t[t["fold"].isin(fl) & t["lab_trading"].notna()]
         for pop, g in (("all", h), ("candidate", h[h["base:gbb_candidate"] > 0.5])):
             y = g["lab_trading"]
             out["trading"][f"{half}/{pop}"] = {
-                "auc": {"raw": _auc(g["p_buy"], y), "filtered": _auc(g["f_buy"], y)},
+                "auc": {"raw": _auc(g["p_buy"], y), "filtered": _auc(g["f_buy"], y), "tempered": _auc(g["g_buy"], y)},
                 "flicker_per_pair_day": {k: _flicker((g[c] >= OP_THRESHOLD).astype(int), g)
-                                         for k, c in (("raw", "p_buy"), ("filtered", "f_buy"))},
-                "by_threshold": {"raw": precision_recall(g["p_buy"], y, THRESHOLDS),
-                                 "filtered": precision_recall(g["f_buy"], y, THRESHOLDS)}}
+                                         for k, c in (("raw", "p_buy"), ("filtered", "f_buy"), ("tempered", "g_buy"))},
+                "by_threshold": {k: precision_recall(g[c], y, THRESHOLDS)
+                                 for k, c in (("raw", "p_buy"), ("filtered", "f_buy"), ("tempered", "g_buy"))}}
     return out
 
 

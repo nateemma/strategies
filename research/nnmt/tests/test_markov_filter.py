@@ -37,3 +37,28 @@ def test_transition_matrix_ignores_unknown_and_pair_boundaries():
     # transitions: 0->0, 0->1 (pair 1; 1->-1 and -1->1 dropped), 1->1 (pair 2); never pair1 end -> pair2 start
     np.testing.assert_allclose(T, [[0.5, 0.5], [0.0, 1.0]])
     np.testing.assert_allclose(pi, [2 / 6, 4 / 6])
+
+
+def test_gamma_one_matches_plain_filter():
+    pi = np.array([0.3, 0.7])
+    T = np.array([[0.95, 0.05], [0.02, 0.98]])
+    p = _posteriors(80, 2, seed=2)
+    np.testing.assert_allclose(forward_filter(p, T, pi, np.ones(80)), forward_filter(p, T, pi))
+
+
+def test_nan_gamma_passes_raw_posterior():
+    pi = np.array([0.3, 0.7])
+    T = np.array([[0.95, 0.05], [0.02, 0.98]])
+    p = _posteriors(10, 2, seed=3)
+    np.testing.assert_allclose(forward_filter(p, T, pi, np.full(10, np.nan)), p)
+
+
+def test_n_eff_is_causal_and_large_for_smooth_series():
+    from research.nnmt.markov_filter import n_eff_series
+
+    x = np.cumsum(np.random.default_rng(4).normal(size=400)) * 0.01
+    s = 1 / (1 + np.exp(-x))
+    p = np.column_stack([s, 1 - s])
+    full = n_eff_series(p)
+    np.testing.assert_allclose(n_eff_series(p[:250]), full[:250])
+    assert np.isnan(full[:20]).all() and np.nanmedian(full) > 10
