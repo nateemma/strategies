@@ -187,7 +187,7 @@ outputs, and has a distinct model key.
 
 **Independent test**: `screens_heads.json` has both screens for all five heads in both halves.
 
-- [ ] T035 [US5] `build_arms heads-model` writes `<M>_ah` (all auxiliary weights 1). Run 15 trainings and `signals --models <M>_ah`. Report its trading head against `<M>` (side check, not a verdict)
+- [X] T035 [US5] (DONE 2026-10-23: 15 folds + signals; trained regime/profit heads 0.83/0.76 AUC vs untrained 0.64/0.33; trading head ≈ <M>; P&L side check not yet run)  `build_arms heads-model` writes `<M>_ah` (all auxiliary weights 1). Run 15 trainings and `signals --models <M>_ah`. Report its trading head against `<M>` (side check, not a verdict)
 - [X] T036 [P] [US5] Write `research/nnmt/head_screen.py`:
   - recompute each auxiliary label (the strategy's own target functions on the test windows);
   - compute each head's causal baseline: the same state from a TRAILING window of equal length ending at t (regime: close vs a trailing 200-bar mean ±1.5%; risk: a trailing 50-bar mean of atr_norm; flow and momentum: trailing 24-bar means; profit: the trailing 8-bar realised outcome sign);
@@ -200,7 +200,7 @@ outputs, and has a distinct model key.
   - every trailing baseline is causal (a truncation test);
   - on a synthetic series where the head equals the label, the margin is > 0;
   - where the head equals the trailing state, the margin is about 0
-- [ ] T038 [US5] Run `head_screen`. For each passing head:
+- [X] T038 [US5] (DONE 2026-10-23: skill PASS all 5, relevance FAIL all 5 -> no head arms)  Run `head_screen`. For each passing head:
   - `research.nnmt.build_arms heads tail` writes the out-of-sample tail tables (`user_data/data/nnmt_heads/tail_<M>_ah_fNN.parquet`: the fold strategy over its `TRAIN_DATA_SPLIT` holdout, as 039's `mix.py tables`);
   - `build_arms heads` writes its R10 arm (`hd_<head>`, a table-reading mixin on the declared book, percentiles from the tail tables).
 
@@ -237,7 +237,7 @@ outputs, and has a distinct model key.
   - a label is NaN within H of the data end;
   - the base rate of a pure random walk is symmetric (UP ≈ DOWN)
 - [X] T042 [US6] Run `transition labels` and `transition causality` (it must PASS before T043). Write base rates into `report.md` §6 — DONE 2026-10-23: causality PASS (288 + 288 comparisons, 32/32 inputs PASS); base rates in §6
-- [ ] T043 [US6] `transition screen --fold fNN` for f00–f14, one process per fold, sequential, never alongside an MLX chain:
+- [X] T043 [US6] (DONE 2026-10-23: PASS up_pair_96 and down_pair_672; selected up=up_pair_96, down=down_pair_672)  `transition screen --fold fNN` for f00–f14, one process per fold, sequential, never alongside an MLX chain:
   - inputs come from 037's panel (`base:*`, `raw8:*`, tradeable rows) plus BTC's raw8 and z;
   - per-fold HGB one-vs-rest per direction and cell, fit on the training window minus its last 90 days (purge H);
   - writes prediction tables for that held-out tail (threshold source) and for the test window. Then `transition judge`: AUCs, baselines, events, the proxy, pass, and the selected cell per direction to `screens_transition.json`
@@ -248,7 +248,7 @@ outputs, and has a distinct model key.
 ### Regime-state amendment (user request 2026-10-22; `research/nnmt/preregistration_regime_state.json`)
 
 - [X] T056 [US6] Pre-register the future-state target Y = S_H(t+H) (3 classes, 6 cells), its Markov / trailing-z baselines, the stand-in, the two NN models (`<M>_rg` regime-only, `<M>_rgm` multi-task), the shared-vs-separate comparison and the arms (`rs_gate`, `rs_scale`, `{M}_rgm`). COMMITTED before any label is built
-- [ ] T057 [US6] `transition.py state-screen --fold fNN` (f00–f14, after T042's causality PASS): multiclass HGB stand-in, both baselines fit on the fold's fit rows, `screens_regime_state.json`; then `state-judge` applies the screen rule and selection. Tests first: the Markov baseline uses only fit rows; Y is NaN within H of the end; the target never enters the inputs
+- [X] T057 [US6] (DONE 2026-10-23: no cell passes -- best margins <= +0.04; fallback cell pair_288, NN descriptive only, no rs_gate/rs_scale)  `transition.py state-screen --fold fNN` (f00–f14, after T042's causality PASS): multiclass HGB stand-in, both baselines fit on the fold's fit rows, `screens_regime_state.json`; then `state-judge` applies the screen rule and selection. Tests first: the Markov baseline uses only fit rows; Y is NaN within H of the end; the target never enters the inputs
 - [ ] T058 [US6] `NNMT/_regime_state.py` mixin (regime head label = Y for the selected or fallback cell, masked beyond the training range) and the classes `<M>_rg` / `<M>_rgm` with merged task weights; a test that both get new model keys and that no regime label reads a bar after `train_timerange`. 30 trainings, sequential, after the seed-2 chain and T035; `signals`; screen both on the cell; write shared-vs-separate
 - [ ] T059 [US6] Arms per the pre-registration: `rs_gate` / `rs_scale` only for passing classes (tables: stand-in or a qualifying NN); `{M}_rgm` vs `{M}` whenever `<M>_rgm` is trained. `judge` with `judge_one`; seed 2 for any PASS. `verdicts_regime_state.json`, report §7
 
