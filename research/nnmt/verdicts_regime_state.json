@@ -1,0 +1,199 @@
+{
+ "label": "DESCRIPTIVE",
+ "why": "no regime-state cell passed the screen (screens_regime_state.json pass false); the pre-registration nn.cell rule: on the fallback cell (pair_288) the NN results are descriptive only and no arm runs. The {M}_rgm arm text says it runs whenever <M>_rgm is trained; the two clauses conflict, the stricter one is applied, and its number is reported as DESCRIPTIVE (computed from the 15-fold backtests run_folds already made, nothing re-run).",
+ "selected": "mt_lr_ri",
+ "cell": "pair_288",
+ "screen_nn": {
+  "MT_LR_RI_RG": {
+   "BULL": {
+    "pass": false,
+    "early": {
+     "auc": 0.5378550761385886,
+     "trailing_z_auc": 0.5377276530685672,
+     "markov_auc": 0.4947549796438767,
+     "margin": 0.00012742307002144848,
+     "events": 3999
+    },
+    "late": {
+     "auc": 0.5132740181042953,
+     "trailing_z_auc": 0.5155107266373353,
+     "markov_auc": 0.4898440392765472,
+     "margin": -0.0022367085330400327,
+     "events": 2865
+    }
+   },
+   "BEAR": {
+    "pass": false,
+    "early": {
+     "auc": 0.5218572770108828,
+     "trailing_z_auc": 0.48708364232468665,
+     "markov_auc": 0.492012920001041,
+     "margin": 0.021857277010882803,
+     "events": 3712
+    },
+    "late": {
+     "auc": 0.5129588167706404,
+     "trailing_z_auc": 0.4574363728814375,
+     "markov_auc": 0.46799616839072317,
+     "margin": 0.012958816770640369,
+     "events": 3462
+    }
+   }
+  },
+  "MT_LR_RI_RGM": {
+   "BULL": {
+    "pass": false,
+    "early": {
+     "auc": 0.5350959852706345,
+     "trailing_z_auc": 0.5377276530685672,
+     "markov_auc": 0.4947549796438767,
+     "margin": -0.0026316677979326686,
+     "events": 3999
+    },
+    "late": {
+     "auc": 0.5189688221442902,
+     "trailing_z_auc": 0.5155107266373353,
+     "markov_auc": 0.4898440392765472,
+     "margin": 0.0034580955069548613,
+     "events": 2865
+    }
+   },
+   "BEAR": {
+    "pass": false,
+    "early": {
+     "auc": 0.5185748279742082,
+     "trailing_z_auc": 0.48708364232468665,
+     "markov_auc": 0.492012920001041,
+     "margin": 0.018574827974208175,
+     "events": 3712
+    },
+    "late": {
+     "auc": 0.47217990347181255,
+     "trailing_z_auc": 0.4574363728814375,
+     "markov_auc": 0.46799616839072317,
+     "margin": -0.027820096528187455,
+     "events": 3462
+    }
+   }
+  }
+ },
+ "shared_vs_separate": {
+  "BULL": {
+   "delta_auc": {
+    "early": -0.002759090867954117,
+    "late": 0.005694804039994894
+   },
+   "verdict": "no difference"
+  },
+  "BEAR": {
+   "delta_auc": {
+    "early": -0.0032824490366746284,
+    "late": -0.040778913298827824
+   },
+   "verdict": "no difference"
+  }
+ },
+ "replaces_stand_in": "n/a (no passing cell, no arms)",
+ "arms": {
+  "rs_gate": {
+   "decision": "not run: no passing BEAR cell (a recorded result)"
+  },
+  "rs_scale": {
+   "decision": "not run: no passing BULL or BEAR cell (a recorded result)"
+  },
+  "mt_lr_ri_rgm": {
+   "decision": "DESCRIPTIVE (fallback cell; would be FAIL under judge_one)",
+   "alone": {
+    "arm": "mt_lr_ri_rgm",
+    "control": "mt_lr_ri",
+    "verdict": "FAIL",
+    "failed": [
+     "late gain"
+    ],
+    "arm_trades": 10949,
+    "ctl_trades": 10813,
+    "arm_pp": 8.866000000000001,
+    "ctl_pp": 9.481000000000002,
+    "early_gain_pp": 0.44200000000000017,
+    "late_gain_pp": -1.0570000000000022,
+    "folds_changed": 15,
+    "paired": {
+     "verdict": "UNCHANGED",
+     "delta_pp": -0.6152378354387347,
+     "ci_pp_yr": [
+      -2.375230381010744,
+      2.0406470094561104
+     ],
+     "p": 0.8754
+    },
+    "risk": {
+     "days": 1346,
+     "arm": {
+      "sharpe": 0.19509699318642595,
+      "maxdd": 31.841971369826773,
+      "daily_sd": 0.6450279344074415
+     },
+     "ctl": {
+      "sharpe": 0.20967461121435774,
+      "maxdd": 30.51100787268441,
+      "daily_sd": 0.6418147186785611
+     },
+     "sharpe_delta": -0.014577618027931782,
+     "sharpe_ci": [
+      -0.11532048894662371,
+      0.0894083983189418
+     ],
+     "sharpe_p": 0.77,
+     "verdict_sharpe": "UNCHANGED",
+     "maxdd_delta": 1.3309634971423634,
+     "maxdd_ci": [
+      -2.307887101825388,
+      3.345225887090809
+     ],
+     "maxdd_p": 0.771,
+     "verdict_maxdd": "UNCHANGED"
+    },
+    "halves": {
+     "early": {
+      "verdict": "UNCHANGED",
+      "p": 0.9067,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     },
+     "late": {
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "p": 0.5204,
+      "risk": [
+       "UNCHANGED",
+       "UNCHANGED"
+      ]
+     }
+    },
+    "exits_arm": {
+     "force_exit": 25,
+     "model_exit ": 1475,
+     "roi": 517,
+     "take_profit": 2933,
+     "trailing_stop_loss": 4839,
+     "unclog_12h": 1076,
+     "unclog_1d": 52,
+     "metric_overbought": 9,
+     "stop_loss": 23
+    },
+    "exits_ctl": {
+     "model_exit ": 1441,
+     "roi": 520,
+     "take_profit": 2915,
+     "trailing_stop_loss": 4789,
+     "unclog_12h": 1039,
+     "unclog_1d": 53,
+     "metric_overbought": 8,
+     "stop_loss": 24,
+     "force_exit": 24
+    }
+   }
+  }
+ }
+}
