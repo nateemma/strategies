@@ -8,8 +8,10 @@ every NNMT plan generate the same classes.
   models     plans for mt, mt_fw0, mt_op and the four variants (research R4, R6)
   framework  the R7-selected model's feature arms + trading-head-only twin (research R5, R6)
   heads      <M>_ah: the selected model with every auxiliary head trained (task weight 1; T035)
+  regime     <M>_rg (regime only) and <M>_rgm (multi-task) on the future-state label (T058;
+             preregistration_regime_state.json): the cell from screens_regime_state.json, else the fallback
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads|regime
 """
 from __future__ import annotations
 
@@ -157,9 +159,50 @@ def heads() -> dict:
     return out
 
 
+def regime_cell() -> tuple[str, int, bool]:
+    """(level, H, descriptive): the selected state-screen cell (BEAR first), else the declared fallback."""
+    sc = json.loads((HERE / "screens_regime_state.json").read_text())
+    sel = sc["selected"].get("BEAR") or sc["selected"].get("BULL")
+    if sel:
+        level, H = sel.split(":")[1].split("_")
+        return level, int(H), False
+    fb = json.loads((HERE / "preregistration_regime_state.json").read_text())["nn"]["cell"]
+    assert "H = 288, level pair" in fb, "the declared fallback changed"
+    return "pair", 288, True
+
+
+def regime() -> dict:
+    tag, base = selected()
+    level, H, descriptive = regime_cell()
+    imports = "from _regime_state import RegimeStateMixin\n"
+    cell = f"    REGIME_STATE_H = {H}\n    REGIME_STATE_LEVEL = \"{level}\"\n"
+    arms = {
+        "RG": ("regime-only on the future state S_H(t+H): trading and every other head weight 0, monitor val_regime_mcc",
+               cell + "    _CLASSIFIER_MONITOR_KEY = \"val_regime_mcc\"\n"
+               "    _CLASSIFIER_TASK_WEIGHTS = {{**{base}._CLASSIFIER_TASK_WEIGHTS, \"trading\": 0.0, \"regime\": 1.0,\n"
+               "                                \"risk\": 0.0, \"momentum\": 0.0, \"flow\": 0.0, \"profit\": 0.0}}\n"),
+        "RGM": ("multi-task with the regime head retargeted to the future state S_H(t+H), weight 1",
+                cell + "    _CLASSIFIER_TASK_WEIGHTS = {{**{base}._CLASSIFIER_TASK_WEIGHTS, \"regime\": 1.0}}\n"),
+    }
+    out = {"selected": tag, "base": base, "cell": f"{level}_{H}", "descriptive_only": descriptive, "arms": {}}
+    for suffix, (what, body) in arms.items():
+        name = f"{base}_{suffix}"
+        p = FAMILY_DIR / f"{name}.py"
+        p.write_text(HEADER.format(stage="regime-state", what=what) + imports + f"\nfrom {base} import {base}\n\n\n"
+                     f"class {name}(RegimeStateMixin, {base}):\n" + body.format(base=base))
+        arm = f"{tag}_{suffix.lower()}"
+        plan(arm, name, f"regime-state amendment (preregistration_regime_state.json): {what}")
+        out["arms"][arm] = name
+    keys = {c: key_of(c) for c in [base, *out["arms"].values()]}
+    if len(set(keys.values())) != len(keys):
+        raise SystemExit(f"REFUSED: regime-state classes share model keys: {keys}")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
-    {"models": models, "framework": framework, "heads": heads}[stage]()
+    {"models": models, "framework": framework, "heads": heads, "regime": regime}[stage]()
     return 0
 
 

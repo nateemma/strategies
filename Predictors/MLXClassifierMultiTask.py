@@ -525,6 +525,8 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
         monitor_key = "val_trading_mcc"  # empirical winner — robust to class imbalance and degenerate predictions
+        # 040: a strategy may set clf.monitor_key (e.g. a regime-only model, whose trading head is untrained)
+        monitor_key = getattr(self, "monitor_key", None) or monitor_key
         # 2026-09-08: REVERTED from "val_avg_mcc_x_conf". Both halves of that
         # composite are UNWEIGHTED means over all six heads (_flatten_metrics'
         # val_avg_mcc, and mean_max_prob), while the loss weights them
@@ -652,8 +654,15 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             # Per-task metrics: trading gets the full set, others just MCC.
             per_task_metrics: Dict[str, dict] = {}
             for task in TASK_NAMES:
+                # 040: an all-zero label row is "no label" (zero loss); score the labelled rows only
+                labelled = np.asarray(test_labels_np[task]).sum(axis=-1) > 0
+                if labelled.all():
+                    yt, yp = val_y[task], val_preds[task]
+                else:
+                    ix = mx.array(np.flatnonzero(labelled))
+                    yt, yp = val_y[task][ix], val_preds[task][ix]
                 per_task_metrics[task] = compute_val_metrics(
-                    val_y[task], val_preds[task], target_class=2, num_classes=3
+                    yt, yp, target_class=2, num_classes=3
                 )
 
             # Mean max-class probability across tasks — measures softmax
