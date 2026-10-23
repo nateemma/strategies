@@ -64,3 +64,40 @@ def test_driftless_walk_is_roughly_symmetric():
         ups.append(lab["up"].mean())
         downs.append(lab["down"].mean())
     assert abs(np.mean(ups) - np.mean(downs)) < 0.25 * np.mean(ups + downs)
+
+
+# ---- regime-state amendment (preregistration_regime_state.json; T057)
+
+
+def test_future_state_is_the_state_H_bars_ahead_and_nan_at_the_end():
+    c = _walk()
+    fs = T.future_state(c, H, PR)
+    s = fs["state"].to_numpy()
+    y = fs["fstate"].to_numpy()
+    assert np.isnan(y[-H:]).all()                      # no future end: no label
+    ok = ~np.isnan(y)
+    assert np.array_equal(y[ok], np.roll(s, -H)[ok])   # Y(t) = S(t+H)
+    # the label at t is fixed once t+H is known: a prefix ending at cut reproduces it for t <= cut - H
+    cut = 4000
+    part = T.future_state(c.iloc[: cut + 1], H, PR)["fstate"].to_numpy()
+    k = cut + 1 - H
+    assert T._equal(y[:k], part[:k]) and np.isnan(part[k:]).all()
+
+
+def test_markov_baseline_uses_only_the_fit_rows():
+    cur_fit = np.array([-1, -1, 0, 0, 1, 1, 1, 1.0])
+    fut_fit = np.array([-1, 0, 0, 0, 1, 1, 1, 0.0])
+    ev = np.array([1.0, -1.0, 0.0, np.nan])
+    a = T.markov_scores(cur_fit, fut_fit, ev)
+    assert a["BULL"].tolist()[:3] == [0.75, 0.0, 0.0] and a["BEAR"].tolist()[:3] == [0.0, 0.5, 0.0]
+    # changing the evaluated rows' (unknown) future cannot change their scores: only fit rows enter
+    b = T.markov_scores(cur_fit, fut_fit, ev)
+    pd.testing.assert_frame_equal(a, b)
+    c = T.markov_scores(cur_fit, np.where(cur_fit == 1, 1.0, fut_fit), ev)
+    assert c["BULL"].iloc[0] == 1.0   # the matrix follows the fit rows
+
+
+def test_state_target_never_enters_the_stand_in_inputs():
+    pr = T._pr()
+    cols = T.stand_in_columns(pr)
+    assert not any(k in c for c in cols for k in ("fstate", "state_", "fwd", "up_", "down_"))

@@ -17,8 +17,14 @@ Steps (one process each; the fits never run alongside an MLX trainer):
   judge       AUC vs the base rate and the trailing-trend baseline, events, the P&L proxy, pass, the
               selected cell per direction                                  -> screens_transition.json
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition labels|causality|judge
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition screen --fold f00
+Regime-state amendment (preregistration_regime_state.json): the FUTURE state Y = S_H(t+H), 3 classes.
+  state-screen  --fold fNN: one multiclass HGB per (H, level), same inputs/fit/tail as `screen`, plus the
+                Markov baseline P(Y | S_H(t)) fit on the same rows                -> state_pred_fNN.parquet
+  state-judge   AUC per class (BULL, BEAR) vs max(0.5, Markov, trailing z_H), events, proxy, pass, selection
+                                                                                    -> screens_regime_state.json
+
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition labels|causality|judge|state-judge
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.transition screen|state-screen --fold f00
 """
 from __future__ import annotations
 
@@ -35,6 +41,8 @@ sys.path[:0] = [str(STRAT), str(STRAT / "evaluation")]
 
 HERE = Path(__file__).resolve().parent
 PREREG = HERE / "preregistration_transition.json"
+PREREG_STATE = HERE / "preregistration_regime_state.json"
+CLASSES = {"BEAR": -1.0, "SIDEWAYS": 0.0, "BULL": 1.0}
 OUT = STRAT.parents[1] / "user_data" / "data" / "nnmt_transition"
 PLAN = STRAT / "evaluation" / "folds" / "plan_nnp_lstm_ind_op.json"   # the 15 fold windows
 BAR = pd.Timedelta(minutes=15)
@@ -69,6 +77,26 @@ def labels(close: pd.Series, H: int, pr: dict) -> pd.DataFrame:
     up = ((s != 1) & (fut == 1)).astype(float).where(ok)
     down = ((s != -1) & (fut == -1)).astype(float).where(ok)
     return pd.DataFrame({"up": up, "down": down, "state": s})
+
+
+def future_state(close: pd.Series, H: int, pr: dict) -> pd.DataFrame:
+    """Regime-state amendment: the current state S_H(t), z_H(t), and the target Y = S_H(t+H) (NaN where either
+    end's state is unknown, incl. within H of the end)."""
+    d = pr["definition"]
+    z = zscore(close, H, d["sigma_window"], d["sigma_min_periods"])
+    s = state(z, d["deadband"])
+    fut = s.shift(-H)
+    return pd.DataFrame({"state": s, "z": z, "fstate": fut.where(s.notna() & fut.notna())})
+
+
+def markov_scores(cur_fit: np.ndarray, fut_fit: np.ndarray, cur_eval: np.ndarray) -> pd.DataFrame:
+    """P(Y = k | S(t) = j) from the FIT rows only, looked up by each evaluated row's current state."""
+    cur_fit, fut_fit = np.asarray(cur_fit, float), np.asarray(fut_fit, float)
+    ok = np.isfinite(cur_fit) & np.isfinite(fut_fit)
+    m = pd.crosstab(cur_fit[ok], fut_fit[ok], normalize="index").reindex(
+        index=list(CLASSES.values()), columns=list(CLASSES.values())).fillna(0.0)
+    e = pd.Series(np.asarray(cur_eval, float))
+    return pd.DataFrame({k: e.map(m[v]).to_numpy(float) for k, v in CLASSES.items()})
 
 
 # ---------------------------------------------------------------------------- data
@@ -118,6 +146,10 @@ def build_labels() -> pd.DataFrame:
                 out[f"down_{level}_{H}"] = lab["down"].to_numpy()
                 out[f"ztrend_{level}_{H}"] = zscore(c, max(1, H // 4), d["sigma_window"], d["sigma_min_periods"]).to_numpy()
                 out[f"fwd_{level}_{H}"] = (np.log(c.shift(-H)) - np.log(c)).to_numpy()
+                fs = future_state(c, H, pr)  # regime-state amendment
+                out[f"state_{level}_{H}"] = fs["state"].to_numpy()
+                out[f"z_{level}_{H}"] = fs["z"].to_numpy()
+                out[f"fstate_{level}_{H}"] = fs["fstate"].to_numpy()
             # the pair's own forward return (what a long position in THIS pair earns), for the proxy
             out[f"fwd_trade_{H}"] = (np.log(close.shift(-H)) - np.log(close)).to_numpy()
         frames.append(out)
@@ -338,26 +370,119 @@ def _proxy(h: pd.DataFrame, dirn: str, H: int, rule: dict) -> dict | None:
     return {"top_bp": top_bp, "all_bp": all_bp, "pass": bool(ok), "n_top": int(len(top))}
 
 
+# ---------------------------------------------------------------------------- regime-state amendment
+
+
+def state_screen_fold(fid: str) -> Path:
+    """One 3-class HGB per (H, level) on Y = S_H(t+H), with transition's inputs, fit rows (purge H, hourly) and
+    tail; the Markov baseline is fit on the same rows. Writes P(BULL), P(BEAR) and the Markov scores."""
+    from sklearn.ensemble import HistGradientBoostingClassifier
+
+    pr = _pr()
+    f = next(x for x in _folds() if x["fold_id"] == fid)
+    lab = pd.read_parquet(OUT / "labels.parquet")
+    btc_cols = ["close", *[c[4:] for c in stand_in_columns(pr) if c.startswith("btc:")]]
+    btc = _read("BTC/USDT", btc_cols).set_index("date")
+    X = pd.concat([_features(p, pr, btc).assign(pair=p) for p in _pairs()], ignore_index=True)
+    t = lab.merge(X, on=["date", "pair"], how="left")
+    feats = [c for c in X.columns if c not in ("date", "pair")]
+    ts, te = _ts(f["test_start"]), _ts(f["test_end"])
+    tail0 = ts - pd.Timedelta(days=pr["stand_in"]["tail_days"])
+    rows = []
+    for H in pr["grid"]["H"]:
+        purge = H * BAR
+        tr = t["tradeable"] & (t["date"] < tail0 - purge)
+        tr &= (t["date"].dt.minute == 0) if pr["stand_in"]["hourly_train"] else True
+        tail = t["tradeable"] & (t["date"] >= tail0) & (t["date"] < ts - purge)
+        test = t["tradeable"] & (t["date"] >= ts) & (t["date"] < te)
+        for level in pr["grid"]["level"]:
+            col, cur = f"fstate_{level}_{H}", f"state_{level}_{H}"
+            m = tr & t[col].notna()
+            y = t.loc[m, col].to_numpy(float)
+            if len(np.unique(y)) < 3:
+                continue
+            clf = HistGradientBoostingClassifier(**pr["stand_in"]["hgb"])
+            clf.fit(t.loc[m, feats].to_numpy(np.float32), y)
+            ix = {c: list(clf.classes_).index(v) for c, v in CLASSES.items()}
+            for part, mask in (("tail", tail), ("test", test)):
+                g = t.loc[mask, ["date", "pair"]].copy()
+                g["cell"] = f"{level}_{H}"
+                g["part"] = part
+                pp = clf.predict_proba(t.loc[mask, feats].to_numpy(np.float32))
+                g["p_bull"], g["p_bear"] = pp[:, ix["BULL"]], pp[:, ix["BEAR"]]
+                mk = markov_scores(t.loc[m, cur].to_numpy(), y, t.loc[mask, cur].to_numpy())
+                g["markov_bull"], g["markov_bear"] = mk["BULL"].to_numpy(), mk["BEAR"].to_numpy()
+                rows.append(g)
+    out = pd.concat(rows, ignore_index=True)
+    OUT.mkdir(parents=True, exist_ok=True)
+    p = OUT / f"state_pred_{fid}.parquet"
+    out.to_parquet(p, index=False)
+    print(fid, len(out), "rows", flush=True)
+    return p
+
+
+def state_judge() -> dict:
+    """screen_rule of preregistration_regime_state.json per (cell, class); selection per class."""
+    pr = _pr()
+    rule = json.loads(PREREG_STATE.read_text())["screen_rule"]
+    lab = pd.read_parquet(OUT / "labels.parquet")
+    preds = pd.concat([pd.read_parquet(OUT / f"state_pred_{f['fold_id']}.parquet").assign(fold=f["fold_id"])
+                       for f in _folds()], ignore_index=True)
+    test = preds[preds["part"] == "test"].merge(lab, on=["date", "pair"], how="left")
+    cells = {}
+    for cell, g in test.groupby("cell"):
+        level, H = cell.split("_")
+        H = int(H)
+        for cls, sign, dirn in (("BULL", 1.0, "up"), ("BEAR", -1.0, "down")):
+            k = cls.lower()
+            r = {"auc": {}, "markov_auc": {}, "trailing_z_auc": {}, "margin": {}, "events": {}, "proxy_bp": {}}
+            for half in ("early", "late"):
+                h = g[g["fold"].map(lambda x: _half(x, pr)) == half].copy()
+                y = (h[f"fstate_{level}_{H}"] == CLASSES[cls]).astype(float).where(h[f"fstate_{level}_{H}"].notna())
+                h["y"] = y
+                a = _auc(h[f"p_{k}"].to_numpy(float), y.to_numpy(float))
+                bm = _auc(h[f"markov_{k}"].to_numpy(float), y.to_numpy(float))
+                bz = _auc(sign * h[f"z_{level}_{H}"].to_numpy(float), y.to_numpy(float))
+                r["auc"][half], r["markov_auc"][half], r["trailing_z_auc"][half] = a, bm, bz
+                base = max(0.5, bm if bm is not None else 0.5, bz if bz is not None else 0.5)
+                r["margin"][half] = None if a is None else a - base
+                r["events"][half] = int(_events(h, "y"))
+                r["proxy_bp"][half] = _proxy(h.assign(p=h[f"p_{k}"]), dirn, H, rule)
+            ok = all(r["margin"][x] is not None and r["margin"][x] >= rule["min_auc_margin"] for x in ("early", "late"))
+            ok &= all(r["events"][x] >= rule["min_events_per_half"] for x in ("early", "late"))
+            ok &= all(r["proxy_bp"][x] is not None and r["proxy_bp"][x]["pass"] for x in ("early", "late"))
+            r["pass"] = bool(ok)
+            cells[f"{cls}:{cell}"] = r
+    sel = {}
+    for cls in ("BULL", "BEAR"):
+        passing = {c: r for c, r in cells.items() if c.startswith(cls) and r["pass"]}
+        sel[cls] = max(passing, key=lambda c: passing[c]["margin"]["late"]) if passing else None
+    out = {"cells": cells, "selected": sel, "pass": any(sel.values())}
+    (HERE / "screens_regime_state.json").write_text(json.dumps(out, indent=1, default=str))
+    return out
+
+
 # ---------------------------------------------------------------------------- CLI
 
 
 def _refusals() -> list[str]:
     import subprocess
 
-    rel = PREREG.relative_to(STRAT)
     out = []
-    if subprocess.run(["git", "-C", str(STRAT), "status", "--porcelain", "--", str(rel)],
-                      capture_output=True, text=True).stdout.strip():
-        out.append(f"{rel} has uncommitted changes")
-    if not subprocess.run(["git", "-C", str(STRAT), "log", "-1", "--format=%ct", "--", str(rel)],
+    for pre in (PREREG, PREREG_STATE):
+        rel = pre.relative_to(STRAT)
+        if subprocess.run(["git", "-C", str(STRAT), "status", "--porcelain", "--", str(rel)],
                           capture_output=True, text=True).stdout.strip():
-        out.append(f"{rel} is not committed")
+            out.append(f"{rel} has uncommitted changes")
+        if not subprocess.run(["git", "-C", str(STRAT), "log", "-1", "--format=%ct", "--", str(rel)],
+                              capture_output=True, text=True).stdout.strip():
+            out.append(f"{rel} is not committed")
     return out
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=("labels", "causality", "screen", "judge"))
+    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge"))
     ap.add_argument("--fold")
     a = ap.parse_args(argv)
     bad = _refusals()
@@ -378,11 +503,15 @@ def main(argv=None) -> int:
         path.write_text(json.dumps(prev, indent=1))
         print(json.dumps(r, indent=1))
         return 0 if r["pass"] else 1
-    if a.step == "screen":
+    if a.step in ("screen", "state-screen"):
         if not (prev.get("truncation") or {}).get("pass"):
             print("REFUSED: the truncation test has not passed")
             return 2
-        screen_fold(a.fold)
+        (screen_fold if a.step == "screen" else state_screen_fold)(a.fold)
+        return 0
+    if a.step == "state-judge":
+        r = state_judge()
+        print(json.dumps({"selected": r["selected"], "pass": r["pass"]}, indent=1))
         return 0
     r = judge()
     print(json.dumps({"selected": r["selected"], "pass": r["pass"]}, indent=1))
