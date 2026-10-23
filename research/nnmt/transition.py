@@ -337,23 +337,7 @@ def judge() -> dict:
     rule = pr["screen_rule"]
     cells = {}
     for cell, g in test.groupby("cell"):
-        dirn, level, H = cell.split("_")
-        H = int(H)
-        r = {"auc": {}, "baseline_trend_auc": {}, "margin": {}, "events": {}, "proxy_bp": {}}
-        for half in ("early", "late"):
-            h = g[g["fold"].map(lambda x: _half(x, pr)) == half]
-            y = h[cell].to_numpy(float)
-            trend = h[f"ztrend_{level}_{H}"].to_numpy(float) * (1 if dirn == "up" else -1)
-            a, b = _auc(h["p"].to_numpy(float), y), _auc(trend, y)
-            r["auc"][half], r["baseline_trend_auc"][half] = a, b
-            r["margin"][half] = None if a is None else a - max(0.5, b if b is not None else 0.5)
-            r["events"][half] = int(_events(h, cell))
-            r["proxy_bp"][half] = _proxy(h, dirn, H, rule)
-        ok = all(r["margin"][x] is not None and r["margin"][x] >= rule["min_auc_margin"] for x in ("early", "late"))
-        ok &= all(r["events"][x] >= rule["min_events_per_half"] for x in ("early", "late"))
-        ok &= all(r["proxy_bp"][x] is not None and r["proxy_bp"][x]["pass"] for x in ("early", "late"))
-        r["pass"] = bool(ok)
-        cells[cell] = r
+        cells[cell] = _score_cell(g, cell, pr, rule)
     sel = {}
     for dirn in ("up", "down"):
         passing = {c: r for c, r in cells.items() if c.startswith(dirn) and r["pass"]}
@@ -362,6 +346,66 @@ def judge() -> dict:
     path = HERE / "screens_transition.json"
     prev = json.loads(path.read_text()) if path.exists() else {}
     path.write_text(json.dumps({**prev, **out}, indent=1, default=str))
+    return out
+
+
+def _score_cell(g: pd.DataFrame, cell: str, pr: dict, rule: dict) -> dict:
+    """screen_rule on one cell's scored test rows (columns p, fold + the labels)."""
+    dirn, level, H = cell.split("_")
+    H = int(H)
+    r = {"auc": {}, "baseline_trend_auc": {}, "margin": {}, "events": {}, "proxy_bp": {}}
+    for half in ("early", "late"):
+        h = g[g["fold"].map(lambda x: _half(x, pr)) == half]
+        y = h[cell].to_numpy(float)
+        trend = h[f"ztrend_{level}_{H}"].to_numpy(float) * (1 if dirn == "up" else -1)
+        a, b = _auc(h["p"].to_numpy(float), y), _auc(trend, y)
+        r["auc"][half], r["baseline_trend_auc"][half] = a, b
+        r["margin"][half] = None if a is None else a - max(0.5, b if b is not None else 0.5)
+        r["events"][half] = int(_events(h, cell))
+        r["proxy_bp"][half] = _proxy(h, dirn, H, rule)
+    ok = all(r["margin"][x] is not None and r["margin"][x] >= rule["min_auc_margin"] for x in ("early", "late"))
+    ok &= all(r["events"][x] >= rule["min_events_per_half"] for x in ("early", "late"))
+    ok &= all(r["proxy_bp"][x] is not None and r["proxy_bp"][x]["pass"] for x in ("early", "late"))
+    r["pass"] = bool(ok)
+    return r
+
+
+#: T045 head_version: the NN replaces the stand-in if its AUC >= the stand-in's minus this, both halves
+TRH_MATCH = 0.01
+
+
+def trh_nn(models: dict[str, str]) -> dict:
+    """T045: each <M>_trh<H> model's regime head (P(UP) = p_regime_bull, P(DOWN) = p_regime_bear) scored with
+    screen_rule on the selected cells of its horizon, on exactly the stand-in's test rows, and compared with
+    the stand-in (models: cell -> signals model name)."""
+    pr = _pr()
+    rule = pr["screen_rule"]
+    lab = pd.read_parquet(OUT / "labels.parquet")
+    sig = STRAT / "research" / "nnnc_framework" / "signals"
+    stand = json.loads((HERE / "screens_transition.json").read_text())["cells"]
+    out = {"match_tolerance": TRH_MATCH, "cells": {}}
+    for cell, m in models.items():
+        col = "p_regime_bull" if cell.startswith("up") else "p_regime_bear"
+        parts = []
+        for f in _folds():
+            keep = pd.read_parquet(OUT / f"pred_{f['fold_id']}.parquet")
+            keep = keep[(keep["part"] == "test") & (keep["cell"] == cell)][["date", "pair"]]
+            s = pd.read_parquet(sig / f"{m}_{f['fold_id']}.parquet")[["date", "pair", col]]
+            s["date"] = pd.to_datetime(s["date"], utc=True)
+            g = keep.merge(s, on=["date", "pair"], how="left").rename(columns={col: "p"})
+            parts.append(g.assign(fold=f["fold_id"]))
+        g = pd.concat(parts, ignore_index=True)
+        missing = int(g["p"].isna().sum())
+        r = _score_cell(g.merge(lab, on=["date", "pair"], how="left"), cell, pr, rule)
+        sa = stand[cell]["auc"]
+        r.update(model=m, rows=int(len(g)), rows_without_nn=missing, stand_in_auc=sa,
+                 matches_stand_in=bool(all(r["auc"][h] is not None and r["auc"][h] >= sa[h] - TRH_MATCH
+                                           for h in ("early", "late"))))
+        out["cells"][cell] = r
+    path = HERE / "screens_transition.json"
+    prev = json.loads(path.read_text()) if path.exists() else {}
+    prev["nn_head"] = out
+    path.write_text(json.dumps(prev, indent=1, default=str))
     return out
 
 
@@ -558,7 +602,7 @@ def _refusals() -> list[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn"))
+    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn", "trh-nn"))
     ap.add_argument("--fold")
     ap.add_argument("--models")
     ap.add_argument("--cell")
@@ -591,6 +635,10 @@ def main(argv=None) -> int:
             screen_fold(a.fold, a.random_state, a.bootstrap)
         else:
             state_screen_fold(a.fold)
+        return 0
+    if a.step == "trh-nn":
+        r = trh_nn(dict(x.split("=") for x in a.models.split(",")))
+        print(json.dumps(r, indent=1, default=str))
         return 0
     if a.step == "state-nn":
         r = state_nn(a.models.split(","), a.cell)
