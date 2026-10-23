@@ -268,16 +268,16 @@ def transition() -> dict:
     return out
 
 
-def transition_seed(arms: list[str], rs: int) -> dict:
+def transition_seed(arms: list[str], rs: int, kind: str = "rs") -> dict:
     """The pre-registered seed rerun of passing transition arms: the same arm on the stand-in re-fit at
-    random_state `rs` (tables in nnmt_transition_rs<rs>/, from `transition.py screen --random-state rs`),
-    as `<arm>_rs<rs>` with fold classes `<ARM>_RS<rs>_fNN`."""
+    random_state `rs` (tables in nnmt_transition_<kind><rs>/, from `transition.py screen --random-state rs`
+    [--bootstrap for kind "bs"]), as `<arm>_<kind><rs>` with fold classes `<ARM>_<KIND><rs>_fNN`."""
     out = {}
     head = HEADER.format(stage="transition seed rerun", what="{what}")
-    decl = f'    TR_TABLES = TABLES.parent / "nnmt_transition_rs{rs}"\n'
+    decl = f'    TR_TABLES = TABLES.parent / "nnmt_transition_{kind}{rs}"\n'
     for arm in arms:
-        what = f"{TRANSITION[arm][2]} -- stand-in re-fit at random_state {rs}"
-        tag, sfx = f"{arm}_rs{rs}", f"_RS{rs}"
+        what = f"{TRANSITION[arm][2]} -- stand-in re-fit at random_state {rs}" + (" on bootstrap rows" if kind == "bs" else "")
+        tag, sfx = f"{arm}_{kind}{rs}", f"_{kind.upper()}{rs}"
         if arm == "tr_long":
             src, name = "SimpleTrigger_TR_LONG", f"SimpleTrigger_TR_LONG{sfx}"
             (ST_DIR / f"{name}.py").write_text(
@@ -307,7 +307,7 @@ def main(argv=None) -> int:
     args = argv or sys.argv[1:] or ["models"]
     stage = args[0]
     if stage == "transition-seed":
-        transition_seed(args[1].split(","), int(args[2]))
+        transition_seed(args[1].split(","), int(args[2]), *(args[3:4] or []))
         return 0
     {"models": models, "framework": framework, "heads": heads, "regime": regime,
      "transition": transition}[stage]()

@@ -262,14 +262,18 @@ def _features(pair: str, pr: dict, btc: pd.DataFrame) -> pd.DataFrame:
     return X
 
 
-def screen_fold(fid: str, random_state: int | None = None) -> Path:
-    """`random_state` re-fits the stand-in at another seed (the pre-registered seed-2 rerun) and writes its
-    tables to nnmt_transition_rs<N>/, leaving the seed-1 tables untouched."""
+def screen_fold(fid: str, random_state: int | None = None, bootstrap: bool = False) -> Path:
+    """`random_state` re-fits the stand-in at another seed and writes its tables to nnmt_transition_rs<N>/,
+    leaving the seed-1 tables untouched. With `bootstrap` (preregistration_transition_seed.json) each cell is
+    fit on a bootstrap resample of its fit rows, drawn from default_rng([N, fold, H, level, direction]), and
+    the tables go to nnmt_transition_bs<N>/."""
     from sklearn.ensemble import HistGradientBoostingClassifier
 
     pr = _pr()
     hgb = pr["stand_in"]["hgb"] if random_state is None else {**pr["stand_in"]["hgb"], "random_state": random_state}
-    out_dir = OUT if random_state is None else OUT.parent / f"nnmt_transition_rs{random_state}"
+    if bootstrap and random_state is None:
+        raise ValueError("bootstrap needs a random_state")
+    out_dir = OUT if random_state is None else OUT.parent / f"nnmt_transition_{'bs' if bootstrap else 'rs'}{random_state}"
     f = next(x for x in _folds() if x["fold_id"] == fid)
     lab = pd.read_parquet(OUT / "labels.parquet")
     btc_cols = ["close", *[c[4:] for c in stand_in_columns(pr) if c.startswith("btc:")]]
@@ -293,8 +297,13 @@ def screen_fold(fid: str, random_state: int | None = None) -> Path:
                 y = t.loc[m, col].to_numpy() > 0.5
                 if y.all() or not y.any():
                     continue
+                Xf = t.loc[m, feats].to_numpy(np.float32)
+                if bootstrap:
+                    li, di = pr["grid"]["level"].index(level), ("up", "down").index(dirn)
+                    idx = np.random.default_rng([random_state, int(fid[1:]), H, li, di]).integers(0, len(y), len(y))
+                    Xf, y = Xf[idx], y[idx]
                 clf = HistGradientBoostingClassifier(**hgb)
-                clf.fit(t.loc[m, feats].to_numpy(np.float32), y)
+                clf.fit(Xf, y)
                 for part, mask in (("tail", tail), ("test", test)):
                     g = t.loc[mask, ["date", "pair"]].copy()
                     g["cell"] = col
@@ -554,6 +563,7 @@ def main(argv=None) -> int:
     ap.add_argument("--models")
     ap.add_argument("--cell")
     ap.add_argument("--random-state", type=int, help="screen only: re-fit the stand-in at this seed")
+    ap.add_argument("--bootstrap", action="store_true", help="screen only: bootstrap the fit rows (needs --random-state)")
     a = ap.parse_args(argv)
     bad = _refusals()
     if bad:
@@ -578,7 +588,7 @@ def main(argv=None) -> int:
             print("REFUSED: the truncation test has not passed")
             return 2
         if a.step == "screen":
-            screen_fold(a.fold, a.random_state)
+            screen_fold(a.fold, a.random_state, a.bootstrap)
         else:
             state_screen_fold(a.fold)
         return 0

@@ -266,20 +266,37 @@ def arms(stage: str) -> int:
             r["alone"] = v
             r["decision"] = _decide(v, pr["seed_rule_pp"])
             r["also"] = {c: _brief(judge_one(pr, arm, c)) for c in spec.get("also_reported_vs", [])}
-        seed = f"{arm}_rs1"  # pr["seeds"]: a PASS is re-run on the stand-in re-fit at random_state 1
-        if r["decision"].startswith("PASS") and (FOLDS_DIR / f"plan_{seed}.json").exists():
-            si = instrument(pr, seed)
-            if not si["pass"]:
-                s = {"instrument": si, "decision": "INCONCLUSIVE (instrument)"}
-            elif spec.get("rule") == "sign_vs_zero":
-                s = {"instrument": si, "alone": sign_vs_zero(pr, seed)}
-                s["decision"] = s["alone"]["verdict"]
+        if r["decision"].startswith("PASS"):
+            # pr["seeds"] (rs1: reported) and, when committed, its amendment (bs1: decisive)
+            decisive = None
+            for kind in ("rs1", "bs1"):
+                seed = f"{arm}_{kind}"
+                if not (FOLDS_DIR / f"plan_{seed}.json").exists():
+                    continue
+                if kind == "bs1":
+                    bad = _refused(*_prereg(f"{stage}_seed"))
+                    if bad:
+                        r["seed_bs1"] = {"decision": "REFUSED", "why": bad}
+                        decisive = r["seed_bs1"]
+                        continue
+                si = instrument(pr, seed)
+                if not si["pass"]:
+                    s = {"instrument": si, "decision": "INCONCLUSIVE (instrument)"}
+                elif spec.get("rule") == "sign_vs_zero":
+                    s = {"instrument": si, "alone": sign_vs_zero(pr, seed)}
+                    s["decision"] = s["alone"]["verdict"]
+                else:
+                    s = {"instrument": si, "alone": judge_one(pr, seed, spec["comparator"])}
+                    s["decision"] = _decide(s["alone"], pr["seed_rule_pp"])
+                r[f"seed_{kind}"] = s
+                decisive = s
+            if (HERE / f"preregistration_{stage}_seed.json").exists() and "seed_bs1" not in r:
+                decisive = None  # the amendment names bs1 as the seed; rs1 alone does not decide
+            if decisive is not None:
+                r["decision"] = ("PASS (both seeds)" if decisive["decision"].startswith("PASS")
+                                 else f"FAIL at seed 2 ({decisive['decision']})")
             else:
-                s = {"instrument": si, "alone": judge_one(pr, seed, spec["comparator"])}
-                s["decision"] = _decide(s["alone"], pr["seed_rule_pp"])
-            r["seed_rs1"] = s
-            r["decision"] = ("PASS (both seeds)" if s["decision"].startswith("PASS")
-                             else f"FAIL at seed 2 ({s['decision']})")
+                r["decision"] += " (seed 2 pending)"
         print(f"{arm}: {r['decision']}", flush=True)
         out["arms"][arm] = r
     _write(f"verdicts_{stage}.json", out)
