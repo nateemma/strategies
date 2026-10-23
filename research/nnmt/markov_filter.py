@@ -22,6 +22,10 @@ AR(1) decorrelation length of the head's own log-probabilities (lag-1 autocorrel
 pair, trailing 30 days ending at the previous bar; no labels; the first 20 bars pass raw). Consecutive LSTM
 outputs share almost their whole input window, so the plain filter counts one observation many times.
 
+"pred_T" / "pred_T_tempered" (option 1): T fitted on the model's OWN argmax-state sequence over the 90 days
+before test_start (`--tails` writes those tables first: MLX inference, never alongside a trainer; inside the
+chronological validation holdout, never fitted on); pi stays the label prior.
+
     PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.markov_filter --models mt_lr_ri,mt_lr_ri_ah
 """
 from __future__ import annotations
@@ -44,6 +48,8 @@ HEADS = ["regime", "risk", "momentum", "flow", "profit"]
 BAR = pd.Timedelta(minutes=15)
 LOOKAHEAD_BARS = 192  # >= every auxiliary/trading label's future reach (regime: centred 200 + 5 shift; gbb h48)
 OP_THRESHOLD, THRESHOLDS = 0.80, [0.8, 0.9]
+TAIL_DAYS = 90  # predicted-T source: the 90 days before test_start
+TAILS = STRAT.parent / "data" / "nnmt_markov_tails"
 NEFF_WINDOW, NEFF_MIN, RHO_MAX = 2880, 20, 0.999  # 30 days trailing; tempering: gamma = 1 / n_eff
 EPS = 1e-6
 
@@ -123,8 +129,40 @@ def _seq(x: pd.Series) -> np.ndarray:
     return np.where(x.notna(), x.fillna(-1), -1).astype(int)
 
 
+#: variant prefix -> (T source, tempered); "raw" is the head itself
+VARIANTS = {"f": ("labels", False), "g": ("labels", True), "h": ("predicted", False), "k": ("predicted", True)}
+NAMES = {"f": "filtered", "g": "tempered", "h": "pred_T", "k": "pred_T_tempered"}
+
+
+def _tail_path(tag: str, fid: str) -> Path:
+    return TAILS / f"{tag.upper()}_{fid}.parquet"
+
+
+def tails(tag: str) -> None:
+    """Per fold: the model's predictions on the last TAIL_DAYS before test_start (inside the chronological
+    TRAIN_DATA_SPLIT validation holdout: never fitted on, before the test window). MLX inference."""
+    from research.nnnc_framework.signals import fold_table
+
+    TAILS.mkdir(parents=True, exist_ok=True)
+    for f in json.loads((STRAT / "evaluation" / "folds" / f"plan_{tag}.json").read_text())["folds"]:
+        dest = _tail_path(tag, f["fold_id"])
+        if dest.exists():
+            continue
+        ts = pd.Timestamp(f["test_start"])
+        tr = f"{(ts - pd.Timedelta(days=TAIL_DAYS)):%Y%m%d}-{ts:%Y%m%d}"
+        fold_table(f["strategy_class"], tr, "NNMT").to_parquet(dest)
+        print(tag, f["fold_id"], "tail", tr, flush=True)
+
+
+def _probs(g: pd.DataFrame, head: str, cols: list[str]) -> np.ndarray:
+    p = g[cols].to_numpy(float)
+    return np.column_stack([1.0 - p[:, 0], p[:, 0]]) if head == "trading" else p
+
+
 def run_model(tag: str, halves: dict) -> dict:
     folds = json.loads((STRAT / "evaluation" / "folds" / f"plan_{tag}.json").read_text())["folds"]
+    have_tails = all(_tail_path(tag, f["fold_id"]).exists() for f in folds)
+    variants = [v for v in VARIANTS if have_tails or VARIANTS[v][0] == "labels"]
     lab = _labels(tag, folds)
     scored, Ts, neff = [], {}, {}
     for f in folds:
@@ -134,34 +172,37 @@ def run_model(tag: str, halves: dict) -> dict:
         ts = pd.Timestamp(f["test_start"], tz="UTC")
         tr = lab[(lab["date"] >= pd.Timestamp(f["train_start"], tz="UTC"))
                  & (lab["date"] < ts - LOOKAHEAD_BARS * BAR)]
+        tail = pd.read_parquet(_tail_path(tag, f["fold_id"])).sort_values(["pair", "date"]) if have_tails else None
         Ts[f["fold_id"]] = {}
         for head in HEADS + ["trading"]:
-            if head == "trading":
-                cols, k = ["p_buy"], 2
-                seqs = [_seq(g["lab_trading"]) for _, g in tr.groupby("pair")]
-            else:
-                cols = [c for c in t.columns if c.startswith(f"p_{head}_")]
-                k = len(cols)
-                seqs = [_seq(g[f"lab_{head}"]) for _, g in tr.groupby("pair")]
-            T, pi = transition_matrix(seqs, k)
-            Ts[f["fold_id"]][head] = {"diag": np.round(np.diag(T), 4).tolist(), "pi": np.round(pi, 4).tolist()}
+            cols = ["p_buy"] if head == "trading" else [c for c in t.columns if c.startswith(f"p_{head}_")]
+            k = 2 if head == "trading" else len(cols)
+            seqs = [_seq(g[f"lab_{head}"]) for _, g in tr.groupby("pair")]
+            T_lab, pi = transition_matrix(seqs, k)
+            mats = {"labels": T_lab}
+            Ts[f["fold_id"]][head] = {"diag": np.round(np.diag(T_lab), 4).tolist(), "pi": np.round(pi, 4).tolist()}
+            if tail is not None:
+                # T of the model's own argmax state; pi stays the label prior (p is a posterior under it)
+                pseq = [np.where(np.isfinite(pp).all(axis=1), np.argmax(np.nan_to_num(pp, nan=-1), axis=1), -1)
+                        for pp in (_probs(g, head, cols) for _, g in tail.groupby("pair"))]
+                mats["predicted"] = transition_matrix(pseq, k)[0]
+                Ts[f["fold_id"]][head]["diag_predicted"] = np.round(np.diag(mats["predicted"]), 4).tolist()
             for pair, g in t.groupby("pair", sort=False):
-                p = g[cols].to_numpy(float)
-                if head == "trading":
-                    p = np.column_stack([1.0 - p[:, 0], p[:, 0]])
+                p = _probs(g, head, cols)
                 gamma = 1.0 / n_eff_series(p)
-                ff, tf = forward_filter(p, T, pi), forward_filter(p, T, pi, gamma)
-                if head == "trading":
-                    t.loc[g.index, "f_buy"], t.loc[g.index, "g_buy"] = ff[:, 1], tf[:, 1]
-                    neff.setdefault(head, []).extend(1.0 / gamma[np.isfinite(gamma)])
-                else:
-                    for j, c in enumerate(cols):
-                        t.loc[g.index, "f" + c[1:]], t.loc[g.index, "g" + c[1:]] = ff[:, j], tf[:, j]
-                    neff.setdefault(head, []).extend(1.0 / gamma[np.isfinite(gamma)])
+                neff.setdefault(head, []).extend(1.0 / gamma[np.isfinite(gamma)])
+                for v in variants:
+                    src, temp = VARIANTS[v]
+                    ff = forward_filter(p, mats[src], pi, gamma if temp else None)
+                    if head == "trading":
+                        t.loc[g.index, f"{v}_buy"] = ff[:, 1]
+                    else:
+                        for j, c in enumerate(cols):
+                            t.loc[g.index, v + c[1:]] = ff[:, j]
         scored.append(t.assign(fold=f["fold_id"]))
     t = pd.concat(scored, ignore_index=True)
     t = t[t["volume"] > 0]
-    out = {"heads": {}, "trading": {}, "transition": Ts,
+    out = {"variants": {NAMES[v]: VARIANTS[v] for v in variants}, "heads": {}, "trading": {}, "transition": Ts,
            "n_eff": {h: {q: round(float(np.percentile(v, q)), 1) for q in (10, 50, 90)} for h, v in neff.items()}}
     for head in HEADS:
         cols = [c for c in t.columns if c.startswith(f"p_{head}_")]
@@ -171,35 +212,39 @@ def run_model(tag: str, halves: dict) -> dict:
             auc = {}
             for j, c in enumerate(cols):
                 y = (h[f"lab_{head}"] == j).astype(float)
-                a, b, d = _auc(h[c], y), _auc(h["f" + c[1:]], y), _auc(h["g" + c[1:]], y)
-                auc[c[len(f"p_{head}_"):]] = {"raw": a, "filtered": b, "tempered": d,
-                                              "delta": None if a is None or b is None else b - a,
-                                              "delta_tempered": None if a is None or d is None else d - a}
-            raw_s = pd.Series(np.argmax(h[cols].to_numpy(float), axis=1), index=h.index)
-            fil_s = pd.Series(np.argmax(np.nan_to_num(h[["f" + c[1:] for c in cols]].to_numpy(float), nan=-1), axis=1),
-                              index=h.index)
-            tem_s = pd.Series(np.argmax(np.nan_to_num(h[["g" + c[1:] for c in cols]].to_numpy(float), nan=-1), axis=1),
-                              index=h.index)
-            r[half] = {"auc": auc, "flicker_per_pair_day": {"raw": _flicker(raw_s, h), "filtered": _flicker(fil_s, h),
-                                                            "tempered": _flicker(tem_s, h)}}
+                a = _auc(h[c], y)
+                e = {"raw": a}
+                for v in variants:
+                    b = _auc(h[v + c[1:]], y)
+                    e[NAMES[v]] = b
+                    e[f"delta_{NAMES[v]}"] = None if a is None or b is None else b - a
+                auc[c[len(f"p_{head}_"):]] = e
+            state = lambda pre: pd.Series(np.argmax(np.nan_to_num(  # noqa: E731
+                h[[pre + c[1:] for c in cols]].to_numpy(float), nan=-1), axis=1), index=h.index)
+            r[half] = {"auc": auc, "flicker_per_pair_day": {"raw": _flicker(state("p"), h)}
+                       | {NAMES[v]: _flicker(state(v), h) for v in variants}}
         out["heads"][head] = r
     for half, fl in halves.items():
         h = t[t["fold"].isin(fl) & t["lab_trading"].notna()]
         for pop, g in (("all", h), ("candidate", h[h["base:gbb_candidate"] > 0.5])):
             y = g["lab_trading"]
+            src = {"raw": "p_buy"} | {NAMES[v]: f"{v}_buy" for v in variants}
             out["trading"][f"{half}/{pop}"] = {
-                "auc": {"raw": _auc(g["p_buy"], y), "filtered": _auc(g["f_buy"], y), "tempered": _auc(g["g_buy"], y)},
-                "flicker_per_pair_day": {k: _flicker((g[c] >= OP_THRESHOLD).astype(int), g)
-                                         for k, c in (("raw", "p_buy"), ("filtered", "f_buy"), ("tempered", "g_buy"))},
-                "by_threshold": {k: precision_recall(g[c], y, THRESHOLDS)
-                                 for k, c in (("raw", "p_buy"), ("filtered", "f_buy"), ("tempered", "g_buy"))}}
+                "auc": {k: _auc(g[c], y) for k, c in src.items()},
+                "flicker_per_pair_day": {k: _flicker((g[c] >= OP_THRESHOLD).astype(int), g) for k, c in src.items()},
+                "by_threshold": {k: precision_recall(g[c], y, THRESHOLDS) for k, c in src.items()}}
     return out
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", required=True, help="comma-separated plan tags, e.g. mt_lr_ri,mt_lr_ri_ah")
+    ap.add_argument("--tails", action="store_true", help="only write the tail prediction tables (MLX inference)")
     args = ap.parse_args(argv)
+    if args.tails:
+        for tag in args.models.split(","):
+            tails(tag)
+        return 0
     pr = json.loads((HERE / "preregistration_screens.json").read_text())
     halves = {"early": pr["early"], "late": pr["late"]}
     p = HERE / "markov_filter_descriptive.json"
