@@ -101,3 +101,28 @@ so the late loss of the operating point replicates.
 **Reading:** with indicators in the input, the network barely matters (three designs within 1.2 pp). Raw-only
 inputs lose ~19-21 pp early. Every variant keeps the operating point's late loss (≈ −18 pp), so the late
 failure in §3 belongs to the operating point, not the network.
+
+## §6 Regime transition (T042–T046)
+
+**T042 (2026-10-23): labels built, causality PASS.** 1,800,791 rows (10 screen pairs). Truncation test: z/state
+288 comparisons and label 288 comparisons all equal on the overlap; every one of the 32 stand-in inputs has a
+PASS in 037's truncation tables (`screens_transition.json` → `truncation`).
+
+Base rates (mean per-fold share of tradeable test bars; events = run starts, summed per half):
+
+| cell | early rate | late rate | events early / late |
+|---|---|---|---|
+| up_pair_96 | 0.105 | 0.100 | 6,504 / 5,123 |
+| down_pair_96 | 0.098 | 0.108 | 7,053 / 5,913 |
+| up_btc_96 | 0.127 | 0.107 | 7,297 / 5,689 |
+| down_btc_96 | 0.105 | 0.107 | 6,474 / 5,997 |
+| up_pair_288 | 0.109 | 0.100 | 3,962 / 2,816 |
+| down_pair_288 | 0.101 | 0.117 | 3,639 / 3,496 |
+| up_btc_288 | 0.140 | 0.099 | 4,290 / 4,135 |
+| down_btc_288 | 0.108 | 0.121 | 3,541 / 3,621 |
+| up_pair_672 | 0.116 | 0.099 | 2,810 / 1,902 |
+| down_pair_672 | 0.107 | 0.118 | 2,427 / 2,603 |
+| up_btc_672 | 0.170 | 0.106 | 2,826 / 1,877 |
+| down_btc_672 | 0.115 | 0.112 | 2,796 / 2,723 |
+
+Every cell clears the 200-events-per-half floor by a wide margin.

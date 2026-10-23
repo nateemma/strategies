@@ -236,7 +236,7 @@ outputs, and has a distinct model key.
   - S_H(t) is unchanged when data after t is dropped;
   - a label is NaN within H of the data end;
   - the base rate of a pure random walk is symmetric (UP ≈ DOWN)
-- [ ] T042 [US6] Run `transition labels` and `transition causality` (it must PASS before T043). Write base rates into `report.md` §6
+- [X] T042 [US6] Run `transition labels` and `transition causality` (it must PASS before T043). Write base rates into `report.md` §6 — DONE 2026-10-23: causality PASS (288 + 288 comparisons, 32/32 inputs PASS); base rates in §6
 - [ ] T043 [US6] `transition screen --fold fNN` for f00–f14, one process per fold, sequential, never alongside an MLX chain:
   - inputs come from 037's panel (`base:*`, `raw8:*`, tradeable rows) plus BTC's raw8 and z;
   - per-fold HGB one-vs-rest per direction and cell, fit on the training window minus its last 90 days (purge H);
