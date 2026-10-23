@@ -10,8 +10,10 @@ every NNMT plan generate the same classes.
   heads      <M>_ah: the selected model with every auxiliary head trained (task weight 1; T035)
   regime     <M>_rg (regime only) and <M>_rgm (multi-task) on the future-state label (T058;
              preregistration_regime_state.json): the cell from screens_regime_state.json, else the fallback
+  transition the R12 arms (T044) for the cells screens_transition.json selected: tr_gate / tr_scale / tr_exit
+             on cs_aro (its weights), tr_long on st_g24_rev's exits
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads|regime
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads|regime|transition
 """
 from __future__ import annotations
 
@@ -200,9 +202,76 @@ def regime() -> dict:
     return out
 
 
+#: transition stage (T044; preregistration_transition.json "arms"): arm -> (mixin, needs, what)
+TRANSITION = {
+    "tr_gate": ("TrGateMixin", ("down",), "cs_aro's book skips an entry while P(DOWN) >= tail p80"),
+    "tr_scale": ("TrScaleMixin", ("up", "down"),
+                 "cs_aro's stake x1.333 when P(UP) >= tail p80, x0.667 when P(DOWN) >= tail p80"),
+    "tr_exit": ("TrExitMixin", ("down",), "cs_aro closes an open trade at the first candle with P(DOWN) >= tail p90"),
+    "tr_long": ("TrLongMixin", ("up",), "standalone long entry when P(UP) >= tail p99 on st_g24_rev's exits"),
+}
+ST_DIR = STRAT / "SimpleTrigger"
+
+
+def _derived_plan(src: str, tag: str, base: str, note: str, fold_class) -> Path:
+    """plan_<tag>.json: `src`'s plan (windows, thresholds, params snapshot) with this arm's classes."""
+    p = copy.deepcopy(json.loads((FOLDS / f"plan_{src}.json").read_text()))
+    p.update(run_id=f"040_{tag}", base_strategy=base, note=f"040 T044: {note}")
+    for f in p["folds"]:
+        fc = fold_class(f["fold_id"])
+        f.update(strategy_class=fc, arm_tag=f"{tag}_{f['fold_id']}", status="planned")
+        if f.get("model_dir"):
+            f["model_dir"] = f"user_data/strategies/saved_data/{fc}"
+        for k in ("n_trades", "model_artifact_verified", "arm_returncode"):
+            f.pop(k, None)
+    out = FOLDS / f"plan_{tag}.json"
+    out.write_text(json.dumps(p, indent=1))
+    return out
+
+
+def transition() -> dict:
+    """The R12 arms for the selected transition cells: tr_gate / tr_scale / tr_exit on cs_aro (its weights,
+    asserted by model key), tr_long standalone on st_g24_rev (one class per fold: a no-model plan runs
+    its fold classes directly). An arm whose needed class selected no cell is not built."""
+    sel = json.loads((HERE / "screens_transition.json").read_text())["selected"]
+    cells = {"up": sel.get("up"), "down": sel.get("down")}
+    out = {"cells": cells, "arms": {}, "not_built": {}}
+    head = HEADER.format(stage="transition", what="{what}")
+    for arm, (mixin, needs, what) in TRANSITION.items():
+        if not any(cells[n] for n in needs) or (arm != "tr_scale" and not all(cells[n] for n in needs)):
+            out["not_built"][arm] = f"no selected {'/'.join(needs)} cell"
+            continue
+        decl = f"    TR_UP_CELL = {cells['up']!r}\n    TR_DOWN_CELL = {cells['down']!r}\n"
+        if arm == "tr_long":
+            base, name = "SimpleTrigger_RevOnlyVolreg2_P2_G24", "SimpleTrigger_TR_LONG"
+            body = (head.format(what=what) + "sys.path.append(str(Path(__file__).parent.parent))\n"
+                    f"\nfrom _transition_signal import {mixin}\n"
+                    f"from SimpleTrigger.{base} import {base}\n\n\nclass {name}({mixin}, {base}):\n{decl}")
+            (ST_DIR / f"{name}.py").write_text(body)
+            for f in json.loads((FOLDS / "plan_st_g24_rev.json").read_text())["folds"]:
+                fc = f"TR_LONG_{f['fold_id']}"
+                (ST_DIR / f"{fc}.py").write_text(
+                    head.format(what=f"{what} -- fold {f['fold_id']}") + f"\nfrom {name} import {name}\n\n\n"
+                    f"class {fc}({name}):\n    pass\n")
+            out["arms"][arm] = str(_derived_plan("st_g24_rev", arm, name, what,
+                                                 lambda fid: f"TR_LONG_{fid}").relative_to(STRAT))
+            continue
+        name = f"NNNC_{arm.upper()}"
+        (STRAT / "NNNC" / f"{name}.py").write_text(
+            head.format(what=what) + f"\nfrom _transition_signal import {mixin}\nfrom NNNC_CS_ARO import NNNC_CS_ARO\n"
+            f"\n\nclass {name}({mixin}, NNNC_CS_ARO):\n{decl}")
+        if key_of(name) != key_of("NNNC_CS_ARO"):
+            raise SystemExit(f"REFUSED: {name} does not reuse NNNC_CS_ARO's weights")
+        out["arms"][arm] = str(_derived_plan("cs_aro", arm, name, what,
+                                             lambda fid, a=arm: f"{a.upper()}_{fid}").relative_to(STRAT))
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
-    {"models": models, "framework": framework, "heads": heads, "regime": regime}[stage]()
+    {"models": models, "framework": framework, "heads": heads, "regime": regime,
+     "transition": transition}[stage]()
     return 0
 
 
