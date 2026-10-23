@@ -7,8 +7,9 @@ every NNMT plan generate the same classes.
 
   models     plans for mt, mt_fw0, mt_op and the four variants (research R4, R6)
   framework  the R7-selected model's feature arms + trading-head-only twin (research R5, R6)
+  heads      <M>_ah: the selected model with every auxiliary head trained (task weight 1; T035)
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads
 """
 from __future__ import annotations
 
@@ -139,9 +140,26 @@ def framework() -> dict:
     return out
 
 
+def heads() -> dict:
+    """T035: <M>_ah = the selected model with regime and profit trained too (every auxiliary weight 1;
+    trading keeps its weight). Its own model key: it trains."""
+    tag, base = selected()
+    name = f"{base}_AH"
+    write_class(name, base, "heads", "every auxiliary head trained (task weight 1); trading weight unchanged", "",
+                "    _CLASSIFIER_TASK_WEIGHTS = {{**{base}._CLASSIFIER_TASK_WEIGHTS, \"regime\": 1.0, \"risk\": 1.0,\n"
+                "                                \"momentum\": 1.0, \"flow\": 1.0, \"profit\": 1.0}}\n")
+    arm = f"{tag}_ah"
+    out = {"selected": tag, "base": base, "arm": arm, "class": name,
+           "plan": str(plan(arm, name, "heads stage (preregistration_screens.json): every auxiliary head trained").relative_to(STRAT))}
+    if key_of(name) == key_of(base):
+        raise SystemExit(f"REFUSED: {name} resolves to {base}'s weights")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     stage = (argv or sys.argv[1:] or ["models"])[0]
-    {"models": models, "framework": framework}[stage]()
+    {"models": models, "framework": framework, "heads": heads}[stage]()
     return 0
 
 
