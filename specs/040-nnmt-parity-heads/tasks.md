@@ -260,11 +260,12 @@ outputs, and has a distinct model key.
 
 ## Phase 11: Polish & cross-cutting
 
-- [ ] T047 Write `research/nnmt/report.md`:
+- [X] T047 Write `research/nnmt/report.md` (done 2026-10-24: §11 every-arm table, §9 screens, §12 verdicts):
   - one table of every arm's per-half result against its comparator and against `cs_aro`, `w_aro`, `st_g24_rev` and `wf_aro_g24`, with trade counts and model-decided shares;
   - the screens' tables;
   - the three FR-015 verdicts (NNMT defaults recommendation, per-head verdicts, transition verdict).
-- [ ] T048 Adopting results is the USER's call. Do not change `NNMT_MLX` / `NNMTStrategy` defaults beyond the inert port. List candidate defaults in the report
+- [X] T048 Adopting results is the USER's call. Do not change `NNMT_MLX` / `NNMTStrategy` defaults beyond the inert port. List candidate defaults in the report
+  - Done 2026-10-24: report §6 (transition) to §12 (FR-015 verdicts, candidate defaults: g24, mt_lr_ri base; tr_scale on cs_aro); no default changed
 - [ ] T049 [P] Full test pass: `pytest NNMT/tests research/nnmt/tests Framework/tests utils/tests -q`. Only the failures recorded in T002 may remain (SC-007)
 - [ ] T050 [P] Update `NNMT/README.md` (status, framework, variants, heads, transition, pointer to the report), `AGENT_GUIDE.md` (a 040 row and current state) and `README.md` (the NNMT directory status line)
 - [ ] T051 Memory: write `project_040_nnmt.md`; correct `project_nnmt_task_audit.md` (the trading label is NOT task-filtered since 2618e0eb); add the MEMORY.md index line
