@@ -35,6 +35,9 @@ from Predictors.KerasBasePredictor import KerasBasePredictor
 import NNMTClassifier
 from utils import ForwardPeakRegressor as _FPR
 from utils.EntryFramework import EntryFrameworkMixin
+sys.path.append(str(Path(__file__).parent.parent / "NNNC"))  # the transition scaler (shared with NNNC)
+from _stake_weight import StakeWeightMixin
+from _transition_signal import TrScaleMixin
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
 from GANs.GANType import GANType
 from GANs.mt_label_wrappers import _UnflattenedGenerateWrapper
@@ -46,7 +49,7 @@ class ProfitDirection(IntEnum):
     PROFIT = 2
 
 
-class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy):
+class NNMTStrategy(TrScaleMixin, StakeWeightMixin, EntryFrameworkMixin, BaseNNStrategy):
     # 040 (research R1): NNMT shares NNNC's entry framework (utils.EntryFramework, feature 029) with the
     # MODEL as its entry source -- per-family exits, the trigger gate, the held-pair add, the regime gate
     # and the stop invariants become declarable. Everything is OFF here: the entry is exactly
@@ -54,8 +57,18 @@ class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy):
     # family), and no held-pair add. Must be trade-identical to the pre-port `mt` record on 15/15 folds
     # before any framework arm is read (research/nnmt/preregistration_models.json "identity").
     ENTRY_MODE = "model"
-    MODEL_ENTRY_FAMILY = None
     HELD_PAIR_ADD = None
+    # 040 adoption 2 (2026-10-24, user decision): the regime-transition exposure scaler is a default -- stake
+    # x1.333 when the stand-in's P(UP, up_pair_96) >= its tail p80, x0.667 when P(DOWN, down_pair_672) >= p80
+    # (both: unchanged), scored INSIDE the strategy (NNNC/_transition_standin.py, live-capable). Evidence:
+    # tr_scale_mt PASS both seeds vs mt_lr_ri_g24 (44.91 / 49.47 vs 40.86; research/nnmt/verdicts_trscale_ext.json,
+    # one capital-limited f08 entry recorded). The scaler reads the book's tagged mask, so model entries are
+    # tagged reversion:model (enter_tag only: FAMILY_EXITS is empty); StakeWeightMixin is the unit stake it
+    # scales. Untested on guard-on NNMT_MLX. The 040 records pin it off (_pre_g24.py).
+    MODEL_ENTRY_FAMILY = "reversion"
+    TR_UP_CELL = "up_pair_96"
+    TR_DOWN_CELL = "down_pair_672"
+    TR_SOURCE = "standin"
 
     """
     Neural Network Multi-Task (NNMT) base strategy that predicts:

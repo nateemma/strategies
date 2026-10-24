@@ -22,10 +22,19 @@ PRE_PORT_KEY = "a975211fa4e1f219"
 CONFIG = {"exchange": {"pair_whitelist": ["SOL/USDT", "LINK/USDT"]}, "timeframe": "15m"}
 
 
-def test_framework_is_on_the_family_base_with_everything_off():
+def test_framework_is_on_the_family_base_with_only_the_adopted_switches():
+    """040 adoptions (2026-10-24): 24 h grace and the in-strategy tr_scale (entries tagged reversion so the
+    scaler reads the mask); every other framework switch stays off. The 040 records pin both off."""
+    from NNMT.NNMT_LR_RI_PreG24 import NNMT_LR_RI_PreG24
+    from NNMT.NNMT_LR_RI_PreTR import NNMT_LR_RI_PreTR
+
     assert issubclass(NNMTStrategy, EntryFrameworkMixin)
     assert NNMTStrategy.ENTRY_MODE == "model"
-    assert NNMTStrategy.MODEL_ENTRY_FAMILY is None
+    assert NNMTStrategy.MODEL_ENTRY_FAMILY == "reversion"
+    assert (NNMTStrategy.TR_UP_CELL, NNMTStrategy.TR_DOWN_CELL, NNMTStrategy.TR_SOURCE) == \
+        ("up_pair_96", "down_pair_672", "standin")
+    for pin in (NNMT_LR_RI_PreG24, NNMT_LR_RI_PreTR):
+        assert pin.MODEL_ENTRY_FAMILY is None and pin.TR_UP_CELL is None and pin.TR_DOWN_CELL is None
     assert NNMTStrategy.HELD_PAIR_ADD_RESOLVED is None
     assert NNMTStrategy.FAMILY_EXITS == {}
     assert NNMTStrategy.REVERSION_REGIME_GATE is None
@@ -36,7 +45,11 @@ def test_model_tags_are_basestrategys():
     import numpy as np
 
     s = NNMTStrategy.__new__(NNMTStrategy)
-    assert s._model_tags(np.array([True, False]), 2) is None
+    assert s._model_tags(np.array([True, False]), 2).tolist() == ["reversion:model", ""]
+    from NNMT.NNMT_LR_RI_PreTR import NNMT_LR_RI_PreTR
+
+    r = NNMT_LR_RI_PreTR.__new__(NNMT_LR_RI_PreTR)
+    assert r._model_tags(np.array([True, False]), 2) is None  # the pinned records keep BaseStrategy's tag
 
 
 def test_the_port_does_not_move_the_model_key():

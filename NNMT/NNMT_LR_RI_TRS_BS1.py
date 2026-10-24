@@ -9,12 +9,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent / "NNNC"))
 
-from _stake_weight import StakeWeightMixin
-from _transition_signal import TABLES, TrScaleMixin
+from _transition_signal import TABLES  # noqa: F401
 from NNMT_LR_RI import NNMT_LR_RI
 
 
-class NNMT_LR_RI_TRS_BS1(TrScaleMixin, StakeWeightMixin, NNMT_LR_RI):
+class NNMT_LR_RI_TRS_BS1(NNMT_LR_RI):
+    # TrScaleMixin + StakeWeightMixin come from NNMTStrategy since the 040 tr_scale default (2026-10-24)
     MODEL_ENTRY_FAMILY = "reversion"
     TR_UP_CELL = "up_pair_96"
     TR_DOWN_CELL = "down_pair_672"
