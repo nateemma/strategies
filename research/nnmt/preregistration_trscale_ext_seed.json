@@ -7,5 +7,27 @@
   "arms": "every PASS re-run unchanged on these tables as <arm>_bs1, against the same seed-1 comparator"
  },
  "rule": "the arm's own rule applied to <arm>_bs1; a PASS stays a PASS only if <arm>_bs1 PASSes",
- "seen_before": "nothing of either arm"
+ "seen_before": "nothing of either arm",
+ "arms": [
+  "tr_scale_mt_bs1",
+  "tr_scale_gbr_bs1"
+ ],
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "schema_note": "2026-10-24 09:00: 'arms' / 'folds' added (the judge's refusal check reads them; preregistration_transition_seed.json carries them). Added after the seed-1 runs but before any verdict was printed (the judge stopped on this KeyError); names both bs1 arms built before any run; no rule changed."
 }
