@@ -231,11 +231,33 @@ def framework() -> int:
     return 0
 
 
+def _by_plan_arm_tag(J) -> None:
+    """judge_one finds records as `<tag>_<fid>_<FID>.json`; a seed-2 repeat's judge plan
+    (plan_<arm>_rs1.json -> `<x>_fNN_s2` records) names them by its folds' arm_tag instead. Resolve
+    through the plan when there is one: for every plan whose arm_tag is `<tag>_<fid>`, the same path."""
+    orig = J._rec_path
+    if getattr(orig, "_by_plan", False):
+        return
+
+    def rec_path(tag: str, fid: str) -> Path:
+        p = FOLDS_DIR / f"plan_{tag}.json"
+        if p.exists():
+            for f in json.loads(p.read_text())["folds"]:
+                if f["fold_id"] == fid:
+                    return STRAT / "regime" / "arms" / f"{f['arm_tag']}_{fid.upper()}.json"
+        return orig(tag, fid)
+
+    rec_path._by_plan = True
+    J._rec_path = rec_path
+
+
 def arms(stage: str) -> int:
     """sizer / heads / transition: the pre-registration's arms vs their comparators, gated by its
     instrument (screen) files; an arm absent because its screen failed is recorded as such."""
+    from research.nnnc_switches import judge as J
     from research.nnnc_switches.judge import judge_one
 
+    _by_plan_arm_tag(J)
     path, pr = _prereg(stage)
     sel = json.loads((HERE / "verdicts_models.json").read_text())["selected"]
     pr = json.loads(json.dumps(pr).replace("{M}", sel))

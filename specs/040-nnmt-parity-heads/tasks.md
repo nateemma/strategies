@@ -178,7 +178,8 @@ outputs, and has a distinct model key.
 
   COMMIT it before T033
 - [ ] T033 [US4] Write `research/nnmt/screen.py` (copying `research/nnpredict/screen.py`, parametrised by score column and direction). It refuses unless the 412 early width-book trades and the 0.1004 control gap reproduce. Run `signals --models <M>` and `screen sizer`, writing `screens_sizer.json`
-- [ ] T034 [US4] Only if the screen passes: `build_arms sizer` (per-fold 0.5-share thresholds via `research.control_sizer.pick`; `<M>_cs` copies `w_aro`'s framework by `framework_sha`, and its unsized twin must match `w_aro` on 15/15). Run it, then `judge sizer`. Re-run on seed 2 if it PASSes. If the screen fails, record it in `verdicts_sizer.json` with no arm
+- [X] T034 [US4] Only if the screen passes: `build_arms sizer` (per-fold 0.5-share thresholds via `research.control_sizer.pick`; `<M>_cs` copies `w_aro`'s framework by `framework_sha`, and its unsized twin must match `w_aro` on 15/15). Run it, then `judge sizer`. Re-run on seed 2 if it PASSes. If the screen fails, record it in `verdicts_sizer.json` with no arm
+  - Done 2026-10-24: twin mt_lr_ri_wb = w_aro 15/15 (re-run after declaring MODEL_ENTRY_FAMILY reversion, which the sizer needs for its tagged mask). Seed 1 mt_lr_ri_cs 59.28 vs w_aro 51.44 PASS (+1.20/+6.63, paired IMPROVED, Sharpe/maxDD UNCHANGED); vs cs_aro 59.95 FAIL (-3.65/+2.97). Seed 2 (mt_lr_ri_cs2, seed-2 weights + picks) 54.43 vs 51.44 FAIL (early -0.28, late +3.27, paired UNCHANGED p 0.25) -> FAIL at seed 2. Same 930 trades and exits as w_aro both seeds (sizing only). Judged as stage `screens` -> verdicts_screens.json; head arms recorded not run
 
 ---
 
