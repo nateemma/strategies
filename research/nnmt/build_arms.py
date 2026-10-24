@@ -358,7 +358,8 @@ SIZER_BODY = '''    """w_aro's width book sized by the NNMT model's p_buy (cs_ar
 def sizer() -> dict:
     """T034: <M>_wb = w_aro's width book and resolved framework on <M> (the identity twin: must equal
     w_aro on 15/15 before the sizer is read); <M>_cs = the same, sized by <M>'s p_buy at the per-fold
-    thresholds in SIZER_THRESHOLDS (written only once that file covers all 15 folds)."""
+    thresholds in SIZER_THRESHOLDS (written only once that file covers all 15 folds); <M>_cs2 likewise
+    from the seed-2 picks (sizer_thresholds_s2.json)."""
     import importlib
 
     from evaluation import fingerprint as F
@@ -376,18 +377,35 @@ def sizer() -> dict:
     p.write_text(p.read_text().replace(f"class {wb}({base}):", f"class {wb}(WidthBookMixin, {base}):"))
     plan(f"{tag}_wb", wb, "sizer stage: w_aro's width book + framework on the selected model (identity twin)")
     out = {"selected": tag, "framework_sha": sha, "arms": {f"{tag}_wb": wb}}
-    thr = json.loads(SIZER_THRESHOLDS.read_text()) if SIZER_THRESHOLDS.exists() else {}
-    if len(thr) == 15:
+    # seed 1: <M>_cs; seed 2 (pre-registration "seeds"): <M>_cs2 = the same arm at the seed-2 picks, run
+    # with run_folds --seed 2, and the judge-only plan_<M>_cs_rs1.json pointing at its _s2 records
+    for seed, name, sfx in ((1, cs, "cs"), (2, f"{base}_CS2", "cs2")):
+        tpath = SIZER_THRESHOLDS if seed == 1 else SIZER_THRESHOLDS.with_name(f"sizer_thresholds_s{seed}.json")
+        thr = json.loads(tpath.read_text()) if tpath.exists() else {}
+        if len(thr) != 15:
+            continue
         thresholds = {k: r["threshold"] for k, r in sorted(thr.items())}
         imports_cs = ("from types import SimpleNamespace\n\nfrom freqtrade.strategy import DecimalParameter\n\n"
                       "from _width_book import WidthBookMixin\nfrom _width_sizer import WidthSizerMixin\n")
         body = SIZER_BODY.replace("{thresholds}", json.dumps(thresholds, indent=8, sort_keys=True)).replace("{cuts}", cuts)
-        p = write_class(cs, base, "sizer", "w_aro's width book sized by p_buy", imports_cs, "    pass\n")
-        p.write_text(p.read_text().replace(f"class {cs}({base}):\n    pass\n",
-                                           f"class {cs}(WidthSizerMixin, WidthBookMixin, {base}):\n" + body
+        if seed != 1:
+            body = body.replace("(research.nnmt.pick)", f"(research.nnmt.pick --seed {seed}; run with --seed {seed})")
+        p = write_class(name, base, "sizer", "w_aro's width book sized by p_buy", imports_cs, "    pass\n")
+        p.write_text(p.read_text().replace(f"class {name}({base}):\n    pass\n",
+                                           f"class {name}(WidthSizerMixin, WidthBookMixin, {base}):\n" + body
                                            + fw.replace("{{", "{").replace("}}", "}")))
-        plan(f"{tag}_cs", cs, "sizer stage: the p_buy sizer on w_aro's width book (preregistration_screens.json)")
-        out["arms"][f"{tag}_cs"] = cs
+        pp = plan(f"{tag}_{sfx}", name, "sizer stage: the p_buy sizer on w_aro's width book (preregistration_screens.json)"
+                  + ("" if seed == 1 else f"; seed {seed}: run with run_folds --seed {seed}"))
+        out["arms"][f"{tag}_{sfx}"] = name
+        if seed != 1:
+            j = json.loads(pp.read_text())
+            j.update(run_id=f"040_{tag}_cs_rs1", s2_note=(
+                f"JUDGE plan only (never run): arm tags = the seed-{seed} records run_folds --seed {seed} "
+                f"writes from plan_{tag}_{sfx}.json; judge.arms reads it as the arm's seed-2 repeat"))
+            for f in j["folds"]:
+                f.update(strategy_class=f"{f['strategy_class']}_s{seed}", model_dir=f"{f['model_dir']}_s{seed}",
+                         arm_tag=f"{f['arm_tag']}_s{seed}")
+            (FOLDS / f"plan_{tag}_cs_rs1.json").write_text(json.dumps(j, indent=1))
     # every key w_aro resolves must match; keys w_aro does not have at all are NNMT's own model params
     # (apply_task_filters, bias_*, ...), listed, and the 15/15 trade identity of <M>_wb is the test
     cfg = str(STRAT / "config" / "config_wf.json")
