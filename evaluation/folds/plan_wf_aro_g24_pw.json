@@ -226,5 +226,23 @@
  "purged_from": "wf_aro_g24",
  "train_purge_days": 1,
  "validated": true,
- "validation_errors": []
+ "validation_errors": [],
+ "thresholds": {
+  "f00": 0.7299948719489573,
+  "f01": 0.739525031838119,
+  "f02": 0.7483028662613034,
+  "f03": 0.7693290481567383,
+  "f04": 0.7765641224384308,
+  "f05": 0.7780885219573974,
+  "f06": 0.7771940801143645,
+  "f07": 0.7811670722961426,
+  "f08": 0.7743337154388428,
+  "f09": 0.7796363296508788,
+  "f10": 0.7786573958396912,
+  "f11": 0.7860028119087219,
+  "f12": 0.7778672907352447,
+  "f13": 0.7762298903465271,
+  "f14": 0.7854972765445709
+ },
+ "threshold_note": "T053: pick_threshold --target-rate 0.014735 on the purged training windows (the incumbent's rate, AGENT_GUIDE Walk-forward folds)"
 }

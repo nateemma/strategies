@@ -1,0 +1,341 @@
+{
+ "run_id": "cs_aro_tr_pw",
+ "family": "NNNC",
+ "base_strategy": "NNNC_CS_ARO_TR_PW",
+ "anchored": true,
+ "min_train_days": 730,
+ "test_days": 90,
+ "data_start": "2021-01-01",
+ "data_end": "2026-09-07",
+ "config": "user_data/strategies/config/config_wf.json",
+ "params_snapshot": "user_data/strategies/evaluation/folds/params_20261013-g24_NNNC_A_Raw_Open.json",
+ "params_sha": "10d203e2ad2ee9da",
+ "folds": [
+  {
+   "fold_id": "f00",
+   "train_start": "2021-01-01",
+   "train_end": "2022-12-31",
+   "test_start": "2023-01-01",
+   "test_end": "2023-04-01",
+   "train_timerange": "20210101-20221231",
+   "test_timerange": "20230101-20230401",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f00_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f00_PW",
+   "arm_tag": "cs_aro_tr_f00_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f01",
+   "train_start": "2021-01-01",
+   "train_end": "2023-03-31",
+   "test_start": "2023-04-01",
+   "test_end": "2023-06-30",
+   "train_timerange": "20210101-20230331",
+   "test_timerange": "20230401-20230630",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f01_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f01_PW",
+   "arm_tag": "cs_aro_tr_f01_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f02",
+   "train_start": "2021-01-01",
+   "train_end": "2023-06-29",
+   "test_start": "2023-06-30",
+   "test_end": "2023-09-28",
+   "train_timerange": "20210101-20230629",
+   "test_timerange": "20230630-20230928",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f02_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f02_PW",
+   "arm_tag": "cs_aro_tr_f02_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f03",
+   "train_start": "2021-01-01",
+   "train_end": "2023-09-27",
+   "test_start": "2023-09-28",
+   "test_end": "2023-12-27",
+   "train_timerange": "20210101-20230927",
+   "test_timerange": "20230928-20231227",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f03_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f03_PW",
+   "arm_tag": "cs_aro_tr_f03_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f04",
+   "train_start": "2021-01-01",
+   "train_end": "2023-12-26",
+   "test_start": "2023-12-27",
+   "test_end": "2024-03-26",
+   "train_timerange": "20210101-20231226",
+   "test_timerange": "20231227-20240326",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f04_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f04_PW",
+   "arm_tag": "cs_aro_tr_f04_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f05",
+   "train_start": "2021-01-01",
+   "train_end": "2024-03-25",
+   "test_start": "2024-03-26",
+   "test_end": "2024-06-24",
+   "train_timerange": "20210101-20240325",
+   "test_timerange": "20240326-20240624",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f05_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f05_PW",
+   "arm_tag": "cs_aro_tr_f05_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f06",
+   "train_start": "2021-01-01",
+   "train_end": "2024-06-23",
+   "test_start": "2024-06-24",
+   "test_end": "2024-09-22",
+   "train_timerange": "20210101-20240623",
+   "test_timerange": "20240624-20240922",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f06_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f06_PW",
+   "arm_tag": "cs_aro_tr_f06_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f07",
+   "train_start": "2021-01-01",
+   "train_end": "2024-09-21",
+   "test_start": "2024-09-22",
+   "test_end": "2024-12-21",
+   "train_timerange": "20210101-20240921",
+   "test_timerange": "20240922-20241221",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f07_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f07_PW",
+   "arm_tag": "cs_aro_tr_f07_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f08",
+   "train_start": "2021-01-01",
+   "train_end": "2024-12-20",
+   "test_start": "2024-12-21",
+   "test_end": "2025-03-21",
+   "train_timerange": "20210101-20241220",
+   "test_timerange": "20241221-20250321",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f08_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f08_PW",
+   "arm_tag": "cs_aro_tr_f08_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f09",
+   "train_start": "2021-01-01",
+   "train_end": "2025-03-20",
+   "test_start": "2025-03-21",
+   "test_end": "2025-06-19",
+   "train_timerange": "20210101-20250320",
+   "test_timerange": "20250321-20250619",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f09_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f09_PW",
+   "arm_tag": "cs_aro_tr_f09_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f10",
+   "train_start": "2021-01-01",
+   "train_end": "2025-06-18",
+   "test_start": "2025-06-19",
+   "test_end": "2025-09-17",
+   "train_timerange": "20210101-20250618",
+   "test_timerange": "20250619-20250917",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f10_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f10_PW",
+   "arm_tag": "cs_aro_tr_f10_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f11",
+   "train_start": "2021-01-01",
+   "train_end": "2025-09-16",
+   "test_start": "2025-09-17",
+   "test_end": "2025-12-16",
+   "train_timerange": "20210101-20250916",
+   "test_timerange": "20250917-20251216",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f11_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f11_PW",
+   "arm_tag": "cs_aro_tr_f11_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f12",
+   "train_start": "2021-01-01",
+   "train_end": "2025-12-15",
+   "test_start": "2025-12-16",
+   "test_end": "2026-03-16",
+   "train_timerange": "20210101-20251215",
+   "test_timerange": "20251216-20260316",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f12_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f12_PW",
+   "arm_tag": "cs_aro_tr_f12_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f13",
+   "train_start": "2021-01-01",
+   "train_end": "2026-03-15",
+   "test_start": "2026-03-16",
+   "test_end": "2026-06-14",
+   "train_timerange": "20210101-20260315",
+   "test_timerange": "20260316-20260614",
+   "test_days": 90,
+   "strategy_class": "CS_ARO_TR_f13_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f13_PW",
+   "arm_tag": "cs_aro_tr_f13_pw",
+   "status": "planned"
+  },
+  {
+   "fold_id": "f14",
+   "train_start": "2021-01-01",
+   "train_end": "2026-06-13",
+   "test_start": "2026-06-14",
+   "test_end": "2026-09-07",
+   "train_timerange": "20210101-20260613",
+   "test_timerange": "20260614-20260907",
+   "test_days": 85,
+   "strategy_class": "CS_ARO_TR_f14_PW",
+   "model_dir": "user_data/strategies/saved_data/CS_ARO_TR_f14_PW",
+   "arm_tag": "cs_aro_tr_f14_pw",
+   "status": "planned"
+  }
+ ],
+ "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+ "cs_note": "control-sizer study (research/control_sizer/): the control ARO weights as a width-book sizer, thresholds at the 0.5 agree share picked per fold by research/control_sizer/pick.py; comparators w_aro and wf_aro_g24",
+ "note": "040 T053: cs_aro_tr on purged training windows (research/train_window/rebuild.py)",
+ "purged_from": "cs_aro_tr",
+ "train_purge_days": 1,
+ "validated": true,
+ "validation_errors": [],
+ "thresholds": {
+  "f00": 0.7198,
+  "f01": 0.7273,
+  "f02": 0.7425,
+  "f03": 0.7664,
+  "f04": 0.7576,
+  "f05": 0.7648,
+  "f06": 0.7632,
+  "f07": 0.7683,
+  "f08": 0.7602,
+  "f09": 0.7645,
+  "f10": 0.7704,
+  "f11": 0.767,
+  "f12": 0.7646,
+  "f13": 0.7504,
+  "f14": 0.7623
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.5062,
+   "run_starts": 81,
+   "buy_argmax_share": 1.0
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5065,
+   "run_starts": 77,
+   "buy_argmax_share": 0.987
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.5116,
+   "run_starts": 43,
+   "buy_argmax_share": 1.0
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 58,
+   "buy_argmax_share": 0.9828
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.503,
+   "run_starts": 169,
+   "buy_argmax_share": 0.9822
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.5025,
+   "run_starts": 203,
+   "buy_argmax_share": 0.9901
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.5038,
+   "run_starts": 133,
+   "buy_argmax_share": 0.9925
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.4976,
+   "run_starts": 205,
+   "buy_argmax_share": 0.9854
+  },
+  "f08": {
+   "target_share": 0.5,
+   "achieved_share": 0.502,
+   "run_starts": 745,
+   "buy_argmax_share": 0.9826
+  },
+  "f09": {
+   "target_share": 0.5,
+   "achieved_share": 0.4983,
+   "run_starts": 907,
+   "buy_argmax_share": 0.9868
+  },
+  "f10": {
+   "target_share": 0.5,
+   "achieved_share": 0.5026,
+   "run_starts": 384,
+   "buy_argmax_share": 0.9896
+  },
+  "f11": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 1026,
+   "buy_argmax_share": 0.9922
+  },
+  "f12": {
+   "target_share": 0.5,
+   "achieved_share": 0.4991,
+   "run_starts": 537,
+   "buy_argmax_share": 0.9963
+  },
+  "f13": {
+   "target_share": 0.5,
+   "achieved_share": 0.501,
+   "run_starts": 503,
+   "buy_argmax_share": 1.0
+  },
+  "f14": {
+   "target_share": 0.5,
+   "achieved_share": 0.5008,
+   "run_starts": 613,
+   "buy_argmax_share": 0.9984
+  }
+ }
+}

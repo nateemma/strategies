@@ -132,7 +132,12 @@ def build() -> int:
     causal = json.loads(CUTS.read_text())["causal"]
     lit = json.dumps(causal, indent=8, sort_keys=True)
     for name, base in CLASSES.items():
-        (STRAT / "NNNC" / f"{name}.py").write_text(CLASS_TMPL.format(name=name, base=base, cuts=lit))
+        src = CLASS_TMPL.format(name=name, base=base, cuts=lit)
+        if name == "NNNC_CS_ARO_TR_PW":  # stand-in at each fold's test start = the tables (see the class)
+            src += ('    # the stand-in tables = the stand-in fitted at each fold\'s TEST START (bit-identical, 15/15): the right\n'
+                    '    # cutoff for a purged fold, whose MODEL_TRAIN_TIMERANGE ends a day earlier and has no fitted stand-in\n'
+                    '    TR_SOURCE = "tables"\n')
+        (STRAT / "NNNC" / f"{name}.py").write_text(src)
     sys.path.insert(0, str(STRAT / "NNNC"))
     bad = {n: (key_of(n), key_of(b)) for n, b in CLASSES.items() if key_of(n) != key_of(b)}
     if bad:
