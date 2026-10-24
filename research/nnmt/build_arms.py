@@ -12,8 +12,10 @@ every NNMT plan generate the same classes.
              preregistration_regime_state.json): the cell from screens_regime_state.json, else the fallback
   transition the R12 arms (T044) for the cells screens_transition.json selected: tr_gate / tr_scale / tr_exit
              on cs_aro (its weights), tr_long on st_g24_rev's exits
+  sizer      <M>_wb (w_aro's width book + framework on <M>; identity twin) and, once research.nnmt.pick
+             has written sizer_thresholds.json, <M>_cs (the p_buy sizer; T034)
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads|regime|transition
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.build_arms models|framework|heads|regime|transition|sizer
 """
 from __future__ import annotations
 
@@ -332,6 +334,79 @@ def transition_seed(arms: list[str], rs: int, kind: str = "rs") -> dict:
     return out
 
 
+#: T034 (preregistration_screens.json "sizer"): research.nnmt.pick writes {train_timerange: pick}
+SIZER_THRESHOLDS = HERE / "sizer_thresholds.json"
+
+SIZER_BODY = '''    """w_aro's width book sized by the NNMT model's p_buy (cs_aro pattern, contract C2)."""
+    AGREE_RULE = "p_buy"
+    WIDTH_CUTS = {cuts}
+    #: MODEL_TRAIN_TIMERANGE -> the 0.5-agree-share threshold on p_buy (research.nnmt.pick)
+    SIZER_THRESHOLDS = {thresholds}
+    MODEL_KEY_IGNORED = ("SIZER_THRESHOLDS",)
+
+    def get_entry_conditions(self, dataframe):
+        # the fold's picked threshold, set here (after the model) and not in bot_start, a
+        # weight-shaping method whose override would re-key the model (ModelMissing)
+        key = getattr(self, "MODEL_TRAIN_TIMERANGE", None)
+        if key in self.SIZER_THRESHOLDS:
+            self.prediction_threshold = SimpleNamespace(value=float(self.SIZER_THRESHOLDS[key]))
+        return super().get_entry_conditions(dataframe)
+'''
+
+
+def sizer() -> dict:
+    """T034: <M>_wb = w_aro's width book and resolved framework on <M> (the identity twin: must equal
+    w_aro on 15/15 before the sizer is read); <M>_cs = the same, sized by <M>'s p_buy at the per-fold
+    thresholds in SIZER_THRESHOLDS (written only once that file covers all 15 folds)."""
+    import importlib
+
+    from evaluation import fingerprint as F
+    from research.nnpredict.build_arms import WA_REFERENCE, _fingerprint_framework, width_cuts
+
+    tag, base = selected()
+    base_cls = getattr(importlib.import_module(base), base)
+    sha, fw = _fingerprint_framework(base_cls, WA_REFERENCE[1])
+    cuts = json.dumps(width_cuts(), indent=8, sort_keys=True)
+    wb, cs = f"{base}_WB", f"{base}_CS"
+    imports = "from freqtrade.strategy import DecimalParameter\n\nfrom _width_book import WidthBookMixin\n"
+    p = write_class(wb, base, "sizer", "w_aro's width book and framework (identity twin of w_aro)", imports,
+                    "    WIDTH_CUTS = " + cuts.replace("{", "{{").replace("}", "}}") + "\n" + fw)
+    p.write_text(p.read_text().replace(f"class {wb}({base}):", f"class {wb}(WidthBookMixin, {base}):"))
+    plan(f"{tag}_wb", wb, "sizer stage: w_aro's width book + framework on the selected model (identity twin)")
+    out = {"selected": tag, "framework_sha": sha, "arms": {f"{tag}_wb": wb}}
+    thr = json.loads(SIZER_THRESHOLDS.read_text()) if SIZER_THRESHOLDS.exists() else {}
+    if len(thr) == 15:
+        thresholds = {k: r["threshold"] for k, r in sorted(thr.items())}
+        imports_cs = ("from types import SimpleNamespace\n\nfrom freqtrade.strategy import DecimalParameter\n\n"
+                      "from _width_book import WidthBookMixin\nfrom _width_sizer import WidthSizerMixin\n")
+        body = SIZER_BODY.replace("{thresholds}", json.dumps(thresholds, indent=8, sort_keys=True)).replace("{cuts}", cuts)
+        p = write_class(cs, base, "sizer", "w_aro's width book sized by p_buy", imports_cs, "    pass\n")
+        p.write_text(p.read_text().replace(f"class {cs}({base}):\n    pass\n",
+                                           f"class {cs}(WidthSizerMixin, WidthBookMixin, {base}):\n" + body
+                                           + fw.replace("{{", "{").replace("}}", "}")))
+        plan(f"{tag}_cs", cs, "sizer stage: the p_buy sizer on w_aro's width book (preregistration_screens.json)")
+        out["arms"][f"{tag}_cs"] = cs
+    # every key w_aro resolves must match; keys w_aro does not have at all are NNMT's own model params
+    # (apply_task_filters, bias_*, ...), listed, and the 15/15 trade identity of <M>_wb is the test
+    cfg = str(STRAT / "config" / "config_wf.json")
+    _, ref = F.resolve_by_name(WA_REFERENCE[1], cfg)
+    for c in out["arms"].values():
+        _, got = F.resolve_by_name(c, cfg)
+        bad = {f"{s}.{k}": (v, (got.get(s) or {}).get(k)) for s, d in ref.items() if isinstance(d, dict)
+               for k, v in d.items() if (got.get(s) or {}).get(k) != v}
+        bad.update({s: "differs" for s, d in ref.items() if not isinstance(d, dict) and got.get(s) != d})
+        if bad:
+            raise SystemExit(f"REFUSED: {c} differs from {WA_REFERENCE[0]}'s framework: {bad}")
+        out.setdefault("model_only_keys", {})[c] = sorted(
+            f"{s}.{k}" for s, d in got.items() if isinstance(d, dict) for k in d if k not in (ref.get(s) or {}))
+    k0 = key_of(base)
+    bad = {c: key_of(c) for c in out["arms"].values() if key_of(c) != k0}
+    if bad:
+        raise SystemExit(f"REFUSED: arms that would not reuse {base}'s weights: {bad}")
+    print(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv=None) -> int:
     args = argv or sys.argv[1:] or ["models"]
     stage = args[0]
@@ -339,7 +414,7 @@ def main(argv=None) -> int:
         transition_seed(args[1].split(","), int(args[2]), *(args[3:4] or []))
         return 0
     {"models": models, "framework": framework, "heads": heads, "regime": regime,
-     "transition": transition, "trh": trh}[stage]()
+     "transition": transition, "trh": trh, "sizer": sizer}[stage]()
     return 0
 
 
