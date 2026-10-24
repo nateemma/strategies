@@ -34,10 +34,27 @@ def _ft(d: date) -> str:
     return d.strftime("%Y%m%d")
 
 
+# TRAINING-WINDOW PURGE (040 T053, research/nnmt/compute.md "Fold boundary"). freqtrade trims a
+# timerange with `date <= stop`, so a train_timerange ending AT test_start trained on the first test
+# candle, and the last H labels (gbb_path H = 48 bars) could read it. A purged plan ends its
+# train_timerange `train_purge_days` before test_start: the last training candle is the purge day's
+# 00:00 bar, 96 bars (1 day) before the test window, and the bars between belong to neither window.
+# PURGE_MIN is the smallest gap validate() accepts (48 bars of 15 min). Plans without the field are
+# LEGACY: they keep their recorded windows (so their records reproduce) and are not checked.
+PURGE_MIN = timedelta(hours=12)
+DEFAULT_PURGE_DAYS = 1
+
+
+def _train_stop(f: dict) -> datetime:
+    """The last candle freqtrade keeps for the fold's training timerange (its stop, 00:00)."""
+    return datetime.strptime(f["train_timerange"].split("-")[1], "%Y%m%d")
+
+
 def build(family: str, data_start: str, data_end: str,
           min_train_days: int = 730, test_days: int = 90,
-          min_final_days: int = 45) -> list[dict]:
-    """Anchored expanding training; consecutive non-overlapping test folds."""
+          min_final_days: int = 45, purge_days: int = DEFAULT_PURGE_DAYS) -> list[dict]:
+    """Anchored expanding training; consecutive non-overlapping test folds; the training timerange
+    ends `purge_days` before the test window (see PURGE_MIN). The plan records `train_purge_days`."""
     ds, de = _d(data_start), _d(data_end)
     folds = []
     test_start = ds + timedelta(days=min_train_days)
@@ -54,10 +71,10 @@ def build(family: str, data_start: str, data_end: str,
         folds.append({
             "fold_id": f"f{i:02d}",
             "train_start": ds.isoformat(),
-            "train_end": (test_start - timedelta(days=1)).isoformat(),
+            "train_end": (test_start - timedelta(days=max(purge_days, 1))).isoformat(),
             "test_start": test_start.isoformat(),
             "test_end": test_end.isoformat(),
-            "train_timerange": f"{_ft(ds)}-{_ft(test_start)}",
+            "train_timerange": f"{_ft(ds)}-{_ft(test_start - timedelta(days=purge_days))}",
             "test_timerange": f"{_ft(test_start)}-{_ft(test_end)}",
             "test_days": (test_end - test_start).days,
             "strategy_class": cls,
@@ -70,13 +87,16 @@ def build(family: str, data_start: str, data_end: str,
     return folds
 
 
-def validate(folds: list[dict], no_model: bool = False) -> list[str]:
+def validate(folds: list[dict], no_model: bool = False, purged: bool = False) -> list[str]:
     """Return a list of blocking errors. Empty means the plan may execute (FR-002, SC-003).
 
     `no_model` (feature 023): a model-free arm legitimately runs the SAME class with NO model
     dir in every fold, so the two identity-collision checks -- which exist to stop folds
     overwriting each other's weights -- do not apply. The exemption holds only when every fold
     really has no model dir; a no-model plan that names one is still an error.
+
+    `purged` (040 T053): the plan declares `train_purge_days`, so every fold's training timerange must
+    stop at least PURGE_MIN before its test window. Legacy plans (no field) are not checked here.
     """
     errors: list[str] = []
     if not folds:
@@ -101,6 +121,10 @@ def validate(folds: list[dict], no_model: bool = False) -> list[str]:
             errors.append(f"{fid}: test_end {te_e} is not after test_start {te_s}")
         if tr_e <= tr_s:
             errors.append(f"{fid}: train_end {tr_e} is not after train_start {tr_s}")
+        if purged and _train_stop(f) > datetime.combine(te_s, datetime.min.time()) - PURGE_MIN:
+            errors.append(
+                f"{fid}: train_timerange {f['train_timerange']} stops less than {PURGE_MIN} before "
+                f"test_start {te_s} -- its last labels can read the test window")
         # Identity collisions would make folds overwrite each other's weights (research R4).
         if not no_model and f["strategy_class"] in seen_cls:
             errors.append(f"{fid}: strategy_class {f['strategy_class']} already used by "
@@ -118,7 +142,7 @@ def validate(folds: list[dict], no_model: bool = False) -> list[str]:
 def validate_plan(plan: dict) -> list[str]:
     """Plan-level validation: the fold rules plus the no-model rules (feature 023 C2)."""
     no_model = bool(plan.get("no_model"))
-    errors = validate(plan.get("folds", []), no_model=no_model)
+    errors = validate(plan.get("folds", []), no_model=no_model, purged="train_purge_days" in plan)
     if no_model and plan.get("thresholds"):
         errors.append("no_model plan carries `thresholds`: a model-free arm has no prediction "
                       "threshold, so they would be silently dropped")
@@ -186,6 +210,7 @@ def derive(src_plan: dict, family: str, base: str, tag: str, *,
         "data_start": src_plan.get("data_start"),
         "data_end": src_plan.get("data_end"),
         "config": src_plan["config"],
+        **({"train_purge_days": src_plan["train_purge_days"]} if "train_purge_days" in src_plan else {}),
         "params_snapshot": str(snap) if snap else None,
         "params_sha": sha,
         "folds": folds,
@@ -194,6 +219,59 @@ def derive(src_plan: dict, family: str, base: str, tag: str, *,
     plan["validated"] = not errors
     plan["validation_errors"] = errors
     return plan
+
+
+def purge(src_plan: dict, suffix: str, days: int = DEFAULT_PURGE_DAYS) -> dict:
+    """A purged twin of a LEGACY plan (040 T053): the same folds, arm and config, with each
+    train_timerange ending `days` before test_start, and its own identity so it neither reuses nor
+    overwrites the legacy run -- strategy_class / model_dir get `_<SUFFIX>`, arm tags `_<suffix>`. The
+    new train_timerange changes every model key (MODEL_TRAIN_TIMERANGE), so the folds retrain.
+
+    Anything picked on the old windows is DROPPED (`thresholds`, `threshold_picks`) and must be
+    re-picked on the new ones; per-timerange class tables (WIDTH_CUTS, SIZER_THRESHOLDS) are keyed by
+    the old strings and are the caller's to rebuild.
+    """
+    if "train_purge_days" in src_plan:
+        raise ValueError(f"{src_plan.get('run_id')}: already purged")
+    plan = json.loads(json.dumps(src_plan))
+    for k in ("thresholds", "threshold_picks", "validated", "validation_errors"):
+        plan.pop(k, None)
+    plan.update(run_id=f"{src_plan.get('run_id')}_{suffix}", purged_from=src_plan.get("run_id"),
+                train_purge_days=days)
+    up = suffix.upper()
+    for f in plan["folds"]:
+        start, _ = f["train_timerange"].split("-")
+        f["train_timerange"] = f"{start}-{_ft(_d(f['test_start']) - timedelta(days=days))}"
+        f["train_end"] = (_d(f["test_start"]) - timedelta(days=days)).isoformat()  # its last (00:00) candle
+        if f.get("model_dir") is not None:
+            f["strategy_class"] = f"{f['strategy_class']}_{up}"
+            f["model_dir"] = f"{f['model_dir']}_{up}"
+        f["arm_tag"] = f"{f['arm_tag']}_{suffix}"
+        f["status"] = "planned"
+        for k in ("n_trades", "model_artifact_verified", "arm_returncode"):
+            f.pop(k, None)
+    errors = validate_plan(plan)
+    plan["validated"] = not errors
+    plan["validation_errors"] = errors
+    return plan
+
+
+def purge_main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(prog="foldplan purge", description=purge.__doc__)
+    ap.add_argument("--from", dest="src", required=True)
+    ap.add_argument("--suffix", required=True)
+    ap.add_argument("--days", type=int, default=DEFAULT_PURGE_DAYS)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+    plan = purge(json.loads(Path(a.src).read_text()), a.suffix, a.days)
+    if plan["validation_errors"]:
+        print(f"REFUSED: {len(plan['validation_errors'])} blocking error(s)")
+        for e in plan["validation_errors"]:
+            print(f"  {e}")
+        return 1
+    Path(a.out).write_text(json.dumps(plan, indent=1) + "\n")
+    print(f"VALIDATED: {len(plan['folds'])} folds purged {a.days} day(s) from {plan['purged_from']}; written {a.out}")
+    return 0
 
 
 def derive_main(argv: list[str]) -> int:
@@ -263,7 +341,7 @@ def main() -> int:
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     folds = build(a.family, a.data_start, a.data_end, a.min_train_days, a.test_days,
                   a.min_final_days)
-    errors = validate(folds)
+    errors = validate(folds, purged=True)
 
     print(f"fold plan — family {a.family}, ANCHORED training, "
           f"min {a.min_train_days}d train, {a.test_days}d test")
@@ -288,6 +366,7 @@ def main() -> int:
         "family": a.family,
         "base_strategy": a.base_strategy,
         "anchored": True,
+        "train_purge_days": DEFAULT_PURGE_DAYS,
         "min_train_days": a.min_train_days,
         "test_days": a.test_days,
         "data_start": a.data_start,
@@ -314,4 +393,6 @@ if __name__ == "__main__":
 
     if len(_sys.argv) > 1 and _sys.argv[1] == "derive":
         raise SystemExit(derive_main(_sys.argv[2:]))
+    if len(_sys.argv) > 1 and _sys.argv[1] == "purge":
+        raise SystemExit(purge_main(_sys.argv[2:]))
     raise SystemExit(main())
