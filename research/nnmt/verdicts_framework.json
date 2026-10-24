@@ -101,8 +101,101 @@
      "force_exit": 24
     }
    },
-   "decision": "PASS: candidate default (seed 2 required)",
-   "also": {}
+   "decision": "PASS (both seeds): candidate NNMT default -- adoption is the user's call",
+   "also": {},
+   "seed2": {
+    "how": "run_folds --seed 2 on plan_mt_lr_ri_g24.json (mt_lr_ri's seed-2 weights, no training); judge_one vs mt_lr_ri seed 2 with the same pre-registration and maps (judge-only plans plan_*_s2.json; records *_fNN_s2_FNN)",
+    "decision": "PASS",
+    "alone": {
+     "arm": "mt_lr_ri_g24_s2",
+     "control": "mt_lr_ri_s2",
+     "verdict": "PASS",
+     "failed": [],
+     "arm_trades": 6744,
+     "ctl_trades": 10623,
+     "arm_pp": 42.230000000000004,
+     "ctl_pp": 13.754,
+     "early_gain_pp": 15.513000000000005,
+     "late_gain_pp": 12.963000000000001,
+     "folds_changed": 15,
+     "paired": {
+      "verdict": "UNCHANGED",
+      "delta_pp": 28.470650946155896,
+      "ci_pp_yr": [
+       -1.4724492764563673,
+       16.784980255697473
+      ],
+      "p": 0.0993
+     },
+     "risk": {
+      "days": 1346,
+      "arm": {
+       "sharpe": 0.984265330821408,
+       "maxdd": 22.990590236642014,
+       "daily_sd": 0.6089901464222984
+      },
+      "ctl": {
+       "sharpe": 0.3080497691476771,
+       "maxdd": 31.977757043171245,
+       "daily_sd": 0.6337376435682202
+      },
+      "sharpe_delta": 0.6762155616737309,
+      "sharpe_ci": [
+       0.0378187725824827,
+       1.323560001559119
+      ],
+      "sharpe_p": 0.042,
+      "verdict_sharpe": "IMPROVED",
+      "maxdd_delta": -8.987166806529231,
+      "maxdd_ci": [
+       -22.284540470413035,
+       5.744688943335272
+      ],
+      "maxdd_p": 0.333,
+      "verdict_maxdd": "UNCHANGED"
+     },
+     "halves": {
+      "early": {
+       "verdict": "UNCHANGED",
+       "p": 0.1926,
+       "risk": [
+        "UNCHANGED",
+        "UNCHANGED"
+       ]
+      },
+      "late": {
+       "verdict": "INCONCLUSIVE_ARM_LOSES",
+       "p": 0.2921,
+       "risk": [
+        "UNCHANGED",
+        "UNCHANGED"
+       ]
+      }
+     },
+     "exits_arm": {
+      "metric_overbought": 13,
+      "model_exit ": 1541,
+      "roi": 393,
+      "stop_loss": 107,
+      "take_profit": 1742,
+      "trailing_stop_loss": 1523,
+      "unclog_12h": 1190,
+      "unclog_1d": 203,
+      "force_exit": 32
+     },
+     "exits_ctl": {
+      "metric_overbought": 10,
+      "model_exit ": 1416,
+      "roi": 510,
+      "take_profit": 2887,
+      "trailing_stop_loss": 4691,
+      "unclog_12h": 1009,
+      "unclog_1d": 52,
+      "stop_loss": 24,
+      "force_exit": 24
+     }
+    }
+   }
   },
   "mt_lr_ri_hpa": {
    "instrument": {
@@ -534,5 +627,11 @@
     }
    }
   }
+ },
+ "twin": {
+  "question": "does multi-task training help?",
+  "arm": "mt_lr_ri_tr",
+  "decision": "FAIL",
+  "reading": "trading-head-only twin 19.32 vs multi-task 9.48: early -3.25, late +13.09 (paired UNCHANGED) -> no evidence multi-task helps; no evidence it hurts at the pre-registered bar either (fails early)"
  }
 }

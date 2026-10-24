@@ -163,8 +163,9 @@ outputs, and has a distinct model key.
   - `<M>` named by rule, not by name.
 
   COMMIT it before T030
-- [ ] T030 [US3] `build_arms framework` writes the five classes and plans (R5 table; `_tr` sets task weights `{trading: 1, others: 0}`). Run the four feature arms (backtest only), then `_tr` (15 trainings)
-- [ ] T031 [US3] `judge framework`: feature verdicts, plus the twin's verdict ("does multi-task help?"). Seed 2 for any PASS. Write `verdicts_framework.json`
+- [X] T030 [US3] `build_arms framework` writes the five classes and plans (R5 table; `_tr` sets task weights `{trading: 1, others: 0}`). Run the four feature arms (backtest only), then `_tr` (15 trainings)
+- [X] T031 [US3] `judge framework`: feature verdicts, plus the twin's verdict ("does multi-task help?"). Seed 2 for any PASS. Write `verdicts_framework.json`
+  - Done 2026-10-24: g24 PASS both seeds (s1 40.86 vs 9.48, +15.59/+15.80; s2 42.23 vs 13.75, +15.51/+12.96; paired UNCHANGED, Sharpe IMPROVED both). hpa/gate/tp FAIL. Twin tr FAIL (19.32: early -3.25, late +13.09): no evidence multi-task helps
 
 ---
 
