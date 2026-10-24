@@ -1764,5 +1764,234 @@
    "decision": "FAIL",
    "also": {}
   }
+ },
+ "cells": {
+  "down_btc_288": {
+   "auc": {
+    "early": 0.5621,
+    "late": 0.5736
+   },
+   "trend_auc": {
+    "early": 0.4634,
+    "late": 0.431
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy early (top 85 bp vs all 63 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy early (top 85 bp vs all 63 bp)"
+  },
+  "down_btc_672": {
+   "auc": {
+    "early": 0.5658,
+    "late": 0.56
+   },
+   "trend_auc": {
+    "early": 0.4727,
+    "late": 0.4569
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy late (top -32 bp vs all -90 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy late (top -32 bp vs all -90 bp)"
+  },
+  "down_btc_96": {
+   "auc": {
+    "early": 0.5772,
+    "late": 0.5997
+   },
+   "trend_auc": {
+    "early": 0.4382,
+    "late": 0.4345
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy early (top 25 bp vs all 22 bp)",
+    "proxy late (top -1 bp vs all -7 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy early (top 25 bp vs all 22 bp); proxy late (top -1 bp vs all -7 bp)"
+  },
+  "down_pair_288": {
+   "auc": {
+    "early": 0.5725,
+    "late": 0.5759
+   },
+   "trend_auc": {
+    "early": 0.4502,
+    "late": 0.4193
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy early (top 87 bp vs all 63 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy early (top 87 bp vs all 63 bp)"
+  },
+  "down_pair_672": {
+   "auc": {
+    "early": 0.5629,
+    "late": 0.5849
+   },
+   "trend_auc": {
+    "early": 0.4553,
+    "late": 0.4296
+   },
+   "screen": "PASS",
+   "failed": [],
+   "verdict": "SELECTED -- traded by the arms"
+  },
+  "down_pair_96": {
+   "auc": {
+    "early": 0.5958,
+    "late": 0.6098
+   },
+   "trend_auc": {
+    "early": 0.4452,
+    "late": 0.4268
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy early (top 25 bp vs all 22 bp)",
+    "proxy late (top 17 bp vs all -7 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy early (top 25 bp vs all 22 bp); proxy late (top 17 bp vs all -7 bp)"
+  },
+  "up_btc_288": {
+   "auc": {
+    "early": 0.6313,
+    "late": 0.5904
+   },
+   "trend_auc": {
+    "early": 0.4358,
+    "late": 0.4281
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy late (top -153 bp vs all -28 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy late (top -153 bp vs all -28 bp)"
+  },
+  "up_btc_672": {
+   "auc": {
+    "early": 0.6456,
+    "late": 0.5969
+   },
+   "trend_auc": {
+    "early": 0.3685,
+    "late": 0.4737
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy early (top -1 bp vs all 141 bp)",
+    "proxy late (top -104 bp vs all -90 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy early (top -1 bp vs all 141 bp); proxy late (top -104 bp vs all -90 bp)"
+  },
+  "up_btc_96": {
+   "auc": {
+    "early": 0.6206,
+    "late": 0.619
+   },
+   "trend_auc": {
+    "early": 0.4154,
+    "late": 0.4194
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy late (top 24 bp vs all -7 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy late (top 24 bp vs all -7 bp)"
+  },
+  "up_pair_288": {
+   "auc": {
+    "early": 0.6168,
+    "late": 0.5899
+   },
+   "trend_auc": {
+    "early": 0.4507,
+    "late": 0.4408
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy late (top -63 bp vs all -28 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy late (top -63 bp vs all -28 bp)"
+  },
+  "up_pair_672": {
+   "auc": {
+    "early": 0.6044,
+    "late": 0.5858
+   },
+   "trend_auc": {
+    "early": 0.4333,
+    "late": 0.4649
+   },
+   "screen": "FAIL",
+   "failed": [
+    "proxy late (top -180 bp vs all -90 bp)"
+   ],
+   "verdict": "NOT TRADEABLE AT THIS HORIZON -- ranks transitions (AUC above the trend baseline both halves) but the top-quintile forward return fails the proxy: proxy late (top -180 bp vs all -90 bp)"
+  },
+  "up_pair_96": {
+   "auc": {
+    "early": 0.6351,
+    "late": 0.6256
+   },
+   "trend_auc": {
+    "early": 0.4341,
+    "late": 0.4187
+   },
+   "screen": "PASS",
+   "failed": [],
+   "verdict": "SELECTED -- traded by the arms"
+  }
+ },
+ "nn_head": {
+  "task": "T045",
+  "rule": "NN head matches the stand-in if AUC >= stand-in AUC - 0.01 in both halves",
+  "cells": {
+   "up_pair_96": {
+    "model": "MT_LR_RI_TRH96",
+    "auc": {
+     "early": 0.5978,
+     "late": 0.6068
+    },
+    "stand_in_auc": {
+     "early": 0.6351,
+     "late": 0.6256
+    },
+    "gap": {
+     "early": -0.0373,
+     "late": -0.0187
+    },
+    "own_screen": "PASS",
+    "matches_stand_in": false
+   },
+   "down_pair_672": {
+    "model": "MT_LR_RI_TRH672",
+    "auc": {
+     "early": 0.5534,
+     "late": 0.5612
+    },
+    "stand_in_auc": {
+     "early": 0.5629,
+     "late": 0.5849
+    },
+    "gap": {
+     "early": -0.0095,
+     "late": -0.0237
+    },
+    "own_screen": "FAIL",
+    "matches_stand_in": false
+   }
+  },
+  "verdict": "NO MATCH -- neither NNMT transition head reaches the stand-in (up_pair_96 -0.037 early / -0.019 late; down_pair_672 -0.010 early, within tolerance, but -0.024 late); arms are not re-run on NN tables. The transition signal stays a stand-in (HGB) signal; using it in NNNC means the HGB tables, not an NNMT head."
+ },
+ "summary": {
+  "tr_scale": "PASS at seed 1 and seed 2 (bootstrap) vs cs_aro: 65.35 / 66.97 vs 59.95, both halves positive. PROVISIONAL; adopting is the user's call. About half the gain is extra capital (DESCRIPTIVE).",
+  "tr_long": "PASS sign-vs-zero at seed 1 and seed 2: 21.39/10.64 and 18.99/14.67 (early/late). Standalone sleeve, comparator st_g24_rev 63.57/7.94 reported only.",
+  "tr_gate": "FAIL (55.58 vs 59.95, both halves negative)",
+  "tr_exit": "FAIL (43.75, both halves negative)",
+  "nn_head": "T045: no match; the signal is not learned as an NNMT auxiliary head at the stand-in's level."
  }
 }
