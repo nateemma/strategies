@@ -25,6 +25,12 @@ missing artifact raises: an unfitted stand-in is a deployment error, not a neutr
 
 Constants mirror research/nnmt/preregistration_transition.json (tests/test_transition_standin.py
 asserts it).
+
+INPUT ROUNDING (amendment preregistration_transition_round.json, 2026-10-24): some inputs are
+mathematically 0 on many candles but stored as floating residue (base:fast_diff = fastd - fastk from
+TA-Lib running sums, ~1e-14) whose value depends on where the price series starts; a stand-in fit on them
+can split inside the residue, so a backtest starting elsewhere or a live buffer flips a fire. A fit whose
+meta.json says "input_decimals": N rounds every input to N decimals, at fit and at scoring alike.
 """
 from __future__ import annotations
 
@@ -90,8 +96,9 @@ def data_ok(has: pd.Series) -> pd.Series:
 
 
 def features(dataframe: pd.DataFrame, btc: pd.DataFrame, hist_pair: pd.DataFrame,
-             hist_btc: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
-    """(X in feature_names() order, tradeable mask), row-aligned with `dataframe`."""
+             hist_btc: pd.DataFrame, decimals: int | None = None) -> tuple[pd.DataFrame, np.ndarray]:
+    """(X in feature_names() order, tradeable mask), row-aligned with `dataframe`; `decimals` rounds every
+    input (the fit's meta.json input_decimals)."""
     dates = pd.to_datetime(dataframe["date"], utc=True)
     X = pd.DataFrame(index=dataframe.index)
     for c in INDICATORS:
@@ -109,7 +116,10 @@ def features(dataframe: pd.DataFrame, btc: pd.DataFrame, hist_pair: pd.DataFrame
         X[f"z_btc_{L}"] = dates.map(zscore(hb["close"], L)).astype(float).to_numpy()
     ok = dates.map(data_ok(hp["has"])).fillna(False).to_numpy(bool)
     tradeable = ok & (dataframe["volume"].to_numpy(float) > 0)
-    return X[feature_names()], tradeable
+    X = X[feature_names()]
+    if decimals is not None:
+        X = X.round(int(decimals))
+    return X, tradeable
 
 
 class StandIn:
@@ -127,6 +137,7 @@ class StandIn:
         if self.meta["features"] != feature_names():
             raise ValueError(f"{meta_p}: feature order differs from the strategy's")
         self.models = {c: joblib.load(d / f"{c}.joblib") for c in self.meta["cells"]}
+        self.decimals = self.meta.get("input_decimals")
 
     def threshold(self, cell: str, q: float) -> float:
         return float(self.meta["tail_percentiles"][cell][str(int(q))])

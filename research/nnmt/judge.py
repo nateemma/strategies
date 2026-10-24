@@ -427,7 +427,7 @@ def main(argv=None) -> int:
         return framework()
     if stage == "arch":
         return arch()
-    if stage in ("screens", "transition", "trscale_ext"):  # screens = the sizer + head arms (preregistration_screens.json)
+    if stage in ("screens", "transition", "trscale_ext", "transition_round"):  # screens = the sizer + head arms (preregistration_screens.json)
         return arms(stage)
     raise SystemExit(f"unknown stage {stage!r}")
 

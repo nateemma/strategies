@@ -44,12 +44,18 @@ class TransitionSignalMixin:
     TR_TABLES = TABLES  # the seed-2 arms point at nnmt_transition_rs1/
     TR_SOURCE = "tables"  # or "standin" (live-capable)
     TR_STANDIN_CUTOFF = None  # YYYYMMDD; None = the MODEL_TRAIN_TIMERANGE end
+    TR_STANDIN_ROOT = None  # a saved_data/ subdirectory of fitted stand-ins; None = saved_data/transition
     MODEL_KEY_IGNORED = ("TR_UP_CELL", "TR_DOWN_CELL", "TR_TABLES", "TR_GATE_Q", "TR_SCALE_Q", "TR_SCALE_WEIGHTS",
-                         "TR_EXIT_Q", "TR_LONG_Q", "TR_SOURCE", "TR_STANDIN_CUTOFF")
+                         "TR_EXIT_Q", "TR_LONG_Q", "TR_SOURCE", "TR_STANDIN_CUTOFF", "TR_STANDIN_ROOT")
     MODEL_KEY_METHODS_IGNORED = ("_tr_fold", "_tr_cell", "_tr_threshold", "_tr_p", "_tr_fires", "_tr_fires_df",
-                                 "_tr_standin", "_tr_store", "_tr_probs", "_tr_cutoff", "informative_pairs")
+                                 "_tr_standin", "_tr_store", "_tr_probs", "_tr_cutoff", "_tr_root", "informative_pairs")
 
     # ------------------------------------------------------------------ stand-in source (live-capable)
+    def _tr_root(self):
+        from _transition_standin import ARTIFACTS
+
+        return ARTIFACTS if self.TR_STANDIN_ROOT is None else ARTIFACTS.parent / self.TR_STANDIN_ROOT
+
     def _tr_cutoff(self, first_date=None) -> str:
         """TR_STANDIN_CUTOFF; else a fold's MODEL_TRAIN_TIMERANGE end; else (mainline) the newest fitted
         stand-in whose cutoff is on or before the first candle scored (`first_date`) -- never one fit on
@@ -59,12 +65,10 @@ class TransitionSignalMixin:
         tr = getattr(self, "MODEL_TRAIN_TIMERANGE", None)
         if tr:
             return tr.split("-")[1]
-        from _transition_standin import ARTIFACTS
-
         if first_date is None:
             raise ValueError(f"{type(self).__name__}: a mainline stand-in cutoff needs the first candle scored")
         day = pd.Timestamp(first_date).strftime("%Y%m%d")
-        fitted = sorted(d.name for d in ARTIFACTS.glob("[0-9]" * 8) if (d / "meta.json").is_file() and d.name <= day)
+        fitted = sorted(d.name for d in self._tr_root().glob("[0-9]" * 8) if (d / "meta.json").is_file() and d.name <= day)
         if not fitted:
             raise FileNotFoundError(f"{type(self).__name__}: no transition stand-in fitted on or before {day} "
                                     f"(run: research.nnmt.transition fit --cutoff <YYYYMMDD>)")
@@ -76,7 +80,7 @@ class TransitionSignalMixin:
         if cutoff not in cache:
             from _transition_standin import StandIn
 
-            cache[cutoff] = StandIn(cutoff)
+            cache[cutoff] = StandIn(cutoff, root=self._tr_root())
         return cache[cutoff]
 
     def _tr_store(self):
@@ -119,8 +123,8 @@ class TransitionSignalMixin:
                     "%s: transition inputs unavailable for %s (history store / BTC); tr signal neutral",
                     type(self).__name__, pair)
         else:
-            X, tradeable = TS.features(dataframe, btc, hp, hb)
             st = self._tr_standin(first)
+            X, tradeable = TS.features(dataframe, btc, hp, hb, decimals=st.decimals)
             out = {c: st.predict(c, X, tradeable) for c in cells}
         cache.clear()
         cache[key] = out

@@ -34,10 +34,14 @@ OUT = HERE / "cut_noise"
 FOLDS = STRAT / "evaluation" / "folds"
 TARGET_RATE = 0.014735
 SRC_PLAN = "wf_aro_g24"
+#: --windows purged: the same check on the PURGED windows (ARO seed 2 retrained there): the second purged draw
+WINDOWS = {"legacy": {"plan": "wf_aro_g24", "sfx": "", "width_plan": "w_aro", "width_base": "NNNC_W_ARO"},
+           "purged": {"plan": "wf_aro_g24_pw", "sfx": "_pw", "width_plan": "w_aro_pw", "width_base": "NNNC_W_ARO_PW"}}
+W = WINDOWS["legacy"]
 
 
 def _plan() -> dict:
-    return json.loads((FOLDS / f"plan_{SRC_PLAN}.json").read_text())
+    return json.loads((FOLDS / f"plan_{W['plan']}.json").read_text())
 
 
 def _fold_s2(fid: str) -> dict:
@@ -58,9 +62,9 @@ def pick(fid: str) -> int:
     if not RF.fold_has_model(f, plan["base_strategy"], plan["config"], 2):
         raise SystemExit(f"{fid}: no seed-2 ARO weights for {f['strategy_class']} (strict: never trains)")
     OUT.mkdir(exist_ok=True)
-    tmp = OUT / f"plan_s2_{fid}.json"
+    tmp = OUT / f"plan_s2{W['sfx']}_{fid}.json"
     tmp.write_text(json.dumps({**plan, "folds": [f]}))
-    out = OUT / f"thr_s2_{fid}.json"
+    out = OUT / f"thr_s2{W['sfx']}_{fid}.json"
     subprocess.run([sys.executable, str(STRAT / "evaluation" / "pick_threshold.py"), "--plan", str(tmp),
                     "--fold", fid, "--target-rate", str(TARGET_RATE), "--out", str(out)],
                    cwd=ROOT, check=True, env={"PYTHONPATH": str(STRAT), "FT_MODEL_EVAL_STRICT": "1",
@@ -74,11 +78,11 @@ def signals(fid: str) -> int:
     from research.nnnc_framework.signals import fold_table
 
     plan, f = _plan(), _fold_s2(fid)
-    thr = json.loads((OUT / f"thr_s2_{fid}.json").read_text())[fid]
+    thr = json.loads((OUT / f"thr_s2{W['sfx']}_{fid}.json").read_text())[fid]
     RF.generate_fold(f, plan["base_strategy"], plan["family"], _params(plan), threshold=thr, seed=2)
     t = fold_table(f["strategy_class"], f["test_timerange"])
     (HERE / "signals").mkdir(exist_ok=True)
-    t.to_parquet(HERE / "signals" / f"ARO_S2_{fid}.parquet")
+    t.to_parquet(HERE / "signals" / f"ARO_S2{W['sfx'].upper()}_{fid}.parquet")
     print(json.dumps({"fold": fid, "threshold": thr, "entries": int((t["enter_long"] == 1).sum())}))
     return 0
 
@@ -87,11 +91,11 @@ def cuts() -> int:
     from research.train_window.rebuild import _buy, _matched_cut
 
     plan = _plan()
-    matched = {f["fold_id"]: _matched_cut(pd.read_parquet(HERE / "signals" / f"ARO_S2_{f['fold_id']}.parquet"),
+    matched = {f["fold_id"]: _matched_cut(pd.read_parquet(HERE / "signals" / f"ARO_S2{W['sfx'].upper()}_{f['fold_id']}.parquet"),
                                           _buy(f"{f['strategy_class']}_s2")) for f in plan["folds"]}
     causal = {f["train_timerange"]: matched[plan["folds"][i - 1]["fold_id"] if i else "f00"]
               for i, f in enumerate(plan["folds"])}
-    (OUT / "width_cuts_aro_s2.json").write_text(json.dumps({"label": "DIAGNOSTIC: ARO seed-2 matched cuts, legacy windows",
+    (OUT / f"width_cuts_aro_s2{W['sfx']}.json").write_text(json.dumps({"label": f"DIAGNOSTIC: ARO seed-2 matched cuts, {W['plan']} windows",
                                                             "matched": matched, "causal": causal}, indent=1))
     print(json.dumps(matched, indent=1))
     return 0
@@ -100,32 +104,34 @@ def cuts() -> int:
 def build() -> int:
     from research.nnmt.build_arms import key_of
 
-    causal = json.loads((OUT / "width_cuts_aro_s2.json").read_text())["causal"]
-    (STRAT / "NNNC" / "NNNC_W_ARO_S2C.py").write_text(f'''# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
+    causal = json.loads((OUT / f"width_cuts_aro_s2{W['sfx']}.json").read_text())["causal"]
+    name, base = f"NNNC_W_ARO{W['sfx'].upper()}_S2C", W["width_base"]
+    (STRAT / "NNNC" / f"{name}.py").write_text(f'''# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
 # type: ignore
 """T053 DIAGNOSTIC (research/train_window/cut_noise.py; GENERATED): the w_aro width book with the cuts matched to
-ARO's SEED-2 model book (legacy windows). Against w_aro it measures the cut coupling's seed noise."""
+ARO's SEED-2 model book ({W['plan']} windows). Against {W['width_plan']} it measures the cut coupling's seed noise."""
 
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNNC_W_ARO import NNNC_W_ARO
+from {base} import {base}
 
 
-class NNNC_W_ARO_S2C(NNNC_W_ARO):
+class {name}({base}):
     WIDTH_CUTS = {json.dumps(causal, indent=8, sort_keys=True)}
 ''')
     sys.path.insert(0, str(STRAT / "NNNC"))
-    assert key_of("NNNC_W_ARO_S2C") == key_of("NNNC_W_ARO")
-    p = json.loads((FOLDS / "plan_w_aro.json").read_text())
-    p.update(run_id="w_aro_s2c", base_strategy="NNNC_W_ARO_S2C", note="T053 diagnostic: w_aro with ARO seed-2 cuts")
+    assert key_of(name) == key_of(base)
+    tag = f"{W['width_plan']}_s2c"
+    p = json.loads((FOLDS / f"plan_{W['width_plan']}.json").read_text())
+    p.update(run_id=tag, base_strategy=name, note=f"T053 diagnostic: {W['width_plan']} with ARO seed-2 cuts")
     for f in p["folds"]:
-        f.update(strategy_class=f["strategy_class"].replace("NNNC_W_ARO", "NNNC_W_ARO_S2C"),
-                 model_dir=f["model_dir"], arm_tag=f["arm_tag"].replace("w_aro", "w_aro_s2c"), status="planned")
-    (FOLDS / "plan_w_aro_s2c.json").write_text(json.dumps(p, indent=1) + "\n")
-    print("built NNNC_W_ARO_S2C, plan_w_aro_s2c.json")
+        f.update(strategy_class=f"{f['strategy_class']}_S2C", model_dir=f["model_dir"],
+                 arm_tag=f"{f['arm_tag']}_s2c", status="planned")
+    (FOLDS / f"plan_{tag}.json").write_text(json.dumps(p, indent=1) + "\n")
+    print(f"built {name}, plan_{tag}.json")
     return 0
 
 
@@ -133,7 +139,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("step", choices=("pick", "signals", "cuts", "build"))
     ap.add_argument("--fold")
+    ap.add_argument("--windows", choices=sorted(WINDOWS), default="legacy")
     a = ap.parse_args(argv)
+    global W
+    W = WINDOWS[a.windows]
     return {"pick": lambda: pick(a.fold), "signals": lambda: signals(a.fold), "cuts": cuts, "build": build}[a.step]()
 
 

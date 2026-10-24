@@ -593,7 +593,7 @@ def state_nn(models: list[str], cell: str) -> dict:
 
 # ---------------------------------------------------------------------------- the live stand-in (fit)
 
-def standin_frames(end: pd.Timestamp) -> pd.DataFrame:
+def standin_frames(end: pd.Timestamp, decimals: int | None = None) -> pd.DataFrame:
     """Per screen pair (in _pairs() order, then date): the strategy-side features, tradeable, close, from
     local OHLCV up to `end` (exclusive) -- NNNC/_transition_standin.features on harvest.populate_path."""
     sys.path.insert(0, str(STRAT / "NNNC"))
@@ -618,7 +618,7 @@ def standin_frames(end: pd.Timestamp) -> pd.DataFrame:
         ohlcv = load(pair, True)
         d = H.populate_path(aro, ohlcv, pair)
         hist = _grid(load(pair, False), 15)
-        X, tradeable = TS.features(d, btc, hist, hist_btc)
+        X, tradeable = TS.features(d, btc, hist, hist_btc, decimals=decimals)
         X.insert(0, "date", pd.to_datetime(d["date"], utc=True).to_numpy())
         X.insert(1, "pair", pair)
         X["tradeable"] = tradeable
@@ -627,7 +627,12 @@ def standin_frames(end: pd.Timestamp) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True)
 
 
-def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
+def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None, decimals: int | None = None,
+                root: str = "transition", bootstrap: int | None = None) -> dict:
+    """`decimals` rounds every input (amendment preregistration_transition_round.json); `root` is the
+    saved_data/ subdirectory; `bootstrap` N fits each cell on a bootstrap resample of its fit rows drawn as
+    the screen's (default_rng([N, fold, H, level, direction]), HGB random_state N; needs check_fold). With a
+    fold, the fit's tail and test predictions are written beside the models (pred.parquet)."""
     import joblib
     import sklearn
     from sklearn.ensemble import HistGradientBoostingClassifier
@@ -641,17 +646,21 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
     # --fold also scores the test window, so the frame runs to test_end; the fit and tail masks below stay
     # < cutoff (fit rows end H before the tail, so no fit label reads past the cutoff; inputs are trailing)
     f_end = _ts(next(x for x in _folds() if x["fold_id"] == check_fold)["test_end"]) if check_fold else cutoff
-    t = standin_frames(max(cutoff, f_end))
+    if bootstrap is not None and not check_fold:
+        raise SystemExit("REFUSED: --bootstrap needs --fold (the draw is seeded by the fold number)")
+    t = standin_frames(max(cutoff, f_end), decimals)
     last = t.loc[t["date"] < cutoff, "date"].max()
     if last < cutoff - BAR:
         raise SystemExit(f"REFUSED: local OHLCV ends {last}, before the cutoff {cutoff} -- run download-data first")
     feats = TS.feature_names()
     tail0 = cutoff - pd.Timedelta(days=pr["stand_in"]["tail_days"])
-    dest = STRAT / "saved_data" / "transition" / cutoff.strftime("%Y%m%d")
+    dest = STRAT / "saved_data" / root / cutoff.strftime("%Y%m%d")
     dest.mkdir(parents=True, exist_ok=True)
     meta = {"cutoff": str(cutoff), "cells": cells, "features": feats, "tail_percentiles": {}, "fit_rows": {},
             "tail_rows": {}, "data_last": str(last), "sklearn": sklearn.__version__,
-            "rule": "preregistration_transition.json stand_in (fit < cutoff - tail_days - H, hourly; tail [cutoff - tail_days, cutoff - H))"}
+            "rule": "preregistration_transition.json stand_in (fit < cutoff - tail_days - H, hourly; tail [cutoff - tail_days, cutoff - H))",
+            "input_decimals": decimals, "bootstrap": bootstrap}
+    preds = []
     check = {}
     for cell in cells:
         dirn, level, H = cell.split("_")[0], cell.split("_")[1], int(cell.split("_")[2])
@@ -664,8 +673,15 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
         tr &= (t["date"].dt.minute == 0) if pr["stand_in"]["hourly_train"] else True
         tail = t["tradeable"] & (t["date"] >= tail0) & (t["date"] < cutoff - purge)
         y = y_all[tr].to_numpy() > 0.5
-        clf = HistGradientBoostingClassifier(**pr["stand_in"]["hgb"])
-        clf.fit(t.loc[tr, feats].to_numpy(np.float32), y)
+        Xf = t.loc[tr, feats].to_numpy(np.float32)
+        hgb = pr["stand_in"]["hgb"]
+        if bootstrap is not None:
+            li, di = pr["grid"]["level"].index(level), ("up", "down").index(dirn)
+            idx = np.random.default_rng([bootstrap, int(check_fold[1:]), H, li, di]).integers(0, len(y), len(y))
+            Xf, y = Xf[idx], y[idx]
+            hgb = {**hgb, "random_state": bootstrap}
+        clf = HistGradientBoostingClassifier(**hgb)
+        clf.fit(Xf, y)
         joblib.dump(clf, dest / f"{cell}.joblib")
         ptail = clf.predict_proba(t.loc[tail, feats].to_numpy(np.float32))[:, 1]
         meta["tail_percentiles"][cell] = {str(q): float(np.percentile(ptail, q)) for q in (80, 90, 99)}
@@ -675,6 +691,10 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
             ts, te = _ts(f["test_start"]), _ts(f["test_end"])
             test = t["tradeable"] & (t["date"] >= ts) & (t["date"] < te)
             mine = t.loc[test, ["date", "pair"]].assign(p=clf.predict_proba(t.loc[test, feats].to_numpy(np.float32))[:, 1])
+            preds.append(mine.assign(cell=cell, part="test"))
+            preds.append(t.loc[tail, ["date", "pair"]].assign(p=ptail, cell=cell, part="tail"))
+            if decimals is not None or bootstrap is not None:
+                continue  # a different model from the screen's: the tables comparison does not apply
             ref = pd.read_parquet(OUT / f"pred_{check_fold}.parquet")
             ref = ref[(ref["cell"] == cell)]
             rt = ref[ref["part"] == "test"].assign(date=lambda d: pd.to_datetime(d["date"], utc=True))
@@ -689,8 +709,10 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
                            "p80_ref": thr_ref, "p80_new": thr_new,
                            "fire_agreement": float((fire_ref == fire_new).mean()) if len(both) else None,
                            "fire_ref": int(fire_ref.sum()), "fire_new": int(fire_new.sum())}
-    if check_fold:
+    if check_fold and check:
         meta["check_vs_tables"] = {"fold": check_fold, **check}
+    if preds:
+        pd.concat(preds, ignore_index=True).to_parquet(dest / "pred.parquet", index=False)
     (dest / "meta.json").write_text(json.dumps(meta, indent=1))
     return meta
 
@@ -714,6 +736,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn", "trh-nn", "fit"))
     ap.add_argument("--cutoff", help="fit only: YYYYMMDD")
+    ap.add_argument("--decimals", type=int, help="fit only: round every input (preregistration_transition_round.json)")
+    ap.add_argument("--root", default="transition", help="fit only: saved_data/ subdirectory")
     ap.add_argument("--fold")
     ap.add_argument("--models")
     ap.add_argument("--cell")
@@ -753,7 +777,7 @@ def main(argv=None) -> int:
             return 2
         cutoff = _ts(next(x for x in _folds() if x["fold_id"] == a.fold)["test_start"]) if a.fold else \
             pd.Timestamp(a.cutoff, tz="UTC")
-        meta = fit_standin(cutoff, a.fold)
+        meta = fit_standin(cutoff, a.fold, a.decimals, a.root, a.random_state if a.bootstrap else None)
         print(json.dumps({k: meta[k] for k in ("cutoff", "tail_percentiles", "fit_rows", "check_vs_tables") if k in meta},
                          indent=1, default=str))
         return 0

@@ -39,9 +39,10 @@ def main(argv=None) -> int:
     ap.add_argument("--end", required=True)
     ap.add_argument("--n", type=int, default=60)
     ap.add_argument("--buffer", type=int, default=BUFFER)
+    ap.add_argument("--root", default="transition", help="saved_data/ subdirectory of the fitted stand-in")
     a = ap.parse_args(argv)
     cfg, aro = H.base_config(), H.load_aro()
-    st = TS.StandIn(a.cutoff)
+    st = TS.StandIn(a.cutoff, root=TS.ARTIFACTS.parent / a.root)
     start, end = pd.Timestamp(a.start, tz="UTC"), pd.Timestamp(a.end, tz="UTC")
 
     def load(pair, filled):
@@ -60,7 +61,7 @@ def main(argv=None) -> int:
         ohlcv = load(pair, True)
         hp = _grid(load(pair, False), 15)
         full = H.populate_path(aro, ohlcv, pair)
-        Xf, trf = TS.features(full, btc, hp, hb)
+        Xf, trf = TS.features(full, btc, hp, hb, decimals=st.decimals)
         cand = np.flatnonzero(trf & (full["date"] >= start).to_numpy() & (full["date"] < end).to_numpy())
         cand = cand[cand >= a.buffer]
         if not len(cand):
@@ -69,7 +70,7 @@ def main(argv=None) -> int:
             sl = H.populate_path(aro, ohlcv.iloc[t - a.buffer + 1:t + 1].reset_index(drop=True), pair)
             bi = btc_pos.get(ohlcv["date"].iloc[t])
             bsl = btc.iloc[max(0, bi - a.buffer + 1):bi + 1].reset_index(drop=True)
-            Xs, trs = TS.features(sl, bsl, hp, hb)
+            Xs, trs = TS.features(sl, bsl, hp, hb, decimals=st.decimals)
             row_f, row_s = Xf.iloc[[t]], Xs.iloc[[len(Xs) - 1]]
             for c in feats:
                 diffs[c].append(abs(float(row_f[c].iloc[0]) - float(row_s[c].iloc[0])))
@@ -92,7 +93,7 @@ def main(argv=None) -> int:
         out["cells"][cell] = {"max_abs_p_diff": float(np.nanmax(np.abs(pf - ps))), "fire_agreement": float((ff == fb).mean()),
                               "fire_full": int(ff.sum()), "fire_buffer": int(fb.sum())}
     out["tradeable_lost_in_buffer"] = int(sum(not r["tradeable_buffer"] for r in rows))
-    (HERE / "live_check.json").write_text(json.dumps(out, indent=1, default=str))
+    (HERE / ("live_check.json" if a.root == "transition" else f"live_check_{a.root}.json")).write_text(json.dumps(out, indent=1, default=str))
     print(json.dumps({k: v for k, v in out.items() if k != "feature_max_abs_diff"}, indent=1, default=str))
     return 0
 
