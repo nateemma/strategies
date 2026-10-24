@@ -84,7 +84,7 @@ classification (FR-002) and the transition truncation test (SC-005).
   - comparators `wf_aro_g24`, `cs_aro`, `w_aro`, `st_g24_rev`.
 
   COMMIT it before T011
-- [ ] T011 [US2] `build_arms models` writes `evaluation/folds/plan_mt.json` (base `NNMT_MLX`). Run f00 alone:
+- [X] T011 [US2] (bookkeeping 2026-10-24: done -- f00 timing and the fold-boundary finding in research/nnmt/compute.md; mt 15/15 in report §1)  `build_arms models` writes `evaluation/folds/plan_mt.json` (base `NNMT_MLX`). Run f00 alone:
   - time the training and record it in `research/nnmt/compute.md`;
   - verify the Principle XI purge (research R4): the last training candle is before `test_start`, and the label tail is truncated;
   - check both bots.
@@ -148,7 +148,7 @@ outputs, and has a distinct model key.
   - each variant's model inputs are what R6 lists;
   - the four keys are distinct from each other and from `NNMT_MLX`;
   - raw8 columns pass a truncation test (reuse `NNPredict/tests/test_inputs.py`'s helper)
-- [ ] T027 [US4] Train f00 for `mt_lr` first, timing it and checking the predictions are finite and non-constant on every head. Then run all four variant plans in one sequential chain (60 trainings)
+- [X] T027 [US4] (bookkeeping 2026-10-24: the four-variant chain ran and was judged in T028; the f00-first timing / finite-heads check is NOT recorded in compute.md)  Train f00 for `mt_lr` first, timing it and checking the predictions are finite and non-constant on every head. Then run all four variant plans in one sequential chain (60 trainings)
 - [X] T028 [US4] `judge models`: the four variants vs `mt_op`, then the R7 selection `<M>` written to `verdicts_models.json`. Re-run `<M>` and `mt_op` on seed 2 (R13) and record the seed-2 result beside the seed-1 one — seed 1 DONE 2026-10-22: R7 = mt_lr_ri (+0.93 pp vs mt_op, paired UNCHANGED; PASS needs seed 2); seed 2 DONE 2026-10-22 21:18: mt_lr_ri 13.75 vs mt_op 10.04 (+3.08 / +0.63, paired UNCHANGED p 0.60) PASS -> <M> = mt_lr_ri confirmed
 
 **Checkpoint**: `<M>` is selected and has a seed-2 replicate.
@@ -177,7 +177,7 @@ outputs, and has a distinct model key.
   - the `<M>_ah` task weights (trading 4, every auxiliary 1).
 
   COMMIT it before T033
-- [ ] T033 [US4] Write `research/nnmt/screen.py` (copying `research/nnpredict/screen.py`, parametrised by score column and direction). It refuses unless the 412 early width-book trades and the 0.1004 control gap reproduce. Run `signals --models <M>` and `screen sizer`, writing `screens_sizer.json`
+- [X] T033 [US4] (bookkeeping 2026-10-24: done -- research/nnmt/screen.py, screens_sizer.json PASS)  Write `research/nnmt/screen.py` (copying `research/nnpredict/screen.py`, parametrised by score column and direction). It refuses unless the 412 early width-book trades and the 0.1004 control gap reproduce. Run `signals --models <M>` and `screen sizer`, writing `screens_sizer.json`
 - [X] T034 [US4] Only if the screen passes: `build_arms sizer` (per-fold 0.5-share thresholds via `research.control_sizer.pick`; `<M>_cs` copies `w_aro`'s framework by `framework_sha`, and its unsized twin must match `w_aro` on 15/15). Run it, then `judge sizer`. Re-run on seed 2 if it PASSes. If the screen fails, record it in `verdicts_sizer.json` with no arm
   - Done 2026-10-24: twin mt_lr_ri_wb = w_aro 15/15 (re-run after declaring MODEL_ENTRY_FAMILY reversion, which the sizer needs for its tagged mask). Seed 1 mt_lr_ri_cs 59.28 vs w_aro 51.44 PASS (+1.20/+6.63, paired IMPROVED, Sharpe/maxDD UNCHANGED); vs cs_aro 59.95 FAIL (-3.65/+2.97). Seed 2 (mt_lr_ri_cs2, seed-2 weights + picks) 54.43 vs 51.44 FAIL (early -0.28, late +3.27, paired UNCHANGED p 0.25) -> FAIL at seed 2. Same 930 trades and exits as w_aro both seeds (sizing only). Judged as stage `screens` -> verdicts_screens.json; head arms recorded not run
 
