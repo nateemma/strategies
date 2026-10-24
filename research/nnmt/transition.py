@@ -638,8 +638,11 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
     pr = _pr()
     sel = json.loads((HERE / "screens_transition.json").read_text())["selected"]
     cells = [sel[k] for k in ("up", "down") if sel.get(k)]
-    t = standin_frames(cutoff)
-    last = t["date"].max()
+    # --fold also scores the test window, so the frame runs to test_end; the fit and tail masks below stay
+    # < cutoff (fit rows end H before the tail, so no fit label reads past the cutoff; inputs are trailing)
+    f_end = _ts(next(x for x in _folds() if x["fold_id"] == check_fold)["test_end"]) if check_fold else cutoff
+    t = standin_frames(max(cutoff, f_end))
+    last = t.loc[t["date"] < cutoff, "date"].max()
     if last < cutoff - BAR:
         raise SystemExit(f"REFUSED: local OHLCV ends {last}, before the cutoff {cutoff} -- run download-data first")
     feats = TS.feature_names()
