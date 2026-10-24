@@ -266,8 +266,9 @@ outputs, and has a distinct model key.
   - the three FR-015 verdicts (NNMT defaults recommendation, per-head verdicts, transition verdict).
 - [X] T048 Adopting results is the USER's call. Do not change `NNMT_MLX` / `NNMTStrategy` defaults beyond the inert port. List candidate defaults in the report
   - Done 2026-10-24: report §6 (transition) to §12 (FR-015 verdicts, candidate defaults: g24, mt_lr_ri base; tr_scale on cs_aro); no default changed
-- [ ] T049 [P] Full test pass: `pytest NNMT/tests research/nnmt/tests Framework/tests utils/tests -q`. Only the failures recorded in T002 may remain (SC-007)
-- [ ] T050 [P] Update `NNMT/README.md` (status, framework, variants, heads, transition, pointer to the report), `AGENT_GUIDE.md` (a 040 row and current state) and `README.md` (the NNMT directory status line)
+- [X] T049 [P] Full test pass: `pytest NNMT/tests research/nnmt/tests Framework/tests utils/tests -q`. Only the failures recorded in T002 may remain (SC-007)
+  - Done 2026-10-24: 3 failed, 757 passed, 9 skipped -- the same three tests as T002. One NEW name inside an already-failing audit test: `model_inputs` (InputSetMixin, NNMTInputSetMixin) is unclassified. It shapes weights but is keyed only through INPUT_SET; classifying it as MODEL_KEY_METHODS would re-key every input-set model (039 NNPredict incl. the adopted LSTM_RawInd, 040 variants). Left for the user
+- [X] T050 [P] Update `NNMT/README.md` (status, framework, variants, heads, transition, pointer to the report), `AGENT_GUIDE.md` (a 040 row and current state) and `README.md` (the NNMT directory status line)
 - [ ] T051 Memory: write `project_040_nnmt.md`; correct `project_nnmt_task_audit.md` (the trading label is NOT task-filtered since 2618e0eb); add the MEMORY.md index line
 - [ ] T052 Commit each stage as it completes (named files only). Push only when the user asks
 - [X] T054 [US4] Architecture amendment (user request 2026-10-21): option 3 = shared LSTM + an LSTM per task (`ClassifierTypeMLX.LSTM_STACK`, `NNMT/NNMT_LS.py`, `NNMT/tests/test_lstm_stack.py`), pre-registered in `research/nnmt/preregistration_arch.json` vs `mt_lr` (option 1); option 2 (no shared LSTM) = the TR twin (T030-T031). `plan_mt_ls.json`; `judge arch`

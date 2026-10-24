@@ -12,6 +12,28 @@ merged into `NNMTStrategy` (2026-06-12), which now holds the multi-task scaffold
 calculators, pipeline overrides, task filtering, multi-task class attributes) as well as the
 strategy-specific parts (plot config, classifier choice, diagnostics, profit-scaling helpers).
 
+## Status (feature 040, 2026-10-24; PROVISIONAL)
+
+Full results: `research/nnmt/report.md`.
+
+- **Framework parity.** `NNMTStrategy` carries `EntryFrameworkMixin` (`ENTRY_MODE = "model"`,
+  `MODEL_ENTRY_FAMILY = None`, `HELD_PAIR_ADD = None`); trade-identical to the pre-port NNMT on 15/15
+  folds. Every NNNC switch is declarable but off.
+- **As it stands NNMT is guard-decided:** model-decided share 0.001 (21.00 pp over the 15 folds vs
+  `cs_aro` 59.95). At the operating point (guards open) the model decides (share 0.84) but the late half
+  loses (−18 pp).
+- **Model variants:** `NNMT_LR_RI` (plain LSTM on raw8 + the 24 indicators, `_nnmt_inputs.py`) is the
+  selected base, confirmed at seed 2 but only "no worse, slightly better" than `NNMT_MLX` at the operating
+  point. Raw-only inputs lose ~20 pp early.
+- **Defaults: none changed.** Candidate: 24 h stop-loss grace (`mt_lr_ri_g24`, PASS both seeds,
+  +15.6/+15.8 pp per half); held-pair add, gbb gate (near-inert here), C2 take-profit FAIL.
+- **Auxiliary heads: don't use.** Each beats its persistence baseline, none ranks width-book trades; a
+  trading-head-only twin shows no evidence multi-task training helps. The `p_buy` sizer on `w_aro`'s book
+  passes at seed 1 and fails at seed 2.
+- **Regime transition:** a stand-in model (not an NNMT head; the NNMT head does not match it) used as an
+  exposure scaler on `cs_aro` (`tr_scale`) passes both seeds; a standalone long (`tr_long`) is positive
+  both seeds. Gate and exit uses fail.
+
 ## Main files
 
 | File | What it does |

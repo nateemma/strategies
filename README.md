@@ -300,6 +300,8 @@ not the default until slippage is measured (feature 036). See `AGENT_GUIDE.md`, 
 
 `NNMT/` uses multi-task classification — the model predicts several variables simultaneously, which reduces overfitting. Variants follow the same naming pattern as NNNC.
 
+**Status (040, 2026-10-24):** on the 15-fold harness NNMT trails the NNNC books (best arm, NNMT_LR_RI + 24 h grace, 40.9 pp vs `cs_aro` 60.0), the auxiliary heads do not rank trades, and multi-task training shows no measurable benefit; no default changed. See `NNMT/README.md` and `research/nnmt/report.md`.
+
 ### Anomaly Family
 
 `Anomaly/` trains on "normal" (hold) data and treats high-reconstruction-error points as buy/sell candidates. `NNGANomalyStrategy` uses GANomaly for better anomaly generation.
