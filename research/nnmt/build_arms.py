@@ -339,6 +339,7 @@ SIZER_THRESHOLDS = HERE / "sizer_thresholds.json"
 
 SIZER_BODY = '''    """w_aro's width book sized by the NNMT model's p_buy (cs_aro pattern, contract C2)."""
     AGREE_RULE = "p_buy"
+    MODEL_ENTRY_FAMILY = "reversion"  # w_aro's resolved family: the sizer reads the book's tagged mask
     WIDTH_CUTS = {cuts}
     #: MODEL_TRAIN_TIMERANGE -> the 0.5-agree-share threshold on p_buy (research.nnmt.pick)
     SIZER_THRESHOLDS = {thresholds}
@@ -370,6 +371,7 @@ def sizer() -> dict:
     wb, cs = f"{base}_WB", f"{base}_CS"
     imports = "from freqtrade.strategy import DecimalParameter\n\nfrom _width_book import WidthBookMixin\n"
     p = write_class(wb, base, "sizer", "w_aro's width book and framework (identity twin of w_aro)", imports,
+                    "    MODEL_ENTRY_FAMILY = \"reversion\"  # w_aro's resolved family (NNMT's is None)\n"
                     "    WIDTH_CUTS = " + cuts.replace("{", "{{").replace("}", "}}") + "\n" + fw)
     p.write_text(p.read_text().replace(f"class {wb}({base}):", f"class {wb}(WidthBookMixin, {base}):"))
     plan(f"{tag}_wb", wb, "sizer stage: w_aro's width book + framework on the selected model (identity twin)")

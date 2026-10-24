@@ -6,13 +6,13 @@
              model-decided share; the R7 selection                     -> verdicts_models.json
   framework  each feature arm and the twin vs the selected model (INERT if no fold changed)
                                                                        -> verdicts_framework.json
-  arms       a generic stage (sizer / heads / transition): each pre-registered arm vs its comparator,
+  arms       a generic stage (screens = sizer + heads / transition): each pre-registered arm vs its comparator,
              gated by the pre-registration's instrument files          -> verdicts_<stage>.json
 
 Each stage refuses while its pre-registration is uncommitted/dirty or any of its arm records predates the
 commit (research.pair_triggers.judge.refusals).
 
-    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.judge identity|models|framework|sizer|heads|transition
+    PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.judge identity|models|framework|screens|transition
 """
 from __future__ import annotations
 
@@ -405,7 +405,7 @@ def main(argv=None) -> int:
         return framework()
     if stage == "arch":
         return arch()
-    if stage in ("sizer", "heads", "transition"):
+    if stage in ("screens", "transition"):  # screens = the sizer + head arms (preregistration_screens.json)
         return arms(stage)
     raise SystemExit(f"unknown stage {stage!r}")
 
