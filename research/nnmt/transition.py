@@ -23,6 +23,12 @@ Regime-state amendment (preregistration_regime_state.json): the FUTURE state Y =
   state-judge   AUC per class (BULL, BEAR) vs max(0.5, Markov, trailing z_H), events, proxy, pass, selection
                                                                                     -> screens_regime_state.json
 
+  fit           --cutoff YYYYMMDD | --fold fNN: the SELECTED cells' stand-in fitted as the screen fits it (rows < cutoff -
+                tail - H, hourly; tail [cutoff - tail, cutoff - H)), on inputs built by the STRATEGY's own builder
+                (NNNC/_transition_standin.features) from local OHLCV, so live and backtest score the same
+                model on the same code -> saved_data/transition/<YYYYMMDD>/ (<cell>.joblib, meta.json). With
+                --fold the cutoff is test_start and the refit's predictions are compared with pred_fNN.parquet.
+
   state-nn      --models MT_LR_RI_RG,MT_LR_RI_RGM --cell pair_288: each NN's regime head (signal tables) scored with
                 the same rule on that cell (Markov fit on the fold's training rows), plus shared-vs-separate
                                                                                     -> screens_regime_state.json["nn"]
@@ -585,6 +591,107 @@ def state_nn(models: list[str], cell: str) -> dict:
 # ---------------------------------------------------------------------------- CLI
 
 
+# ---------------------------------------------------------------------------- the live stand-in (fit)
+
+def standin_frames(end: pd.Timestamp) -> pd.DataFrame:
+    """Per screen pair (in _pairs() order, then date): the strategy-side features, tradeable, close, from
+    local OHLCV up to `end` (exclusive) -- NNNC/_transition_standin.features on harvest.populate_path."""
+    sys.path.insert(0, str(STRAT / "NNNC"))
+    import _transition_standin as TS
+    from freqtrade.data import history
+    from research.indicator_screen import harvest as H
+    from utils.CloseHistoryStore import _grid
+
+    cfg = H.base_config()
+    aro = H.load_aro()
+
+    def load(pair: str, filled: bool) -> pd.DataFrame:
+        df = history.load_pair_history(pair=pair, timeframe="15m", datadir=cfg["datadir"], fill_up_missing=filled,
+                                       data_format=cfg.get("dataformat_ohlcv", "feather"),
+                                       candle_type=cfg.get("candle_type_def", "spot"))
+        return df[(df["date"] >= pd.Timestamp(H.W.DATA_START, tz="UTC")) & (df["date"] < end)].reset_index(drop=True)
+
+    btc = load(TS.CONTEXT_PAIR, True)
+    hist_btc = _grid(load(TS.CONTEXT_PAIR, False), 15)
+    out = []
+    for pair in _pairs():
+        ohlcv = load(pair, True)
+        d = H.populate_path(aro, ohlcv, pair)
+        hist = _grid(load(pair, False), 15)
+        X, tradeable = TS.features(d, btc, hist, hist_btc)
+        X.insert(0, "date", pd.to_datetime(d["date"], utc=True).to_numpy())
+        X.insert(1, "pair", pair)
+        X["tradeable"] = tradeable
+        X["close"] = d["close"].astype(float).to_numpy()
+        out.append(X)
+    return pd.concat(out, ignore_index=True)
+
+
+def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None) -> dict:
+    import joblib
+    import sklearn
+    from sklearn.ensemble import HistGradientBoostingClassifier
+
+    sys.path.insert(0, str(STRAT / "NNNC"))
+    import _transition_standin as TS
+
+    pr = _pr()
+    sel = json.loads((HERE / "screens_transition.json").read_text())["selected"]
+    cells = [sel[k] for k in ("up", "down") if sel.get(k)]
+    t = standin_frames(cutoff)
+    last = t["date"].max()
+    if last < cutoff - BAR:
+        raise SystemExit(f"REFUSED: local OHLCV ends {last}, before the cutoff {cutoff} -- run download-data first")
+    feats = TS.feature_names()
+    tail0 = cutoff - pd.Timedelta(days=pr["stand_in"]["tail_days"])
+    dest = STRAT / "saved_data" / "transition" / cutoff.strftime("%Y%m%d")
+    dest.mkdir(parents=True, exist_ok=True)
+    meta = {"cutoff": str(cutoff), "cells": cells, "features": feats, "tail_percentiles": {}, "fit_rows": {},
+            "tail_rows": {}, "data_last": str(last), "sklearn": sklearn.__version__,
+            "rule": "preregistration_transition.json stand_in (fit < cutoff - tail_days - H, hourly; tail [cutoff - tail_days, cutoff - H))"}
+    check = {}
+    for cell in cells:
+        dirn, level, H = cell.split("_")[0], cell.split("_")[1], int(cell.split("_")[2])
+        if level != "pair":
+            raise SystemExit(f"REFUSED: {cell}: only pair-level cells have a live builder")
+        y_all = pd.concat([labels(g["close"].reset_index(drop=True), H, pr)[dirn].set_axis(g.index)
+                           for _, g in t.groupby("pair", sort=False)])
+        purge = H * BAR
+        tr = t["tradeable"] & (t["date"] < tail0 - purge) & y_all.notna()
+        tr &= (t["date"].dt.minute == 0) if pr["stand_in"]["hourly_train"] else True
+        tail = t["tradeable"] & (t["date"] >= tail0) & (t["date"] < cutoff - purge)
+        y = y_all[tr].to_numpy() > 0.5
+        clf = HistGradientBoostingClassifier(**pr["stand_in"]["hgb"])
+        clf.fit(t.loc[tr, feats].to_numpy(np.float32), y)
+        joblib.dump(clf, dest / f"{cell}.joblib")
+        ptail = clf.predict_proba(t.loc[tail, feats].to_numpy(np.float32))[:, 1]
+        meta["tail_percentiles"][cell] = {str(q): float(np.percentile(ptail, q)) for q in (80, 90, 99)}
+        meta["fit_rows"][cell], meta["tail_rows"][cell] = int(tr.sum()), int(tail.sum())
+        if check_fold:
+            f = next(x for x in _folds() if x["fold_id"] == check_fold)
+            ts, te = _ts(f["test_start"]), _ts(f["test_end"])
+            test = t["tradeable"] & (t["date"] >= ts) & (t["date"] < te)
+            mine = t.loc[test, ["date", "pair"]].assign(p=clf.predict_proba(t.loc[test, feats].to_numpy(np.float32))[:, 1])
+            ref = pd.read_parquet(OUT / f"pred_{check_fold}.parquet")
+            ref = ref[(ref["cell"] == cell)]
+            rt = ref[ref["part"] == "test"].assign(date=lambda d: pd.to_datetime(d["date"], utc=True))
+            m = rt.merge(mine, on=["date", "pair"], how="outer", suffixes=("_ref", "_new"), indicator=True)
+            both = m[m["_merge"] == "both"]
+            thr_ref = float(np.percentile(ref.loc[ref["part"] == "tail", "p"].to_numpy(float), 80))
+            thr_new = meta["tail_percentiles"][cell]["80"]
+            fire_ref, fire_new = both["p_ref"] >= thr_ref, both["p_new"] >= thr_new
+            check[cell] = {"rows_ref_only": int((m["_merge"] == "left_only").sum()),
+                           "rows_new_only": int((m["_merge"] == "right_only").sum()),
+                           "max_abs_p_diff": float((both["p_ref"] - both["p_new"]).abs().max()) if len(both) else None,
+                           "p80_ref": thr_ref, "p80_new": thr_new,
+                           "fire_agreement": float((fire_ref == fire_new).mean()) if len(both) else None,
+                           "fire_ref": int(fire_ref.sum()), "fire_new": int(fire_new.sum())}
+    if check_fold:
+        meta["check_vs_tables"] = {"fold": check_fold, **check}
+    (dest / "meta.json").write_text(json.dumps(meta, indent=1))
+    return meta
+
+
 def _refusals() -> list[str]:
     import subprocess
 
@@ -602,7 +709,8 @@ def _refusals() -> list[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn", "trh-nn"))
+    ap.add_argument("step", choices=("labels", "causality", "screen", "judge", "state-screen", "state-judge", "state-nn", "trh-nn", "fit"))
+    ap.add_argument("--cutoff", help="fit only: YYYYMMDD")
     ap.add_argument("--fold")
     ap.add_argument("--models")
     ap.add_argument("--cell")
@@ -635,6 +743,16 @@ def main(argv=None) -> int:
             screen_fold(a.fold, a.random_state, a.bootstrap)
         else:
             state_screen_fold(a.fold)
+        return 0
+    if a.step == "fit":
+        if bool(a.cutoff) == bool(a.fold):
+            print("fit needs exactly one of --cutoff / --fold")
+            return 2
+        cutoff = _ts(next(x for x in _folds() if x["fold_id"] == a.fold)["test_start"]) if a.fold else \
+            pd.Timestamp(a.cutoff, tz="UTC")
+        meta = fit_standin(cutoff, a.fold)
+        print(json.dumps({k: meta[k] for k in ("cutoff", "tail_percentiles", "fit_rows", "check_vs_tables") if k in meta},
+                         indent=1, default=str))
         return 0
     if a.step == "trh-nn":
         r = trh_nn(dict(x.split("=") for x in a.models.split(",")))

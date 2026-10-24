@@ -20,6 +20,13 @@ row (not tradeable) never fires.
 The cells (TR_UP_CELL / TR_DOWN_CELL) are written by research/nnmt/build_arms.py transition from
 screens_transition.json "selected". Every attribute and method here is post-model: the cs_aro arms keep
 cs_aro's weights (the builder asserts the model key). The fold id comes from the class name.
+
+TR_SOURCE (2026-10-24): "tables" (default; every 040 record ran it) reads the per-fold stand-in tables;
+"standin" scores the fitted stand-in INSIDE the strategy (_transition_standin.py), the same code in a
+backtest and a live bot: BTC/USDT is an informative pair, the long-window inputs come from
+utils/CloseHistoryStore (local files + the bot's candles; persisted in dry-run/live), the cutoff is
+TR_STANDIN_CUTOFF or the MODEL_TRAIN_TIMERANGE end, and the thresholds are that fit's tail percentiles.
+Where the inputs are unavailable the probability is NaN, so the scaler leaves the stake unchanged.
 """
 
 import re
@@ -35,9 +42,96 @@ class TransitionSignalMixin:
     TR_UP_CELL = None
     TR_DOWN_CELL = None
     TR_TABLES = TABLES  # the seed-2 arms point at nnmt_transition_rs1/
+    TR_SOURCE = "tables"  # or "standin" (live-capable)
+    TR_STANDIN_CUTOFF = None  # YYYYMMDD; None = the MODEL_TRAIN_TIMERANGE end
     MODEL_KEY_IGNORED = ("TR_UP_CELL", "TR_DOWN_CELL", "TR_TABLES", "TR_GATE_Q", "TR_SCALE_Q", "TR_SCALE_WEIGHTS",
-                         "TR_EXIT_Q", "TR_LONG_Q")
-    MODEL_KEY_METHODS_IGNORED = ("_tr_fold", "_tr_cell", "_tr_threshold", "_tr_p", "_tr_fires")
+                         "TR_EXIT_Q", "TR_LONG_Q", "TR_SOURCE", "TR_STANDIN_CUTOFF")
+    MODEL_KEY_METHODS_IGNORED = ("_tr_fold", "_tr_cell", "_tr_threshold", "_tr_p", "_tr_fires", "_tr_fires_df",
+                                 "_tr_standin", "_tr_store", "_tr_probs", "_tr_cutoff", "informative_pairs")
+
+    # ------------------------------------------------------------------ stand-in source (live-capable)
+    def _tr_cutoff(self) -> str:
+        if self.TR_STANDIN_CUTOFF:
+            return str(self.TR_STANDIN_CUTOFF)
+        tr = getattr(self, "MODEL_TRAIN_TIMERANGE", None)
+        if not tr:
+            raise ValueError(f"{type(self).__name__}: TR_SOURCE standin needs TR_STANDIN_CUTOFF or MODEL_TRAIN_TIMERANGE")
+        return tr.split("-")[1]
+
+    def _tr_standin(self):
+        st = self.__dict__.get("_tr_standin_obj")
+        if st is None:
+            from _transition_standin import StandIn
+
+            st = self.__dict__["_tr_standin_obj"] = StandIn(self._tr_cutoff())
+        return st
+
+    def _tr_store(self):
+        store = self.__dict__.get("_tr_store_obj")
+        if store is None:
+            from utils.CloseHistoryStore import CloseHistoryStore
+
+            mode = str(getattr(self.config.get("runmode", ""), "value", self.config.get("runmode", "")))
+            live = mode in ("live", "dry_run")
+            persist = Path(self.config["user_data_dir"]) / "data" / "transition_history" / type(self).__name__ if live else None
+            store = self.__dict__["_tr_store_obj"] = CloseHistoryStore(
+                self.config["datadir"], self.timeframe, self.config.get("dataformat_ohlcv", "feather"),
+                persist_dir=persist, keep_bars=20000 if live else None)
+        return store
+
+    def _tr_probs(self, dataframe: pd.DataFrame) -> dict:
+        """{cell: P aligned with dataframe} from the in-strategy stand-in (NaN where not tradeable/unavailable)."""
+        import _transition_standin as TS
+
+        pair = self.curr_pair
+        key = (pair, len(dataframe), pd.Timestamp(dataframe["date"].iloc[-1]))
+        cache = self.__dict__.setdefault("_tr_prob_cache", {})
+        if key in cache:
+            return cache[key]
+        store = self._tr_store()
+        store.update(pair, dataframe)
+        btc = self.dp.get_pair_dataframe(TS.CONTEXT_PAIR, self.timeframe)
+        if btc is not None and len(btc):
+            store.update(TS.CONTEXT_PAIR, btc)
+        first = pd.Timestamp(dataframe["date"].iloc[0])
+        hp, hb = store.series(pair, first), store.series(TS.CONTEXT_PAIR, first)
+        cells = [c for c in (self.TR_UP_CELL, self.TR_DOWN_CELL) if c]
+        if hp is None or hb is None or btc is None or not len(btc):
+            out = {c: np.full(len(dataframe), np.nan) for c in cells}
+            if not self.__dict__.get("_tr_warned"):
+                self.__dict__["_tr_warned"] = True
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "%s: transition inputs unavailable for %s (history store / BTC); tr signal neutral",
+                    type(self).__name__, pair)
+        else:
+            X, tradeable = TS.features(dataframe, btc, hp, hb)
+            st = self._tr_standin()
+            out = {c: st.predict(c, X, tradeable) for c in cells}
+        cache.clear()
+        cache[key] = out
+        return out
+
+    def _tr_fires_df(self, cell, q: float, dataframe: pd.DataFrame) -> np.ndarray:
+        """_tr_fires for this dataframe, from TR_SOURCE."""
+        if cell is None:
+            return np.zeros(len(dataframe), dtype=bool)
+        if self.TR_SOURCE == "tables":
+            return self._tr_fires(cell, q, self.curr_pair, dataframe["date"])
+        if self.TR_SOURCE != "standin":
+            raise ValueError(f"{type(self).__name__}: TR_SOURCE {self.TR_SOURCE!r}")
+        p = self._tr_probs(dataframe)[cell]
+        return np.nan_to_num(p, nan=-np.inf) >= self._tr_standin().threshold(cell, q)
+
+    def informative_pairs(self):
+        pairs = list(super().informative_pairs())
+        if self.TR_SOURCE == "standin":
+            from _transition_standin import CONTEXT_PAIR
+
+            if (CONTEXT_PAIR, self.timeframe) not in pairs:
+                pairs.append((CONTEXT_PAIR, self.timeframe))
+        return pairs
 
     def _tr_fold(self) -> str:
         m = re.search(r"_(f\d{2})(?:_|$)", type(self).__name__)
@@ -85,7 +179,7 @@ class TrGateMixin(TransitionSignalMixin):
             return mask
         if self.TR_DOWN_CELL is None:
             raise ValueError(f"{type(self).__name__}: tr_gate needs a selected DOWN cell")
-        skip = self._tr_fires(self.TR_DOWN_CELL, self.TR_GATE_Q, self.curr_pair, dataframe["date"])
+        skip = self._tr_fires_df(self.TR_DOWN_CELL, self.TR_GATE_Q, dataframe)
         return mask & ~pd.Series(skip, index=mask.index)
 
 
@@ -99,9 +193,8 @@ class TrScaleMixin(TransitionSignalMixin):
         tags = getattr(self, "_st_tags", None)
         if mask is None or tags is None:
             raise ValueError(f"{type(self).__name__}: tr_scale needs the book's tagged mask")
-        d, pair = dataframe["date"], self.curr_pair
-        up = self._tr_fires(self.TR_UP_CELL, self.TR_SCALE_Q, pair, d)
-        down = self._tr_fires(self.TR_DOWN_CELL, self.TR_SCALE_Q, pair, d)
+        up = self._tr_fires_df(self.TR_UP_CELL, self.TR_SCALE_Q, dataframe)
+        down = self._tr_fires_df(self.TR_DOWN_CELL, self.TR_SCALE_Q, dataframe)
         m = np.asarray(mask, dtype=bool)
         tags = tags.copy()
         for sel, suf in ((m & up & ~down, self._SUFFIX["up"]), (m & down & ~up, self._SUFFIX["down"])):
@@ -127,8 +220,9 @@ class TrExitMixin(TransitionSignalMixin):
         df, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         if not df.empty:
             last = pd.Timestamp(df["date"].iloc[-1])
-            if last >= pd.Timestamp(trade.open_date_utc) and \
-                    self._tr_fires(self.TR_DOWN_CELL, self.TR_EXIT_Q, pair, [last])[0]:
+            if last >= pd.Timestamp(trade.open_date_utc) and (
+                    self._tr_fires(self.TR_DOWN_CELL, self.TR_EXIT_Q, pair, [last])[0] if self.TR_SOURCE == "tables"
+                    else self._tr_fires_df(self.TR_DOWN_CELL, self.TR_EXIT_Q, df)[-1]):
                 return "tr_exit"
         return super().custom_exit(pair, trade, current_time, current_rate, current_profit, **kwargs)
 
@@ -140,7 +234,7 @@ class TrLongMixin(TransitionSignalMixin):
     def get_entry_conditions(self, dataframe):
         if self.TR_UP_CELL is None:
             raise ValueError(f"{type(self).__name__}: tr_long needs a selected UP cell")
-        m = self._tr_fires(self.TR_UP_CELL, self.TR_LONG_Q, self.curr_pair, dataframe["date"])
+        m = self._tr_fires_df(self.TR_UP_CELL, self.TR_LONG_Q, dataframe)
         tags = np.full(len(dataframe), "", dtype=object)
         tags[m] = self.TR_LONG_TAG
         self._st_tags = tags
