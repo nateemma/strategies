@@ -1,0 +1,11 @@
+{
+ "title": "040 follow-up tr_scale_ext: seed rule",
+ "date": "2026-10-24",
+ "amends": "preregistration_trscale_ext.json \"seeds\" (written with it, before any result)",
+ "seed": {
+  "tables": "user_data/data/nnmt_transition_bs1/pred_fNN.parquet (preregistration_transition_seed.json's bootstrap stand-in)",
+  "arms": "every PASS re-run unchanged on these tables as <arm>_bs1, against the same seed-1 comparator"
+ },
+ "rule": "the arm's own rule applied to <arm>_bs1; a PASS stays a PASS only if <arm>_bs1 PASSes",
+ "seen_before": "nothing of either arm"
+}

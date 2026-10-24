@@ -1,0 +1,86 @@
+{
+ "title": "040 follow-up: the tr_scale exposure scaler on two more books -- NNMT (mt_lr_ri_g24) and the GBR replication (cs_gbr)",
+ "date": "2026-10-24",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test. Committed before either arm is built or run.",
+ "why": "user request 2026-10-24: tr_scale PASSed on cs_aro (both seeds); does it carry to other books?",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "signal": "unchanged from tr_scale: the seed-1 stand-in tables (user_data/data/nnmt_transition/pred_fNN.parquet), cells up_pair_96 / down_pair_672 (screens_transition.json selected), thresholds = that fold's tail p80, weights x1.333 (P(UP) high) / x0.667 (P(DOWN) high), both or neither: unchanged",
+ "arms": {
+  "tr_scale_mt": {
+   "comparator": "mt_lr_ri_g24",
+   "use": "TrScaleMixin on NNMT_LR_RI at the new NNMT defaults (24 h grace; = mt_lr_ri_g24's trades, mt_lr_ri_def 15/15). Its model entries are tagged reversion:model (MODEL_ENTRY_FAMILY reversion; enter_tag only, FAMILY_EXITS empty) so the scaler can read the book's mask. Same weights (model key asserted)."
+  },
+  "tr_scale_gbr": {
+   "comparator": "cs_gbr",
+   "also_reported_vs": [
+    "w_gbr"
+   ],
+   "use": "TrScaleMixin on NNNC_CS_GBR (GBR's width-book sizer, the usual NNNC replication of cs_aro). Same weights (model key asserted)."
+  }
+ },
+ "audit": "before reading either result: the arm's trades must be its comparator's trades (same count and exit reasons; the scaler changes stake only) on every fold",
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seeds": "any PASS is re-run on the bootstrap stand-in tables (preregistration_trscale_ext_seed.json), which decide",
+ "instrument_files": [
+  "screens_transition.json"
+ ],
+ "seen_before": [
+  "tr_scale on cs_aro: PASS both seeds (65.35 / 66.97 vs 59.95; verdicts_transition.json)",
+  "mt_lr_ri_g24 40.86 (seed 1); cs_gbr 58.33, w_gbr 53.68 (research/xmodel_sizer)",
+  "neither tr_scale_mt nor tr_scale_gbr has been built or run before this commit"
+ ]
+}
