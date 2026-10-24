@@ -97,3 +97,20 @@ def test_a_missing_artifact_raises_and_the_default_source_is_tables(tmp_path):
     from _transition_signal import TransitionSignalMixin
 
     assert TransitionSignalMixin.TR_SOURCE == "tables"
+
+
+def test_mainline_cutoff_is_the_newest_fit_on_or_before_the_first_candle(tmp_path, monkeypatch):
+    from _transition_signal import TransitionSignalMixin
+
+    for d in ("20260101", "20260601", "20261020"):
+        (tmp_path / d).mkdir()
+        (tmp_path / d / "meta.json").write_text("{}")
+    (tmp_path / "20260301").mkdir()  # no meta.json: not a finished fit
+    monkeypatch.setattr(TS, "ARTIFACTS", tmp_path)
+    m = TransitionSignalMixin()
+    assert m._tr_cutoff(pd.Timestamp("2026-07-15", tz="UTC")) == "20260601"
+    assert m._tr_cutoff(pd.Timestamp("2026-10-20", tz="UTC")) == "20261020"
+    with pytest.raises(FileNotFoundError):
+        m._tr_cutoff(pd.Timestamp("2025-12-31", tz="UTC"))
+    m.MODEL_TRAIN_TIMERANGE = "20210101-20230101"
+    assert m._tr_cutoff(pd.Timestamp("2026-07-15", tz="UTC")) == "20230101"

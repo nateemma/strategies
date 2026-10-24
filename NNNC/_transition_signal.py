@@ -50,21 +50,34 @@ class TransitionSignalMixin:
                                  "_tr_standin", "_tr_store", "_tr_probs", "_tr_cutoff", "informative_pairs")
 
     # ------------------------------------------------------------------ stand-in source (live-capable)
-    def _tr_cutoff(self) -> str:
+    def _tr_cutoff(self, first_date=None) -> str:
+        """TR_STANDIN_CUTOFF; else a fold's MODEL_TRAIN_TIMERANGE end; else (mainline) the newest fitted
+        stand-in whose cutoff is on or before the first candle scored (`first_date`) -- never one fit on
+        data after the candles it scores. Raises if there is none."""
         if self.TR_STANDIN_CUTOFF:
             return str(self.TR_STANDIN_CUTOFF)
         tr = getattr(self, "MODEL_TRAIN_TIMERANGE", None)
-        if not tr:
-            raise ValueError(f"{type(self).__name__}: TR_SOURCE standin needs TR_STANDIN_CUTOFF or MODEL_TRAIN_TIMERANGE")
-        return tr.split("-")[1]
+        if tr:
+            return tr.split("-")[1]
+        from _transition_standin import ARTIFACTS
 
-    def _tr_standin(self):
-        st = self.__dict__.get("_tr_standin_obj")
-        if st is None:
+        if first_date is None:
+            raise ValueError(f"{type(self).__name__}: a mainline stand-in cutoff needs the first candle scored")
+        day = pd.Timestamp(first_date).strftime("%Y%m%d")
+        fitted = sorted(d.name for d in ARTIFACTS.glob("[0-9]" * 8) if (d / "meta.json").is_file() and d.name <= day)
+        if not fitted:
+            raise FileNotFoundError(f"{type(self).__name__}: no transition stand-in fitted on or before {day} "
+                                    f"(run: research.nnmt.transition fit --cutoff <YYYYMMDD>)")
+        return fitted[-1]
+
+    def _tr_standin(self, first_date=None):
+        cutoff = self._tr_cutoff(first_date)
+        cache = self.__dict__.setdefault("_tr_standin_objs", {})
+        if cutoff not in cache:
             from _transition_standin import StandIn
 
-            st = self.__dict__["_tr_standin_obj"] = StandIn(self._tr_cutoff())
-        return st
+            cache[cutoff] = StandIn(cutoff)
+        return cache[cutoff]
 
     def _tr_store(self):
         store = self.__dict__.get("_tr_store_obj")
@@ -107,7 +120,7 @@ class TransitionSignalMixin:
                     type(self).__name__, pair)
         else:
             X, tradeable = TS.features(dataframe, btc, hp, hb)
-            st = self._tr_standin()
+            st = self._tr_standin(first)
             out = {c: st.predict(c, X, tradeable) for c in cells}
         cache.clear()
         cache[key] = out
@@ -122,7 +135,8 @@ class TransitionSignalMixin:
         if self.TR_SOURCE != "standin":
             raise ValueError(f"{type(self).__name__}: TR_SOURCE {self.TR_SOURCE!r}")
         p = self._tr_probs(dataframe)[cell]
-        return np.nan_to_num(p, nan=-np.inf) >= self._tr_standin().threshold(cell, q)
+        thr = self._tr_standin(pd.Timestamp(dataframe["date"].iloc[0])).threshold(cell, q)
+        return np.nan_to_num(p, nan=-np.inf) >= thr
 
     def informative_pairs(self):
         pairs = list(super().informative_pairs())
@@ -190,6 +204,8 @@ class TrScaleMixin(TransitionSignalMixin):
 
     def get_entry_conditions(self, dataframe):
         mask = super().get_entry_conditions(dataframe)
+        if self.TR_UP_CELL is None and self.TR_DOWN_CELL is None:
+            return mask  # switched off (a record class's pin): no scaling, no tag change
         tags = getattr(self, "_st_tags", None)
         if mask is None or tags is None:
             raise ValueError(f"{type(self).__name__}: tr_scale needs the book's tagged mask")

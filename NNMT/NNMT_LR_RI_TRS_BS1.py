@@ -18,4 +18,5 @@ class NNMT_LR_RI_TRS_BS1(TrScaleMixin, StakeWeightMixin, NNMT_LR_RI):
     MODEL_ENTRY_FAMILY = "reversion"
     TR_UP_CELL = "up_pair_96"
     TR_DOWN_CELL = "down_pair_672"
+    TR_SOURCE = "tables"  # its 040 record read the stand-in tables
     TR_TABLES = TABLES.parent / "nnmt_transition_bs1"

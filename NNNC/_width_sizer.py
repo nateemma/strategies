@@ -29,7 +29,9 @@ class WidthSizerMixin:
     AGREE_SHARE = 0.5
     STAKE_WEIGHTS = (1.0, 0.5)
     AGREE_RULE = "decision"
-    MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS", "AGREE_RULE")
+    #: this mixin multiplies the stake by stake_weight in custom_stake_amount (NNMT/_stake_weight.py skips then)
+    _APPLIES_STAKE_WEIGHT = True
+    MODEL_KEY_IGNORED = ("AGREE_SHARE", "STAKE_WEIGHTS", "AGREE_RULE", "_APPLIES_STAKE_WEIGHT")
     MODEL_KEY_METHODS_IGNORED = ("sizer_score", "stake_weight")
 
     def sizer_score(self, dataframe):
