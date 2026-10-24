@@ -42,3 +42,25 @@ def test_model_tags_are_basestrategys():
 def test_the_port_does_not_move_the_model_key():
     pinned = type("NNMT_MLX_f", (NNMT_MLX,), {"MODEL_TRAIN_TIMERANGE": "20210101-20230101"})
     assert MK.key_hash(MK.resolve(pinned, CONFIG)) == PRE_PORT_KEY
+
+
+def test_g24_is_the_default_and_the_040_records_pin_what_they_ran():
+    """040 adoption (2026-10-24): the family default stop-loss grace is 24 h; the 040 record classes'
+    _PreG24 twins pin the 2.6 h they ran, and their plans point at them."""
+    import json
+
+    from NNMT.NNMT_LR_RI import NNMT_LR_RI
+    from NNMT.NNMT_LR_RI_PreG24 import NNMT_LR_RI_PreG24
+    from NNMT.NNMT_MLX_PreG24 import NNMT_MLX_PreG24
+
+    assert NNMTStrategy.sell_params["stoploss_grace_hours"] == 24.0
+    assert NNMT_MLX.sell_params["stoploss_grace_hours"] == 24.0
+    assert NNMT_LR_RI.sell_params["stoploss_grace_hours"] == 24.0
+    assert NNMT_MLX_PreG24.sell_params["stoploss_grace_hours"] == 2.6
+    assert NNMT_LR_RI_PreG24.sell_params["stoploss_grace_hours"] == 2.6
+    assert {k: v for k, v in NNMT_LR_RI_PreG24.sell_params.items() if k != "stoploss_grace_hours"} == \
+        {k: v for k, v in NNMT_LR_RI.sell_params.items() if k != "stoploss_grace_hours"}
+    folds = STRAT / "evaluation" / "folds"
+    for plan, base in (("plan_mt.json", "NNMT_MLX_PreG24"), ("plan_mt_lr_ri.json", "NNMT_LR_RI_PreG24"),
+                       ("plan_mt_op.json", "NNMT_MLX_OP_PreG24"), ("plan_mt_lr_ri_rg.json", "NNMT_LR_RI_RG_PreG24")):
+        assert json.loads((folds / plan).read_text())["base_strategy"] == base

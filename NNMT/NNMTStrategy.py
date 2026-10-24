@@ -170,6 +170,11 @@ class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy):
         **BaseNNStrategy.sell_params,
         "enable_exit_signal": True,
         "exit_rvol_threshold": 1.0,
+        # 040 (2026-10-24, user decision): stop-loss grace 2.6 h -> 24 h, as NNNC (ed6049b). Walk-forward
+        # on NNMT_LR_RI at the operating point: PASS both seeds (+15.6/+15.8 and +15.5/+13.0 pp per half,
+        # Sharpe IMPROVED; research/nnmt/report.md section 8). Untested on guard-on NNMT_MLX. The 040
+        # records ran 2.6 h: their <Class>_PreG24 twins (_pre_g24.py) pin it.
+        "stoploss_grace_hours": 24.0,
     }
 
     profit_conflict_to_neutral = True
@@ -205,8 +210,9 @@ class NNMTStrategy(EntryFrameworkMixin, BaseNNStrategy):
     # first 3h, then tighten to the -5% stop. Restores the "don't stop out on
     # entry noise" behaviour the confirm_trade_exit min-hold used to provide.
     # Sweep best (NNMT_MLX, no-retrain): 3h/-0.15 -> +3.4% vs -17% at 0h.
+    # Default 24h since 040 (2026-10-24; sell_params above, range now 0-48h).
     stoploss_grace_hours = DecimalParameter(
-        0.0, 6.0, default=3.0, decimals=1, space="sell", load=True, optimize=True
+        0.0, 48.0, default=24.0, decimals=1, space="sell", load=True, optimize=True
     )
     stoploss_grace_level = DecimalParameter(
         -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True

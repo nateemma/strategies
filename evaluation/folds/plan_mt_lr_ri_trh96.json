@@ -1,7 +1,7 @@
 {
  "run_id": "040_mt_lr_ri_trh96",
  "family": "NNMT",
- "base_strategy": "NNMT_LR_RI_TRH96",
+ "base_strategy": "NNMT_LR_RI_TRH96_PreG24",
  "anchored": true,
  "min_train_days": 730,
  "test_days": 90,
