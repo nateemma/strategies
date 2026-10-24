@@ -1,0 +1,99 @@
+{
+ "title": "040 amendment: round the transition stand-in's inputs (9 decimals), refit, re-test tr_scale",
+ "date": "2026-10-24",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test. Committed before any rounded stand-in is fit.",
+ "amends": "preregistration_transition.json stand_in (inputs) and the tr_scale arms' evidence (verdicts_transition.json, verdicts_trscale_ext.json)",
+ "why": "the in-strategy stand-in (live path) recomputes inputs from the bot's own series start; base:fast_diff (fastd - fastk, TA-Lib running sums) is ~1e-14 residue on candles where it is 0, its value depends on the series start, and the stand-in splits inside it: NNMT_LR_RI on the defaults made tr_scale_mt's trades but 12/6854 transition flags differed (44.786 vs 44.912). Rounding every input to 9 decimals at fit and scoring removes the residue.",
+ "change": {
+  "input_decimals": 9,
+  "fit": "research.nnmt.transition fit --fold fNN --decimals 9 --root transition_r9 (seed 1); --bootstrap --random-state 1 --root transition_r9_bs1 (seed 2, the bootstrap draw of preregistration_transition_seed.json); every other stand-in setting as preregistration_transition.json; cells unchanged (up_pair_96, down_pair_672); thresholds = each fit's tail p80"
+ },
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "arms": {
+  "cs_aro_tr_r9": {
+   "comparator": "cs_aro",
+   "use": "cs_aro + tr_scale on the rounded stand-in (in-strategy)"
+  },
+  "tr_scale_mt_r9": {
+   "comparator": "mt_lr_ri_g24",
+   "use": "NNMT_LR_RI on the NNMT defaults (24 h grace, tr_scale) with the rounded stand-in"
+  },
+  "tr_scale_gbr_r9": {
+   "comparator": "cs_gbr",
+   "also_reported_vs": [
+    "w_gbr"
+   ],
+   "use": "cs_gbr + tr_scale on the rounded stand-in"
+  }
+ },
+ "instrument": {
+  "start_date_parity": "on every fold and both families (NNNC cs_aro fold frame, NNMT NNMT_LR_RI fold frame), the in-strategy probabilities over the backtest range equal the fit's own predictions (pred.parquet, full-history series) on every test row: max |diff| 0 and no fire mismatch",
+  "live_buffer": "research.nnmt.live_check on the rounded f14 stand-in: fire agreement 1.0",
+  "audit": "each arm's trades = its comparator's (count and exit reasons) on every fold; a capital-limited difference is reported"
+ },
+ "instrument_files": [
+  "screens_transition.json"
+ ],
+ "rule": {
+  "paired_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass",
+   "INCONCLUSIVE_ARM_LOSES": "pass",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_map": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  }
+ },
+ "min_control_trades": 200,
+ "min_arm_trades": 100,
+ "seed_rule_pp": 1.0,
+ "seeds": "every arm is also run on the bootstrap fit (<arm>_bs1, preregistration_transition_round_seed.json), which decides",
+ "adoption": "if all three arms PASS both seeds and the instrument holds, the rounded stand-in (transition_r9) replaces the unrounded one in the defaults (NNNC_CS_ARO_TR, NNMTStrategy, live_fold); otherwise the result is reported and the user decides",
+ "seen_before": [
+  "unrounded: tr_scale PASS both seeds on cs_aro (65.35/66.97), NNMT (44.91/49.47), GBR (61.89/63.70)",
+  "in-strategy unrounded: NNNC exact; NNMT 12/6854 flags differ",
+  "no rounded stand-in has been fit before this commit"
+ ]
+}

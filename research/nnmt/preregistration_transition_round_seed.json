@@ -1,0 +1,33 @@
+{
+ "title": "040 rounding amendment: seed rule",
+ "date": "2026-10-24",
+ "amends": "preregistration_transition_round.json seeds (written with it)",
+ "seed": {
+  "fit": "--bootstrap --random-state 1 --root transition_r9_bs1",
+  "arms": "each arm re-run unchanged on that fit as <arm>_bs1"
+ },
+ "rule": "the arm's rule applied to <arm>_bs1; a PASS stays a PASS only if <arm>_bs1 PASSes",
+ "arms": [
+  "cs_aro_tr_r9_bs1",
+  "tr_scale_mt_r9_bs1",
+  "tr_scale_gbr_r9_bs1"
+ ],
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "seen_before": "nothing of the rounded fits"
+}
