@@ -1,0 +1,13 @@
+{
+ "label": "PROVISIONAL / DESCRIPTIVE (preregistration_width_free.json: no pass rule)",
+ "results": "research/train_window/width_free/report.json",
+ "instrument": {"entry_check": "33/33 exact (w_free 15, w_fix 15, w_aro f01/f02/f08)", "legacy_equals_purged": true, "model_keys_equal": true},
+ "w_free": {"early": 42.781, "late": 14.587, "total": 57.368, "trades": 981},
+ "w_fix": {"early": 41.819, "late": 19.757, "total": 61.576, "trades": 806, "role": "DESCRIPTIVE"},
+ "decision": {
+  "date": "2026-10-25",
+  "by": "user",
+  "what": "w_free REPLACES w_aro as the width-book yardstick for new work: new arms are reported beside / judged against w_free (plan_w_free, NNNC_W_FREE).",
+  "scope": "the yardstick only. Closed studies keep their pre-registered w_aro comparisons and verdicts (their judges are not edited). The sizer books (cs_aro, cs_aro_tr) still size w_aro's entries; moving them onto w_free's book is a separate change, not made here."
+ }
+}
