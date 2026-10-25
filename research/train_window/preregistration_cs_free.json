@@ -1,0 +1,40 @@
+{
+ "title": "The NNNC reference rebuilt on the model-free width book: the ARO p_buy sizer (and tr_scale) on w_free's entries",
+ "date": "2026-10-25",
+ "label": "PROVISIONAL -- one era (2023-26); halves are the persistence test; the late half is NOT blind (cs_aro / cs_aro_tr were read on the same folds). Committed before any threshold is picked or any arm is built or run.",
+ "why": "user request 2026-10-25, after w_free replaced w_aro as the width yardstick: cs_aro / cs_aro_tr size w_aro's entries, whose cuts are matched to the ARO model's entry count. Rebuilt on w_free, the reference's entries read no model; the model only sizes.",
+ "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "arms": {
+  "cs_free": {
+   "class": "NNNC_CS_FREE = NNNC_CS_ARO with WIDTH_CUTS = NNNC_W_FREE.WIDTH_CUTS (nothing else changes: WidthSizerMixin AGREE_RULE p_buy, AGREE_SHARE 0.5, STAKE_WEIGHTS (1.0, 0.5) -> 1.333x / 0.667x, the control ARO weights; model key asserted == NNNC_CS_ARO's)",
+   "thresholds": "re-picked per fold, one process each, by research/control_sizer/pick.py --plan plan_cs_free.json (first bar of each width-book run in the fold's validation tail -- now w_free's runs --, (1 - 0.5) quantile of p_buy, 4 dp); --verify every fold (tag mismatches 0, loaded == stored)",
+   "comparators": {"width": "w_free", "control": "wf_aro_g24"},
+   "pass": "judge_one(cs_free, w_free) PASS AND judge_one(cs_free, wf_aro_g24) PASS -- the cs_aro rule (research/control_sizer/preregistration.json) with w_free as the width book"
+  },
+  "cs_free_tr": {
+   "class": "NNNC_CS_FREE_TR = TrScaleMixin over NNNC_CS_FREE with NNNC_CS_ARO_TR's settings (TR_UP_CELL up_pair_96, TR_DOWN_CELL down_pair_672, TR_SOURCE standin, TR_STANDIN_ROOT transition_v2; the same fitted stand-ins)",
+   "thresholds": "cs_free's (copied; the agree pick does not read the stand-in)",
+   "comparator": "cs_free",
+   "pass": "judge_one(cs_free_tr, cs_free) PASS (tr_scale carries to the rebuilt book)"
+  }
+ },
+ "rule": {
+  "judge": "research.nnnc_switches.judge.judge_one: early gain > 0, late gain > 0, paired not WORSENED, risk (Sharpe, maxDD) not WORSENED, maps below; INCONCLUSIVE if the control has < 200 pooled trades or no fold changed",
+  "paired_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "INCONCLUSIVE_UNDERPOWERED": "pass", "INCONCLUSIVE_ARM_LOSES": "pass", "INCONCLUSIVE_ABSORBED": "inconclusive", "UNRESOLVABLE": "inconclusive"},
+  "risk_map": {"IMPROVED": "pass", "UNCHANGED": "pass", "WORSENED": "fail", "UNRESOLVABLE": "inconclusive"},
+  "min_control_trades": 200,
+  "small_margin_pp": 1.0,
+  "small_margin_rule": "if any half gain of a PASS is < 1 pp, it is INCONCLUSIVE until a seed-2 repeat (ARO seed-2 legacy weights, the cs_aro_s2 classes' -- already trained; thresholds re-picked at seed 2; wf_aro_g24 seed 2 as recorded; w_free seedless): every margin > 0 on both seeds"
+ },
+ "instrument": {
+  "model_key": "key_of(NNNC_CS_FREE) == key_of(NNNC_CS_FREE_TR) == key_of(NNNC_CS_ARO)",
+  "entries": "cs_free's trade set == w_free's on (pair, open_date, close_date) in all but <= 2 folds (the sizer changes stakes, not entries; the shared wallet can move a few); cs_free_tr vs cs_free the same",
+  "tags": "pick --verify on all 15 folds: 0 tag mismatches, loaded == stored",
+  "capital": "mean stake ratio cs_free / w_free within +-10% (capital-neutral sizer)",
+  "fail": "INCONCLUSIVE, no P&L read"
+ },
+ "reported_beside": "DESCRIPTIVE: cs_aro (59.95) and cs_aro_tr (65.35) by half and paired per fold vs cs_free / cs_free_tr",
+ "adoption": "the user's call. If both arms PASS, cs_free_tr is the candidate to replace cs_aro_tr as the NNNC reference (and live_fold's --book default)."
+}
