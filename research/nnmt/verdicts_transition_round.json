@@ -1,0 +1,16 @@
+{
+ "label": "NOT RUN (instrument failed before any arm); superseded",
+ "preregistration": "preregistration_transition_round.json (26072f84)",
+ "instrument": {
+  "start_date_parity": "FAIL: NNNC f02-f05 up to 0.12 in p, 16-73 fire mismatches per cell per fold (f00/f01 printed nothing). Cause: not float residue but WARM-UP -- the 64-candle backtest startup leaves atr_norm/macd/vwap/adx/raw8 unconverged for up to ~94 h of every fold; rounding cannot fix that."
+ },
+ "superseded_by": {
+  "fix": "stand-in v2 (input_source history): every input computed from the history store's OHLCV (utils.DataframePopulator MINIMAL, raw8, z, data-ok), full history from 2021-01-01 in backtests and the fit, a 4000-bar trailing window live; unrounded, so it IS the tested stand-in",
+  "evidence": {
+   "fit_vs_tables": "15/15 folds bit for bit (both cells), after building every grid on the whole file (XRP's 2021-01 -> 2023-07 gap)",
+   "backtests": "cs_aro_tr_v2 = cs_aro_tr 15/15 (65.351 both); tr_scale_mt_v2 = tr_scale_mt 15/15 (44.912 both)",
+   "live_window": "4000-bar window vs full history, 2000 samples: UP fire agreement 0.9995 (1 flip), DOWN 1.0; max p diff 0.026 / 0.002 (research/nnmt/live_check_transition_v2.json)"
+  },
+  "consequence": "the tr_scale evidence (verdicts_transition.json, verdicts_trscale_ext.json) applies unchanged; no new arms needed"
+ }
+}

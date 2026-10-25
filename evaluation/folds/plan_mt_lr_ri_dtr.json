@@ -1,7 +1,7 @@
 {
  "run_id": "040_mt_lr_ri_dtr",
  "family": "NNMT",
- "base_strategy": "NNMT_LR_RI",
+ "base_strategy": "NNMT_LR_RI_TRV1",
  "anchored": true,
  "min_train_days": 730,
  "test_days": 90,

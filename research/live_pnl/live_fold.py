@@ -123,6 +123,7 @@ from NNNC_CS_ARO_TR import NNNC_CS_ARO_TR
 class {cls}(NNNC_CS_ARO_TR):
     WIDTH_CUTS = {{{train!r}: {cut!r}}}
     TR_SOURCE = "standin"
+    TR_STANDIN_ROOT = "transition_v2"
     TR_STANDIN_CUTOFF = {stand_in!r}
 '''
 
@@ -278,9 +279,9 @@ def run(cut: str, run_id: str, book: str = DEFAULT_BOOK) -> dict:
     stand_in = None
     if tr:
         env = {**os.environ, "PYTHONPATH": f"{STRAT}{os.pathsep}{STRAT / 'evaluation'}"}
-        subprocess.run([sys.executable, "-m", "research.nnmt.transition", "fit", "--cutoff", cut],
-                       cwd=STRAT, check=True, env=env)
-        meta = STRAT / "saved_data" / "transition" / cut / "meta.json"
+        subprocess.run([sys.executable, "-m", "research.nnmt.transition", "fit", "--cutoff", cut,
+                        "--source", "history", "--root", "transition_v2"], cwd=STRAT, check=True, env=env)
+        meta = STRAT / "saved_data" / "transition_v2" / cut / "meta.json"
         if not meta.is_file():
             raise SystemExit(f"{run_id}: no transition stand-in at {meta}")
         stand_in = {"cutoff": cut, "meta": str(meta.relative_to(STRAT))}

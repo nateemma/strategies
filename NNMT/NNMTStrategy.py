@@ -69,6 +69,7 @@ class NNMTStrategy(TrScaleMixin, StakeWeightMixin, EntryFrameworkMixin, BaseNNSt
     TR_UP_CELL = "up_pair_96"
     TR_DOWN_CELL = "down_pair_672"
     TR_SOURCE = "standin"
+    TR_STANDIN_ROOT = "transition_v2"  # v2 inputs (history store OHLCV): tr_scale_mt_v2 = tr_scale_mt exactly
 
     """
     Neural Network Multi-Task (NNMT) base strategy that predicts:

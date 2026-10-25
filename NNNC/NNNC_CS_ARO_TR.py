@@ -26,3 +26,4 @@ class NNNC_CS_ARO_TR(TrScaleMixin, NNNC_CS_ARO):
     TR_UP_CELL = "up_pair_96"
     TR_DOWN_CELL = "down_pair_672"
     TR_SOURCE = "standin"
+    TR_STANDIN_ROOT = "transition_v2"  # v2 inputs (history store OHLCV): = the tables bit for bit, 15/15

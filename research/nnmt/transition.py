@@ -615,9 +615,18 @@ def standin_frames(end: pd.Timestamp, decimals: int | None = None, source: str =
     hist_btc = _grid(load(TS.CONTEXT_PAIR, False), 15)
     out = []
     if source == "history":  # v2: the strategy's history_features on the same OHLCV grids (no host dataframe)
+        def full_raw(pair: str) -> pd.DataFrame:
+            # the grid is built on the WHOLE file, then cut (as the screen's cache and the live store do): a pair
+            # whose data has a gap spanning `end` (XRP 2021-01 -> 2023-07) keeps its gap-filled rows up to `end`
+            return history.load_pair_history(pair=pair, timeframe="15m", datadir=cfg["datadir"], fill_up_missing=False,
+                                             data_format=cfg.get("dataformat_ohlcv", "feather"),
+                                             candle_type=cfg.get("candle_type_def", "spot"))
+
+        hist_btc = _grid(full_raw(TS.CONTEXT_PAIR), 15)
+        hist_btc = hist_btc[hist_btc["date"] < end].reset_index(drop=True)
         for pair in _pairs():
-            hp = _grid(load(pair, False), 15)
-            hp = hp[hp["date"] >= TS.DATA_START].reset_index(drop=True)
+            hp = _grid(full_raw(pair), 15)
+            hp = hp[(hp["date"] >= TS.DATA_START) & (hp["date"] < end)].reset_index(drop=True)
             X, tradeable = TS.history_features(hp, hist_btc, hp["date"], decimals=decimals)
             X.insert(0, "date", pd.to_datetime(hp["date"], utc=True).to_numpy())
             X.insert(1, "pair", pair)
