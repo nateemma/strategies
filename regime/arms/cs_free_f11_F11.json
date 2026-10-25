@@ -1,0 +1,170 @@
+{
+  "tag": "cs_free_f11",
+  "window": "F11",
+  "timerange": "20250917-20251216",
+  "strategy": "NNNC_CS_FREE_f11",
+  "prediction_threshold": null,
+  "guards_requested": "on",
+  "entry_enable_guards_written": true,
+  "overrides": {},
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "8cb9364ac89c7b92",
+  "volume_headroom_check": "BaseStrategy.confirm_trade_entry, unconditional outside plot/other runmode; custom_stake_amount caps rather than rejects. NOT measured by this script.",
+  "returncode": 0,
+  "framework_sha": "7de225f72b71eef4",
+  "framework_resolved": {
+    "attributes": {
+      "timeframe": "15m",
+      "startup_candle_count": 64,
+      "process_only_new_candles": true,
+      "can_short": false,
+      "minimal_roi": {
+        "0": 0.05
+      },
+      "use_exit_signal": null,
+      "exit_profit_only": true,
+      "ignore_roi_if_entry_signal": true,
+      "position_adjustment_enable": false,
+      "stoploss": -0.05,
+      "use_custom_stoploss": true,
+      "trailing_stop": false,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": false,
+      "use_atr_adaptive_stoploss": true,
+      "atr_stoploss_multiplier": 4.0,
+      "atr_stoploss_floor": -0.06,
+      "atr_stoploss_cap": -0.04,
+      "use_volume_confirmation_stoploss": true,
+      "entry_bear_filter_enable": false,
+      "entry_bear_ema_period": 200,
+      "entry_bear_deadband": 0.02,
+      "entry_trend_filter_enable": false,
+      "entry_trend_ema_period": 100,
+      "MIN_QUOTE_VOLUME": 1000,
+      "QUOTE_VOLUME_HEADROOM_MULT": 10.0
+    },
+    "buy": {
+      "entry_adx_threshold": -1.0,
+      "entry_atr_pct": -1.0,
+      "entry_bb_width_threshold": -1.0,
+      "entry_close_norm_threshold": 5.0,
+      "entry_enable_guards": true,
+      "entry_guard_threshold": 5.0,
+      "entry_rvol_threshold": -1.0
+    },
+    "sell": {
+      "cexit_enable_profit_checks": true,
+      "cexit_max_days": 10,
+      "cexit_take_profit": 0.022,
+      "enable_exit_signal": false,
+      "exit_close_norm_threshold": -0.6,
+      "exit_guard_threshold": -0.1,
+      "exit_rvol_threshold": 2.0,
+      "stoploss_grace_hours": 24.0,
+      "stoploss_grace_level": -0.27
+    },
+    "run": {
+      "max_open_trades": 10,
+      "stake_amount": 900,
+      "dry_run_wallet": 10000,
+      "fee": null
+    }
+  },
+  "no_model": false,
+  "preset": null,
+  "exit_mode": null,
+  "trigger": null,
+  "label_method": null,
+  "coupled_resolution": null,
+  "entry_condition_counts": {
+    "signal": {
+      "pass": 4491,
+      "total": 87050
+    },
+    "volume": {
+      "pass": 55787,
+      "total": 87050
+    },
+    "rvol": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "atr_pct": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "guard": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "close_norm": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "adx": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "bb_width": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "all": {
+      "pass": 3712,
+      "total": 87050
+    }
+  },
+  "model_key": {
+    "class": "NNNC_CS_FREE_f11",
+    "hash": "09658ee1e4ae3f1a",
+    "prefix": "lstmraw_gbbpath_g0.02_h48",
+    "kind": "migrated",
+    "path": "/Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/NNNC_ARO_f11/NNNC_ARO_f11.keras"
+  },
+  "result_file": "backtest-result-2026-10-25_21-09-33.zip",
+  "n_trades": 263,
+  "n_pairs": 10,
+  "trades_hash": "e7d4ae851646118d",
+  "profit_pct": -54.557,
+  "win_rate": 76.8,
+  "duration_h_median": 8.25,
+  "duration_h_p25": 2.25,
+  "duration_h_p75": 18.88,
+  "trades_per_day": 3.131,
+  "exit_reason_counts": {
+    "force_exit": 5,
+    "metric_overbought": 1,
+    "roi": 6,
+    "stop_loss": 9,
+    "take_profit": 145,
+    "trailing_stop_loss": 50,
+    "unclog_12h": 44,
+    "unclog_1d": 3
+  },
+  "family_trade_counts": {
+    "reversion": 263
+  },
+  "overlap_entries": {},
+  "untagged_trades": 0,
+  "family_exit_reason_counts": {
+    "reversion": {
+      "force_exit": 5,
+      "metric_overbought": 1,
+      "roi": 6,
+      "stop_loss": 9,
+      "take_profit": 145,
+      "trailing_stop_loss": 50,
+      "unclog_12h": 44,
+      "unclog_1d": 3
+    }
+  },
+  "wallet_profit_pct": 6.032,
+  "max_drawdown_pct": 6.131,
+  "profit_factor": 1.236,
+  "calmar": 20.886,
+  "sortino": 2.443,
+  "sqn": 0.854,
+  "expectancy_ratio": 0.0548
+}

@@ -91,6 +91,7 @@ def judge() -> int:
     from research.pair_triggers import judge as PJ
 
     pr = json.loads(PREREG.read_text())
+    pr["min_control_trades"] = pr["rule"]["min_control_trades"]  # judge_one reads it top-level
     PJ.PREREG = PREREG
     refused = PJ.refusals({**pr, "arms": list(pr["arms"])})
     if refused:
