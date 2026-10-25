@@ -7,6 +7,10 @@ gap-filled candle grid with two columns:
   close   the candle close (gap-filled bars repeat the previous close, as freqtrade fills them)
   has     1 if the candle exists in the raw data, 0 if it was gap-filled
 
+Since 2026-10-24 the grid also holds the candle's open, high, low and volume (gap-filled bars: open = high
+= low = close = the previous close, volume 0, exactly as freqtrade fills them), so a consumer can compute
+indicators on a history longer than the live buffer (the transition stand-in, v2).
+
 It is SEEDED from the local OHLCV files (`download-data` output, the same files backtests read) and
 APPENDED from the bot's own dataframe on every call to `update`, so after startup the long windows stay
 exact. Appended candles count as present (`has` 1): see `PRESENCE_NOTE`.
@@ -35,16 +39,30 @@ PRESENCE_NOTE = ("appended (live) candles count as present. Measured on binanceu
                  "5.7 years, ~0.05%). So `has` 1 is wrong only on those rare filled bars; a seam hole is marked 0.")
 
 
+OHLCV = ("open", "high", "low", "close", "volume")
+
+
 def _grid(raw: pd.DataFrame, timeframe_min: int) -> pd.DataFrame:
-    """raw candles (date, close) -> the gap-filled grid (date, close, has), freqtrade-style fill."""
-    raw = raw[["date", "close"]].drop_duplicates("date").sort_values("date")
+    """raw candles (date + close, optionally open/high/low/volume) -> the gap-filled grid (date, OHLCV
+    present in the input, has), freqtrade-style fill (filled bars: o=h=l=c=previous close, volume 0)."""
+    cols = [c for c in OHLCV if c in raw.columns]
+    raw = raw[["date", *cols]].drop_duplicates("date").sort_values("date")
     if raw.empty:
-        return pd.DataFrame({"date": pd.Series(dtype="datetime64[ns, UTC]"), "close": [], "has": []})
+        return pd.DataFrame({"date": pd.Series(dtype="datetime64[ns, UTC]"), **{c: [] for c in cols}, "has": []})
     idx = pd.date_range(raw["date"].iloc[0], raw["date"].iloc[-1], freq=f"{timeframe_min}min", tz="UTC")
     g = raw.set_index("date").reindex(idx)
     has = g["close"].notna().astype(np.int8)
     close = g["close"].ffill()
-    return pd.DataFrame({"date": idx, "close": close.to_numpy(float), "has": has.to_numpy(np.int8)})
+    out = {"date": idx}
+    for c in cols:
+        if c == "close":
+            out[c] = close.to_numpy(float)
+        elif c == "volume":
+            out[c] = g[c].fillna(0.0).to_numpy(float)
+        else:
+            out[c] = g[c].fillna(close).to_numpy(float)
+    out["has"] = has.to_numpy(np.int8)
+    return pd.DataFrame(out)
 
 
 class CloseHistoryStore:
@@ -66,7 +84,7 @@ class CloseHistoryStore:
         df = history.load_pair_history(pair=pair, timeframe=self.timeframe, datadir=self.datadir,
                                        fill_up_missing=False, data_format=self.data_format,
                                        candle_type=self.candle_type)
-        return df[["date", "close"]] if not df.empty else pd.DataFrame(columns=["date", "close"])
+        return df[["date", *OHLCV]] if not df.empty else pd.DataFrame(columns=["date", *OHLCV])
 
     def _persist_path(self, pair: str) -> Path | None:
         return self.persist_dir / f"{pair.replace('/', '_')}.parquet" if self.persist_dir else None
@@ -83,7 +101,7 @@ class CloseHistoryStore:
         return g
 
     def _append(self, g: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-        new = new[["date", "close", "has"]].sort_values("date")
+        new = new[["date", *[c for c in OHLCV if c in g.columns or len(g) == 0], "has"]].sort_values("date")
         if len(g) == 0:
             return new.reset_index(drop=True)
         last = g["date"].iloc[-1]
@@ -95,8 +113,9 @@ class CloseHistoryStore:
             # a hole between the history and the new candles: keep the grid contiguous but mark it filled
             gap = pd.date_range(last + pd.Timedelta(minutes=self.tf_min), first - pd.Timedelta(minutes=self.tf_min),
                                 freq=f"{self.tf_min}min", tz="UTC")
-            g = pd.concat([g, pd.DataFrame({"date": gap, "close": g["close"].iloc[-1], "has": np.int8(0)})],
-                          ignore_index=True)
+            last_c = g["close"].iloc[-1]
+            fill = {"date": gap, **{c: (0.0 if c == "volume" else last_c) for c in OHLCV if c in g.columns}, "has": np.int8(0)}
+            g = pd.concat([g, pd.DataFrame(fill)], ignore_index=True)
         out = pd.concat([g, new], ignore_index=True)
         if self.keep_bars:
             out = out.iloc[-self.keep_bars:].reset_index(drop=True)
@@ -109,7 +128,7 @@ class CloseHistoryStore:
         if g is None:
             g = self._seed(pair)
         new = pd.DataFrame({"date": pd.to_datetime(dataframe["date"], utc=True),
-                            "close": dataframe["close"].astype(float).to_numpy(),
+                            **{c: dataframe[c].astype(float).to_numpy() for c in OHLCV if c in dataframe.columns},
                             "has": np.ones(len(dataframe), dtype=np.int8)})
         before = len(g)
         g = self._append(g, new)

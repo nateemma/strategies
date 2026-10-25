@@ -124,7 +124,12 @@ class TransitionSignalMixin:
                     type(self).__name__, pair)
         else:
             st = self._tr_standin(first)
-            X, tradeable = TS.features(dataframe, btc, hp, hb, decimals=st.decimals)
+            if st.input_source == "history":  # v2: inputs from the store's OHLCV, independent of this dataframe
+                mode = str(getattr(self.config.get("runmode", ""), "value", self.config.get("runmode", "")))
+                window = TS.LIVE_WINDOW if mode in ("live", "dry_run") else None
+                X, tradeable = TS.history_features(hp, hb, dataframe["date"], decimals=st.decimals, window=window)
+            else:
+                X, tradeable = TS.features(dataframe, btc, hp, hb, decimals=st.decimals)
             out = {c: st.predict(c, X, tradeable) for c in cells}
         cache.clear()
         cache[key] = out

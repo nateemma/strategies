@@ -593,7 +593,7 @@ def state_nn(models: list[str], cell: str) -> dict:
 
 # ---------------------------------------------------------------------------- the live stand-in (fit)
 
-def standin_frames(end: pd.Timestamp, decimals: int | None = None) -> pd.DataFrame:
+def standin_frames(end: pd.Timestamp, decimals: int | None = None, source: str = "dataframe") -> pd.DataFrame:
     """Per screen pair (in _pairs() order, then date): the strategy-side features, tradeable, close, from
     local OHLCV up to `end` (exclusive) -- NNNC/_transition_standin.features on harvest.populate_path."""
     sys.path.insert(0, str(STRAT / "NNNC"))
@@ -614,6 +614,17 @@ def standin_frames(end: pd.Timestamp, decimals: int | None = None) -> pd.DataFra
     btc = load(TS.CONTEXT_PAIR, True)
     hist_btc = _grid(load(TS.CONTEXT_PAIR, False), 15)
     out = []
+    if source == "history":  # v2: the strategy's history_features on the same OHLCV grids (no host dataframe)
+        for pair in _pairs():
+            hp = _grid(load(pair, False), 15)
+            hp = hp[hp["date"] >= TS.DATA_START].reset_index(drop=True)
+            X, tradeable = TS.history_features(hp, hist_btc, hp["date"], decimals=decimals)
+            X.insert(0, "date", pd.to_datetime(hp["date"], utc=True).to_numpy())
+            X.insert(1, "pair", pair)
+            X["tradeable"] = tradeable
+            X["close"] = hp["close"].astype(float).to_numpy()
+            out.append(X)
+        return pd.concat(out, ignore_index=True)
     for pair in _pairs():
         ohlcv = load(pair, True)
         d = H.populate_path(aro, ohlcv, pair)
@@ -628,7 +639,7 @@ def standin_frames(end: pd.Timestamp, decimals: int | None = None) -> pd.DataFra
 
 
 def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None, decimals: int | None = None,
-                root: str = "transition", bootstrap: int | None = None) -> dict:
+                root: str = "transition", bootstrap: int | None = None, source: str = "dataframe") -> dict:
     """`decimals` rounds every input (amendment preregistration_transition_round.json); `root` is the
     saved_data/ subdirectory; `bootstrap` N fits each cell on a bootstrap resample of its fit rows drawn as
     the screen's (default_rng([N, fold, H, level, direction]), HGB random_state N; needs check_fold). With a
@@ -648,7 +659,7 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None, decimals: i
     f_end = _ts(next(x for x in _folds() if x["fold_id"] == check_fold)["test_end"]) if check_fold else cutoff
     if bootstrap is not None and not check_fold:
         raise SystemExit("REFUSED: --bootstrap needs --fold (the draw is seeded by the fold number)")
-    t = standin_frames(max(cutoff, f_end), decimals)
+    t = standin_frames(max(cutoff, f_end), decimals, source)
     last = t.loc[t["date"] < cutoff, "date"].max()
     if last < cutoff - BAR:
         raise SystemExit(f"REFUSED: local OHLCV ends {last}, before the cutoff {cutoff} -- run download-data first")
@@ -659,7 +670,7 @@ def fit_standin(cutoff: pd.Timestamp, check_fold: str | None = None, decimals: i
     meta = {"cutoff": str(cutoff), "cells": cells, "features": feats, "tail_percentiles": {}, "fit_rows": {},
             "tail_rows": {}, "data_last": str(last), "sklearn": sklearn.__version__,
             "rule": "preregistration_transition.json stand_in (fit < cutoff - tail_days - H, hourly; tail [cutoff - tail_days, cutoff - H))",
-            "input_decimals": decimals, "bootstrap": bootstrap}
+            "input_decimals": decimals, "bootstrap": bootstrap, "input_source": source}
     preds = []
     check = {}
     for cell in cells:
@@ -738,6 +749,8 @@ def main(argv=None) -> int:
     ap.add_argument("--cutoff", help="fit only: YYYYMMDD")
     ap.add_argument("--decimals", type=int, help="fit only: round every input (preregistration_transition_round.json)")
     ap.add_argument("--root", default="transition", help="fit only: saved_data/ subdirectory")
+    ap.add_argument("--source", choices=("dataframe", "history"), default="dataframe",
+                    help="fit only: v1 inputs (host dataframe columns) or v2 (history_features on OHLCV grids)")
     ap.add_argument("--fold")
     ap.add_argument("--models")
     ap.add_argument("--cell")
@@ -777,7 +790,7 @@ def main(argv=None) -> int:
             return 2
         cutoff = _ts(next(x for x in _folds() if x["fold_id"] == a.fold)["test_start"]) if a.fold else \
             pd.Timestamp(a.cutoff, tz="UTC")
-        meta = fit_standin(cutoff, a.fold, a.decimals, a.root, a.random_state if a.bootstrap else None)
+        meta = fit_standin(cutoff, a.fold, a.decimals, a.root, a.random_state if a.bootstrap else None, a.source)
         print(json.dumps({k: meta[k] for k in ("cutoff", "tail_percentiles", "fit_rows", "check_vs_tables") if k in meta},
                          indent=1, default=str))
         return 0

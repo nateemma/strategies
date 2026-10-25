@@ -122,6 +122,54 @@ def features(dataframe: pd.DataFrame, btc: pd.DataFrame, hist_pair: pd.DataFrame
     return X, tradeable
 
 
+DATA_START = pd.Timestamp("2021-01-01", tz="UTC")  # the screen's series start (research/indicator_screen/windows.py)
+LIVE_WINDOW = 4000  # bars of history a live bot recomputes on: >> the inputs' ~380-bar warm-up and 2880+672 bars
+
+
+def history_features(hist_pair: pd.DataFrame, hist_btc: pd.DataFrame, dates, decimals: int | None = None,
+                     window: int | None = None) -> tuple[pd.DataFrame, np.ndarray]:
+    """v2 inputs (input_source "history"): every input computed from the history store's OHLCV grids, not from
+    the host strategy's dataframe -- the 24 indicators by utils.DataframePopulator (MINIMAL; bit-equal to the
+    screen's cache on full history), raw8, BTC raw8, the z-scores and data-ok. `window` None = the full
+    history from DATA_START (a backtest, and the fit: identical inputs by construction); a live bot passes
+    LIVE_WINDOW (converged far past the warm-up). Returns (X, tradeable) for `dates` (NaN / False where the
+    history has no row)."""
+    from utils.DataframePopulator import DataframePopulator, DatasetType
+
+    dates = pd.DatetimeIndex(pd.to_datetime(pd.Series(dates), utc=True))
+    end = dates.max()
+
+    def cut(h):
+        h = h[(h["date"] >= DATA_START) & (h["date"] <= end)]
+        return (h.iloc[-window:] if window else h).reset_index(drop=True)
+
+    hp, hb = cut(hist_pair), cut(hist_btc)
+    ohlcv = ["date", "open", "high", "low", "close", "volume"]
+    ind = DataframePopulator().add_indicators(hp[ohlcv].copy(), dataset_type=DatasetType.MINIMAL)
+    X = pd.DataFrame(index=hp.index)
+    for c in INDICATORS:
+        X[f"base:{c}"] = ind[c].astype(float).to_numpy()
+    r = raw8(hp)
+    for c in RAW8:
+        X[f"raw8:{c}"] = r[c].to_numpy()
+    rb = raw8(hb).set_index(pd.to_datetime(hb["date"], utc=True))
+    pd_dates = pd.to_datetime(hp["date"], utc=True)
+    for c in RAW8:
+        X[f"btc:raw8:{c}"] = pd_dates.map(rb[c]).astype(float).to_numpy()
+    zb = hb.set_index("date")["close"]
+    for L in STATE_LENGTHS:
+        X[f"z_pair_{L}"] = zscore(hp["close"], L).to_numpy()
+        X[f"z_btc_{L}"] = pd_dates.map(zscore(zb, L)).astype(float).to_numpy()
+    ok = data_ok(hp["has"]).to_numpy(bool) & (hp["volume"].to_numpy(float) > 0)
+    X = X[feature_names()]
+    if decimals is not None:
+        X = X.round(int(decimals))
+    X.index = pd_dates
+    out = X.reindex(dates)
+    trd = pd.Series(ok, index=pd_dates).reindex(dates).fillna(False).to_numpy(bool)
+    return out.reset_index(drop=True), trd
+
+
 class StandIn:
     """The fitted stand-in for one cutoff: per cell a classifier and its tail percentiles."""
 
@@ -138,6 +186,7 @@ class StandIn:
             raise ValueError(f"{meta_p}: feature order differs from the strategy's")
         self.models = {c: joblib.load(d / f"{c}.joblib") for c in self.meta["cells"]}
         self.decimals = self.meta.get("input_decimals")
+        self.input_source = self.meta.get("input_source", "dataframe")  # v1 fits read the host dataframe
 
     def threshold(self, cell: str, q: float) -> float:
         return float(self.meta["tail_percentiles"][cell][str(int(q))])

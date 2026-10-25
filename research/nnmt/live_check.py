@@ -60,24 +60,35 @@ def main(argv=None) -> int:
     for pair in _pairs():
         ohlcv = load(pair, True)
         hp = _grid(load(pair, False), 15)
-        full = H.populate_path(aro, ohlcv, pair)
-        Xf, trf = TS.features(full, btc, hp, hb, decimals=st.decimals)
+        v2 = st.input_source == "history"
+        if v2:  # v2: full history (backtest/fit) vs the live LIVE_WINDOW trailing bars, both from the OHLCV grids
+            hp = _grid(load(pair, False), 15)
+            full = hp[hp["date"] >= TS.DATA_START].reset_index(drop=True)
+            Xf, trf = TS.history_features(hp, hb, full["date"], decimals=st.decimals)
+        else:
+            full = H.populate_path(aro, ohlcv, pair)
+            Xf, trf = TS.features(full, btc, hp, hb, decimals=st.decimals)
         cand = np.flatnonzero(trf & (full["date"] >= start).to_numpy() & (full["date"] < end).to_numpy())
-        cand = cand[cand >= a.buffer]
+        cand = cand[cand >= (TS.LIVE_WINDOW if v2 else a.buffer)]
         if not len(cand):
             continue
         for t in np.sort(rng.choice(cand, min(a.n, len(cand)), replace=False)):
-            sl = H.populate_path(aro, ohlcv.iloc[t - a.buffer + 1:t + 1].reset_index(drop=True), pair)
-            bi = btc_pos.get(ohlcv["date"].iloc[t])
-            bsl = btc.iloc[max(0, bi - a.buffer + 1):bi + 1].reset_index(drop=True)
-            Xs, trs = TS.features(sl, bsl, hp, hb, decimals=st.decimals)
-            row_f, row_s = Xf.iloc[[t]], Xs.iloc[[len(Xs) - 1]]
+            if v2:
+                Xs, trs = TS.history_features(hp, hb, [full["date"].iloc[t]], decimals=st.decimals, window=TS.LIVE_WINDOW)
+                row_f, row_s = Xf.iloc[[t]], Xs.iloc[[0]]
+                rec = {"pair": pair, "date": str(full["date"].iloc[t]), "tradeable_buffer": bool(trs[0])}
+            else:
+                sl = H.populate_path(aro, ohlcv.iloc[t - a.buffer + 1:t + 1].reset_index(drop=True), pair)
+                bi = btc_pos.get(ohlcv["date"].iloc[t])
+                bsl = btc.iloc[max(0, bi - a.buffer + 1):bi + 1].reset_index(drop=True)
+                Xs, trs = TS.features(sl, bsl, hp, hb, decimals=st.decimals)
+                row_f, row_s = Xf.iloc[[t]], Xs.iloc[[len(Xs) - 1]]
+                rec = {"pair": pair, "date": str(ohlcv["date"].iloc[t]), "tradeable_buffer": bool(trs[-1])}
             for c in feats:
                 diffs[c].append(abs(float(row_f[c].iloc[0]) - float(row_s[c].iloc[0])))
-            rec = {"pair": pair, "date": str(ohlcv["date"].iloc[t]), "tradeable_buffer": bool(trs[-1])}
             for cell in st.meta["cells"]:
                 pf = st.predict(cell, row_f, np.array([True]))[0]
-                ps = st.predict(cell, row_s, np.array([bool(trs[-1])]))[0]
+                ps = st.predict(cell, row_s, np.array([rec["tradeable_buffer"]]))[0]
                 thr = st.threshold(cell, 80)
                 rec[cell] = {"p_full": pf, "p_buffer": ps, "fire_full": bool(pf >= thr),
                              "fire_buffer": bool(np.nan_to_num(ps, nan=-np.inf) >= thr)}
