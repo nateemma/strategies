@@ -3,9 +3,42 @@
  "date": "2026-10-25",
  "label": "PROVISIONAL -- one era (2023-26); halves reported. Committed before any cut is computed or any arm is built or run.",
  "why": "user request 2026-10-25. w_aro's per-fold cut is matched to the ARO model book's entry count on the previous fold, so the width bar moves with ARO's seed (legacy 51.44 / 54.77) and its training window (purged 37.83 / 47.66). A yardstick must not depend on the thing it measures.",
- "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
- "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
- "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
  "entry": "unchanged from w_aro (NNNC/_width_book.WidthBookMixin on NNNC_A_Raw_Open, plan_w_aro folds/snapshot/model dirs): gbb eligibility (guard_metric < 0.3, bb_width > 0.035) AND bb_width >= the fold's cut; exits, stop, 24 h grace, held-pair add off as w_aro. Only WIDTH_CUTS differ.",
  "candidates": "a candidate bar = research.model_calibration.width_twin._gates (volume > 0, rvol and guard gates at the fold's params, gbb eligibility) -- the population w_aro's matched cut is taken from.",
  "arms": {
@@ -25,11 +58,19 @@
   "model_key": "key_of(NNNC_W_FREE) == key_of(NNNC_W_FIX) == key_of(NNNC_W_ARO) (asserted at build; WIDTH_CUTS is key-ignored)",
   "window_invariance": "w_free's cuts depend only on test_start, so they are identical for the legacy (wf_aro_g24) and purged (wf_aro_g24_pw) plans by construction; the build asserts both plans give the same cut per fold.",
   "seed_invariance": "neither rule reads any model output; exits are model-free in effect (w_aro_pw_lc = w_aro exactly, T053), so one seed-1 legacy run stands for every seed and window. Not re-run on purged weights.",
-  "entry_check": "per fold, the backtest's entry_condition_counts 'all' pass count must equal the candidate count at the cut (gates & bb_width >= cut on that fold's signal table) -- the arm does what it claims. Any fold off by more than 0 refuses the report."
+  "entry_check": "per fold, the arm's own enter_long count on its test window (research.nnnc_framework.signals.fold_table of the arm's fold class) must equal the candidate count at the cut (gates & bb_width >= cut on that fold's ARO signal table). Any fold off by more than 0 refuses the report. Run on w_aro too (check of the check)."
  },
  "report": {
   "per_arm": "wallet pp per fold, early / late / total, trades, entries per fold and S realised per fold (entries / candidates)",
   "beside": "DESCRIPTIVE: w_aro's four draws (legacy 51.44 / 54.77, purged 37.83 / 47.66); cs_aro_tr, cs_aro and wf_aro_g24 by half, and their per-fold paired difference vs w_free (mean, sign count)",
   "no_pass_rule": "a yardstick is not adopted for scoring high or low. Replacing w_aro by w_free as the width bar is the user's call, on the instrument checks and on the rule's independence from any model."
- }
+ },
+ "amendments": [
+  {
+   "date": "2026-10-25",
+   "before_any_arm_run": true,
+   "what": "entry_check: the backtest record's entry_condition_counts 'all' replaced by the arm's own fold_table enter_long count on the test window",
+   "why": "tested on w_aro's existing records before any arm ran: the record's count includes the 64 startup candles (which never trade) and their warm-up indicator values; 6/15 w_aro folds differ (f01 +7, f02 +36, f03 +5, f04 +45, f08 +99, f12 +41), mostly explained by startup-bar candidates. Not a property of the arm."
+  }
+ ]
 }
