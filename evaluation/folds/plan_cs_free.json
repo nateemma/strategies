@@ -225,5 +225,114 @@
   }
  ],
  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
- "cs_note": "cs_free: preregistration_cs_free.json; thresholds re-picked on w_free's runs"
+ "cs_note": "cs_free: preregistration_cs_free.json; thresholds re-picked on w_free's runs",
+ "thresholds": {
+  "f00": 0.7259,
+  "f01": 0.72,
+  "f02": 0.7354,
+  "f03": 0.7486,
+  "f04": 0.7483,
+  "f05": 0.7684,
+  "f06": 0.7677,
+  "f07": 0.7667,
+  "f08": 0.7692,
+  "f09": 0.7702,
+  "f10": 0.7668,
+  "f11": 0.758,
+  "f12": 0.7687,
+  "f13": 0.7488,
+  "f14": 0.7532
+ },
+ "threshold_picks": {
+  "f00": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 76,
+   "buy_argmax_share": 1.0
+  },
+  "f01": {
+   "target_share": 0.5,
+   "achieved_share": 0.5102,
+   "run_starts": 196,
+   "buy_argmax_share": 0.9745
+  },
+  "f02": {
+   "target_share": 0.5,
+   "achieved_share": 0.4952,
+   "run_starts": 105,
+   "buy_argmax_share": 0.981
+  },
+  "f03": {
+   "target_share": 0.5,
+   "achieved_share": 0.5026,
+   "run_starts": 189,
+   "buy_argmax_share": 0.9788
+  },
+  "f04": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 218,
+   "buy_argmax_share": 0.9817
+  },
+  "f05": {
+   "target_share": 0.5,
+   "achieved_share": 0.5035,
+   "run_starts": 286,
+   "buy_argmax_share": 0.993
+  },
+  "f06": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 234,
+   "buy_argmax_share": 0.9915
+  },
+  "f07": {
+   "target_share": 0.5,
+   "achieved_share": 0.5,
+   "run_starts": 350,
+   "buy_argmax_share": 0.9829
+  },
+  "f08": {
+   "target_share": 0.5,
+   "achieved_share": 0.5011,
+   "run_starts": 461,
+   "buy_argmax_share": 0.9913
+  },
+  "f09": {
+   "target_share": 0.5,
+   "achieved_share": 0.5016,
+   "run_starts": 620,
+   "buy_argmax_share": 0.9871
+  },
+  "f10": {
+   "target_share": 0.5,
+   "achieved_share": 0.5012,
+   "run_starts": 824,
+   "buy_argmax_share": 0.9891
+  },
+  "f11": {
+   "target_share": 0.5,
+   "achieved_share": 0.5013,
+   "run_starts": 1536,
+   "buy_argmax_share": 0.9896
+  },
+  "f12": {
+   "target_share": 0.5,
+   "achieved_share": 0.5015,
+   "run_starts": 337,
+   "buy_argmax_share": 0.9911
+  },
+  "f13": {
+   "target_share": 0.5,
+   "achieved_share": 0.4992,
+   "run_starts": 659,
+   "buy_argmax_share": 0.9924
+  },
+  "f14": {
+   "target_share": 0.5,
+   "achieved_share": 0.5007,
+   "run_starts": 667,
+   "buy_argmax_share": 0.997
+  }
+ }
 }
