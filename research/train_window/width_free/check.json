@@ -1,0 +1,134 @@
+{
+ "w_aro:f01": {
+  "got": 359,
+  "want": 359
+ },
+ "w_aro:f02": {
+  "got": 88,
+  "want": 88
+ },
+ "w_aro:f08": {
+  "got": 1849,
+  "want": 1849
+ },
+ "w_free:f00": {
+  "got": 119,
+  "want": 119
+ },
+ "w_free:f01": {
+  "got": 539,
+  "want": 539
+ },
+ "w_free:f02": {
+  "got": 136,
+  "want": 136
+ },
+ "w_free:f03": {
+  "got": 656,
+  "want": 656
+ },
+ "w_free:f04": {
+  "got": 1192,
+  "want": 1192
+ },
+ "w_free:f05": {
+  "got": 901,
+  "want": 901
+ },
+ "w_free:f06": {
+  "got": 553,
+  "want": 553
+ },
+ "w_free:f07": {
+  "got": 1122,
+  "want": 1122
+ },
+ "w_free:f08": {
+  "got": 1048,
+  "want": 1048
+ },
+ "w_free:f09": {
+  "got": 479,
+  "want": 479
+ },
+ "w_free:f10": {
+  "got": 78,
+  "want": 78
+ },
+ "w_free:f11": {
+  "got": 3712,
+  "want": 3712
+ },
+ "w_free:f12": {
+  "got": 209,
+  "want": 209
+ },
+ "w_free:f13": {
+  "got": 494,
+  "want": 494
+ },
+ "w_free:f14": {
+  "got": 192,
+  "want": 192
+ },
+ "w_fix:f00": {
+  "got": 494,
+  "want": 494
+ },
+ "w_fix:f01": {
+  "got": 505,
+  "want": 505
+ },
+ "w_fix:f02": {
+  "got": 234,
+  "want": 234
+ },
+ "w_fix:f03": {
+  "got": 367,
+  "want": 367
+ },
+ "w_fix:f04": {
+  "got": 692,
+  "want": 692
+ },
+ "w_fix:f05": {
+  "got": 743,
+  "want": 743
+ },
+ "w_fix:f06": {
+  "got": 600,
+  "want": 600
+ },
+ "w_fix:f07": {
+  "got": 1066,
+  "want": 1066
+ },
+ "w_fix:f08": {
+  "got": 1048,
+  "want": 1048
+ },
+ "w_fix:f09": {
+  "got": 405,
+  "want": 405
+ },
+ "w_fix:f10": {
+  "got": 54,
+  "want": 54
+ },
+ "w_fix:f11": {
+  "got": 1418,
+  "want": 1418
+ },
+ "w_fix:f12": {
+  "got": 418,
+  "want": 418
+ },
+ "w_fix:f13": {
+  "got": 355,
+  "want": 355
+ },
+ "w_fix:f14": {
+  "got": 106,
+  "want": 106
+ }
+}
