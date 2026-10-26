@@ -2,10 +2,43 @@
  "title": "040 follow-up: do the auxiliary heads rank NNMT's OWN operating-point trades (mt_lr_ri_g24)? -- the 'skip the entry when momentum/flow/risk/regime/profit is predicted bad' gate",
  "date": "2026-10-26",
  "label": "PROVISIONAL -- one era (2023-26). Committed before any head score is attached to any mt_lr_ri_g24 trade. The screen reads the EARLY half only (f00-f07); the late half of the trade-level relation stays unread for any arm that follows (the late P&L of mt_lr_ri_g24 itself has been read: the arm's late half is not blind). Screens can only ELIMINATE; a pass earns a P&L arm, nothing more.",
- "why": "user request 2026-10-26. 040 §9 screened the heads on the WIDTH BOOK's 412 trades (relevance FAIL, all five), not on the trades the NNMT model takes itself at its operating point, which is the book an NNMT entry gate would act on.",
- "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
- "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
- "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "why": "user request 2026-10-26. 040 \u00a79 screened the heads on the WIDTH BOOK's 412 trades (relevance FAIL, all five), not on the trades the NNMT model takes itself at its operating point, which is the book an NNMT entry gate would act on.",
+ "folds": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07",
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
+ "early": [
+  "f00",
+  "f01",
+  "f02",
+  "f03",
+  "f04",
+  "f05",
+  "f06",
+  "f07"
+ ],
+ "late": [
+  "f08",
+  "f09",
+  "f10",
+  "f11",
+  "f12",
+  "f13",
+  "f14"
+ ],
  "population": {
   "trades": "every pooled trade of plan_mt_lr_ri_g24 (seed 1, legacy windows) in f00-f07 (evaluation.pool); expected 3731",
   "outcome": "pp = 100 * profit_ratio (per-trade return in %, stake-independent: the gate decides which entries happen, not their size)",
@@ -13,11 +46,36 @@
   "instrument": "key_of(NNMT_LR_RI_G24) == key_of(NNMT_LR_RI) (the MT_LR_RI_fNN signal tables are the g24 arm's model outputs); every trade's signal bar has enter_long == 1 in MT_LR_RI_fNN (share >= 0.995); early count == 3731. Any failure: INCONCLUSIVE, no score read."
  },
  "heads": {
-  "regime":   {"column": "p_regime_bull",   "direction": "+", "source": "MT_LR_RI_AH", "why_source": "weight 0 in the deployed model: its regime head is untrained (own-head skill margin -0.15 / -0.12, heads_descriptive_mt_lr_ri.json); the _ah model's passed skill (§9)"},
-  "risk":     {"column": "p_risk_high",     "direction": "-", "source": "MT_LR_RI", "why_source": "the deployed model's own trained head (skill +0.23 / +0.23)"},
-  "momentum": {"column": "p_momentum_up",   "direction": "+", "source": "MT_LR_RI", "why_source": "own trained head (skill +0.17 / +0.16)"},
-  "flow":     {"column": "p_flow_up",       "direction": "+", "source": "MT_LR_RI", "why_source": "own trained head (skill +0.22 / +0.21)"},
-  "profit":   {"column": "p_profit_profit", "direction": "+", "source": "MT_LR_RI_AH", "why_source": "weight 0 in the deployed model (own skill -0.22 / -0.20); the _ah model's passed skill (§9)"}
+  "regime": {
+   "column": "p_regime_bull",
+   "direction": "+",
+   "source": "MT_LR_RI_AH",
+   "why_source": "weight 0 in the deployed model: its regime head is untrained (own-head skill margin -0.15 / -0.12, heads_descriptive_mt_lr_ri.json); the _ah model's passed skill (\u00a79)"
+  },
+  "risk": {
+   "column": "p_risk_high",
+   "direction": "-",
+   "source": "MT_LR_RI",
+   "why_source": "the deployed model's own trained head (skill +0.23 / +0.23)"
+  },
+  "momentum": {
+   "column": "p_momentum_up",
+   "direction": "+",
+   "source": "MT_LR_RI",
+   "why_source": "own trained head (skill +0.17 / +0.16)"
+  },
+  "flow": {
+   "column": "p_flow_up",
+   "direction": "+",
+   "source": "MT_LR_RI",
+   "why_source": "own trained head (skill +0.22 / +0.21)"
+  },
+  "profit": {
+   "column": "p_profit_profit",
+   "direction": "+",
+   "source": "MT_LR_RI_AH",
+   "why_source": "weight 0 in the deployed model (own skill -0.22 / -0.20); the _ah model's passed skill (\u00a79)"
+  }
  },
  "descriptive": "the same five columns from the OTHER source (MT_LR_RI_AH for risk/momentum/flow; own MT_LR_RI for regime/profit), and the trading head's own p_buy (direction +), reported with no verdict",
  "relevance_rule": {
@@ -40,8 +98,46 @@
  },
  "adoption": "the user's call.",
  "seen_before": [
-  "040 §9: all five heads relevance FAIL on the 412 width-book trades (momentum +0.000, risk +0.001, regime +0.006, profit +0.009, flow -0.039)",
+  "040 \u00a79: all five heads relevance FAIL on the 412 width-book trades (momentum +0.000, risk +0.001, regime +0.006, profit +0.009, flow -0.039)",
   "pre-040 single windows: apply_task_filters (3-of-4 head vote) -14.2 pp on the old network",
   "mt_lr_ri_g24 P&L: 40.86 (seed 1) / 42.2 (seed 2), late half negative"
+ ],
+ "arms": {
+  "hd_profit_g24": {
+   "comparator": "mt_lr_ri_g24"
+  },
+  "hd_atr_g24": {
+   "comparator": "mt_lr_ri_g24"
+  }
+ },
+ "amendments": [
+  {
+   "date": "2026-10-26",
+   "after": "the screen (screens_heads_own.json: profit@MT_LR_RI_AH PASS) and the DESCRIPTIVE bad-class look (heads_own_badclass_descriptive.json: -P(neutral) rho 0.69 with atr_pct_roll, 0.56 with bb_width)",
+   "before_any_arm_built_or_run": true,
+   "what": "(1) a model-free twin arm hd_atr_g24; (2) the head is credited only if hd_profit_g24 also beats the twin; (3) the live path of the profit veto: the second model runs in-process; (4) the veto column is fixed as registered (p_profit_profit, '+'); P(neutral) is NOT substituted (it was found after the screen).",
+   "why": "user request 2026-10-26: the profit head's ranking looks like predicted move SIZE (volatility). If a single model-free indicator vetoes as well, the second model adds nothing.",
+   "arms": {
+    "hd_profit_g24": {
+     "class": "NNMT_LR_RI_G24_HDP = HeadVetoMixin over NNMT_LR_RI_G24: no entry when MT_LR_RI_AH's %p_profit_profit at the bar < the fold's threshold",
+     "live_path": "the veto model (the MT_LR_RI_AH class of the same fold / seed; NNMT_LR_RI_AH on a mainline class) is loaded through StrategyResolver-equivalent construction inside the strategy and run on the same raw candles in populate_indicators, so backtest, dry and live compute it the same way; it never trains (its weights must already exist, else ModelMissing)",
+     "threshold": "as registered: the 20th percentile of %p_profit_profit over the bars of the fold's validation tail where the trading model's entry fires (enter_long == 1, veto off), 4 dp",
+     "instrument": "model key of NNMT_LR_RI_G24_HDP == NNMT_LR_RI's; the in-strategy %p_profit_profit equals the MT_LR_RI_AH_fNN signal table at every mt_lr_ri_g24 entry bar of the test window (abs diff <= 1e-5 on >= 99.9% of bars); --verify: every test-window entry has score >= threshold and every vetoed bar has score < threshold"
+    },
+    "hd_atr_g24": {
+     "class": "NNMT_LR_RI_G24_ATRV = the same HeadVetoMixin with the model-free column atr_pct_roll (the strategy's own indicator), no second model",
+     "threshold": "the 20th percentile of atr_pct_roll over the same validation-tail entry bars, 6 dp",
+     "comparator": "mt_lr_ri_g24",
+     "judge": "judge_one(hd_atr_g24, mt_lr_ri_g24) -- its own verdict (a model-free NNMT entry filter)"
+    }
+   },
+   "rule": {
+    "hd_profit_g24": "PASS (PROVISIONAL) only if judge_one(hd_profit_g24, mt_lr_ri_g24) PASS AND judge_one(hd_profit_g24, hd_atr_g24) PASS; if it passes the first but not the second: 'gain is volatility' (the head is not credited)",
+    "hd_atr_g24": "PASS (PROVISIONAL) if judge_one(hd_atr_g24, mt_lr_ri_g24) PASS",
+    "seed_2": "any PASS is repeated at seed 2 before it is reported as a result: hd_atr_g24 on mt_lr_ri_g24_s2's weights (no training); hd_profit_g24 also needs MT_LR_RI_AH seed-2 weights (15 trainings, one at a time); thresholds re-picked at seed 2; every margin > 0 on both seeds",
+    "small_margin_pp": 1.0
+   },
+   "reported_beside": "DESCRIPTIVE: cs_aro_tr, w_free; trades vetoed per fold; the overlap of the two arms' vetoed entries"
+  }
  ]
 }
