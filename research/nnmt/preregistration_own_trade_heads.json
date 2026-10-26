@@ -1,0 +1,47 @@
+{
+ "title": "040 follow-up: do the auxiliary heads rank NNMT's OWN operating-point trades (mt_lr_ri_g24)? -- the 'skip the entry when momentum/flow/risk/regime/profit is predicted bad' gate",
+ "date": "2026-10-26",
+ "label": "PROVISIONAL -- one era (2023-26). Committed before any head score is attached to any mt_lr_ri_g24 trade. The screen reads the EARLY half only (f00-f07); the late half of the trade-level relation stays unread for any arm that follows (the late P&L of mt_lr_ri_g24 itself has been read: the arm's late half is not blind). Screens can only ELIMINATE; a pass earns a P&L arm, nothing more.",
+ "why": "user request 2026-10-26. 040 §9 screened the heads on the WIDTH BOOK's 412 trades (relevance FAIL, all five), not on the trades the NNMT model takes itself at its operating point, which is the book an NNMT entry gate would act on.",
+ "folds": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07", "f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "early": ["f00", "f01", "f02", "f03", "f04", "f05", "f06", "f07"],
+ "late": ["f08", "f09", "f10", "f11", "f12", "f13", "f14"],
+ "population": {
+  "trades": "every pooled trade of plan_mt_lr_ri_g24 (seed 1, legacy windows) in f00-f07 (evaluation.pool); expected 3731",
+  "outcome": "pp = 100 * profit_ratio (per-trade return in %, stake-independent: the gate decides which entries happen, not their size)",
+  "signal_bar": "open_date - 15 min (the candle whose enter_long opened the trade)",
+  "instrument": "key_of(NNMT_LR_RI_G24) == key_of(NNMT_LR_RI) (the MT_LR_RI_fNN signal tables are the g24 arm's model outputs); every trade's signal bar has enter_long == 1 in MT_LR_RI_fNN (share >= 0.995); early count == 3731. Any failure: INCONCLUSIVE, no score read."
+ },
+ "heads": {
+  "regime":   {"column": "p_regime_bull",   "direction": "+", "source": "MT_LR_RI_AH", "why_source": "weight 0 in the deployed model: its regime head is untrained (own-head skill margin -0.15 / -0.12, heads_descriptive_mt_lr_ri.json); the _ah model's passed skill (§9)"},
+  "risk":     {"column": "p_risk_high",     "direction": "-", "source": "MT_LR_RI", "why_source": "the deployed model's own trained head (skill +0.23 / +0.23)"},
+  "momentum": {"column": "p_momentum_up",   "direction": "+", "source": "MT_LR_RI", "why_source": "own trained head (skill +0.17 / +0.16)"},
+  "flow":     {"column": "p_flow_up",       "direction": "+", "source": "MT_LR_RI", "why_source": "own trained head (skill +0.22 / +0.21)"},
+  "profit":   {"column": "p_profit_profit", "direction": "+", "source": "MT_LR_RI_AH", "why_source": "weight 0 in the deployed model (own skill -0.22 / -0.20); the _ah model's passed skill (§9)"}
+ },
+ "descriptive": "the same five columns from the OTHER source (MT_LR_RI_AH for risk/momentum/flow; own MT_LR_RI for regime/profit), and the trading head's own p_buy (direction +), reported with no verdict",
+ "relevance_rule": {
+  "score": "the head column at the trade's signal bar, multiplied by -1 for direction '-'",
+  "gap_bottom20": "PRIMARY: within each fold, mean pp of the trades above that fold's 20th percentile of score minus mean pp of the trades at or below it; pooled as the trade-weighted mean over folds (the gate's question: are the trades it would skip worse?)",
+  "p_value": "one-sided fold-stratified permutation test of gap_bottom20 (scores shuffled within fold), 10,000 permutations, numpy default_rng(0)",
+  "partial": "Spearman partial correlation of score with pp given bb_width, pooled, and per fold (sign_folds = folds sharing the pooled sign)",
+  "pass": "gap_bottom20 > 0 AND p_value <= 0.01 (0.05 / 5 heads, Bonferroni) AND partial > 0 AND sign_folds >= 5 of 8, in the declared direction",
+  "reported": "gap_share50 (top half minus bottom half, within fold), coverage, rho with the model's p_buy"
+ },
+ "arm": {
+  "name": "hd_<head>_g24",
+  "spec": "mt_lr_ri_g24 + an entry veto: no entry when the head score (declared direction) is below the fold's threshold; nothing else changes (model key asserted == NNMT_LR_RI's)",
+  "threshold": "per fold, one process each: the 20th percentile of the score over the bars of that fold's validation tail (training data the weights never fit, as research.control_sizer.pick) where the model's entry fires (enter_long == 1), 4 dp; --verify: the regenerated fold class loads the stored threshold and vetoes exactly the bars below it",
+  "comparator": "mt_lr_ri_g24",
+  "judge": "research.nnnc_switches.judge.judge_one(hd_<head>_g24, mt_lr_ri_g24): early gain > 0, late gain > 0, paired not WORSENED, risk not WORSENED (maps as preregistration_screens.json); INCONCLUSIVE if no fold changed",
+  "seed": "a PASS is re-run on seed 2 (vs mt_lr_ri_g24_s2, thresholds re-picked at seed 2); every margin > 0 on both seeds",
+  "reported_beside": "DESCRIPTIVE: cs_aro_tr (65.35), w_free (57.37)",
+  "only_if": "the head passes the relevance rule; a failing head is recorded with no arm"
+ },
+ "adoption": "the user's call.",
+ "seen_before": [
+  "040 §9: all five heads relevance FAIL on the 412 width-book trades (momentum +0.000, risk +0.001, regime +0.006, profit +0.009, flow -0.039)",
+  "pre-040 single windows: apply_task_filters (3-of-4 head vote) -14.2 pp on the old network",
+  "mt_lr_ri_g24 P&L: 40.86 (seed 1) / 42.2 (seed 2), late half negative"
+ ]
+}
