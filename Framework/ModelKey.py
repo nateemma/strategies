@@ -396,7 +396,10 @@ def locate_for(cls, config: dict, class_name: str | None = None,
         if _plot(config):
             raise ModelMissing(f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}); a plot "
                                f"never trains: train with a backtest of this class first.")
-        if strict() or _live(config):
+        if strict() and not _live(config):
+            raise ModelMissing(f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}); strict "
+                               f"walk-forward evaluation refuses to train.")
+        if _live(config):
             raise ModelMissing(
                 f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}). A dry/live run "
                 f"never trains: train with a backtest of this class, or adopt existing keyed weights "

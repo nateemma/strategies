@@ -21,6 +21,7 @@ from NNNC_CS_ARO import NNNC_CS_ARO
 
 
 class NNNC_CS_HGB(NNNC_CS_ARO):
+    MODEL_KEY_IGNORED = ("HGB_SIGNALS",)  # where the sizer's scores are: post-model
     HGB_SIGNALS = Path(__file__).resolve().parents[2] / "data" / "hgb_sizer"
     _hgb_table = None
 

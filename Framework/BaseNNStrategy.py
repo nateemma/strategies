@@ -329,6 +329,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     )
     MODEL_KEY_METHODS_IGNORED = (
         "get_predictions", "process_predictions", "get_markov_matrix_path", "model_exists",
+        "_apply_atr_take_profit",  # BaseStrategy's exit resolver (overridable): post-model
     )
 
     def print_strategy_info(self):

@@ -415,6 +415,29 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # drive StopInvariantMixin; computes nothing.
     "evaluation/tests/test_fingerprint_switches.py",  # declares grace 12.0 on a subclass to
                                                         # assert its hash; computes nothing.
+    # --- 040 (NNMT) arms, written by research/nnmt/build_arms.py (allowlisted above): class-
+    # attribute ATR triples, the 24 h grace DecimalParameter, merged sell_params and the C2 value.
+    "NNMT/NNMT_LR_RI_CS.py",
+    "NNMT/NNMT_LR_RI_CS2.py",
+    "NNMT/NNMT_LR_RI_G24.py",
+    "NNMT/NNMT_LR_RI_TP.py",
+    "NNMT/NNMT_LR_RI_WB.py",
+    "NNMT/_pre_g24.py",                        # pins the pre-adoption 2.6 h grace into sell_params.
+    "NNMT/tests/test_framework_port.py",       # asserts the grace values per class.
+    # --- tb_model / reversal_selector (ATR-barrier study): values and replays only -----------
+    "NNNC/NNNC_W_ARO_TP2.py",                  # FAMILY_EXIT_OVERRIDES value (k = 2.0).
+    "SimpleTrigger/SimpleTrigger_MofN4of8_C2.py",  # FAMILY_EXIT_OVERRIDES value (C2 k).
+    "research/reversal_selector/screen.py",    # dataclasses.replace(grace 24 h) on ExitParams.
+    "research/tb_model/reentry.py",            # dataclasses.replace(take_profit_atr_mult=None).
+    "research/tb_model/tp2.py",                # dataclasses.replace(take_profit_atr_mult=None).
+    "research/tb_model/replay.py",             # forwards grace/C2 values into ExitParams/Rules.
+    "research/tb_model/tests/test_tp2.py",     # ExitParams fixtures; asserts the override value.
+    # The one exception that computes a level: the pre-registered tp2 arm's take-profit is
+    # k x ATR(14)/close of the signal bar, UNCLAMPED (research/tb_model/preregistration_tp2.json)
+    # -- deliberately not utils.ExitPolicy.atr_take_profit (k x atr_pct_roll, clamped [1%, 5%]),
+    # so there is no shared primitive for it to call. Not a copy of the clamp, the grace branch,
+    # the trail or the volume rescale; a variant arm (tp2 FAILED), not a default.
+    "NNNC/_atr14_take_profit.py",
 })
 
 

@@ -27,6 +27,7 @@ def _pct(x, knots):
 
 
 class NNNC_CS_MIX(NNNC_CS_CMP):
+    MODEL_KEY_IGNORED = ("MIX_KNOTS", "_knots")  # the sizer's knots: post-model
     MIX_KNOTS = Path(__file__).resolve().parents[2] / "data" / "mix_sizer"
     _knots = None
 

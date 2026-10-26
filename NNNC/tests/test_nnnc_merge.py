@@ -79,6 +79,9 @@ OVERRIDERS = {
     "NNNC_Breakout": True, "NNNC_BrkOra03": None, "NNNC_BrkOra02": None, "NNNC_BrkOra005": None,
     "NNNC_NoModel": None, "NNNC_Ora_Prec": None, "NNNC_Oracle": None,
     "NNNC_TriggerGate": None, "TriggerOnlyMixin": None,
+    # post-029 mixins: each calls super() first, then narrows (candidate rows, tr_gate) or
+    # re-tags (sizer) the model mask; the width book replaces it with its width rule.
+    "_candidate_training": True, "_transition_signal": True, "_width_sizer": True, "_width_book": True,
 }
 
 

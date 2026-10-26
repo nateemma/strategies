@@ -21,7 +21,7 @@ def pct(x, knots) -> np.ndarray:
 
 
 class MixSizerMixin:
-    MODEL_KEY_IGNORED = ("CMP_TABLES",)  # where the second score's tables are: post-model
+    MODEL_KEY_IGNORED = ("CMP_TABLES", "MIX_KNOTS", "_knots")  # the sizer's tables / knots: post-model
     CMP_TABLES = DATA / "cmp_sizer"
     MIX_KNOTS: Path = None          # per class: DATA / "mix_sizer_<model>"
     _cmp_table = None
