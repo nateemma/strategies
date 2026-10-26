@@ -76,8 +76,8 @@ while getopts :c:ln:st:-: OPT; do
     n | ndays )      needs_arg; num_days="$OPTARG"; set_start_date; timerange="${start_date}-${today}" ;;
     s | short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
-    --no-trades )    no_trades=1 ;;
-    --backtest-file ) needs_arg; backtest_file="$OPTARG" ;;
+    no-trades )      no_trades=1 ;;
+    backtest-file )  needs_arg; backtest_file="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
   esac
@@ -185,7 +185,7 @@ else
     # Try to find the most recent backtest result file
     backtest_results_dir="user_data/backtest_results"
     if [[ -d "${backtest_results_dir}" ]]; then
-        latest_file=$(ls -t ${backtest_results_dir}/backtest-result-*.json 2>/dev/null | head -1)
+        latest_file=$(ls -t ${backtest_results_dir}/backtest-result-*.zip 2>/dev/null | head -1)
         if [[ -n "${latest_file}" ]]; then
             # Extract just the filename, not the full path
             filename=$(basename "${latest_file}")

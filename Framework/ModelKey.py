@@ -278,6 +278,13 @@ def _live(config: dict) -> bool:
     return getattr(mode, "value", mode) in ("dry_run", "live")
 
 
+def _plot(config: dict) -> bool:
+    """plot-dataframe only reads signals: it never trains, so missing weights refuse (a model trained
+    on the plot window would plot in-sample signals)."""
+    mode = config.get("runmode")
+    return getattr(mode, "value", mode) == "plot"
+
+
 def resolve(cls, config: dict, storage: Path | None = None) -> dict:
     """The model key of strategy class `cls` under freqtrade `config`. Never instantiates.
     `storage` overrides the class's storage root (an instance-level override). A mainline class
@@ -369,7 +376,7 @@ def mainline_stem(storage: Path, key: dict) -> Path:
 
 def locate_for(cls, config: dict, class_name: str | None = None,
                storage: Path | None = None, keyed_only: bool = False) -> Location:
-    """Where `cls`'s weights are (see module docstring). Never trains; strict mode raises.
+    """Where `cls`'s weights are (see module docstring). Never trains; strict mode and plot mode raise.
     `keyed_only` ignores the mainline scheme (adopt-mainline reads the keyed weights). A mainline
     class with no mainline weights still finds weights it already has (index, class-named legacy
     directory, keyed directory), so nothing trained before mainline naming is orphaned."""
@@ -386,6 +393,9 @@ def locate_for(cls, config: dict, class_name: str | None = None,
         found = _existing(storage, name, key, h, prefix, new)
         if found is not None:
             return found
+        if _plot(config):
+            raise ModelMissing(f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}); a plot "
+                               f"never trains: train with a backtest of this class first.")
         if strict() or _live(config):
             raise ModelMissing(
                 f"{name}: no mainline weights at {stem.parent} (shape {prefix}__{hs}). A dry/live run "
@@ -395,6 +405,10 @@ def locate_for(cls, config: dict, class_name: str | None = None,
     found = _existing(storage, name, key, h, prefix, new)
     if found is not None:
         return found
+    if _plot(config):
+        raise ModelMissing(
+            f"{name}: no weights for model key {prefix}__{h}; a plot never trains (plot with the config "
+            f"the weights were trained under, and only its whitelisted pairs). Key: {canonical(key)}")
     if strict():
         raise ModelMissing(
             f"{name}: no weights for model key {prefix}__{h} (strict walk-forward evaluation "

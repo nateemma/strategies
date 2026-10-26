@@ -167,6 +167,18 @@ def test_plot_of_a_pair_outside_the_whitelist_is_not_redirected(storage):
     assert _h(_cls(), _with_pairs(["BTC/USDT"], RunMode.PLOT)) != _h(_cls())
 
 
+def test_plot_never_trains(storage):
+    from freqtrade.enums import RunMode
+
+    with pytest.raises(MK.ModelMissing, match="a plot never trains"):
+        MK.locate_for(_pinned(), _with_pairs(["BTC/USDT"], RunMode.PLOT))  # a pair outside the whitelist
+    with pytest.raises(MK.ModelMissing, match="a plot never trains"):
+        MK.locate_for(_pinned(), _with_pairs(["SOL/USDT"], RunMode.PLOT))  # whitelisted, never trained
+    assert not (storage / "models").exists()
+    loc = _train_stub(storage, _pinned())
+    assert MK.locate_for(_pinned(), _with_pairs(["SOL/USDT"], RunMode.PLOT)).path == loc.path
+
+
 def test_seed_defaults_to_mlx_seed_then_42(storage, monkeypatch):
     assert MK.resolve(_cls(), CONFIG)["run"]["seed"] == 42
     monkeypatch.setenv("MLX_SEED", "7")
@@ -333,13 +345,15 @@ def test_a_fold_of_a_mainline_class_keeps_the_keyed_scheme(storage):
         MK.resolve(fold, _with_wl([]))  # keyed: the whitelist is still required
 
 
-def test_mainline_dry_and_live_runs_never_train(storage):
+def test_mainline_dry_live_and_plot_runs_never_train(storage):
     from freqtrade.enums import RunMode
 
     for mode in (RunMode.DRY_RUN, RunMode.LIVE):
         with pytest.raises(MK.ModelMissing):
             MK.locate_for(_ml(), _with_wl([], mode))
     assert MK.locate_for(_ml(), _with_wl(["SOL/USDT"], RunMode.BACKTEST)).kind == "mainline-absent"
+    with pytest.raises(MK.ModelMissing, match="a plot never trains"):
+        MK.locate_for(_ml(), _with_wl(["SOL/USDT"], RunMode.PLOT))
 
 
 def test_mainline_training_writes_a_manifest_and_is_found_under_any_pairlist(storage):
