@@ -35,10 +35,10 @@ THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 
 
 def _strategy():
-    from NNMT.NNMT_MLX import NNMT_MLX
+    from NNMT.NNMT_MLX_Conv import NNMT_MLX_Conv
 
-    s = NNMT_MLX.__new__(NNMT_MLX)
-    s.include_list = list(NNMT_MLX.include_list)
+    s = NNMT_MLX_Conv.__new__(NNMT_MLX_Conv)
+    s.include_list = list(NNMT_MLX_Conv.include_list)
     s.debug_print = lambda *a, **k: None
     return s
 

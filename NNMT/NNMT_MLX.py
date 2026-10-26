@@ -1,73 +1,22 @@
-# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413
-# pragma pylint: disable=W0105, W1203, W1309, W1514, W0613, W0621,
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301
 # type: ignore
-# pylint: disable=import-error
+"""NNMT_MLX -- the NNMT family's default model since 2026-10-26 (user decision): NNMT_LR_RI, i.e. a plain
+shared LSTM (ARO's design, a dense decode head per task) on NNMT's 24 indicators + raw8, at ARO's operating
+point (guards open, prediction threshold 0.80), with NNMTStrategy's defaults (24 h grace, tr_scale).
 
-"""
-NNMT_MLX - Subclass of NNMTStrategy using MLX models
+040 evidence (research/nnmt/report.md): vs the old network at the same operating point it is ahead in both
+halves on both seeds (9.48 / 13.75 vs 8.55 / 10.04; paired UNCHANGED), every adopted NNMT result (g24,
+tr_scale) was measured on it, and it trains much faster. A subclass with nothing changed, so it has
+NNMT_LR_RI's model key and shares its weights. The pre-2026-10-26 network is NNMT_MLX_Conv.
 """
 
 import sys
 from pathlib import Path
-from pandas import DataFrame
-import numpy as np
-from typing import Dict, Tuple
 
-group_dir = str(Path(__file__).parent)
-sys.path.append(group_dir)
+sys.path.append(str(Path(__file__).parent))
 
-from NNMTStrategy import NNMTStrategy  # noqa: E402
-from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, MLXMultiTaskClassifierMixin
-
-# -----------
+from NNMT_LR_RI import NNMT_LR_RI
 
 
-class NNMT_MLX(MLXMultiTaskClassifierMixin, NNMTStrategy):
-
-    # MLX LSTM (default from MLXMultiTaskClassifierMixin). Subclasses set
-    # ``classifier_type`` to a different ClassifierTypeMLX value.
-    classifier_type = ClassifierTypeMLX.LSTM
-
-    # buy_params = { **NNMTStrategy.buy_params,
-    #     "prediction_threshold": 0.5,
-    #     }
-
-    # ------------------------------------------------------------------ #
-    # Classifier-side overrides — set on subclasses to push values onto   #
-    # the MLX classifier instance after construction. ``None`` leaves the #
-    # classifier's own default in place.                                  #
-    # ------------------------------------------------------------------ #
-    # Per-task loss-weight override (passed to clf.task_weights_override).
-    # _CLASSIFIER_TASK_WEIGHTS = None
-    # profit (MCC ~0.23) and regime (~0.37) are near-unlearnable and dilute the
-    # shared backbone -> disabled (weight 0). Keep the learnable aux heads.
-    _CLASSIFIER_TASK_WEIGHTS = {'trading': 4.0, 'regime': 0.0, 'risk': 1.0, 'momentum': 1.0, 'flow': 1.0, 'profit': 0.0}
-
-    # Training-epoch ceiling override (passed to clf.max_epochs).
-    _CLASSIFIER_MAX_EPOCHS = None
-    # Entropy-penalty applied to softmax outputs during training (passed
-    # to clf.entropy_penalty_weight). Pushes the model toward sharper,
-    # more confident per-bar predictions. Useful for backbones that
-    # naturally produce diffuse softmax (Attention/Transformer) — the
-    # strategy's filter benefits from sharp outputs even at equal MCC.
-    #
-    # Accepts:
-    #   * float                — same penalty across all six task heads.
-    #   * Dict[str, float]     — per-task penalty keyed by task name.
-    #     Missing tasks default to 0.0 (no pressure on that head). Use
-    #     when the strategy depends on specific heads (e.g. trading +
-    #     profit) and aux heads should be left to find their own
-    #     calibration. Typical: {"trading": 0.1, "profit": 0.1}.
-    # Default None disables. Useful values 0.01-0.5 per task.
-    # _CLASSIFIER_ENTROPY_PENALTY = None
-    # 2026-09-08: was {"trading": 0.5, "profit": 0.5, "regime": 0.5}. `profit`
-    # and `regime` both carry task weight 0.0 in _CLASSIFIER_TASK_WEIGHTS above,
-    # so their cross-entropy contributed nothing while their entropy penalty
-    # contributed fully -- those heads were being trained on confidence alone,
-    # with no signal about correctness, through a SHARED backbone. The framework
-    # now drops entropy for zero-weight heads defensively; this states the
-    # intent at the strategy level so the two dicts cannot silently disagree.
-    _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.5}
-
-    # _apply_classifier_overrides is inherited from BaseNNMTStrategy (it reads
-    # the _CLASSIFIER_* attrs above, including _CLASSIFIER_ENTROPY_PENALTY).
+class NNMT_MLX(NNMT_LR_RI):
+    pass

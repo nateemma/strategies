@@ -8,7 +8,7 @@ Weights the classifier loss entirely onto the trading head; the aux heads
 backbone trains on trading alone. In the head-weight study this was the
 best NNMT config (~+0.2pp paired over the 6-head baseline) — the aux heads
 provide no positive transfer, so concentrating capacity on trading wins.
-Compare to the default NNMT_MLX (trading 0.57, learnable aux kept).
+Compare to the default NNMT_MLX_Conv (trading 0.57, learnable aux kept).
 """
 
 import sys
@@ -16,12 +16,12 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_MLX_tronly(NNMT_MLX):
+class NNMT_MLX_tronly(NNMT_MLX_Conv):
 
-    # buy_params = { **NNMT_MLX.buy_params,
+    # buy_params = { **NNMT_MLX_Conv.buy_params,
     #     "entry_enable_guards": False,
     #     }
 

@@ -1,5 +1,5 @@
 """040 T016 (research R1): NNMT carries the NNNC entry framework with every feature off, and the port
-does not move NNMT_MLX's model key (so mt_fw0 reuses mt's per-fold weights). Trade identity is proven
+does not move NNMT_MLX_Conv's model key (so mt_fw0 reuses mt's per-fold weights). Trade identity is proven
 on the 15 folds (research.nnmt.judge identity), not here."""
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ for p in (STRAT, STRAT / "NNMT"):
         sys.path.insert(0, str(p))
 
 from Framework import ModelKey as MK  # noqa: E402
-from NNMT.NNMT_MLX import NNMT_MLX  # noqa: E402
+from NNMT.NNMT_MLX_Conv import NNMT_MLX_Conv  # noqa: E402
 from NNMT.NNMTStrategy import NNMTStrategy  # noqa: E402
 from utils.EntryFramework import EntryFrameworkMixin  # noqa: E402
 
-#: NNMT_MLX's model key (pinned f00 window, two-pair config) recorded BEFORE the port, after the 040
+#: NNMT_MLX_Conv's model key (pinned f00 window, two-pair config) recorded BEFORE the port, after the 040
 #: key hygiene (T014). The port must not change it.
 PRE_PORT_KEY = "a975211fa4e1f219"
 CONFIG = {"exchange": {"pair_whitelist": ["SOL/USDT", "LINK/USDT"]}, "timeframe": "15m"}
@@ -53,7 +53,7 @@ def test_model_tags_are_basestrategys():
 
 
 def test_the_port_does_not_move_the_model_key():
-    pinned = type("NNMT_MLX_f", (NNMT_MLX,), {"MODEL_TRAIN_TIMERANGE": "20210101-20230101"})
+    pinned = type("NNMT_MLX_f", (NNMT_MLX_Conv,), {"MODEL_TRAIN_TIMERANGE": "20210101-20230101"})
     assert MK.key_hash(MK.resolve(pinned, CONFIG)) == PRE_PORT_KEY
 
 
@@ -67,7 +67,7 @@ def test_g24_is_the_default_and_the_040_records_pin_what_they_ran():
     from NNMT.NNMT_MLX_PreG24 import NNMT_MLX_PreG24
 
     assert NNMTStrategy.sell_params["stoploss_grace_hours"] == 24.0
-    assert NNMT_MLX.sell_params["stoploss_grace_hours"] == 24.0
+    assert NNMT_MLX_Conv.sell_params["stoploss_grace_hours"] == 24.0
     assert NNMT_LR_RI.sell_params["stoploss_grace_hours"] == 24.0
     assert NNMT_MLX_PreG24.sell_params["stoploss_grace_hours"] == 2.6
     assert NNMT_LR_RI_PreG24.sell_params["stoploss_grace_hours"] == 2.6

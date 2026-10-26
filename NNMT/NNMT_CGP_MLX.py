@@ -19,13 +19,13 @@ from typing import Any
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMT_MLX import NNMT_MLX  # noqa: E402
+from NNMT_MLX_Conv import NNMT_MLX_Conv  # noqa: E402
 from GANs.GANType import GANType  # noqa: E402
 
 
-class NNMT_CGP_MLX(NNMT_MLX):
+class NNMT_CGP_MLX(NNMT_MLX_Conv):
 
-    buy_params = { **NNMT_MLX.buy_params,
+    buy_params = { **NNMT_MLX_Conv.buy_params,
         "prediction_threshold": 0.45,
         }
 

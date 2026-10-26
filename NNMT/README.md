@@ -22,11 +22,15 @@ Full results: `research/nnmt/report.md`.
 - **As it stands NNMT is guard-decided:** model-decided share 0.001 (21.00 pp over the 15 folds vs
   `cs_aro` 59.95). At the operating point (guards open) the model decides (share 0.84) but the late half
   loses (−18 pp).
-- **Model variants:** `NNMT_LR_RI` (plain LSTM on raw8 + the 24 indicators, `_nnmt_inputs.py`) is the
-  selected base, confirmed at seed 2 but only "no worse, slightly better" than `NNMT_MLX` at the operating
-  point. Raw-only inputs lose ~20 pp early.
-- **Defaults: none changed.** Candidate: 24 h stop-loss grace (`mt_lr_ri_g24`, PASS both seeds,
-  +15.6/+15.8 pp per half); held-pair add, gbb gate (near-inert here), C2 take-profit FAIL.
+- **Model variants:** `NNMT_LR_RI` (plain LSTM on raw8 + the 24 indicators, `_nnmt_inputs.py`, at ARO's
+  operating point) is the selected base, confirmed at seed 2 but only "no worse, slightly better" than the
+  old network (now `NNMT_MLX_Conv`) at the operating point. Raw-only inputs lose ~20 pp early.
+- **`NNMT_MLX` IS `NNMT_LR_RI` since 2026-10-26** (user decision; same model key, shared weights; also much
+  faster to train). The pre-2026-10-26 network (Conv preamble + LSTM, LSTM head per task, NNMT guards) is
+  `NNMT_MLX_Conv`; every class and record that used it now inherits it from there (keys unchanged).
+- **Defaults adopted 2026-10-24 (on `NNMTStrategy`):** 24 h stop-loss grace (`mt_lr_ri_g24`, PASS both
+  seeds, 40.9 / 42.2) and the `tr_scale` exposure scaler (PASS both seeds); 040 records pin the old
+  values (`_pre_g24.py`). Held-pair add, gbb gate (near-inert here), C2 take-profit FAIL.
 - **Auxiliary heads: don't use.** Each beats its persistence baseline, none ranks width-book trades; a
   trading-head-only twin shows no evidence multi-task training helps. The `p_buy` sizer on `w_aro`'s book
   passes at seed 1 and fails at seed 2.

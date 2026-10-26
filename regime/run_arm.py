@@ -53,7 +53,7 @@ SCRATCH = STRAT_DIR / "regime/.scratch"
 DEFAULT_CONFIG = STRAT_DIR / "config/config.json"
 
 # Which subdirectory of user_data/strategies holds the host strategy.
-STRATEGY_GROUP = {"NNNC_MLX": "NNNC", "NNMT_MLX": "NNMT"}
+STRATEGY_GROUP = {"NNNC_MLX": "NNNC", "NNMT_MLX": "NNMT", "NNMT_MLX_Conv": "NNMT"}
 
 
 def strategy_group(strategy: str) -> str:

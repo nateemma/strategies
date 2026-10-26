@@ -17,13 +17,13 @@ import mlx.core as mx
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMT_MLX import NNMT_MLX  # noqa: E402
+from NNMT_MLX_Conv import NNMT_MLX_Conv  # noqa: E402
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 
 
-class NNMT_MLX_MultiLSTM(NNMT_MLX):
+class NNMT_MLX_MultiLSTM(NNMT_MLX_Conv):
 
     classifier_type = ClassifierTypeMLX.Multi_LSTM
 

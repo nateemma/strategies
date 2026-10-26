@@ -64,7 +64,7 @@ class NNMTStrategy(TrScaleMixin, StakeWeightMixin, EntryFrameworkMixin, BaseNNSt
     # tr_scale_mt PASS both seeds vs mt_lr_ri_g24 (44.91 / 49.47 vs 40.86; research/nnmt/verdicts_trscale_ext.json,
     # one capital-limited f08 entry recorded). The scaler reads the book's tagged mask, so model entries are
     # tagged reversion:model (enter_tag only: FAMILY_EXITS is empty); StakeWeightMixin is the unit stake it
-    # scales. Untested on guard-on NNMT_MLX. The 040 records pin it off (_pre_g24.py).
+    # scales. Untested on guard-on NNMT_MLX_Conv. The 040 records pin it off (_pre_g24.py).
     MODEL_ENTRY_FAMILY = "reversion"
     TR_UP_CELL = "up_pair_96"
     TR_DOWN_CELL = "down_pair_672"
@@ -186,7 +186,7 @@ class NNMTStrategy(TrScaleMixin, StakeWeightMixin, EntryFrameworkMixin, BaseNNSt
         "exit_rvol_threshold": 1.0,
         # 040 (2026-10-24, user decision): stop-loss grace 2.6 h -> 24 h, as NNNC (ed6049b). Walk-forward
         # on NNMT_LR_RI at the operating point: PASS both seeds (+15.6/+15.8 and +15.5/+13.0 pp per half,
-        # Sharpe IMPROVED; research/nnmt/report.md section 8). Untested on guard-on NNMT_MLX. The 040
+        # Sharpe IMPROVED; research/nnmt/report.md section 8). Untested on guard-on NNMT_MLX_Conv. The 040
         # records ran 2.6 h: their <Class>_PreG24 twins (_pre_g24.py) pin it.
         "stoploss_grace_hours": 24.0,
     }
@@ -223,7 +223,7 @@ class NNMTStrategy(TrScaleMixin, StakeWeightMixin, EntryFrameworkMixin, BaseNNSt
     # First-hour stop-loss grace (BaseStrategy): hold a wide stop for the
     # first 3h, then tighten to the -5% stop. Restores the "don't stop out on
     # entry noise" behaviour the confirm_trade_exit min-hold used to provide.
-    # Sweep best (NNMT_MLX, no-retrain): 3h/-0.15 -> +3.4% vs -17% at 0h.
+    # Sweep best (NNMT_MLX_Conv, no-retrain): 3h/-0.15 -> +3.4% vs -17% at 0h.
     # Default 24h since 040 (2026-10-24; sell_params above, range now 0-48h).
     stoploss_grace_hours = DecimalParameter(
         0.0, 48.0, default=24.0, decimals=1, space="sell", load=True, optimize=True

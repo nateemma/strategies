@@ -17,7 +17,7 @@ This class pins the configuration as it stood BEFORE that work:
 
 Everything else is NNMT's own — the six swept entry guards, the 0.5 confidence
 threshold, the 21-day maximum hold and the 2.0 exit-side relative-volume gate
-are inherited from NNMT_MLX untouched, because NNMT overrides them itself and
+are inherited from NNMT_MLX_Conv untouched, because NNMT overrides them itself and
 they were never affected by the NNNC work.
 
 ``buy_params`` / ``sell_params`` are deliberately NOT redefined here: a fresh
@@ -25,7 +25,7 @@ literal silently drops every inherited key (recorded failure — a strategy ran
 with its stoploss grace disabled, undetected). The two pinned values arrive
 through NNMT_MLX_Base.json, which freqtrade merges OVER the class dicts.
 
-``get_model_path`` aliases NNMT_MLX's weights. Without it BaseNNStrategy keys
+``get_model_path`` aliases NNMT_MLX_Conv's weights. Without it BaseNNStrategy keys
 the model directory off ``self.__class__.__name__`` and this class would train
 its own model INSIDE the backtest, fitting the evaluation window and returning
 different numbers with no error at all.
@@ -36,10 +36,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_MLX_Base(NNMT_MLX):
+class NNMT_MLX_Base(NNMT_MLX_Conv):
 
     # Pre-inheritance label. Every NNMT model on disk was trained against this
     # value; the framework default moved to 0.02 for NNNC's benefit.
@@ -47,5 +47,5 @@ class NNMT_MLX_Base(NNMT_MLX):
     MIN_SELL_LOSS_THRESHOLD = 0.007
 
     def get_model_path(self) -> str:
-        """Reuse NNMT_MLX's weights — the control retrains nothing."""
-        return self.get_storage_location() + "NNMT_MLX/" + "NNMT_MLX.keras"
+        """Reuse NNMT_MLX_Conv's weights — the control retrains nothing."""
+        return self.get_storage_location() + "NNMT_MLX_Conv/" + "NNMT_MLX_Conv.keras"

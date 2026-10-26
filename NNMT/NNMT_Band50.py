@@ -22,7 +22,7 @@ True) -- hence a subclass.
 
 NOT re-testing multiplier 15, which regressed ~3pp on NNNC and is closed.
 
-get_model_path is pinned to NNMT_MLX so this pure re-parameterisation LOADS that
+get_model_path is pinned to NNMT_MLX_Conv so this pure re-parameterisation LOADS that
 model instead of training a fresh one inside its own backtest (the base
 implementation keys off self.__class__.__name__).
 """
@@ -32,10 +32,10 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_Band50(NNMT_MLX):
+class NNMT_Band50(NNMT_MLX_Conv):
 
     atr_stoploss_multiplier = 5.0
     atr_stoploss_floor = -0.08
@@ -43,4 +43,4 @@ class NNMT_Band50(NNMT_MLX):
 
     def get_model_path(self) -> str:
         # PIN to the parent's trained weights -- exit-only re-parameterisation.
-        return self.get_storage_location() + "NNMT_MLX/" + "NNMT_MLX.keras"
+        return self.get_storage_location() + "NNMT_MLX_Conv/" + "NNMT_MLX_Conv.keras"

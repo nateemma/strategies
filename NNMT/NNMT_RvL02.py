@@ -14,7 +14,7 @@ Label population over 1,813,739 bars (committed gbb_path):
 NNNC's gate (2.0) is deliberately BELOW it -- that is a property of a gate
 that passes 0.08% of bars, not of the parameter.
 
-Judge on W1 realised return against NNMT_MLX's control, then W2/W3: three sweeps
+Judge on W1 realised return against NNMT_MLX_Conv's control, then W2/W3: three sweeps
 this session produced W1 winners that reversed on W2, so a single-window gain
 is not evidence.
 
@@ -27,9 +27,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_RvL02(NNMT_MLX):
+class NNMT_RvL02(NNMT_MLX_Conv):
 
     LABEL_RVOL_THRESHOLD = 0.2

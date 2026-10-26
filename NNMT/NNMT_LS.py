@@ -12,8 +12,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from _nnmt_operating_point import OperatingPointMixin
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_LS(OperatingPointMixin, NNMT_MLX):
+class NNMT_LS(OperatingPointMixin, NNMT_MLX_Conv):
     classifier_type = ClassifierTypeMLX.LSTM_STACK

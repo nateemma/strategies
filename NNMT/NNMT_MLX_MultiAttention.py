@@ -17,19 +17,19 @@ import mlx.core as mx
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMT_MLX import NNMT_MLX  # noqa: E402
+from NNMT_MLX_Conv import NNMT_MLX_Conv  # noqa: E402
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 
 
-class NNMT_MLX_MultiAttention(NNMT_MLX):
+class NNMT_MLX_MultiAttention(NNMT_MLX_Conv):
 
                                                                                                                                                                     
     # _CLASSIFIER_ENTROPY_PENALTY = 0.05
     _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.10, "profit": 0.05}
 
-    buy_params = { **NNMT_MLX.buy_params,
+    buy_params = { **NNMT_MLX_Conv.buy_params,
         "prediction_threshold": 0.5,
         "profit_prediction_threshold": 0.45
         }

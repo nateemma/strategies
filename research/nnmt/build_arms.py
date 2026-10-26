@@ -36,8 +36,8 @@ CONFIG = {"exchange": {"pair_whitelist": ["SOL/USDT"]}, "timeframe": "15m"}
 
 #: model stage: arm tag -> (class, note)
 MODELS = {
-    "mt": ("NNMT_MLX", "NNMT at its defaults, before the framework port (the identity reference)"),
-    "mt_fw0": ("NNMT_MLX", "NNMT at its defaults on the framework base, everything off (identity)"),
+    "mt": ("NNMT_MLX_Conv", "NNMT at its defaults, before the framework port (the identity reference)"),
+    "mt_fw0": ("NNMT_MLX_Conv", "NNMT at its defaults on the framework base, everything off (identity)"),
     "mt_op": ("NNMT_MLX_OP", "NNMT at ARO's operating point (guards open, threshold 0.80)"),
     "mt_raw": ("NNMT_Raw", "current network on raw8, at the operating point"),
     "mt_lr": ("NNMT_LR", "plain multi-task LSTM (LSTM_RAW) on the 24 indicators, at the operating point"),

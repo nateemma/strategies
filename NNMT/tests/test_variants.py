@@ -1,4 +1,4 @@
-"""040 T020 + T026 (research R4, R6): ARO's operating point on NNMT reuses NNMT_MLX's weights and keeps
+"""040 T020 + T026 (research R4, R6): ARO's operating point on NNMT reuses NNMT_MLX_Conv's weights and keeps
 every parent key; the four model variants have the inputs R6 lists, distinct model keys, and causal
 raw8 inputs."""
 from __future__ import annotations
@@ -21,7 +21,7 @@ from NNMT.NNMT_LR import NNMT_LR  # noqa: E402
 from NNMT.NNMT_LR_Raw import NNMT_LR_Raw  # noqa: E402
 from NNMT.NNMT_LR_RI import NNMT_LR_RI  # noqa: E402
 from NNMT.NNMT_LS import NNMT_LS  # noqa: E402
-from NNMT.NNMT_MLX import NNMT_MLX  # noqa: E402
+from NNMT.NNMT_MLX_Conv import NNMT_MLX_Conv  # noqa: E402
 from NNMT.NNMT_MLX_OP import NNMT_MLX_OP  # noqa: E402
 from NNMT.NNMT_Raw import NNMT_Raw  # noqa: E402
 from NNPredict._inputs import R8  # noqa: E402
@@ -39,17 +39,17 @@ def test_operating_point_is_aros_and_keeps_every_parent_key():
     bp = NNMT_MLX_OP.buy_params
     for k, v in aro.items():
         assert bp[k] == v, k
-    assert set(NNMT_MLX.buy_params) <= set(bp)
-    assert bp["profit_prediction_threshold"] == NNMT_MLX.buy_params["profit_prediction_threshold"]
-    assert NNMT_MLX_OP.sell_params == NNMT_MLX.sell_params  # NNMT's exits unchanged
+    assert set(NNMT_MLX_Conv.buy_params) <= set(bp)
+    assert bp["profit_prediction_threshold"] == NNMT_MLX_Conv.buy_params["profit_prediction_threshold"]
+    assert NNMT_MLX_OP.sell_params == NNMT_MLX_Conv.sell_params  # NNMT's exits unchanged
 
 
 def test_operating_point_reuses_the_weights():
-    assert _key(NNMT_MLX_OP) == _key(NNMT_MLX)
+    assert _key(NNMT_MLX_OP) == _key(NNMT_MLX_Conv)
 
 
 def test_variant_keys_are_distinct():
-    keys = {c.__name__: _key(c) for c in (NNMT_MLX, NNMT_Raw, NNMT_LR, NNMT_LR_Raw, NNMT_LR_RI, NNMT_LS)}
+    keys = {c.__name__: _key(c) for c in (NNMT_MLX_Conv, NNMT_Raw, NNMT_LR, NNMT_LR_Raw, NNMT_LR_RI, NNMT_LS)}
     assert len(set(keys.values())) == 6, keys
 
 
@@ -78,9 +78,9 @@ def test_inputs_are_what_r6_lists():
     assert _inputs(NNMT_Raw, df.copy()) == R8
     assert _inputs(NNMT_LR_Raw, df.copy()) == R8
     ri = _inputs(NNMT_LR_RI, df.copy())
-    assert ri[: len(NNMT_MLX.include_list)] == list(NNMT_MLX.include_list) and ri[-len(R8):] == R8
+    assert ri[: len(NNMT_MLX_Conv.include_list)] == list(NNMT_MLX_Conv.include_list) and ri[-len(R8):] == R8
     assert NNMT_LR.classifier_type.name == NNMT_LR_Raw.classifier_type.name == NNMT_LR_RI.classifier_type.name == "LSTM_RAW"
-    assert NNMT_Raw.classifier_type == NNMT_MLX.classifier_type
+    assert NNMT_Raw.classifier_type == NNMT_MLX_Conv.classifier_type
 
 
 @pytest.mark.parametrize("cut", [300, 450, 599])
@@ -92,3 +92,13 @@ def test_raw8_inputs_are_causal(cut):
     part = pd.DataFrame(raw8_columns(df.iloc[:cut].copy()))
     pd.testing.assert_frame_equal(full.iloc[:cut].reset_index(drop=True), part.reset_index(drop=True),
                                   rtol=1e-6)
+
+
+def test_nnmt_mlx_is_the_lr_ri_model():
+    """2026-10-26 (user decision): NNMT_MLX is NNMT_LR_RI (same key, shared weights); the old network is
+    NNMT_MLX_Conv, whose key is distinct."""
+    from NNMT.NNMT_MLX import NNMT_MLX
+
+    assert _key(NNMT_MLX) == _key(NNMT_LR_RI) != _key(NNMT_MLX_Conv)
+    assert NNMT_MLX.classifier_type == NNMT_LR_RI.classifier_type and NNMT_MLX.INPUT_SET == "raw_ind"
+

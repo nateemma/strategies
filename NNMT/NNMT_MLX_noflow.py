@@ -22,17 +22,17 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNMT_MLX import NNMT_MLX
+from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 
-class NNMT_MLX_noflow(NNMT_MLX):
+class NNMT_MLX_noflow(NNMT_MLX_Conv):
 
     # The model must participate in EXITS or the arms are
     # indistinguishable: with this False, 67% of exits are a
     # trailing stop and the network has no say at all.
     # MERGE from the parent -- a fresh dict silently drops inherited keys.
     sell_params = {
-        **NNMT_MLX.sell_params,
+        **NNMT_MLX_Conv.sell_params,
         "enable_exit_signal": True,
     }
 
