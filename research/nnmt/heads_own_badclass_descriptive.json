@@ -1,0 +1,117 @@
+{
+ "label": "DESCRIPTIVE, not pre-registered (2026-10-26 follow-up question): bad-class columns, direction '-' (veto when P(bad) is in the fold's top 20%)",
+ "results": {
+  "p_momentum_down@MT_LR_RI": {
+   "gap_bottom20": 0.0012,
+   "p_value": 0.49605,
+   "partial": 0.025896722374913746,
+   "sign_folds": 5,
+   "gap_share50": 0.1896,
+   "rho_p_buy": 0.08836670124353156
+  },
+  "p_momentum_stable@MT_LR_RI": {
+   "gap_bottom20": 0.2678,
+   "p_value": 0.0398,
+   "partial": -0.0048706631209754,
+   "sign_folds": 5,
+   "gap_share50": 0.0241,
+   "rho_p_buy": -0.05032984713200968
+  },
+  "p_flow_down@MT_LR_RI": {
+   "gap_bottom20": 0.0056,
+   "p_value": 0.48305,
+   "partial": -0.005411141024688368,
+   "sign_folds": 6,
+   "gap_share50": 0.139,
+   "rho_p_buy": 0.1393089595320733
+  },
+  "p_flow_neutral@MT_LR_RI": {
+   "gap_bottom20": 0.1005,
+   "p_value": 0.25457,
+   "partial": 0.01304490558484824,
+   "sign_folds": 6,
+   "gap_share50": -0.0516,
+   "rho_p_buy": -0.12702453152564896
+  },
+  "p_risk_low@MT_LR_RI": {
+   "gap_bottom20": -0.1196,
+   "p_value": 0.79012,
+   "partial": -0.015277212665435514,
+   "sign_folds": 4,
+   "gap_share50": 0.1787,
+   "rho_p_buy": -0.306302124740607
+  },
+  "p_regime_bear@MT_LR_RI": {
+   "gap_bottom20": 0.1134,
+   "p_value": 0.22948,
+   "partial": 0.016744524580676986,
+   "sign_folds": 6,
+   "gap_share50": 0.1111,
+   "rho_p_buy": -0.07565132175846612
+  },
+  "p_profit_loss@MT_LR_RI": {
+   "gap_bottom20": 0.0238,
+   "p_value": 0.43006,
+   "partial": 0.030564133645965663,
+   "sign_folds": 6,
+   "gap_share50": 0.0214,
+   "rho_p_buy": 0.26256722345896316
+  },
+  "p_momentum_down@MT_LR_RI_AH": {
+   "gap_bottom20": -0.0359,
+   "p_value": 0.59084,
+   "partial": 0.017637880322083594,
+   "sign_folds": 5,
+   "gap_share50": 0.1875,
+   "rho_p_buy": 0.08183800279034074
+  },
+  "p_momentum_stable@MT_LR_RI_AH": {
+   "gap_bottom20": 0.3038,
+   "p_value": 0.0231,
+   "partial": -0.009716076108338271,
+   "sign_folds": 5,
+   "gap_share50": 0.0942,
+   "rho_p_buy": -0.053127445858511556
+  },
+  "p_flow_down@MT_LR_RI_AH": {
+   "gap_bottom20": -0.095,
+   "p_value": 0.73753,
+   "partial": -0.009267664995893033,
+   "sign_folds": 6,
+   "gap_share50": 0.0999,
+   "rho_p_buy": 0.14757840759105545
+  },
+  "p_flow_neutral@MT_LR_RI_AH": {
+   "gap_bottom20": 0.1149,
+   "p_value": 0.22748,
+   "partial": 0.020177536086905336,
+   "sign_folds": 6,
+   "gap_share50": -0.0471,
+   "rho_p_buy": -0.12902673530435296
+  },
+  "p_risk_low@MT_LR_RI_AH": {
+   "gap_bottom20": -0.2068,
+   "p_value": 0.91741,
+   "partial": -0.015490319568290408,
+   "sign_folds": 4,
+   "gap_share50": 0.1995,
+   "rho_p_buy": -0.2907211506658399
+  },
+  "p_regime_bear@MT_LR_RI_AH": {
+   "gap_bottom20": -0.494,
+   "p_value": 0.9991,
+   "partial": 0.0009280819893897842,
+   "sign_folds": 4,
+   "gap_share50": 0.0884,
+   "rho_p_buy": -0.11158939732572237
+  },
+  "p_profit_loss@MT_LR_RI_AH": {
+   "gap_bottom20": -0.5866,
+   "p_value": 1.0,
+   "partial": -0.10793665391965765,
+   "sign_folds": 8,
+   "gap_share50": -0.658,
+   "rho_p_buy": -0.3914937550898053
+  }
+ }
+}
