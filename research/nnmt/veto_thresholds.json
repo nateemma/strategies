@@ -1,0 +1,188 @@
+{
+ "hd_atr_g24": {
+  "20210101-20230101": 0.003824,
+  "20210101-20230401": 0.003544,
+  "20210101-20230630": 0.003135,
+  "20210101-20230928": 0.00299,
+  "20210101-20231227": 0.003918,
+  "20210101-20240326": 0.005013,
+  "20210101-20240624": 0.004553,
+  "20210101-20240922": 0.003883,
+  "20210101-20241221": 0.003981,
+  "20210101-20250321": 0.00429,
+  "20210101-20250619": 0.00416,
+  "20210101-20250917": 0.003846,
+  "20210101-20251216": 0.003618,
+  "20210101-20260316": 0.003316,
+  "20210101-20260614": 0.003307
+ },
+ "_picks": {
+  "hd_atr_g24:f00:s1": {
+   "entry_bars": 6196,
+   "finite": 6196,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f00:s1": {
+   "entry_bars": 6196,
+   "finite": 6196,
+   "vetoed_share": 0.2003
+  },
+  "hd_atr_g24:f01:s1": {
+   "entry_bars": 9009,
+   "finite": 9009,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f01:s1": {
+   "entry_bars": 9009,
+   "finite": 9009,
+   "vetoed_share": 0.1999
+  },
+  "hd_atr_g24:f02:s1": {
+   "entry_bars": 7987,
+   "finite": 7987,
+   "vetoed_share": 0.1997
+  },
+  "hd_profit_g24:f02:s1": {
+   "entry_bars": 7987,
+   "finite": 7987,
+   "vetoed_share": 0.2005
+  },
+  "hd_atr_g24:f03:s1": {
+   "entry_bars": 8175,
+   "finite": 8175,
+   "vetoed_share": 0.1998
+  },
+  "hd_profit_g24:f03:s1": {
+   "entry_bars": 8175,
+   "finite": 8175,
+   "vetoed_share": 0.2001
+  },
+  "hd_atr_g24:f04:s1": {
+   "entry_bars": 13406,
+   "finite": 13406,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f04:s1": {
+   "entry_bars": 13406,
+   "finite": 13406,
+   "vetoed_share": 0.1999
+  },
+  "hd_atr_g24:f05:s1": {
+   "entry_bars": 23308,
+   "finite": 23308,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f05:s1": {
+   "entry_bars": 23308,
+   "finite": 23308,
+   "vetoed_share": 0.2
+  },
+  "hd_atr_g24:f06:s1": {
+   "entry_bars": 26000,
+   "finite": 26000,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f06:s1": {
+   "entry_bars": 26000,
+   "finite": 26000,
+   "vetoed_share": 0.2001
+  },
+  "hd_atr_g24:f07:s1": {
+   "entry_bars": 26238,
+   "finite": 26238,
+   "vetoed_share": 0.1999
+  },
+  "hd_profit_g24:f07:s1": {
+   "entry_bars": 26238,
+   "finite": 26238,
+   "vetoed_share": 0.2002
+  },
+  "hd_atr_g24:f08:s1": {
+   "entry_bars": 30705,
+   "finite": 30705,
+   "vetoed_share": 0.2001
+  },
+  "hd_profit_g24:f08:s1": {
+   "entry_bars": 30705,
+   "finite": 30705,
+   "vetoed_share": 0.2
+  },
+  "hd_atr_g24:f09:s1": {
+   "entry_bars": 39195,
+   "finite": 39195,
+   "vetoed_share": 0.2001
+  },
+  "hd_profit_g24:f09:s1": {
+   "entry_bars": 39195,
+   "finite": 39195,
+   "vetoed_share": 0.1999
+  },
+  "hd_atr_g24:f10:s1": {
+   "entry_bars": 41453,
+   "finite": 41453,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f10:s1": {
+   "entry_bars": 41453,
+   "finite": 41453,
+   "vetoed_share": 0.1998
+  },
+  "hd_atr_g24:f11:s1": {
+   "entry_bars": 38688,
+   "finite": 38688,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f11:s1": {
+   "entry_bars": 38688,
+   "finite": 38688,
+   "vetoed_share": 0.1999
+  },
+  "hd_atr_g24:f12:s1": {
+   "entry_bars": 38498,
+   "finite": 38498,
+   "vetoed_share": 0.2001
+  },
+  "hd_profit_g24:f12:s1": {
+   "entry_bars": 38498,
+   "finite": 38498,
+   "vetoed_share": 0.2001
+  },
+  "hd_atr_g24:f13:s1": {
+   "entry_bars": 35528,
+   "finite": 35528,
+   "vetoed_share": 0.1999
+  },
+  "hd_profit_g24:f13:s1": {
+   "entry_bars": 35528,
+   "finite": 35528,
+   "vetoed_share": 0.2
+  },
+  "hd_atr_g24:f14:s1": {
+   "entry_bars": 35424,
+   "finite": 35424,
+   "vetoed_share": 0.2
+  },
+  "hd_profit_g24:f14:s1": {
+   "entry_bars": 35424,
+   "finite": 35424,
+   "vetoed_share": 0.2001
+  }
+ },
+ "hd_profit_g24": {
+  "20210101-20230101": 0.2917,
+  "20210101-20230401": 0.2916,
+  "20210101-20230630": 0.2873,
+  "20210101-20230928": 0.2797,
+  "20210101-20231227": 0.3072,
+  "20210101-20240326": 0.3288,
+  "20210101-20240624": 0.3187,
+  "20210101-20240922": 0.3088,
+  "20210101-20241221": 0.3317,
+  "20210101-20250321": 0.3368,
+  "20210101-20250619": 0.3381,
+  "20210101-20250917": 0.3311,
+  "20210101-20251216": 0.3348,
+  "20210101-20260316": 0.335,
+  "20210101-20260614": 0.3345
+ }
+}
