@@ -64,6 +64,10 @@ def lagged_columns(df: DataFrame) -> dict[str, pd.Series]:
 class InputSetMixin:
     INPUT_SET: str = "raw_ind"
     MODEL_KEY_ATTRIBUTES = ("INPUT_SET",)
+    # model_inputs shapes the weights, but it is a pure function of INPUT_SET (above) and the family's
+    # include_list, so it is classified as covered rather than hashed (hashing re-keys every input-set
+    # model, incl. the adopted ones; user decision 2026-10-26). Editing its body = MODEL_CODE_VERSION bump.
+    MODEL_KEY_METHODS_IGNORED = ("model_inputs",)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

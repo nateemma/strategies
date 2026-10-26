@@ -45,6 +45,11 @@ class LabelParamsMixin:
     MODEL_KEY_ATTRIBUTES = (
         "LABEL_PARAMS", "LABEL_PARAMS_SELL",
     )
+    # _filtered shapes the labels, but its behaviour is set by key attributes (LABEL_FILTER_WINDOW / HORIZON
+    # here, LABEL_PEAK_FILTER in AtrBarrierLabelMixin's override), so it is classified as covered rather than
+    # hashed (hashing re-keys every label-params model; user decision 2026-10-26). Editing its body (or the
+    # override's) = MODEL_CODE_VERSION bump.
+    MODEL_KEY_METHODS_IGNORED = ("_filtered",)
 
     def _label_params(self, side: str) -> dict:
         base = {
