@@ -16,7 +16,12 @@ group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNNCStrategy import NNNCStrategy
-from NNNClassifierMLX import MLXClassifierMixin, ClassifierTypeMLX
+try:
+    from NNNClassifierMLX import MLXClassifierMixin, ClassifierTypeMLX
+except ModuleNotFoundError as e:  # no MLX on this host: stay importable for the _TF twins
+    if not (e.name or "").startswith("mlx"):
+        raise
+    from utils.MLXAbsent import MLXClassifierMixin, ClassifierTypeMLX
 
 
 class NNNC_MLX(MLXClassifierMixin, NNNCStrategy):

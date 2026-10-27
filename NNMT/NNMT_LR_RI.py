@@ -11,7 +11,12 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from _nnmt_operating_point import OperatingPointMixin
 from _nnmt_inputs import NNMTInputSetMixin
-from NNMT.NNMTClassifierMLX import ClassifierTypeMLX
+try:
+    from NNMT.NNMTClassifierMLX import ClassifierTypeMLX
+except ModuleNotFoundError as e:  # no MLX on this host: stay importable for the _TF twins
+    if not (e.name or "").startswith("mlx"):
+        raise
+    from utils.MLXAbsent import ClassifierTypeMLX
 from NNMT_MLX_Conv import NNMT_MLX_Conv
 
 

@@ -34,6 +34,7 @@ gap, add a pointer to this file.
 | How are experiments run and judged? | **Walk-forward folds** below; `evaluation/README.md`; `regime/WALKFORWARD_POWER.md` |
 | How does the shared entry layer work (NNNC and SimpleTrigger)? | `utils/EntryFramework.py` docstring; `SimpleTrigger/README.txt`; `specs/029-nnnc-simpletrigger-merge/` |
 | Where are a strategy's weights? | **Model keys** below; `Framework/ModelKey.py`; `scripts/model_index.py key <Class>` |
+| How do I run the NN strategies without Apple's MLX? | **Running without MLX (TensorFlow twins)** below |
 | Which labels exist, and which family does each imply? | `Framework/TrainingSignals.py` (`LabelMethod`); `utils/LabelFamilies.py` |
 | Which entry triggers exist? | `research/outcomes/triggers.py` (the registry) |
 | Market depth, liquidity, venues | `us_spot_market_study.md`; `regime/LIQUIDITY_STUDY.md`; `regime/EXCHANGE_VENUES.md` |
@@ -698,6 +699,37 @@ What follows:
   - `verify-bytes` snapshots or compares every weight file;
   - `audit` runs the classification test.
 - **Arm records** carry `model_key` (hash, prefix, kind) for the model the backtest loaded.
+
+### Running without MLX (TensorFlow twins)
+
+The default NN models are written for Apple's MLX. Their TensorFlow twins run on any host with
+TensorFlow (Linux, NVIDIA, Intel Mac):
+
+| MLX class | TensorFlow twin | Model |
+|---|---|---|
+| `NNNC_A_Raw_Open` (ARO) | `NNNC_A_Raw_Open_TF` | `NNNC/NNNClassifierTF.py` (LSTM_RAW) |
+| `NNNC_CS_ARO` (the NNNC reference) | `NNNC_CS_ARO_TF` (plan `evaluation/folds/plan_cs_aro_tf.json`) | same weights as `NNNC_A_Raw_Open_TF` |
+| `NNMT_LR_RI` (= `NNMT_MLX`) | `NNMT_LR_RI_TF` | `NNMT/NNMTClassifierTF.py` (multi-task LSTM_RAW) |
+
+- A twin is `class X_TF(TFClassifierMixin, X)`. Only the model's framework changes: same
+  architecture, MLX's initialisers, and MLX's training loop re-implemented
+  (`Predictors/TFPort*`: MLX's Adam without bias correction, global-norm clipping, val-MCC
+  checkpointing, patience). It has its own model key (`classifier_type`, `get_classifier`, and
+  `tensor_method = 1`, which builds MLX's tensor in numpy, on every host), so it never loads MLX
+  weights by accident. NNNC twins need their own `.json`, copied from the parent's.
+- Without MLX, the MLX classes still import (`utils/MLXAbsent.py` stands in), so the twins can
+  subclass them; running an MLX class there raises and names its twin.
+- **Two ways to get weights.** (1) Train the twin like any class (backtest it, or `run_folds.py`
+  with its plan). Expect different weights from MLX's, so per-fold thresholds picked from MLX
+  predictions (cs_aro's `thresholds`) must be re-picked (`research/control_sizer/pick.py`).
+  (2) Convert the MLX weights on the Mac that trained them: `scripts/convert_mlx_to_tf.py --mlx
+  NNNC_CS_ARO --tf NNNC_CS_ARO_TF --plan evaluation/folds/plan_cs_aro.json`. It refuses unless the
+  converted model's softmax matches MLX's (max |diff| <= 1e-4).
+- Verified 2026-10-27, on converted weights: cs_aro_tf f00 and f14 trades are identical to
+  cs_aro's (trades_hash, stakes, profit). For NNMT_LR_RI f00, all head probabilities are within
+  1e-6 and entries are identical on 77,769 bars. Tests: `NNNC/tests/test_tf_port_nnnc.py` and
+  `NNMT/tests/test_tf_port_nnmt.py`. Run each directory separately: both are packages named
+  `tests`.
 
 ### 9. Dry run
 ```zsh

@@ -3,7 +3,12 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from NNNClassifierMLX import ClassifierTypeMLX
+try:
+    from NNNClassifierMLX import ClassifierTypeMLX
+except ModuleNotFoundError as e:  # no MLX on this host: stay importable for the _TF twins
+    if not (e.name or "").startswith("mlx"):
+        raise
+    from utils.MLXAbsent import ClassifierTypeMLX
 from NNNC_MLX_Lbl02 import NNNC_MLX_Lbl02
 
 

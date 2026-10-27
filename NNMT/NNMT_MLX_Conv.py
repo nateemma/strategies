@@ -20,7 +20,12 @@ group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNMTStrategy import NNMTStrategy  # noqa: E402
-from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, MLXMultiTaskClassifierMixin
+try:
+    from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, MLXMultiTaskClassifierMixin
+except ModuleNotFoundError as e:  # no MLX on this host: stay importable for the _TF twins
+    if not (e.name or "").startswith("mlx"):
+        raise
+    from utils.MLXAbsent import ClassifierTypeMLX, MLXMultiTaskClassifierMixin
 
 # -----------
 
