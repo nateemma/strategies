@@ -11,6 +11,9 @@ model's P(profit), run in-process) and its model-free twin hd_atr_g24 (veto on a
   judge              the amended rule                                        -> verdicts_own_trade_heads.json
 
     PYTHONPATH=.:evaluation ../../.venv/bin/python -m research.nnmt.head_veto build
+
+Seed 2: run_folds --plan plan_<arm>_s2.json --seed 2 appends a second _s2 (records <arm>_fNN_s2_s2_FNN.json); rename
+them to the plan's arm_tag (<arm>_fNN_s2_FNN.json) and judge through research.nnmt.judge._by_plan_arm_tag.
 """
 from __future__ import annotations
 
